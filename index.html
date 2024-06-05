@@ -1,1 +1,24 @@
 EvalError: Identifier 'extractTextValues' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+
+
+function extractTextValues(obj) {
+  let textValues = [];
+  
+  function recursiveExtract(obj) {
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        if (typeof obj[key] === 'object') {
+          recursiveExtract(obj[key]);
+        } else if (key === '#text') {
+          textValues.push(obj[key]);
+        }
+      }
+    }
+  }
+  
+  recursiveExtract(obj);
+  return textValues;
+}
+
+const textValues = extractTextValues(jsonData);
+console.log(textValues);
