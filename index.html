@@ -32,148 +32,126 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-@WebServlet("/ContractDetailsServlet")
-public class getRailLCDetails extends HttpServlet {
+@WebServlet("/GetRailLCDetails")
+public class GetRailLCDetails extends HttpServlet {
     private static final long serialVersionUID = 1L;
-    
-    // This method handles HTTP GET requests
+
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-    	String requestType = request.getParameter("reqType");
+        String requestType = request.getParameter("reqType");
         String contractId = request.getParameter("contractId");
-        
+
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
-    	try
-    	{
-        response.setContentType("application/json");
-        conn = DSManager.getConnection("CET");
-        
 
-        if (requestType.equals("getContractDetails") && contractId != null && !contractId.isEmpty()) {
-            try {
-                // Establish database connection
-                String query = "SELECT LC_DETAIL FROM RAIL_LC";
-                pstmt = conn.prepareStatement(query);
-                rs = pstmt.executeQuery();
-
-                List<String> contractList = new ArrayList<>();
-                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                DocumentBuilder builder = factory.newDocumentBuilder();
-
-                // Iterate over the result set
-                while (rs.next()) {
-                    String lcDetailXml = rs.getString("LC_DETAIL");
-
-                    if (lcDetailXml != null && !lcDetailXml.trim().isEmpty()) {
-                        // Remove the XML declaration if present
-                        lcDetailXml = lcDetailXml.replaceFirst("^<\\?xml.*\\?>", "").trim();
-                        System.out.println("lcDetailXml is :"+lcDetailXml);
-                        
-                        try {
-                            // Parse the XML into a DOM document
-                            InputSource is = new InputSource(new StringReader(lcDetailXml)); 
-                            Document doc = builder.parse(is);
-                            System.out.println("doc is :"+doc);
-                            if (doc != null) {
-                                // Navigate to CONTRACT elements
-                                NodeList contractNodes = doc.getElementsByTagName("CONTRACTDTL");
-                                System.out.println("contractNodes is :"+contractNodes);
-                                System.out.println("contractNodes length is :"+contractNodes.getLength());
-                                for (int i = 0; i < contractNodes.getLength(); i++) {
-                                    Element contractElement = (Element) contractNodes.item(i);
-                                    String currentContractId = contractElement.getElementsByTagName("CONTRACTID").item(0).getTextContent();
-
-                                    // Check if the contract ID matches the requested contract ID
-                                    if (currentContractId.equals(contractId)) {
-                                        contractList.add(nodeToString(contractElement));
-                                    }
-                                }
-                            } else {
-                                System.err.println("Document parsing resulted in null");
-                            }
-                        } catch (Exception e) {
-                            System.err.println("Error parsing XML: " + lcDetailXml);
-                            e.printStackTrace();
-                        }
-                    } else {
-                        System.err.println("Empty or null LC_DETAIL encountered");
-                    }
-                }
-
-                // Convert the contract list to JSON
-                Gson gs = new Gson();
-                String jsonList = gs.toJson(contractList);
-                System.out.println("list is " + jsonList);
-
-                // Send the JSON response
-                response.setContentType("application/json");
-                response.getWriter().write(jsonList);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }else if(requestType.equals("validateContractID") && contractId != null && !contractId.isEmpty()) {
-            try {
-                System.out.println("Validating contractId: " + contractId);
-                
-                String query = "SELECT STATUS, LC_NO FROM INIS_MASTER WHERE CONTRACT_ID = ?";
-                pstmt = conn.prepareStatement(query);
-                pstmt.setString(1, contractId);
-                rs = pstmt.executeQuery();
-                
-                if (rs.next()) {
-                    String status = rs.getString("STATUS");
-                    String lcNo = rs.getString("LC_NO");
-                    
-                    // Create a JSON object to hold the response data
-                    JSONObject responseJson = new JSONObject();
-                    responseJson.put("contractId", contractId);
-                    responseJson.put("status", status);
-                    responseJson.put("lcNo", lcNo);
-                    
-                    // Convert the JSON object to a string and send it as the response
-                    String jsonResponse = responseJson.toString();
-                    response.setContentType("application/json");
-                    response.getWriter().write(jsonResponse);
-                } else {
-                    // Contract ID not found
-                    response.getWriter().write("{\"error\": \"Invalid Contract ID, Please check\"}");
-                }
-                
-            } catch (Exception e) {
-                e.printStackTrace();
-                response.getWriter().write("{\"error\": \"An error occurred\"}");
-            }
-        }
-else {
-            // Send an invalid request response if the request is not valid
-            response.getWriter().write("Invalid request");
-        }
-    
-    }catch (Exception e)
-        {
-        e.printStackTrace();
-        System.out.println("Exception1 for raillc");
-      } finally {
         try {
-          if (conn != null) {
-            conn.close();
-          }
-          if (rs != null) {
-            rs.close();
-          }
-          if (pstmt != null)
-            pstmt.close();
+            response.setContentType("application/json");
+            conn = DSManager.getConnection("CET");
+
+            if (requestType.equals("getContractDetails") && contractId != null && !contractId.isEmpty()) {
+                try {
+                    String query = "SELECT LC_DETAIL FROM RAIL_LC";
+                    pstmt = conn.prepareStatement(query);
+                    rs = pstmt.executeQuery();
+
+                    List<String> contractList = new ArrayList<>();
+                    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder builder = factory.newDocumentBuilder();
+
+                    while (rs.next()) {
+                        String lcDetailXml = rs.getString("LC_DETAIL");
+                        System.out.println("lcDetailXml is :" + lcDetailXml);
+
+                        if (lcDetailXml != null && !lcDetailXml.trim().isEmpty()) {
+                            lcDetailXml = lcDetailXml.replaceFirst("^<\\?xml.*\\?>", "").trim();
+
+                            try {
+                                InputSource is = new InputSource(new StringReader(lcDetailXml));
+                                Document doc = builder.parse(is);
+                                System.out.println("doc is :" + doc);
+
+                                if (doc != null) {
+                                    NodeList contractNodes = doc.getElementsByTagName("CONTRACTDTL");
+                                    System.out.println("contractNodes length is :" + contractNodes.getLength());
+
+                                    for (int i = 0; i < contractNodes.getLength(); i++) {
+                                        Element contractElement = (Element) contractNodes.item(i);
+                                        String currentContractId = contractElement.getElementsByTagName("CONTRACTID").item(0).getTextContent();
+
+                                        if (currentContractId.equals(contractId)) {
+                                            contractList.add(nodeToString(contractElement));
+                                        }
+                                    }
+                                } else {
+                                    System.err.println("Document parsing resulted in null");
+                                }
+                            } catch (Exception e) {
+                                System.err.println("Error parsing XML: " + lcDetailXml);
+                                e.printStackTrace();
+                            }
+                        } else {
+                            System.err.println("Empty or null LC_DETAIL encountered");
+                        }
+                    }
+
+                    Gson gs = new Gson();
+                    String jsonList = gs.toJson(contractList);
+                    System.out.println("list is " + jsonList);
+                    response.getWriter().write(jsonList);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else if (requestType.equals("validateContractID") && contractId != null && !contractId.isEmpty()) {
+                try {
+                    System.out.println("Validating contractId: " + contractId);
+
+                    String query = "SELECT STATUS, LC_NO FROM INIS_MASTER WHERE CONTRACT_ID = ?";
+                    pstmt = conn.prepareStatement(query);
+                    pstmt.setString(1, contractId);
+                    rs = pstmt.executeQuery();
+
+                    if (rs.next()) {
+                        String status = rs.getString("STATUS");
+                        String lcNo = rs.getString("LC_NO");
+
+                        JSONObject responseJson = new JSONObject();
+                        responseJson.put("contractId", contractId);
+                        responseJson.put("status", status);
+                        responseJson.put("lcNo", lcNo);
+
+                        String jsonResponse = responseJson.toString();
+                        response.getWriter().write(jsonResponse);
+                    } else {
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\": \"Invalid Contract ID, Please check\"}");
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"An error occurred\"}");
+                }
+            } else {
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\": \"Invalid request\"}");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Exception for GetRailLCDetails");
+        } finally {
+            try {
+                if (conn != null) conn.close();
+                if (rs != null) rs.close();
+                if (pstmt != null) pstmt.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("Exception while closing resources");
+            }
         }
-        catch (Exception e) { 
-          e.printStackTrace();
-          System.out.println("Exception2 for raillc");
-        }
-      }
     }
 
-    // Utility method to convert a DOM node to a string
     private String nodeToString(Node node) throws Exception {
         StringWriter sw = new StringWriter();
         Transformer t = TransformerFactory.newInstance().newTransformer();
