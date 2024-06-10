@@ -32,8 +32,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-@WebServlet("/GetRailLCDetails")
-public class GetRailLCDetails extends HttpServlet {
+
+public class getRailLCDetails extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -50,6 +50,7 @@ public class GetRailLCDetails extends HttpServlet {
 
             if (requestType.equals("getContractDetails") && contractId != null && !contractId.isEmpty()) {
                 try {
+                	System.out.println("requestType is :" + requestType +"AND "+ contractId);
                     String query = "SELECT LC_DETAIL FROM RAIL_LC";
                     pstmt = conn.prepareStatement(query);
                     rs = pstmt.executeQuery();
@@ -63,10 +64,14 @@ public class GetRailLCDetails extends HttpServlet {
                         System.out.println("lcDetailXml is :" + lcDetailXml);
 
                         if (lcDetailXml != null && !lcDetailXml.trim().isEmpty()) {
+                        	
+                        	System.out.println("lcDetailXml is :" + (lcDetailXml != null && !lcDetailXml.trim().isEmpty()));
                             lcDetailXml = lcDetailXml.replaceFirst("^<\\?xml.*\\?>", "").trim();
 
                             try {
+                            	System.out.println("-------------inside try block -----------------");
                                 InputSource is = new InputSource(new StringReader(lcDetailXml));
+                                System.out.println("InputSource is :" + new InputSource(new StringReader(lcDetailXml)));
                                 Document doc = builder.parse(is);
                                 System.out.println("doc is :" + doc);
 
@@ -87,7 +92,7 @@ public class GetRailLCDetails extends HttpServlet {
                                 }
                             } catch (Exception e) {
                                 System.err.println("Error parsing XML: " + lcDetailXml);
-                                e.printStackTrace();
+                                e.printStackTrace(); 
                             }
                         } else {
                             System.err.println("Empty or null LC_DETAIL encountered");
@@ -104,6 +109,7 @@ public class GetRailLCDetails extends HttpServlet {
                 }
             } else if (requestType.equals("validateContractID") && contractId != null && !contractId.isEmpty()) {
                 try {
+                	System.out.println("requestType is :" + requestType );
                     System.out.println("Validating contractId: " + contractId);
 
                     String query = "SELECT STATUS, LC_NO FROM INIS_MASTER WHERE CONTRACT_ID = ?";
