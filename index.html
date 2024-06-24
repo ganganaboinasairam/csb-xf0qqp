@@ -1,1 +1,34 @@
+package storexml;
 
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.util.logging.Logger;
+
+public class StoreXML {
+    private static final String URL = "jdbc:oracle:thin:@localhost:1521:XE";
+    private static final String USER = "SAIRAM";
+    private static final String PASSWORD = "SAIRAM";
+
+    public static Connection con;
+    public static Logger logg = Logger.getLogger("Log1");
+
+    public StoreXML(InputStream pathxml, String contract) throws Exception {
+        con = DriverManager.getConnection(URL, USER, PASSWORD);
+        logg.info("Connected to the database");
+
+        PreparedStatement pstmt = null;
+
+        if (pathxml != null) {
+            String sql = "INSERT INTO RAIL_LC(fid, xmlfile) VALUES (?, ?)";
+            pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, contract); // Set contract ID
+            pstmt.setAsciiStream(2, pathxml); // Set XML file input stream
+            pstmt.executeUpdate();
+            con.commit();
+            pstmt.close();
+            con.close();
+        }
+    }
+}
