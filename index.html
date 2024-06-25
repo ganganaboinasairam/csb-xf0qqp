@@ -1,6 +1,9 @@
 package com.cs.ceweb.servlets;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -11,99 +14,64 @@ import org.json.JSONObject;
 
 import com.cs.core.dao.DSManager;
 
-public class getRailLCDetailss extends HttpServlet{
-	
-	 /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+public class GetRailLCDetails extends HttpServlet {
 
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		 
-		 String requestType = request.getParameter("reqType");
-	        String contractId = request.getParameter("contractId");
-			java.sql.Connection conn =null;
-			java.sql.PreparedStatement pstmt =null;
-			java.sql.ResultSet rs=null;
-			try {
-	            response.setContentType("application/json");
-	            conn = DSManager.getConnection("CET");
-			if (requestType.equals("getContractDetails") && contractId != null && !contractId.isEmpty()) {
-	try {
-       
-		conn = DSManager.getConnection("CET");
-        String query = "SELECT STATUS, LC_NO FROM INIS_MASTER WHERE CONTRACT_ID = ?";
-        pstmt = conn.prepareStatement(query);
-        pstmt.setString(1, contractId);
-        rs = pstmt.executeQuery();
+    private static final long serialVersionUID = 1L;
 
-        if (rs.next()) {
-            String status = rs.getString("STATUS");
-            String lcNo = rs.getString("LC_NO");
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String requestType = request.getParameter("reqType");
+        String contractId = request.getParameter("contractId");
 
-            JSONObject responseJson = new JSONObject();
-            responseJson.put("contractId", contractId);
-            responseJson.put("status", status);
-            responseJson.put("lcNo", lcNo);
-
-            String jsonResponse = responseJson.toString();
-            response.getWriter().write(jsonResponse);
-        } else {
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Invalid Contract ID, Please check\"}");
+        if (contractId == null || contractId.isEmpty() || requestType == null || requestType.isEmpty()) {
+            sendErrorResponse(response, "Invalid request");
+            return;
         }
 
-    } catch (Exception e) {
-        e.printStackTrace();
-        response.setContentType("application/json");
-        response.getWriter().write("{\"error\": \"An error occurred\"}");
-    }
-	} else if (requestType.equals("validateContractID") && contractId != null && !contractId.isEmpty()) {
-        try {
-            System.out.println("Validating contractId: " + contractId);
+        try (Connection conn = DSManager.getConnection("CET")) {
+            response.setContentType("application/json");
 
-            String query = "SELECT STATUS, LC_NO FROM INIS_MASTER WHERE CONTRACT_ID = ?";
-            pstmt = conn.prepareStatement(query);
-            pstmt.setString(1, contractId);
-            rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                String status = rs.getString("STATUS");
-                String lcNo = rs.getString("LC_NO");
-
-                JSONObject responseJson = new JSONObject();
-                responseJson.put("contractId", contractId);
-                responseJson.put("status", status);
-                responseJson.put("lcNo", lcNo);
-
-                String jsonResponse = responseJson.toString();
-                response.getWriter().write(jsonResponse);
+            if ("getContractDetails".equals(requestType)) {
+                processRequest(conn, response, contractId);
+            } else if ("validateContractID".equals(requestType)) {
+                processRequest(conn, response, contractId);
             } else {
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\": \"Invalid Contract ID, Please check\"}");
+                sendErrorResponse(response, "Invalid request");
             }
-
         } catch (Exception e) {
             e.printStackTrace();
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"An error occurred\"}");
+            sendErrorResponse(response, "An error occurred");
         }
-    } else {
-        response.setContentType("application/json");
-        response.getWriter().write("{\"error\": \"Invalid request\"}");
     }
-	 } catch (Exception e) {
-         e.printStackTrace();
-         System.out.println("Exception for GetRailLCDetails");
-finally{
-	try{
-		
-		if (rs!=null) rs.close();
-		if (pstmt!=null) pstmt.close();
-		if (conn!=null) conn.close();
-	}catch(Exception e){
-		e.printStackTrace();
-	}
-}
-}
+
+    private void processRequest(Connection conn, HttpServletResponse response, String contractId) throws IOException {
+        String query = "SELECT STATUS, LC_NO FROM INIS_MASTER WHERE CONTRACT_ID = ?";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, contractId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    String status = rs.getString("STATUS");
+                    String lcNo = rs.getString("LC_NO");
+
+                    JSONObject responseJson = new JSONObject();
+                    responseJson.put("contractId", contractId);
+                    responseJson.put("status", status);
+                    responseJson.put("lcNo", lcNo);
+
+                    String jsonResponse = responseJson.toString();
+                    response.getWriter().write(jsonResponse);
+                } else {
+                    sendErrorResponse(response, "Invalid Contract ID, Please check");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendErrorResponse(response, "An error occurred");
+        }
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\": \"" + errorMessage + "\"}");
+    }
 }
