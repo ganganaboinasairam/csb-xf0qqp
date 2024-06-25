@@ -1,108 +1,19 @@
-package com.tcs.xml;
-
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Properties;
-import java.util.logging.Logger;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.Element;
-import storexml.StoreXML;
-
-public class SFTPFile {
-    public static Logger logg = Logger.getLogger("Log1");
-    public static String lcda = null;
-    public static String outbox = "";
-    public static String remoteFile = "";
-    static String outputPath = "";
-    public static String remoteFile1 = "";
-    StoreXML str_xml;
-    public static ChannelSftp sftpChannel = null;
-    JSch jsch = new JSch();
-    Session session = null;
-    Properties pr = new Properties();
-
-    public void processLocalFiles() {
-        Properties pr = new Properties();
-        try {
-            pr.load(new FileInputStream("properties/XmlReadPath.properties"));
-            String localDir = pr.getProperty("localDir");
-            logg.info("Processing files from local directory: " + localDir);
-
-            Files.newDirectoryStream(Paths.get(localDir), "*.xml").forEach(path -> {
-                try (InputStream is = Files.newInputStream(path)) {
-                    logg.info("Processing file: " + path);
-
-                    DocumentBuilderFactory docbuildFactory = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder docBuilder = docbuildFactory.newDocumentBuilder();
-                    Document doc = docBuilder.parse(is);
-
-                    NodeList contractList = doc.getElementsByTagName("CONTRACTDTL");
-
-                    for (int i = 0; i < contractList.getLength(); i++) {
-                        Element contractElement = (Element) contractList.item(i);
-                        String contractId = contractElement.getElementsByTagName("CONTRACTID").item(0).getTextContent();
-
-                        logg.info("Generated contract ID: " + contractId);
-
-                        // Store XML content in the database
-                        StoreXML str_xml = new StoreXML(contractElement, contractId);
-                        logg.info("Record inserted in database successfully: " + contractId);
-                    }
-
-                    // Simulate file removal after processing
-                    Files.delete(path);
-
-                    // Call success method after processing
-                    success();
-
-                } catch (Exception e) {
-                    logg.severe("Failed to process file: " + path);
-                    logg.severe("Error message: " + e.getMessage());
-                    fail(e);
-                }
-            });
-
-        } catch (Exception e) {
-            logg.info("Failed to load properties or process files.");
-            fail(e);
-            e.printStackTrace();
-        }
-    }
-
-    public static void success() {
-        logg.info("Success Acknowledgement generated.");
-    }
-
-    public static void fail(Exception e) {
-        logg.info("Failure Acknowledgement generated.");
-        logg.severe(e.getMessage());
-    }
-
-    public static void main(String[] args) {
-        SFTPFile sftpFile = new SFTPFile();
-        sftpFile.processLocalFiles();
-    }
-}
-
-
-
 package storexml;
 
 import db.DBConnection;
+import java.io.ByteArrayInputStream;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Element;
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 
 public class StoreXML {
     public static Connection con;
@@ -143,10 +54,13 @@ public class StoreXML {
 
     private String elementToString(Element element) {
         try {
-            return javax.xml.transform.dom.DOMSource(new javax.xml.transform.dom.DOMSource(element))
-                    .withWriter(new StringWriter())
-                    .writeTo(new StreamResult())
-                    .toString();
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(element), new StreamResult(writer));
+            return writer.toString();
         } catch (Exception e) {
             logg.severe("Error converting element to string: " + e.getMessage());
             return "";
