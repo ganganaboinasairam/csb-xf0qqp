@@ -23,7 +23,7 @@ public class SFTPFile {
             pr.load(new FileInputStream("properties/XmlReadPath.properties"));
             String localDir = pr.getProperty("localDir");
             logg.info("Processing files from local directory: " + localDir);
-
+ 
             Files.newDirectoryStream(Paths.get(localDir), "*.xml")
                 .forEach(path -> {
                     try (InputStream is = Files.newInputStream(path)) {
