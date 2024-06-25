@@ -1,31 +1,155 @@
-<?xml version="1.0" encoding="UTF-8"?><CONTRACTLIST>
-<CONTRACTDTL>
-		<CONTRACTID>00869190008810</CONTRACTID>
-		<CONTRACTNO>00869190008810</CONTRACTNO>
-		<CONTRACT_DATE>26&#47;10&#47;2019</CONTRACT_DATE>
-		<CONTRACT_VALUE>4829700</CONTRACT_VALUE>
-		<CONTRACT_NATURE>W</CONTRACT_NATURE>
-		<CONTRACT_DESC>ZONAL work under ADEN&#47;W&#47;Itarsi : White wash, colour wash, distempering emulsion et. (Chapter 11 Items 112040, 115010 TO 115012, 117050 TO 117092) under ADEN&#47;W&#47;Itarsi (2019-20)</CONTRACT_DESC>
-		<TENDERNO>WCR-BPL-W-19-20-HQ-9-100</TENDERNO>
-		<VENDOR_ID>86919</VENDOR_ID>
-		<VENDOR_NAME>LAXMI NARAYAN PANTHI-BHOPAL</VENDOR_NAME>
-		<VENDOR_ADDR>122 private bijli nagar colony</VENDOR_ADDR>
-		<MMISRLYID>16</MMISRLYID>
-		<IPASRLYID>36</IPASRLYID>
-		<IPASPARTYCODE>MM16:86919</IPASPARTYCODE>
-	</CONTRACTDTL>
-	<CONTRACTDTL>
-		<CONTRACTID>00874640007571</CONTRACTID>
-		<CONTRACTNO>00874640007571</CONTRACTNO>
-		<CONTRACT_DATE>04&#47;10&#47;2019</CONTRACT_DATE>
-		<CONTRACT_VALUE>1374956.26</CONTRACT_VALUE>
-		<CONTRACT_NATURE>W</CONTRACT_NATURE>
-		<CONTRACT_DESC>Washing of Linens for Combined Rest Room amp; Running Room at KRP,KNJ, STB, BNJ,GEDE,RHA,HNB,NH and DDJ for a period of 02 (two) yrs</CONTRACT_DESC>
-		<TENDERNO>OP-SDAH-OT-19-006</TENDERNO>
-		<VENDOR_ID>87464</VENDOR_ID>
-		<VENDOR_NAME>BISWAMONI SUPPLIER-HOOGHLY.</VENDOR_NAME>
-		<VENDOR_ADDR>2&#47;9A,KAPASDANGA,SHIBTALA,NEAR SAKTI SANGHA,P.O- HOOGHLY,DIST-HOOGHLY</VENDOR_ADDR>
-		<MMISRLYID>02</MMISRLYID>
-		<IPASRLYID>02</IPASRLYID>
-		<IPASPARTYCODE>MM02:87464</IPASPARTYCODE>
-	</CONTRACTDTL></CONTRACTLIST>
+package com.tcs.xml;
+
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Properties;
+import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Element;
+import storexml.StoreXML;
+
+public class SFTPFile {
+    public static Logger logg = Logger.getLogger("Log1");
+    public static String lcda = null;
+    public static String outbox = "";
+    public static String remoteFile = "";
+    static String outputPath = "";
+    public static String remoteFile1 = "";
+    StoreXML str_xml;
+    public static ChannelSftp sftpChannel = null;
+    JSch jsch = new JSch();
+    Session session = null;
+    Properties pr = new Properties();
+
+    public void processLocalFiles() {
+        Properties pr = new Properties();
+        try {
+            pr.load(new FileInputStream("properties/XmlReadPath.properties"));
+            String localDir = pr.getProperty("localDir");
+            logg.info("Processing files from local directory: " + localDir);
+
+            Files.newDirectoryStream(Paths.get(localDir), "*.xml").forEach(path -> {
+                try (InputStream is = Files.newInputStream(path)) {
+                    logg.info("Processing file: " + path);
+
+                    DocumentBuilderFactory docbuildFactory = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder docBuilder = docbuildFactory.newDocumentBuilder();
+                    Document doc = docBuilder.parse(is);
+
+                    NodeList contractList = doc.getElementsByTagName("CONTRACTDTL");
+
+                    for (int i = 0; i < contractList.getLength(); i++) {
+                        Element contractElement = (Element) contractList.item(i);
+                        String contractId = contractElement.getElementsByTagName("CONTRACTID").item(0).getTextContent();
+
+                        logg.info("Generated contract ID: " + contractId);
+
+                        // Store XML content in the database
+                        StoreXML str_xml = new StoreXML(contractElement, contractId);
+                        logg.info("Record inserted in database successfully: " + contractId);
+                    }
+
+                    // Simulate file removal after processing
+                    Files.delete(path);
+
+                    // Call success method after processing
+                    success();
+
+                } catch (Exception e) {
+                    logg.severe("Failed to process file: " + path);
+                    logg.severe("Error message: " + e.getMessage());
+                    fail(e);
+                }
+            });
+
+        } catch (Exception e) {
+            logg.info("Failed to load properties or process files.");
+            fail(e);
+            e.printStackTrace();
+        }
+    }
+
+    public static void success() {
+        logg.info("Success Acknowledgement generated.");
+    }
+
+    public static void fail(Exception e) {
+        logg.info("Failure Acknowledgement generated.");
+        logg.severe(e.getMessage());
+    }
+
+    public static void main(String[] args) {
+        SFTPFile sftpFile = new SFTPFile();
+        sftpFile.processLocalFiles();
+    }
+}
+
+
+
+package storexml;
+
+import db.DBConnection;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.util.logging.Logger;
+import org.w3c.dom.Element;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+
+public class StoreXML {
+    public static Connection con;
+    public static Logger logg = Logger.getLogger("Log1");
+
+    public StoreXML(Element contractElement, String contractId) throws Exception {
+        DBConnection db = new DBConnection();
+        con = db.getConnection();
+        logg.info("Inside store xml class to store data in database");
+        PreparedStatement pstmt = null;
+
+        if (contractElement != null) {
+            try {
+                con.setAutoCommit(false); // Turn off auto-commit mode
+
+                String sql = "INSERT INTO store_files(fid, xmlfile) VALUES (?, ?)";
+                pstmt = con.prepareStatement(sql);
+                pstmt.setString(1, contractId);
+
+                // Convert Element to InputStream
+                String xmlString = elementToString(contractElement);
+                ByteArrayInputStream xmlStream = new ByteArrayInputStream(xmlString.getBytes(StandardCharsets.UTF_8));
+
+                pstmt.setAsciiStream(2, xmlStream);
+                pstmt.executeUpdate();
+                con.commit(); // Commit the transaction
+                logg.info("Record inserted successfully with contract ID: " + contractId);
+            } catch (Exception e) {
+                con.rollback(); // Rollback the transaction in case of error
+                logg.severe("Failed to insert record with contract ID: " + contractId);
+                throw e;
+            } finally {
+                if (pstmt != null) pstmt.close();
+                if (con != null) con.close();
+            }
+        }
+    }
+
+    private String elementToString(Element element) {
+        try {
+            return javax.xml.transform.dom.DOMSource(new javax.xml.transform.dom.DOMSource(element))
+                    .withWriter(new StringWriter())
+                    .writeTo(new StreamResult())
+                    .toString();
+        } catch (Exception e) {
+            logg.severe("Error converting element to string: " + e.getMessage());
+            return "";
+        }
+    }
+}
