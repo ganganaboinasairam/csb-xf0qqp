@@ -1,69 +1,109 @@
-package storexml;
+package com.cs.ceweb.servlets;
 
-import db.DBConnection;
-import java.io.ByteArrayInputStream;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.util.logging.Logger;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import org.w3c.dom.Element;
+import java.io.IOException;
 
-public class StoreXML {
-    public static Connection con;
-    public static Logger logg = Logger.getLogger("Log1");
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-    public StoreXML(Element contractElement, String contractId) throws Exception {
-        DBConnection db = new DBConnection();
-        con = db.getConnection();
-        logg.info("Inside store xml class to store data in database");
-        PreparedStatement pstmt = null;
+import org.json.JSONObject;
 
-        if (contractElement != null) {
-            try {
-                con.setAutoCommit(false); // Turn off auto-commit mode
+import com.cs.core.dao.DSManager;
 
-                String sql = "INSERT INTO store_files(fid, xmlfile) VALUES (?, ?)";
-                pstmt = con.prepareStatement(sql);
-                pstmt.setString(1, contractId);
+public class getRailLCDetailss extends HttpServlet{
+	
+	 /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 
-                // Convert Element to InputStream
-                String xmlString = elementToString(contractElement);
-                ByteArrayInputStream xmlStream = new ByteArrayInputStream(xmlString.getBytes(StandardCharsets.UTF_8));
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		 
+		 String requestType = request.getParameter("reqType");
+	        String contractId = request.getParameter("contractId");
+			java.sql.Connection conn =null;
+			java.sql.PreparedStatement pstmt =null;
+			java.sql.ResultSet rs=null;
+			try {
+	            response.setContentType("application/json");
+	            conn = DSManager.getConnection("CET");
+			if (requestType.equals("getContractDetails") && contractId != null && !contractId.isEmpty()) {
+	try {
+       
+		conn = DSManager.getConnection("CET");
+        String query = "SELECT STATUS, LC_NO FROM INIS_MASTER WHERE CONTRACT_ID = ?";
+        pstmt = conn.prepareStatement(query);
+        pstmt.setString(1, contractId);
+        rs = pstmt.executeQuery();
 
-                pstmt.setAsciiStream(2, xmlStream);
-                pstmt.executeUpdate();
-                con.commit(); // Commit the transaction
-                logg.info("Record inserted successfully with contract ID: " + contractId);
-            } catch (Exception e) {
-                con.rollback(); // Rollback the transaction in case of error
-                logg.severe("Failed to insert record with contract ID: " + contractId);
-                throw e;
-            } finally {
-                if (pstmt != null) pstmt.close();
-                if (con != null) con.close();
-            }
+        if (rs.next()) {
+            String status = rs.getString("STATUS");
+            String lcNo = rs.getString("LC_NO");
+
+            JSONObject responseJson = new JSONObject();
+            responseJson.put("contractId", contractId);
+            responseJson.put("status", status);
+            responseJson.put("lcNo", lcNo);
+
+            String jsonResponse = responseJson.toString();
+            response.getWriter().write(jsonResponse);
+        } else {
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"Invalid Contract ID, Please check\"}");
         }
-    }
 
-    private String elementToString(Element element) {
+    } catch (Exception e) {
+        e.printStackTrace();
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\": \"An error occurred\"}");
+    }
+	} else if (requestType.equals("validateContractID") && contractId != null && !contractId.isEmpty()) {
         try {
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            StringWriter writer = new StringWriter();
-            transformer.transform(new DOMSource(element), new StreamResult(writer));
-            return writer.toString();
+            System.out.println("Validating contractId: " + contractId);
+
+            String query = "SELECT STATUS, LC_NO FROM INIS_MASTER WHERE CONTRACT_ID = ?";
+            pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, contractId);
+            rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                String status = rs.getString("STATUS");
+                String lcNo = rs.getString("LC_NO");
+
+                JSONObject responseJson = new JSONObject();
+                responseJson.put("contractId", contractId);
+                responseJson.put("status", status);
+                responseJson.put("lcNo", lcNo);
+
+                String jsonResponse = responseJson.toString();
+                response.getWriter().write(jsonResponse);
+            } else {
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\": \"Invalid Contract ID, Please check\"}");
+            }
+
         } catch (Exception e) {
-            logg.severe("Error converting element to string: " + e.getMessage());
-            return "";
+            e.printStackTrace();
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"An error occurred\"}");
         }
+    } else {
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\": \"Invalid request\"}");
     }
+	 } catch (Exception e) {
+         e.printStackTrace();
+         System.out.println("Exception for GetRailLCDetails");
+finally{
+	try{
+		
+		if (rs!=null) rs.close();
+		if (pstmt!=null) pstmt.close();
+		if (conn!=null) conn.close();
+	}catch(Exception e){
+		e.printStackTrace();
+	}
+}
+}
 }
