@@ -1,77 +1,82 @@
-package com.cs.ceweb.servlets;
+package storexml;
 
-import java.io.IOException;
+import db.DBConnection;
+import java.io.ByteArrayInputStream;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+public class StoreXML {
+    public static Connection con;
+    public static Logger logg = Logger.getLogger("Log1");
 
-import org.json.JSONObject;
+    public StoreXML(Element contractElement, String contractId) throws Exception {
+        DBConnection db = new DBConnection();
+        con = db.getConnection();
+        logg.info("Inside store xml class to store data in database");
+        PreparedStatement pstmt = null;
 
-import com.cs.core.dao.DSManager;
+        if (contractElement != null) {
+            try {
+                // Extract contract value
+                String contractValue = getElementValue(contractElement, "CONTRACT_VALUE");
+                
+                con.setAutoCommit(false); // Turn off auto-commit mode
 
-public class GetRailLCDetails extends HttpServlet {
+                String sql = "INSERT INTO store_files(fid, contract_value, xmlfile) VALUES (?, ?, ?)";
+                pstmt = con.prepareStatement(sql);
+                pstmt.setString(1, contractId);
+                pstmt.setString(2, contractValue);
 
-    private static final long serialVersionUID = 1L;
+                // Convert Element to InputStream
+                String xmlString = elementToString(contractElement);
+                ByteArrayInputStream xmlStream = new ByteArrayInputStream(xmlString.getBytes(StandardCharsets.UTF_8));
 
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String requestType = request.getParameter("reqType");
-        String contractId = request.getParameter("contractId");
-
-        if (contractId == null || contractId.isEmpty() || requestType == null || requestType.isEmpty()) {
-            sendErrorResponse(response, "Invalid request");
-            return;
-        }
-
-        try (Connection conn = DSManager.getConnection("CET")) {
-            response.setContentType("application/json");
-
-            if ("getContractDetails".equals(requestType)) {
-                processRequest(conn, response, contractId);
-            } else if ("validateContractID".equals(requestType)) {
-                processRequest(conn, response, contractId);
-            } else {
-                sendErrorResponse(response, "Invalid request");
+                pstmt.setAsciiStream(3, xmlStream);
+                pstmt.executeUpdate();
+                con.commit(); // Commit the transaction
+                logg.info("Record inserted successfully with contract ID: " + contractId + " and contract value: " + contractValue);
+            } catch (Exception e) {
+                con.rollback(); // Rollback the transaction in case of error
+                logg.severe("Failed to insert record with contract ID: " + contractId);
+                throw e;
+            } finally {
+                if (pstmt != null) pstmt.close();
+                if (con != null) con.close();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            sendErrorResponse(response, "An error occurred");
         }
     }
 
-    private void processRequest(Connection conn, HttpServletResponse response, String contractId) throws IOException {
-        String query = "SELECT STATUS, LC_NO FROM INIS_MASTER WHERE CONTRACT_ID = ?";
-
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, contractId);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    String status = rs.getString("STATUS");
-                    String lcNo = rs.getString("LC_NO");
-
-                    JSONObject responseJson = new JSONObject();
-                    responseJson.put("contractId", contractId);
-                    responseJson.put("status", status);
-                    responseJson.put("lcNo", lcNo);
-
-                    String jsonResponse = responseJson.toString();
-                    response.getWriter().write(jsonResponse);
-                } else {
-                    sendErrorResponse(response, "Invalid Contract ID, Please check");
-                }
-            }
+    private String elementToString(Element element) {
+        try {
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(element), new StreamResult(writer));
+            return writer.toString();
         } catch (Exception e) {
-            e.printStackTrace();
-            sendErrorResponse(response, "An error occurred");
+            logg.severe("Error converting element to string: " + e.getMessage());
+            return "";
         }
     }
 
-    private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
-        response.setContentType("application/json");
-        response.getWriter().write("{\"error\": \"" + errorMessage + "\"}");
+    private String getElementValue(Element parent, String tagName) {
+        NodeList nodeList = parent.getElementsByTagName(tagName);
+        if (nodeList != null && nodeList.getLength() > 0) {
+            return nodeList.item(0).getTextContent();
+        }
+        return "";
     }
 }
