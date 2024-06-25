@@ -1,119 +1,24 @@
-package com.tcs.xml;
-
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.Properties;
-import java.util.logging.Logger;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.Document;
-import storexml.StoreXML;
-
-public class SFTPFile {
-    private static final Logger logg = Logger.getLogger("Log1");
-    private static ChannelSftp sftpChannel = null;
-    private Session session = null;
-    private final JSch jsch = new JSch();
-    private static final Properties pr = new Properties();
-    private static String lcda = null;  // Make sure this is properly set somewhere in your code
-
-    public void sftpfile() {
-        try {
-            pr.load(new FileInputStream("properties/XmlReadPath.properties"));
-            String remoteFile = pr.getProperty("path");
-            String user = pr.getProperty("user");
-            String host = pr.getProperty("host");
-            String password = pr.getProperty("password");
-            String localDir = pr.getProperty("localDir");
-            int port = Integer.parseInt(pr.getProperty("port"));
-
-            session = jsch.getSession(user, host, port);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.setPassword(password);
-            session.connect();
-            sftpChannel = (ChannelSftp) session.openChannel("sftp");
-            sftpChannel.connect();
-
-            logg.info("Connected to SFTP server: " + host);
-
-            Files.newDirectoryStream(Paths.get(localDir), "*.xml")
-                .forEach(path -> {
-                    try (InputStream is = Files.newInputStream(path)) {
-                        DocumentBuilderFactory docbuildFactory = DocumentBuilderFactory.newInstance();
-                        DocumentBuilder docBuilder = docbuildFactory.newDocumentBuilder();
-
-                        // Strip BOM and other extraneous characters
-                        is = new java.io.BufferedInputStream(is);
-                        byte[] bom = new byte[3];
-                        is.mark(3);
-                        is.read(bom, 0, 3);
-                        if (!(bom[0] == (byte) 0xEF && bom[1] == (byte) 0xBB && bom[2] == (byte) 0xBF)) {
-                            is.reset();
-                        }
-
-                        Document doc = docBuilder.parse(is);
-
-                        String contract = "Contract_" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
-                        StoreXML str_xml = new StoreXML(is, contract);
-
-                        logg.info("Record inserted in database successfully: " + contract);
-                        Files.delete(path);
-                        success(contract);
-                    } catch (Exception e) {
-                        logg.severe("Failed to process file: " + path);
-                        logg.severe("Error message: " + e.getMessage());
-                        fail(e);
-                    }
-                });
-        } catch (Exception e) {
-            logg.severe("Failed to initialize SFTP process: " + e.getMessage());
-            fail(e);
-        } finally {
-            if (sftpChannel != null) {
-                sftpChannel.disconnect();
-            }
-            if (session != null) {
-                session.disconnect();
-            }
-        }
-    }
-
-    public static void success(String contract) {
-        // Implementation remains the same
-    }
-
-    public static void fail(Exception e2) {
-        System.out.println("------------inside-fail ");
-        String fail = (lcda != null) ? lcda + "_fail" : "unknown_fail";
-        String absoluteFilePath = fail + ".txt";
-        File file = new File(absoluteFilePath);
-
-        Properties pr2 = new Properties();
-        try {
-            pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
-            outbox = pr2.getProperty("ackPath");
-            String fileData = (lcda != null) ? lcda + " failed due to reason " + e2 : "Processing failed due to reason " + e2;
-            Files.write(Paths.get(absoluteFilePath), fileData.getBytes());
-
-            if (file.isFile()) {
-                String put = outbox + file.getName();
-                try (InputStream ins = new FileInputStream(file)) {
-                    // sftpChannel.put(ins, put); Uncomment and use if needed
-                }
-                file.delete();
-            }
-        } catch (Exception e) {
-            logg.severe("Failed to generate failure acknowledgment: " + e.getMessage());
-        }
-
-        logg.info("Failure Acknowledgement generated: " + lcda);
-    }
-}
+Jun 25, 2024 10:00:56 AM com.tcs.xml.SFTPFile sftpfile
+INFO: useruser
+host10.191.153.214
+port22
+-------------localDir E:/Reports/railways/inbox
+-------------InputStream sun.nio.ch.ChannelInputStream@723279cf
+Jun 25, 2024 10:00:57 AM db.DBConnection getConnection
+INFO: driver :oracle.jdbc.OracleDriver
+dbURL :jdbc:oracle:thin:@10.189.201.188:6083:cetest
+dbUserName :CETRX
+Jun 25, 2024 10:00:58 AM storexml.StoreXML <init>
+INFO: Inside store xml class to store data in database
+Jun 25, 2024 10:00:58 AM com.tcs.xml.SFTPFile lambda$0
+SEVERE: Failed to process file: E:\Reports\railways\inbox\test.xml
+Jun 25, 2024 10:00:58 AM com.tcs.xml.SFTPFile lambda$0
+SEVERE: Error message: IO Error
+Jun 25, 2024 10:00:58 AM com.tcs.xml.SFTPFile sftpfile
+INFO: xml and pdf are not copiednull
+------------inside-fail 
+Jun 25, 2024 10:00:58 AM com.tcs.xml.SFTPFile fail
+INFO: Failure Acknowledgement generated:null
+java.lang.NullPointerException
+	at com.tcs.xml.SFTPFile.sftpfile(SFTPFile.java:84)
+	at com.test.test.main(test.java:9)
