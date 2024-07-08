@@ -1,49 +1,161 @@
-public static void success(String contractId) {
-    String success = contractId + "_success";
-    String absoluteFilePath = success + ".txt";
-    File file = new File(absoluteFilePath);
+package com.tcs.xml;
 
-    Properties pr2 = new Properties();
-    try {
-        pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
-        String outbox = pr2.getProperty("ackPath");
-        
-        String fileData = contractId + " successfully received.";
-        
-        // Log the file path and data to be written
-        Logg.info("Attempting to write data to file: " + absoluteFilePath);
-        Logg.info("Data to be written: " + fileData);
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
 
-        Files.write(Paths.get(absoluteFilePath), fileData.getBytes(), new OpenOption[0]);
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Paths;
+import java.util.Properties;
+import java.util.Vector;
+import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Element;
+import storexml.StoreXML;
 
-        // Check if file is created successfully
-        if (file.exists() && file.isFile()) {
-            Logg.info("File created successfully: " + absoluteFilePath);
+public class SFTPFile {
+    public static Logger logg = Logger.getLogger("Log1");
+    public static String lcda = null;
+    public static String outbox = "";
+    public static String remoteFile = "";
+    Vector<ChannelSftp.LsEntry> list = null;
+    static String outputPath = "";
+    public static String remoteFile1 = "";
+    StoreXML str_xml;
+    public static ChannelSftp sftpChannel = null;
+    JSch jsch = new JSch();
+    Session session = null;
+    Properties pr = new Properties();
 
-            String put = outbox + file.getName();
-            InputStream ins = new FileInputStream(file);
+    public void processLocalFiles() {
+        Properties pr = new Properties();
+        try {
+        	pr.load(new FileInputStream("properties/XmlReadPath.properties"));
+            remoteFile = pr.getProperty("path");
+            String user = pr.getProperty("user");
+            String host = pr.getProperty("host");
+            String password = pr.getProperty("password");
+            int port = Integer.parseInt(pr.getProperty("port"));
+            logg.info("user" + user + "\n" + "host" + host + "\n" + "port" + port);
 
-            // Log the SFTP transfer attempt
-            // Logg.info("Attempting to transfer file to SFTP: " + put);
-            // sftpChannel.put(ins, put);
-            Logg.info("File transfer simulated (commented out).");
+            this.session = this.jsch.getSession(user, host, port);
+            this.session.setPassword(password);
+            this.session.setConfig("StrictHostKeyChecking", "no");
+            this.session.connect();
+            logg.info("Connection established.");
+            sftpChannel = (ChannelSftp)this.session.openChannel("sftp");
+            sftpChannel.connect();
+            sftpChannel.cd(remoteFile);
+            //this.list = sftpChannel.ls("*.xml");
+            logg.info("list Value : [" + this.list + "] sftpChannel : [" + sftpChannel + "]");
+            String ftppath = pr.getProperty("ftppath");
 
-            ins.close();
-            boolean deleted = file.delete();
+            Files.newDirectoryStream(Paths.get(remoteFile), "*.xml").forEach(path -> {
+                try (InputStream is = Files.newInputStream(path)) {
+                    logg.info("Processing file: " + path);
 
-            // Log the file deletion result
-            if (deleted) {
-                Logg.info("File deleted successfully: " + absoluteFilePath);
-            } else {
-                Logg.warn("Failed to delete file: " + absoluteFilePath);
-            }
-        } else {
-            Logg.warn("File was not created: " + absoluteFilePath);
+                    DocumentBuilderFactory docbuildFactory = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder docBuilder = docbuildFactory.newDocumentBuilder();
+                    Document doc = docBuilder.parse(is);
+
+                    NodeList contractList = doc.getElementsByTagName("CONTRACTDTL");
+
+                    for (int i = 0; i < contractList.getLength(); i++) {
+                        Element contractElement = (Element) contractList.item(i);
+                        String contractId = contractElement.getElementsByTagName("CONTRACTID").item(0).getTextContent();
+                        String contractValue = contractElement.getElementsByTagName("CONTRACT_VALUE").item(0).getTextContent();
+
+                        logg.info("Generated contract ID: " + contractId);
+
+                        // Store XML content in the database
+                        StoreXML str_xml = new StoreXML(contractElement, contractId, contractValue);
+                        logg.info("Record inserted in database successfully: " + contractId);
+                     // Call success method after processing
+                        success(contractId);
+                    }
+
+                    // Simulate file removal after processing
+                    Files.delete(path);
+
+                    
+                } catch (Exception e) {
+                    logg.severe("Failed to process file: " + path);
+                    logg.severe("Error message: " + e.getMessage());
+                    fail(e);
+                }
+            });
+
+        } catch (Exception e) {
+            logg.info("Failed to load properties or process files.");
+            fail(e);
+            e.printStackTrace();
         }
-    } catch (Exception e) {
-        e.printStackTrace();
-        Logg.error("Exception occurred while processing success method: " + e.getMessage());
     }
 
-    Logg.info("Success Acknowledgement generated: " + contractId);
+    public static void success(String contractId)
+    {
+      String sucess = contractId + "_success";
+      String absoluteFilePath = sucess + ".txt";
+      File file = new File(absoluteFilePath);
+
+      Properties pr2 = new Properties();
+      try {
+        pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
+        outbox = pr2.getProperty("ackPath");
+        String fileData = contractId + " successfully recieved. ";
+        Files.write(Paths.get(absoluteFilePath, new String[0]), fileData.getBytes(), new OpenOption[0]);
+        
+      }
+      catch (Exception e)
+      {
+        e.printStackTrace();
+      } 
+      logg.info("Success Acknowledgement generated:" + contractId);
+    }
+
+    public static void fail(Exception e2)
+    {
+      String fail = lcda + "_fail";
+      String absoluteFilePath = fail + ".txt";
+      File file = new File(absoluteFilePath);
+
+      Properties pr2 = new Properties();
+      try {
+        pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
+        outbox = pr2.getProperty("ackPath");
+        sftpChannel.cd(outbox);
+        String fileData = lcda + " failed due to reason " + e2;
+        Files.write(Paths.get(absoluteFilePath, new String[0]), fileData.getBytes(), new OpenOption[0]);
+        if (file.isFile()) {
+          String put = outbox + file.getName();
+          InputStream ins = new FileInputStream(file);
+         sftpChannel.put(ins, put);
+          ins.close();
+          file.delete();
+        }
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+      }
+
+      logg.info("Failure Acknowledgement generated:" + lcda);
+    }
+
+    public static void main(String[] args) throws InterruptedException , Exception{
+        SFTPFile sftpFile = new SFTPFile();
+        while(true){
+            sftpFile.processLocalFiles();
+            Thread.sleep(100000);
+        }
+    }
 }
