@@ -1,82 +1,49 @@
-package storexml;
+public static void success(String contractId) {
+    String success = contractId + "_success";
+    String absoluteFilePath = success + ".txt";
+    File file = new File(absoluteFilePath);
 
-import db.DBConnection;
-import java.io.ByteArrayInputStream;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.util.logging.Logger;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+    Properties pr2 = new Properties();
+    try {
+        pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
+        String outbox = pr2.getProperty("ackPath");
+        
+        String fileData = contractId + " successfully received.";
+        
+        // Log the file path and data to be written
+        Logg.info("Attempting to write data to file: " + absoluteFilePath);
+        Logg.info("Data to be written: " + fileData);
 
-public class StoreXML {
-    public static Connection con;
-    public static Logger logg = Logger.getLogger("Log1");
+        Files.write(Paths.get(absoluteFilePath), fileData.getBytes(), new OpenOption[0]);
 
-    public StoreXML(Element contractElement, String contractId) throws Exception {
-        DBConnection db = new DBConnection();
-        con = db.getConnection();
-        logg.info("Inside store xml class to store data in database");
-        PreparedStatement pstmt = null;
+        // Check if file is created successfully
+        if (file.exists() && file.isFile()) {
+            Logg.info("File created successfully: " + absoluteFilePath);
 
-        if (contractElement != null) {
-            try {
-                // Extract contract value
-                String contractValue = getElementValue(contractElement, "CONTRACT_VALUE");
-                
-                con.setAutoCommit(false); // Turn off auto-commit mode
+            String put = outbox + file.getName();
+            InputStream ins = new FileInputStream(file);
 
-                String sql = "INSERT INTO store_files(fid, contract_value, xmlfile) VALUES (?, ?, ?)";
-                pstmt = con.prepareStatement(sql);
-                pstmt.setString(1, contractId);
-                pstmt.setString(2, contractValue);
+            // Log the SFTP transfer attempt
+            // Logg.info("Attempting to transfer file to SFTP: " + put);
+            // sftpChannel.put(ins, put);
+            Logg.info("File transfer simulated (commented out).");
 
-                // Convert Element to InputStream
-                String xmlString = elementToString(contractElement);
-                ByteArrayInputStream xmlStream = new ByteArrayInputStream(xmlString.getBytes(StandardCharsets.UTF_8));
+            ins.close();
+            boolean deleted = file.delete();
 
-                pstmt.setAsciiStream(3, xmlStream);
-                pstmt.executeUpdate();
-                con.commit(); // Commit the transaction
-                logg.info("Record inserted successfully with contract ID: " + contractId + " and contract value: " + contractValue);
-            } catch (Exception e) {
-                con.rollback(); // Rollback the transaction in case of error
-                logg.severe("Failed to insert record with contract ID: " + contractId);
-                throw e;
-            } finally {
-                if (pstmt != null) pstmt.close();
-                if (con != null) con.close();
+            // Log the file deletion result
+            if (deleted) {
+                Logg.info("File deleted successfully: " + absoluteFilePath);
+            } else {
+                Logg.warn("Failed to delete file: " + absoluteFilePath);
             }
+        } else {
+            Logg.warn("File was not created: " + absoluteFilePath);
         }
+    } catch (Exception e) {
+        e.printStackTrace();
+        Logg.error("Exception occurred while processing success method: " + e.getMessage());
     }
 
-    private String elementToString(Element element) {
-        try {
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            StringWriter writer = new StringWriter();
-            transformer.transform(new DOMSource(element), new StreamResult(writer));
-            return writer.toString();
-        } catch (Exception e) {
-            logg.severe("Error converting element to string: " + e.getMessage());
-            return "";
-        }
-    }
-
-    private String getElementValue(Element parent, String tagName) {
-        NodeList nodeList = parent.getElementsByTagName(tagName);
-        if (nodeList != null && nodeList.getLength() > 0) {
-            return nodeList.item(0).getTextContent();
-        }
-        return "";
-    }
+    Logg.info("Success Acknowledgement generated: " + contractId);
 }
