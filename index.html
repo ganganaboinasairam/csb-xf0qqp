@@ -1,14 +1,1 @@
-com.sun.org.apache.xml.internal.security.exceptions.Base64DecodingException: You must initialize the xml-security library correctly before you use it. Call the static method "com.sun.org.apache.xml.internal.security.Init.init();" to do that before you use any functionality from that library.
-	at com.sun.org.apache.xml.internal.security.utils.Base64.decodeInternal(Unknown Source)
-	at com.sun.org.apache.xml.internal.security.utils.Base64.decode(Unknown Source)
-	at com.tcs.password.decryption.Decryption.decrypt(Decryption.java:23)
-	at db.DBConnection.getConnection(DBConnection.java:29)
-	at storexml.StoreXML.<init>(StoreXML.java:23)
-	at com.tcs.xml.SFTPFile.lambda$0(SFTPFile.java:65)
-	at java.lang.Iterable.forEach(Unknown Source)
-	at com.tcs.xml.SFTPFile.processLocalFiles(SFTPFile.java:47)
-	at com.tcs.xml.SFTPFile.main(SFTPFile.java:142)
-Jul 10, 2024 3:48:43 PM db.DBConnection getConnection
-INFO: driver :oracle.jdbc.OracleDriver
-dbURL :jdbc:oracle:thin:@10.189.201.188:6083:cetest
-dbUserName :CETRX
+Access restriction: The type 'Init' is not API (restriction on required library 'E:\eclipse\jre\lib\rt.jar')
