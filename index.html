@@ -56,8 +56,8 @@ public class connectSFTP {
             logg.info("list Value : [" + this.list + "] sftpChannel : [" + sftpChannel + "]");
 
             for (ChannelSftp.LsEntry entry : this.list) {
-                // Skip directories
-                if (entry.getAttrs().isDir()) {
+                // Skip directories and non-XML files
+                if (entry.getAttrs().isDir() || !entry.getFilename().endsWith(".xml")) {
                     continue;
                 }
 
@@ -80,6 +80,10 @@ public class connectSFTP {
                         StoreXML str_xml = new StoreXML(contractElement, contractId, contractValue);
                         logg.info("Record inserted in database successfully: " + contractId);
                     }
+
+                    // Delete the file after successful processing
+                    sftpChannel.rm(remoteFile + "/" + entry.getFilename());
+                    logg.info("Deleted file: " + entry.getFilename());
 
                 } catch (Exception e) {
                     logg.severe("Failed to process file: " + entry.getFilename());
