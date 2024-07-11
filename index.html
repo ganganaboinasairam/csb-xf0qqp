@@ -1,1 +1,35 @@
-Access restriction: The type 'Init' is not API (restriction on required library 'E:\eclipse\jre\lib\rt.jar')
+public static void success(String contractId, Path path)
+    {
+      String fileName = path.getFileName().toString();
+      int dotIndex = fileName.lastIndexOf(".");
+      String onlyFileName = (dotIndex == -1)?fileName:fileName.substring(0, dotIndex);
+      String sucess = onlyFileName+"_"+contractId+ "_success";
+      String absoluteFilePath = sucess + ".txt";
+      Properties pr2 = new Properties();
+      try {
+        pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
+        outbox = pr2.getProperty("ackPath");
+        File file = new File(outbox + absoluteFilePath);
+        try { 
+            // File.createNewFile() Method Used 
+          boolean isFileCreated = file.createNewFile(); 
+          if (isFileCreated) { 
+              System.out.println("File created successfully."); 
+          }  
+            else { 
+              System.out.println("File already exists or an error occurred."); 
+          } 
+          
+      } catch (IOException e) { 
+          e.printStackTrace(); 
+      } 
+        String fileData = fileName + " successfully recieved. ";
+        Files.write(Paths.get(absoluteFilePath, new String[0]), fileData.getBytes(), new OpenOption[0]);
+        
+      }
+      catch (Exception e)
+      {
+        e.printStackTrace();
+      } 
+      logg.info("Success Acknowledgement generated:" + fileName);
+    }
