@@ -76,38 +76,6 @@ public class DailyFolderUpdater {
             System.err.println("Failed to create 'TODAY' folder.");
             e.printStackTrace();
         }
-
-        // Create a "BACKUP" subfolder inside the new "TODAY" folder
-        Path backupFolderPath = newTodayFolderPath.resolve("BACKUP");
-        try {
-            if (!Files.exists(backupFolderPath)) {
-                Files.createDirectory(backupFolderPath);
-                System.out.println("New 'BACKUP' folder created inside 'TODAY'.");
-            }
-        } catch (IOException e) {
-            System.err.println("Failed to create 'BACKUP' folder inside 'TODAY'.");
-            e.printStackTrace();
-        }
-
-        // Move the "BACKUP" folder's contents from the old "TODAY" folder to the new folder
-        Path oldBackupFolderPath = todayFolderPath.resolve("BACKUP");
-        if (Files.exists(oldBackupFolderPath)) {
-            Path newBackupFolderPath = newTodayFolderPath.resolve("BACKUP");
-            try {
-                // Ensure the new backup folder exists
-                if (!Files.exists(newBackupFolderPath)) {
-                    Files.createDirectory(newBackupFolderPath);
-                    System.out.println("New 'BACKUP' folder created inside 'TODAY'.");
-                }
-                moveContents(oldBackupFolderPath, newBackupFolderPath);
-                // Delete the old "BACKUP" folder after moving its contents
-                deleteDirectory(oldBackupFolderPath);
-                System.out.println("Old 'BACKUP' folder deleted.");
-            } catch (IOException e) {
-                System.err.println("Failed to move contents of 'BACKUP' folder.");
-                e.printStackTrace();
-            }
-        }
     }
 
     // Method to move contents from source to destination
