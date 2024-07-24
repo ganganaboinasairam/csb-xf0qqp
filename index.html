@@ -117,7 +117,9 @@ public class DailyFolderUpdater {
                 for (Path entry : stream) {
                     Path targetPath = destination.resolve(entry.getFileName());
                     if (Files.isDirectory(entry)) {
-                        Files.createDirectories(targetPath);
+                        if (!Files.exists(targetPath)) {
+                            Files.createDirectory(targetPath);
+                        }
                         moveContents(entry, targetPath); // Recursive call for directories
                     } else {
                         Files.move(entry, targetPath);
