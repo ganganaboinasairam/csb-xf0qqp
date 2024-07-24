@@ -1,117 +1,177 @@
-package com;
+package com.tcs.xml;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Properties;
+import java.util.Vector;
+import java.util.logging.Logger;
 
-public class DailyFolderUpdater {
-    public static void main(String[] args) {
-        // Define the desktop path
-        String desktopPath = System.getProperty("user.home") + "\\Desktop";
-        Path todayFolderPath = Paths.get(desktopPath, "TODAY");
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
-        // Define the destination path
-        String destinationPath = "F:\\SAIRAM\\";
-        Path destinationDirPath = Paths.get(destinationPath);
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
-        // Get the current date in dd-MM-yyyy format
-        String formattedDate = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
 
-        // Define the new folder path
-        Path newFolderPath = Paths.get(destinationPath, formattedDate);
+import storexml.StoreXML;
 
-        // Ensure the destination directory exists
+public class SFTPFile {
+    public static Logger logg = Logger.getLogger("Log1");
+    public static String lcda = null;
+    public static String outbox = "";
+    public static String remoteFile = "";
+    Vector<ChannelSftp.LsEntry> list = null;
+    static String outputPath = "";
+    public static String remoteFile1 = "";
+    StoreXML str_xml;
+    public static ChannelSftp sftpChannel = null;
+    JSch jsch = new JSch();
+    Session session = null;
+    Properties pr = new Properties();
+
+    @SuppressWarnings("unused")
+	public void processLocalFiles() {
+        Properties pr = new Properties();
         try {
-            if (!Files.exists(destinationDirPath)) {
-                Files.createDirectories(destinationDirPath);
-                System.out.println("Destination directory created: " + destinationPath);
-            }
-        } catch (IOException e) {
-            System.err.println("Failed to create destination directory: " + destinationPath);
-            e.printStackTrace();
-            return;
-        }
+            pr.load(new FileInputStream("properties/XmlReadPath.properties"));
+            String localDir = pr.getProperty("localDir");
+            logg.info("Processing files from local directory: " + localDir);
 
-        // Create the new folder for today's date
-        try {
-            if (Files.exists(newFolderPath)) {
-                // Handle existing folder - clear its contents
-                System.out.println("The folder already exists. Clearing its contents.");
-                deleteDirectory(newFolderPath); // Clear existing folder contents
-            }
-            Files.createDirectory(newFolderPath);
-            System.out.println("New folder created: " + newFolderPath.toAbsolutePath());
-        } catch (IOException e) {
-            System.err.println("Failed to create or clear destination folder: " + newFolderPath.toAbsolutePath());
-            e.printStackTrace();
-            return;
-        }
+            Files.newDirectoryStream(Paths.get(localDir), "*.xml").forEach(path -> {
+                try (InputStream is = Files.newInputStream(path)) {
+                    logg.info("Processing file: " + path);
 
-        // Move the "TODAY" folder's contents to the new folder
-        moveContents(todayFolderPath, newFolderPath);
+                    DocumentBuilderFactory docbuildFactory = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder docBuilder = docbuildFactory.newDocumentBuilder();
+                    Document doc = docBuilder.parse(is);
 
-        // Delete the old "TODAY" folder after moving its contents
-        try {
-            if (Files.exists(todayFolderPath)) {
-                deleteDirectory(todayFolderPath);
-                System.out.println("Old 'TODAY' folder deleted.");
-            }
-        } catch (IOException e) {
-            System.err.println("Failed to delete old 'TODAY' folder.");
-            e.printStackTrace();
-        }
+                    NodeList contractList = doc.getElementsByTagName("CONTRACTDTL");
 
-        // Create a new "TODAY" folder
-        Path newTodayFolderPath = Paths.get(desktopPath, "TODAY");
-        try {
-            if (!Files.exists(newTodayFolderPath)) {
-                Files.createDirectory(newTodayFolderPath);
-                System.out.println("New 'TODAY' folder created.");
-            }
-        } catch (IOException e) {
-            System.err.println("Failed to create 'TODAY' folder.");
-            e.printStackTrace();
-        }
-    }
+                    for (int i = 0; i < contractList.getLength(); i++) {
+                        Element contractElement = (Element) contractList.item(i);
+                        String contractId = contractElement.getElementsByTagName("CONTRACTID").item(0).getTextContent();
+                        String contractValue = contractElement.getElementsByTagName("CONTRACT_VALUE").item(0).getTextContent();
 
-    // Method to move contents from source to destination
-    private static void moveContents(Path source, Path destination) {
-        if (Files.exists(source)) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(source)) {
-                for (Path entry : stream) {
-                    Path targetPath = destination.resolve(entry.getFileName());
-                    if (Files.isDirectory(entry)) {
-                        if (!Files.exists(targetPath)) {
-                            Files.createDirectory(targetPath);
-                        }
-                        moveContents(entry, targetPath); // Recursive call for directories
-                    } else {
-                        Files.move(entry, targetPath);
-                        System.out.println("Moved: " + entry.toAbsolutePath() + " to " + targetPath.toAbsolutePath());
+                        logg.info("Generated contract ID: " + contractId);
+
+                        // Store XML content in the database
+                        StoreXML str_xml = new StoreXML(contractElement, contractId, contractValue);
+                        logg.info("Record inserted in database successfully: " + contractId);
+                     // Call success method after processing
+                        success(contractId,path);
                     }
+
+                    // Simulate file removal after processing
+                    Files.delete(path);
+
+                    
+                } catch (Exception e) {
+                    logg.severe("Failed to process file: " + path);
+                    logg.severe("Error message: " + e.getMessage());
+                    fail(e,path);
                 }
-            } catch (IOException e) {
-                System.err.println("Failed to move contents from folder: " + source.toAbsolutePath() + " to " + destination.toAbsolutePath());
-                e.printStackTrace();
-            }
-        } else {
-            System.err.println("Source folder does not exist: " + source.toAbsolutePath());
+            });
+
+        } catch (Exception e) {
+            logg.info("Failed to load properties or process files.");
+            fail(e, null);
+            e.printStackTrace();
         }
     }
 
-    // Method to delete a directory and its contents
-    private static void deleteDirectory(Path path) throws IOException {
-        if (Files.isDirectory(path)) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
-                for (Path entry : stream) {
-                    deleteDirectory(entry);
-                }
+    @SuppressWarnings("unused")
+	public static void success(String contractId, Path path) {
+        String fileName = path.getFileName().toString();
+        int dotIndex = fileName.lastIndexOf(".");
+        String onlyFileName = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
+        String success = onlyFileName + "_" + contractId + "_success";
+        String absoluteFilePath = "properties/ackPath/" + success + ".txt"; // Assuming ackPath is a folder in properties
+
+        try {
+            Properties pr2 = new Properties();
+            pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
+            String outbox = pr2.getProperty("ackPath");
+
+            File file = new File(outbox, success + ".txt");
+            boolean isFileCreated = file.createNewFile();
+
+            if (isFileCreated) {
+                System.out.println("File created successfully: " + file.getAbsolutePath());
+                String fileData ="Contract ID: "+contractId+" From "+ fileName + " is successfully received.";
+
+                // Write text content into the file
+                Files.write(Paths.get(file.getAbsolutePath()), fileData.getBytes());
+
+                System.out.println("Text written to file.");
+            } else {
+                System.out.println("File already exists or an error occurred.");
             }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        Files.delete(path);
+
+        logg.info("Success Acknowledgement generated: " + fileName);
+    }
+
+    public static void fail(Exception e2, Path path)
+    {
+      String fileName = path.getFileName().toString();
+      int dotIndex = fileName.lastIndexOf(".");
+      String onlyFileName = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
+      String fail = onlyFileName + "_fail";
+      String absoluteFilePath = fail + ".txt";
+     
+
+      
+      try {
+    	  try {
+              Properties pr2 = new Properties();
+              pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
+              String outbox = pr2.getProperty("ackPath");
+
+              File file = new File(outbox, absoluteFilePath);
+              boolean isFileCreated = file.createNewFile();
+
+              if (isFileCreated) {
+                  System.out.println("File created successfully: " + file.getAbsolutePath());
+                  String fileData = fileName + " Failed."+"Error: "+e2;
+
+                  // Write text content into the file
+                  Files.write(Paths.get(file.getAbsolutePath()), fileData.getBytes());
+
+                  System.out.println("Text written to file.");
+              } else {
+                  System.out.println("File already exists or an error occurred.");
+              }
+
+          } catch (IOException e) {
+              e.printStackTrace();
+          }
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+      }
+
+      logg.info("Failure Acknowledgement generated:" + fileName);
+    }
+
+    public static void main(String[] args) throws InterruptedException , Exception{
+        SFTPFile sftpFile = new SFTPFile();
+        while(true){
+            sftpFile.processLocalFiles();
+            Thread.sleep(600000);
+        }
     }
 }
