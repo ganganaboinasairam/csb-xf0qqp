@@ -1,177 +1,48 @@
-package com.tcs.xml;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Properties;
-import java.util.Vector;
-import java.util.logging.Logger;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-
-import storexml.StoreXML;
-
-public class SFTPFile {
-    public static Logger logg = Logger.getLogger("Log1");
-    public static String lcda = null;
-    public static String outbox = "";
-    public static String remoteFile = "";
-    Vector<ChannelSftp.LsEntry> list = null;
-    static String outputPath = "";
-    public static String remoteFile1 = "";
-    StoreXML str_xml;
-    public static ChannelSftp sftpChannel = null;
-    JSch jsch = new JSch();
-    Session session = null;
+@SuppressWarnings("unused")
+public void processLocalFiles() {
     Properties pr = new Properties();
+    try {
+        pr.load(new FileInputStream("properties/XmlReadPath.properties"));
+        String localDir = pr.getProperty("localDir");
+        logg.info("Processing files from local directory: " + localDir);
 
-    @SuppressWarnings("unused")
-	public void processLocalFiles() {
-        Properties pr = new Properties();
-        try {
-            pr.load(new FileInputStream("properties/XmlReadPath.properties"));
-            String localDir = pr.getProperty("localDir");
-            logg.info("Processing files from local directory: " + localDir);
+        Files.newDirectoryStream(Paths.get(localDir), "*.xml").forEach(path -> {
+            try (InputStream is = Files.newInputStream(path)) {
+                logg.info("Processing file: " + path);
 
-            Files.newDirectoryStream(Paths.get(localDir), "*.xml").forEach(path -> {
-                try (InputStream is = Files.newInputStream(path)) {
-                    logg.info("Processing file: " + path);
+                DocumentBuilderFactory docbuildFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder docBuilder = docbuildFactory.newDocumentBuilder();
+                Document doc = docBuilder.parse(is);
 
-                    DocumentBuilderFactory docbuildFactory = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder docBuilder = docbuildFactory.newDocumentBuilder();
-                    Document doc = docBuilder.parse(is);
+                NodeList contractList = doc.getElementsByTagName("CONTRACTDTL");
 
-                    NodeList contractList = doc.getElementsByTagName("CONTRACTDTL");
+                for (int i = 0; i < contractList.getLength(); i++) {
+                    Element contractElement = (Element) contractList.item(i);
+                    String contractId = contractElement.getElementsByTagName("CONTRACTID").item(0).getTextContent();
+                    String contractValue = contractElement.getElementsByTagName("CONTRACT_VALUE").item(0).getTextContent();
 
-                    for (int i = 0; i < contractList.getLength(); i++) {
-                        Element contractElement = (Element) contractList.item(i);
-                        String contractId = contractElement.getElementsByTagName("CONTRACTID").item(0).getTextContent();
-                        String contractValue = contractElement.getElementsByTagName("CONTRACT_VALUE").item(0).getTextContent();
+                    logg.info("Generated contract ID: " + contractId);
 
-                        logg.info("Generated contract ID: " + contractId);
-
-                        // Store XML content in the database
-                        StoreXML str_xml = new StoreXML(contractElement, contractId, contractValue);
-                        logg.info("Record inserted in database successfully: " + contractId);
-                     // Call success method after processing
-                        success(contractId,path);
-                    }
-
-                    // Simulate file removal after processing
-                    Files.delete(path);
-
-                    
-                } catch (Exception e) {
-                    logg.severe("Failed to process file: " + path);
-                    logg.severe("Error message: " + e.getMessage());
-                    fail(e,path);
+                    // Store XML content in the database
+                    StoreXML str_xml = new StoreXML(contractElement, contractId, contractValue);
+                    logg.info("Record inserted in database successfully: " + contractId);
+                    // Call success method after processing
+                    success(contractId, path);
                 }
-            });
 
-        } catch (Exception e) {
-            logg.info("Failed to load properties or process files.");
-            fail(e, null);
-            e.printStackTrace();
-        }
-    }
+                // Simulate file removal after processing
+                Files.delete(path);
 
-    @SuppressWarnings("unused")
-	public static void success(String contractId, Path path) {
-        String fileName = path.getFileName().toString();
-        int dotIndex = fileName.lastIndexOf(".");
-        String onlyFileName = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
-        String success = onlyFileName + "_" + contractId + "_success";
-        String absoluteFilePath = "properties/ackPath/" + success + ".txt"; // Assuming ackPath is a folder in properties
-
-        try {
-            Properties pr2 = new Properties();
-            pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
-            String outbox = pr2.getProperty("ackPath");
-
-            File file = new File(outbox, success + ".txt");
-            boolean isFileCreated = file.createNewFile();
-
-            if (isFileCreated) {
-                System.out.println("File created successfully: " + file.getAbsolutePath());
-                String fileData ="Contract ID: "+contractId+" From "+ fileName + " is successfully received.";
-
-                // Write text content into the file
-                Files.write(Paths.get(file.getAbsolutePath()), fileData.getBytes());
-
-                System.out.println("Text written to file.");
-            } else {
-                System.out.println("File already exists or an error occurred.");
+            } catch (Exception e) {
+                logg.severe("Failed to process file: " + path);
+                logg.severe("Error message: " + e.getMessage());
+                fail(e, path);
             }
+        });
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        logg.info("Success Acknowledgement generated: " + fileName);
-    }
-
-    public static void fail(Exception e2, Path path)
-    {
-      String fileName = path.getFileName().toString();
-      int dotIndex = fileName.lastIndexOf(".");
-      String onlyFileName = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
-      String fail = onlyFileName + "_fail";
-      String absoluteFilePath = fail + ".txt";
-     
-
-      
-      try {
-    	  try {
-              Properties pr2 = new Properties();
-              pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
-              String outbox = pr2.getProperty("ackPath");
-
-              File file = new File(outbox, absoluteFilePath);
-              boolean isFileCreated = file.createNewFile();
-
-              if (isFileCreated) {
-                  System.out.println("File created successfully: " + file.getAbsolutePath());
-                  String fileData = fileName + " Failed."+"Error: "+e2;
-
-                  // Write text content into the file
-                  Files.write(Paths.get(file.getAbsolutePath()), fileData.getBytes());
-
-                  System.out.println("Text written to file.");
-              } else {
-                  System.out.println("File already exists or an error occurred.");
-              }
-
-          } catch (IOException e) {
-              e.printStackTrace();
-          }
-      }
-      catch (Exception e) {
+    } catch (Exception e) {
+        logg.info("Failed to load properties or process files.");
+        fail(e, null);
         e.printStackTrace();
-      }
-
-      logg.info("Failure Acknowledgement generated:" + fileName);
-    }
-
-    public static void main(String[] args) throws InterruptedException , Exception{
-        SFTPFile sftpFile = new SFTPFile();
-        while(true){
-            sftpFile.processLocalFiles();
-            Thread.sleep(600000);
-        }
     }
 }
