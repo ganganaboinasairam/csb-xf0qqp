@@ -35,26 +35,20 @@ public class DailyFolderUpdater {
             // Get the current date in dd-MM-yyyy format
             String formattedDate = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
 
-            // Define the new folder name
+            // Define the new folder name with a timestamp if the folder already exists
             Path newFolderPath = Paths.get(destinationPath, formattedDate);
+            Path uniqueFolderPath = newFolderPath;
+            int counter = 1;
 
-            // Handle existing destination folder
-            if (Files.exists(newFolderPath)) {
-                // Option 1: Delete the existing folder and its contents
-                try {
-                    deleteDirectory(newFolderPath);
-                    System.out.println("Existing destination folder deleted: " + newFolderPath.toAbsolutePath());
-                } catch (IOException e) {
-                    System.err.println("Failed to delete existing destination folder: " + newFolderPath.toAbsolutePath());
-                    e.printStackTrace();
-                    return;
-                }
+            while (Files.exists(uniqueFolderPath)) {
+                uniqueFolderPath = Paths.get(destinationPath, formattedDate + "_" + counter);
+                counter++;
             }
 
             // Rename and move the folder
             try {
-                Files.move(todayFolderPath, newFolderPath);
-                System.out.println("Folder renamed and moved to: " + newFolderPath.toAbsolutePath());
+                Files.move(todayFolderPath, uniqueFolderPath);
+                System.out.println("Folder renamed and moved to: " + uniqueFolderPath.toAbsolutePath());
             } catch (IOException e) {
                 System.err.println("Failed to rename and move folder.");
                 e.printStackTrace();
@@ -86,17 +80,5 @@ public class DailyFolderUpdater {
             System.err.println("Failed to create 'BACKUP' folder inside 'TODAY'.");
             e.printStackTrace();
         }
-    }
-
-    // Method to delete a directory and its contents
-    private static void deleteDirectory(Path path) throws IOException {
-        if (Files.isDirectory(path)) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
-                for (Path entry : stream) {
-                    deleteDirectory(entry);
-                }
-            }
-        }
-        Files.delete(path);
     }
 }
