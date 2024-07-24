@@ -1,1 +1,61 @@
-E:\sairam\sairam workSpace\dailyRoutine\bin\com\DailyFolderUpdater.class
+package com;
+
+import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class DailyFolderUpdater {
+    public static void main(String[] args) {
+        // Define the desktop path
+        String desktopPath = System.getProperty("user.home") + "\\Desktop";
+        File todayFolder = new File(desktopPath + "\\TODAY");
+
+        // Define the destination path
+        String destinationPath = "F:\\SAIRAM\\";
+        File destinationDir = new File(destinationPath);
+
+        // Ensure the destination directory exists
+        if (!destinationDir.exists()) {
+            destinationDir.mkdirs();
+        }
+
+        // Check if the "TODAY" folder exists
+        if (todayFolder.exists()) {
+            // Get the current date in dd-MM-yyyy format
+            String formattedDate = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+
+            // Define the new folder name
+            File newFolder = new File(destinationPath + formattedDate);
+
+            // Rename the folder
+            boolean success = todayFolder.renameTo(newFolder);
+            if (success) {
+                System.out.println("Folder renamed and moved to: " + newFolder.getAbsolutePath());
+            } else {
+                System.err.println("Failed to rename and move folder.");
+            }
+        }
+
+        // Create a new "TODAY" folder
+        File newTodayFolder = new File(desktopPath + "\\TODAY");
+        if (!newTodayFolder.exists()) {
+            boolean created = newTodayFolder.mkdir();
+            if (created) {
+                System.out.println("New 'TODAY' folder created.");
+            } else {
+                System.err.println("Failed to create 'TODAY' folder.");
+            }
+        }
+
+        // Create a "BACKUP" subfolder inside the new "TODAY" folder
+        File backupFolder = new File(newTodayFolder, "BACKUP");
+        if (!backupFolder.exists()) {
+            boolean backupCreated = backupFolder.mkdir();
+            if (backupCreated) {
+                System.out.println("New 'BACKUP' folder created inside 'TODAY'.");
+            } else {
+                System.err.println("Failed to create 'BACKUP' folder inside 'TODAY'.");
+            }
+        }
+    }
+}
