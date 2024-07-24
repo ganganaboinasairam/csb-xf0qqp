@@ -39,7 +39,7 @@ public class DailyFolderUpdater {
         // Create the new folder for today's date
         try {
             if (Files.exists(newFolderPath)) {
-                // Handle existing folder - optionally clear it
+                // Handle existing folder - clear its contents
                 System.out.println("The folder already exists. Clearing its contents.");
                 deleteDirectory(newFolderPath); // Clear existing folder contents
             }
@@ -52,20 +52,7 @@ public class DailyFolderUpdater {
         }
 
         // Move the "TODAY" folder's contents to the new folder
-        if (Files.exists(todayFolderPath)) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(todayFolderPath)) {
-                for (Path entry : stream) {
-                    Path targetPath = newFolderPath.resolve(entry.getFileName());
-                    Files.move(entry, targetPath);
-                    System.out.println("Moved: " + entry.toAbsolutePath() + " to " + targetPath.toAbsolutePath());
-                }
-            } catch (IOException e) {
-                System.err.println("Failed to move contents from 'TODAY' folder.");
-                e.printStackTrace();
-            }
-        } else {
-            System.err.println("The 'TODAY' folder does not exist: " + todayFolderPath.toAbsolutePath());
-        }
+        moveContents(todayFolderPath, newFolderPath);
 
         // Delete the old "TODAY" folder after moving its contents
         try {
@@ -100,6 +87,40 @@ public class DailyFolderUpdater {
         } catch (IOException e) {
             System.err.println("Failed to create 'BACKUP' folder inside 'TODAY'.");
             e.printStackTrace();
+        }
+
+        // Move the "BACKUP" folder's contents from the old "TODAY" folder to the new folder
+        Path oldBackupFolderPath = todayFolderPath.resolve("BACKUP");
+        if (Files.exists(oldBackupFolderPath)) {
+            moveContents(oldBackupFolderPath, backupFolderPath);
+            // Delete the old "BACKUP" folder after moving its contents
+            try {
+                if (Files.exists(oldBackupFolderPath)) {
+                    deleteDirectory(oldBackupFolderPath);
+                    System.out.println("Old 'BACKUP' folder deleted.");
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to delete old 'BACKUP' folder.");
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // Method to move contents from source to destination
+    private static void moveContents(Path source, Path destination) {
+        if (Files.exists(source)) {
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(source)) {
+                for (Path entry : stream) {
+                    Path targetPath = destination.resolve(entry.getFileName());
+                    Files.move(entry, targetPath);
+                    System.out.println("Moved: " + entry.toAbsolutePath() + " to " + targetPath.toAbsolutePath());
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to move contents from folder: " + source.toAbsolutePath() + " to " + destination.toAbsolutePath());
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("Source folder does not exist: " + source.toAbsolutePath());
         }
     }
 
