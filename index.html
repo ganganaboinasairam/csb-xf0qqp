@@ -16,7 +16,13 @@ public class DailyFolderUpdater {
 
         // Ensure the destination directory exists
         if (!destinationDir.exists()) {
-            destinationDir.mkdirs();
+            boolean dirCreated = destinationDir.mkdirs();
+            if (dirCreated) {
+                System.out.println("Destination directory created: " + destinationPath);
+            } else {
+                System.err.println("Failed to create destination directory: " + destinationPath);
+                return; // Exit if the destination directory cannot be created
+            }
         }
 
         // Check if the "TODAY" folder exists
@@ -32,8 +38,10 @@ public class DailyFolderUpdater {
             if (success) {
                 System.out.println("Folder renamed and moved to: " + newFolder.getAbsolutePath());
             } else {
-                System.err.println("Failed to rename and move folder.");
+                System.err.println("Failed to rename and move folder. Source: " + todayFolder.getAbsolutePath() + " Destination: " + newFolder.getAbsolutePath());
             }
+        } else {
+            System.err.println("The 'TODAY' folder does not exist: " + todayFolder.getAbsolutePath());
         }
 
         // Create a new "TODAY" folder
