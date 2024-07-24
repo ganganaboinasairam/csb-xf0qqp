@@ -18,6 +18,12 @@ public class DailyFolderUpdater {
         String destinationPath = "F:\\SAIRAM\\";
         Path destinationDirPath = Paths.get(destinationPath);
 
+        // Get the current date in dd-MM-yyyy format
+        String formattedDate = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+
+        // Define the new folder path
+        Path newFolderPath = Paths.get(destinationPath, formattedDate);
+
         // Ensure the destination directory exists
         try {
             if (!Files.exists(destinationDirPath)) {
@@ -30,37 +36,46 @@ public class DailyFolderUpdater {
             return;
         }
 
-        // Check if the "TODAY" folder exists
-        if (Files.exists(todayFolderPath)) {
-            // Get the current date in dd-MM-yyyy format
-            String formattedDate = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
-
-            // Define the new folder name with a timestamp if the folder already exists
-            Path newFolderPath = Paths.get(destinationPath, formattedDate);
-
-            // Handle existing destination folder
+        // Create the new folder for today's date
+        try {
             if (Files.exists(newFolderPath)) {
-                try {
-                    // Delete the existing folder and its contents
-                    deleteDirectory(newFolderPath);
-                    System.out.println("Existing destination folder deleted: " + newFolderPath.toAbsolutePath());
-                } catch (IOException e) {
-                    System.err.println("Failed to delete existing destination folder: " + newFolderPath.toAbsolutePath());
-                    e.printStackTrace();
-                    return;
-                }
+                // Handle existing folder - optionally clear it
+                System.out.println("The folder already exists. Clearing its contents.");
+                deleteDirectory(newFolderPath); // Optionally clear existing contents
             }
+            Files.createDirectory(newFolderPath);
+            System.out.println("New folder created: " + newFolderPath.toAbsolutePath());
+        } catch (IOException e) {
+            System.err.println("Failed to create or clear destination folder: " + newFolderPath.toAbsolutePath());
+            e.printStackTrace();
+            return;
+        }
 
-            // Rename and move the folder
-            try {
-                Files.move(todayFolderPath, newFolderPath);
-                System.out.println("Folder renamed and moved to: " + newFolderPath.toAbsolutePath());
+        // Move the "TODAY" folder's contents to the new folder
+        if (Files.exists(todayFolderPath)) {
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(todayFolderPath)) {
+                for (Path entry : stream) {
+                    Path targetPath = newFolderPath.resolve(entry.getFileName());
+                    Files.move(entry, targetPath);
+                    System.out.println("Moved: " + entry.toAbsolutePath() + " to " + targetPath.toAbsolutePath());
+                }
             } catch (IOException e) {
-                System.err.println("Failed to rename and move folder.");
+                System.err.println("Failed to move contents from 'TODAY' folder.");
                 e.printStackTrace();
             }
         } else {
             System.err.println("The 'TODAY' folder does not exist: " + todayFolderPath.toAbsolutePath());
+        }
+
+        // Delete the old "TODAY" folder after moving its contents
+        try {
+            if (Files.exists(todayFolderPath)) {
+                deleteDirectory(todayFolderPath);
+                System.out.println("Old 'TODAY' folder deleted.");
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to delete old 'TODAY' folder.");
+            e.printStackTrace();
         }
 
         // Create a new "TODAY" folder
