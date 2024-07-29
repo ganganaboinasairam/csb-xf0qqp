@@ -1,144 +1,34 @@
-************ Start Display Current Environment ************
-Host Operating System is Windows Server 2019, version 10.0
-Java version = 1.8.0_391, Java Runtime Version = 8.0.8.15 - pwa6480sr8fp15-20231030_01(SR8 FP15), Java Compiler = j9jit29, Java VM name = IBM J9 VM
-was.install.root = E:\IBM\WebSphere\AppServer
-user.install.root = E:\IBM\WebSphere\AppServer\profiles\AppSrv01
-Java Home = E:\IBM\WebSphere\AppServer\java\jre
-ws.ext.dirs = E:\\IBM\\WebSphere\\AppServer\\java\\lib;E:\\IBM\\WebSphere\\AppServer\\classes;E:\\IBM\\WebSphere\\AppServer\\lib;E:\\IBM\\WebSphere\\AppServer\\installedChannels;E:\\IBM\\WebSphere\\AppServer\\lib\\ext;E:\\IBM\\WebSphere\\AppServer\\web\\help;E:\\IBM\\WebSphere\\AppServer\\deploytool\\itp\\plugins\\com.ibm.etools.ejbdeploy\\runtime
-Classpath = E:\IBM\WebSphere\AppServer\profiles\AppSrv01\properties;E:\IBM\WebSphere\AppServer\properties;E:\IBM\WebSphere\AppServer\lib\startup.jar;E:\IBM\WebSphere\AppServer\lib\bootstrap.jar;E:\IBM\WebSphere\AppServer/lib/lmproxy.jar;E:\IBM\WebSphere\AppServer/lib/urlprotocols.jar;E:\IBM\WebSphere\AppServer\java\lib\tools.jar
-Java Library path = E:\IBM\WebSphere\AppServer\java\jre\bin\compressedrefs;E:\IBM\WebSphere\AppServer\java\jre\bin;C:\WINDOWS\system32;C:\WINDOWS;E:\IBM\WebSphere\AppServer\lib\native\win\x86_64;E:\IBM\WebSphere\AppServer\bin;E:\IBM\WebSphere\AppServer\java\bin;E:\IBM\WebSphere\AppServer\java\jre\bin;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;.
-Orb Version = IBM Java ORB build orbdev-userlvl-20230924.2334
-Max file descriptor count = --
-Current trace specification = *=info:com.ibm.*=all
-************* End Display Current Environment *************
-[7/26/24 15:31:01:440 IST] 00000001 ManagerAdmin  I   TRAS0017I: The startup trace state is *=info:com.ibm.*=all.
-[7/26/24 15:31:01:440 IST] 00000001 WsServerContr 1   Executing executeUtilityOnWindows with args: E:\IBM\WebSphere\AppServer\profiles\AppSrv01\config ITTFCEAPP1PRODNode01Cell ITTFCEAPP1PRODNode01 server1 
-[7/26/24 15:31:01:456 IST] 00000001 WsServerContr 1   Getting WindowsService obj with: server1 and E:\IBM\WebSphere\AppServer\profiles\AppSrv01\config ITTFCEAPP1PRODNode01Cell ITTFCEAPP1PRODNode01 server1 
-[7/26/24 15:31:01:456 IST] 00000001 WindowsServic >  WindowsService for server server1 Entry
-                                 <null>
-[7/26/24 15:31:01:456 IST] 00000001 WindowsServic >  getWindowsServiceNameForServer server1 Entry
-                                 <null>
-[7/26/24 15:31:01:456 IST] 00000001 WindowsServic >  getWASServiceCmdPath  Entry
-                                 <null>
-[7/26/24 15:31:01:456 IST] 00000001 WindowsServic 1   In executeCommand, args are: E:\IBM\WebSphere\AppServer\bin\WASService.exe -getServiceName server1 -profilePath E:\IBM\WebSphere\AppServer\profiles\AppSrv01 
-[7/26/24 15:31:01:471 IST] 00000001 WindowsServic 1   Runtime.exec() returned process java.lang.ProcessImpl@301ae6d7
-[7/26/24 15:31:01:518 IST] 00000001 WindowsServic 1   retCode from childProcess.waitFor() is 0
-[7/26/24 15:31:01:518 IST] 00000001 WindowsServic I   ADMU7714I: WASService command for server server1 completed successfully.
-[7/26/24 15:31:01:518 IST] 00000001 WindowsServic 3   exitCode = 0
-[7/26/24 15:31:02:534 IST] 00000001 WindowsServic <  getWindowsServiceNameForServer Exit
-[7/26/24 15:31:02:534 IST] 00000001 WindowsServic 1   Trying to new up WindowsService using serverName=server1, winServiceName=null
-[7/26/24 15:31:02:534 IST] 00000001 ManagerAdmin  I   TRAS0018I: The trace state has changed. The new trace state is *=info.
-[7/26/24 15:31:02:628 IST] 00000001 AdminTool     A   ADMU0128I: Starting tool with the AppSrv01 profile
-[7/26/24 15:31:02:628 IST] 00000001 AdminTool     A   ADMU3100I: Reading configuration for server: server1
-[7/26/24 15:31:02:675 IST] 00000001 ModelMgr      I   WSVR0801I: Initializing all server configuration models
-[7/26/24 15:31:03:721 IST] 00000001 ProviderTrack I com.ibm.ffdc.osgi.ProviderTracker AddingService FFDC1007I: FFDC Provider Installed: com.ibm.ffdc.util.provider.FfdcOnDirProvider@44e1373e
-[7/26/24 15:31:03:815 IST] 00000001 SSLConfig     W   CWPKI0041W: One or more key stores are using the default password.
-[7/26/24 15:31:03:831 IST] 00000001 SSLConfigMana I   CWPKI0051I: The process has the java security property jdk.certpath.disabledAlgorithms set to [MD2, MD5, SHA1 jdkCA & usage TLSServer, RSA keySize < 1024, DSA keySize < 1024, EC keySize < 224, include jdk.disabled.namedCurves, SHA1 usage SignedJAR & denyAfter 2019-01-01].  The WebSphere Application server is setting the java security property jdk.certpath.disabledAlgorithms to [MD2, MD5, SHA1 jdkCA & usage TLSServer, RSA keySize < 1024, DSA keySize < 1024, EC keySize < 224]. 
-[7/26/24 15:31:03:831 IST] 00000001 SSLConfigMana I   CWPKI0051I: The process has the java security property jdk.tls.disabledAlgorithms set to [SSLv3, TLSv1, TLSv1.1, RC4, DES, MD5withRSA, DH keySize < 1024, DESede, EC keySize < 224, 3DES_EDE_CBC, anon, NULL, DES_CBC, include jdk.disabled.namedCurves].  The WebSphere Application server is setting the java security property jdk.tls.disabledAlgorithms to [SSLv3, RC4, DES, MD5withRSA, DH keySize < 1024, DESede, EC keySize < 224, 3DES_EDE_CBC, anon, NULL, DES_CBC]. 
-[7/26/24 15:31:03:831 IST] 00000001 SSLConfigMana I   CWPKI0027I: Disabling default hostname verification for HTTPS URL connections.
-[7/26/24 15:31:03:846 IST] 00000001 SecurityObjec I   CWSCF0002I: The client code is attempting to load the security configuration the server and this operation is not allowed.
-[7/26/24 15:31:04:895 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:04:910 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:020 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:108 IST] 00000001 Ffdc          I com.ibm.ffdc.util.provider.FfdcOnDirProvider logIncident FFDC1003I: FFDC Incident emitted on E:\IBM\WebSphere\AppServer\profiles\AppSrv01\logs\ffdc\ffdc.7026102335936158284.txt com.ibm.ws.ssl.channel.impl.SSLConnectionLink 540
-[7/26/24 15:31:05:202 IST] 00000001 SecurityConne A   JSAS0006I: Security connection interceptor initialized.
-[7/26/24 15:31:05:202 IST] 00000001 ServiceInit   A   JSAS0001I: Security configuration initialized.
-[7/26/24 15:31:05:202 IST] 00000001 ServiceInit   A   JSAS0003I: Authentication mechanism: BASICAUTH
-[7/26/24 15:31:05:218 IST] 00000001 CSIClientRI   A   JSAS0007I: Client request interceptor registered.
-[7/26/24 15:31:05:391 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:407 IST] 00000001 Ffdc          I com.ibm.ffdc.util.provider.FfdcOnDirProvider logIncident FFDC1003I: FFDC Incident emitted on E:\IBM\WebSphere\AppServer\profiles\AppSrv01\logs\ffdc\ffdc.1142625401414259795.txt com.ibm.ws.security.orbssl.WSSSLClientSocketFactoryImpl.createSSLSocket 222
-[7/26/24 15:31:05:516 IST] 00000001 Ffdc          I com.ibm.ffdc.util.provider.FfdcOnDirProvider logIncident FFDC1003I: FFDC Incident emitted on E:\IBM\WebSphere\AppServer\profiles\AppSrv01\logs\ffdc\ffdc.711590903846634259.txt com.ibm.ws.orbimpl.transport.WSSSLTransportConnection.createSocket 270
-[7/26/24 15:31:05:532 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:547 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:547 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:563 IST] 00000001 Ffdc          I com.ibm.ffdc.util.provider.FfdcOnDirProvider logIncident FFDC1003I: FFDC Incident emitted on E:\IBM\WebSphere\AppServer\profiles\AppSrv01\logs\ffdc\ffdc.641798052764441216.txt com.ibm.ws.naming.util.CommonHelpers.retry 876
-[7/26/24 15:31:05:626 IST] 00000001 Ffdc          I com.ibm.ffdc.util.provider.FfdcOnDirProvider logIncident FFDC1003I: FFDC Incident emitted on E:\IBM\WebSphere\AppServer\profiles\AppSrv01\logs\ffdc\ffdc.1686689008120331868.txt com.ibm.ws.naming.jndicos.CNContextImpl.lookupExt 1443
-[7/26/24 15:31:05:641 IST] 00000001 Ffdc          I com.ibm.ffdc.util.provider.FfdcOnDirProvider logIncident FFDC1003I: FFDC Incident emitted on E:\IBM\WebSphere\AppServer\profiles\AppSrv01\logs\ffdc\ffdc.571726273890958974.txt com.ibm.ws.naming.util.Helpers.logJndiContextException 1504
-[7/26/24 15:31:05:657 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:657 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:672 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:688 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:704 IST] 00000001 Ffdc          I com.ibm.ffdc.util.provider.FfdcOnDirProvider logIncident FFDC1003I: FFDC Incident emitted on E:\IBM\WebSphere\AppServer\profiles\AppSrv01\logs\ffdc\ffdc.9196561252806802307.txt com.ibm.ws.management.connector.rmi.RMIConnectorClient.reconnect 237
-[7/26/24 15:31:05:719 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:735 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:735 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:751 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:766 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:782 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:782 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:797 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:797 IST] 00000001 Ffdc          I com.ibm.ffdc.util.provider.FfdcOnDirProvider logIncident FFDC1003I: FFDC Incident emitted on E:\IBM\WebSphere\AppServer\profiles\AppSrv01\logs\ffdc\ffdc.4050644041374992493.txt com.ibm.websphere.management.AdminClientFactory.createAdminClient 267
-[7/26/24 15:31:05:829 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:829 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:844 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:860 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:876 IST] 00000001 Ffdc          I com.ibm.ffdc.util.provider.FfdcOnDirProvider logIncident FFDC1003I: FFDC Incident emitted on E:\IBM\WebSphere\AppServer\profiles\AppSrv01\logs\ffdc\ffdc.6675319632300001184.txt com.ibm.ws.management.connector.jsr160rmi.JSR160RMIConnectorClient.reconnect 179
-[7/26/24 15:31:05:891 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:891 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:907 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:922 IST] 00000001 WSX509TrustMa E   CWPKI0312E: The certificate with subject DN CN=etrade.sbi, O=STATE BANK OF INDIA, L=Mumbai, ST=Maharashtra, C=IN, SERIALNUMBER=Government Entity, OID.2.5.4.15=Government Entity, OID.1.3.6.1.4.1.311.60.2.1.3=IN has an end date Sun Jul 21 05:29:59 IST 2024 which is no longer valid.
-[7/26/24 15:31:05:922 IST] 00000001 Ffdc          I com.ibm.ffdc.util.provider.FfdcOnDirProvider logIncident FFDC1003I: FFDC Incident emitted on E:\IBM\WebSphere\AppServer\profiles\AppSrv01\logs\ffdc\ffdc.5522353891074946544.txt com.ibm.websphere.management.AdminClientFactory.createAdminClient 275
-[7/26/24 15:31:05:938 IST] 00000001 WsServerStop  E   ADMU3002E: Exception attempting to process server server1
-[7/26/24 15:31:05:938 IST] 00000001 WsServerStop  E   ADMU3007E: Exception com.ibm.websphere.management.exception.ConnectorException: com.ibm.websphere.management.exception.ConnectorException: ADMC0016E: The system cannot create a SOAP connector to connect to host ITTFCEAPP1PROD.CORP.AD.SBI at port 8880.
-[7/26/24 15:31:05:938 IST] 00000001 WsServerStop  A   ADMU3007E: Exception com.ibm.websphere.management.exception.ConnectorException: com.ibm.websphere.management.exception.ConnectorException: ADMC0016E: The system cannot create a SOAP connector to connect to host ITTFCEAPP1PROD.CORP.AD.SBI at port 8880.
-	at com.ibm.ws.management.connector.ConnectorHelper.createConnector(ConnectorHelper.java:628)
-	at com.ibm.ws.management.tools.WsServerStop.runTool(WsServerStop.java:373)
-	at com.ibm.ws.management.tools.AdminTool.executeUtility(AdminTool.java:281)
-	at com.ibm.ws.management.tools.WsServerController.executeUtilityOnWindows(WsServerController.java:136)
-	at com.ibm.ws.management.tools.WsServerStop.main(WsServerStop.java:119)
-	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:90)
-	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:55)
-	at java.lang.reflect.Method.invoke(Method.java:508)
-	at com.ibm.wsspi.bootstrap.WSLauncher.launchMain(WSLauncher.java:234)
-	at com.ibm.wsspi.bootstrap.WSLauncher.main(WSLauncher.java:96)
-	at com.ibm.wsspi.bootstrap.WSLauncher.run(WSLauncher.java:77)
-	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:90)
-	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:55)
-	at java.lang.reflect.Method.invoke(Method.java:508)
-	at org.eclipse.equinox.internal.app.EclipseAppContainer.callMethodWithException(EclipseAppContainer.java:587)
-	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:198)
-	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:110)
-	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:79)
-	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:369)
-	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:179)
-	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:90)
-	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:55)
-	at java.lang.reflect.Method.invoke(Method.java:508)
-	at org.eclipse.core.launcher.Main.invokeFramework(Main.java:340)
-	at org.eclipse.core.launcher.Main.basicRun(Main.java:282)
-	at org.eclipse.core.launcher.Main.run(Main.java:981)
-	at com.ibm.wsspi.bootstrap.WSPreLauncher.launchEclipse(WSPreLauncher.java:425)
-	at com.ibm.wsspi.bootstrap.WSPreLauncher.main(WSPreLauncher.java:178)
-Caused by: com.ibm.websphere.management.exception.ConnectorException: ADMC0016E: The system cannot create a SOAP connector to connect to host ITTFCEAPP1PROD.CORP.AD.SBI at port 8880.
-	at com.ibm.websphere.management.AdminClientFactory.createAdminClientPrivileged(AdminClientFactory.java:635)
-	at com.ibm.websphere.management.AdminClientFactory.access$000(AdminClientFactory.java:127)
-	at com.ibm.websphere.management.AdminClientFactory$1.run(AdminClientFactory.java:210)
-	at com.ibm.ws.security.util.AccessController.doPrivileged(AccessController.java:63)
-	at com.ibm.websphere.management.AdminClientFactory.createAdminClient(AdminClientFactory.java:206)
-	at com.ibm.ws.management.connector.ConnectorHelper.tryProtocol(ConnectorHelper.java:665)
-	at com.ibm.ws.management.connector.ConnectorHelper.createConnector(ConnectorHelper.java:597)
-	... 30 more
-Caused by: java.lang.reflect.InvocationTargetException
-	at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
-	at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:83)
-	at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:57)
-	at java.lang.reflect.Constructor.newInstance(Constructor.java:437)
-	at com.ibm.websphere.management.AdminClientFactory.createAdminClientPrivileged(AdminClientFactory.java:457)
-	... 36 more
-Caused by: com.ibm.websphere.management.exception.ConnectorNotAvailableException: [SOAPException: faultCode=SOAP-ENV:Client; msg=Error opening socket: java.io.IOException: Exception during sslSocket.startHandshake: com.ibm.jsse2.util.ValidatorException: PKIX path validation failed: java.security.cert.CertPathValidatorException: validity check failed; targetException=java.lang.IllegalArgumentException: Error opening socket: java.io.IOException: Exception during sslSocket.startHandshake: com.ibm.jsse2.util.ValidatorException: PKIX path validation failed: java.security.cert.CertPathValidatorException: validity check failed]
-	at com.ibm.ws.management.connector.soap.SOAPConnectorClient.reconnect(SOAPConnectorClient.java:437)
-	at com.ibm.ws.management.connector.soap.SOAPConnectorClient.<init>(SOAPConnectorClient.java:236)
-	... 41 more
-Caused by: [SOAPException: faultCode=SOAP-ENV:Client; msg=Error opening socket: java.io.IOException: Exception during sslSocket.startHandshake: com.ibm.jsse2.util.ValidatorException: PKIX path validation failed: java.security.cert.CertPathValidatorException: validity check failed; targetException=java.lang.IllegalArgumentException: Error opening socket: java.io.IOException: Exception during sslSocket.startHandshake: com.ibm.jsse2.util.ValidatorException: PKIX path validation failed: java.security.cert.CertPathValidatorException: validity check failed]
-	at org.apache.soap.transport.http.SOAPHTTPConnection.send(SOAPHTTPConnection.java:475)
-	at org.apache.soap.rpc.Call.WASinvoke(Call.java:525)
-	at com.ibm.ws.management.connector.soap.SOAPConnectorClient$4.run(SOAPConnectorClient.java:395)
-	at com.ibm.ws.security.util.AccessController.doPrivileged(AccessController.java:118)
-	at com.ibm.ws.management.connector.soap.SOAPConnectorClient.reconnect(SOAPConnectorClient.java:380)
-	... 42 more
+public static void fail(Exception e2, String filename, String contractId)
+    {
+    	String fileName = filename;
+        int dotIndex = fileName.lastIndexOf(".");
+        String onlyFileName = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
+      String fail = onlyFileName + contractId + "_fail";
+      String absoluteFilePath = fail + ".txt";
+      File file = new File(absoluteFilePath);
 
-[7/26/24 15:31:05:969 IST] 00000001 AdminTool     A   ADMU0509I: The server "server1" cannot be reached. It appears to be stopped.
-[7/26/24 15:31:05:969 IST] 00000001 AdminTool     A   ADMU0211I: Error details may be seen in the file: E:\IBM\WebSphere\AppServer\profiles\AppSrv01\logs\server1\stopServer.log
+      Properties pr2 = new Properties();
+      try {
+        pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
+        outbox = pr2.getProperty("ackPath");
+        sftpChannel.cd(outbox);
+        String fileData ="Contract ID :" + contractId + " from " +  onlyFileName + " failed due to reason " + e2;
+        Files.write(Paths.get(absoluteFilePath, new String[0]), fileData.getBytes(), new OpenOption[0]);
+        if (file.isFile()) {
+          String put = outbox + file.getName();
+          InputStream ins = new FileInputStream(file);
+          sftpChannel.put(ins, put);
+          ins.close();
+          file.delete();
+        }
+      }
+      catch (SftpException e) {
+        e.printStackTrace();
+      } catch (FileNotFoundException e) {
+        e.printStackTrace();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+
+      logg.info("Failure Acknowledgement generated:" + onlyFileName);
+    }
