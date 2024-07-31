@@ -23,33 +23,87 @@ public class IADVDashboardUpdate extends HttpServlet {
         String status123 = request.getParameter("status123");
         String functionName = request.getParameter("functionNameJSP");
 
-        ArrayList<IADVDashboardBean> dashboardList = new ArrayList<>();
-        String cTrxStat = "SELECT IM.C_TRX_STATUS, IL.C_REFUSE_REASON FROM IADV_MASTER IM, IADV_LEDGER IL WHERE IM.C_MAIN_REF = IL.C_MAIN_REF AND IM.c_main_ref = ?";
+        ArrayList<IADVDashboardBean> dashBoardList = new ArrayList<>();
 
         try (Connection conn = DSManager.getConnection("CET");
-             PreparedStatement pstmt = conn.prepareStatement(cTrxStat)) {
-            pstmt.setString(1, cMainRef);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    IADVDashboardBean dashboardBean = new IADVDashboardBean();
-                    dashboardBean.setC_TRX_STATUS(rs.getString("C_TRX_STATUS"));
-                    dashboardBean.setC_REFUSE_REASON(rs.getString("C_REFUSE_REASON"));
-                    dashboardList.add(dashboardBean);
+             PreparedStatement pstmt2 = conn.prepareStatement("SELECT IM.C_TRX_STATUS, IL.C_REFUSE_REASON FROM IADV_MASTER IM, IADV_LEDGER IL WHERE IM.C_MAIN_REF=IL.C_MAIN_REF AND IM.c_main_ref=?")) {
+            
+            pstmt2.setString(1, cMainRef);
+            try (ResultSet rs2 = pstmt2.executeQuery()) {
+                while (rs2.next()) {
+                    IADVDashboardBean dashBoardBean = new IADVDashboardBean();
+                    dashBoardBean.setC_TRX_STATUS(rs2.getString("C_TRX_STATUS") != null ? rs2.getString("C_TRX_STATUS") : "");
+                    dashBoardBean.setC_REFUSE_REASON(rs2.getString("C_REFUSE_REASON") != null ? rs2.getString("C_REFUSE_REASON") : "");
+                    dashBoardList.add(dashBoardBean);
                 }
             }
+            
             if ("Dashboard".equalsIgnoreCase(functionName)) {
                 CallforfunctionID_IADV(status123, cMainRef);
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        Gson gson = new Gson();
-        String jsonResponse = gson.toJson(dashboardList);
+        String jsonResponse = new Gson().toJson(dashBoardList);
         response.setContentType("application/json");
-        try (PrintWriter out = response.getWriter()) {
-            out.write(jsonResponse);
-        }
+        response.getWriter().write(jsonResponse);
     }
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("application/json");
+        String statusJSP = request.getParameter("statusJSP");
+        String procBrCodeJSP = request.getParameter("procBrCodeJSP");
+        String authFlagJSP = request.getParameter("authFlagJSP");
+        String cMainRefJSP = request.getParameter("cMainRefJSP");
+        String closeFlagJSP = request.getParameter("closeFlagJSP");
+        String rejectRsnJSP = request.getParameter("rejectRsnJSP");
+
+        try (Connection conn = DSManager.getConnection("CET");
+             PreparedStatement pstmt = conn.prepareStatement("UPDATE IADV_MASTER SET STATUS=?, PROC_BR_CODE=?, AUTH_FLAG=?, CLOSE_FLAG=?, REJECT_RSN=?, IADV_ACPT_DT=SYSDATE WHERE C_MAIN_REF=?");
+             Connection conn1 = DSManager.getConnection("CET");
+             PreparedStatement pstmt1 = conn1.prepareStatement("UPDATE TRX_INBOX SET STATUS=?, AUTH_FLAG=?, CLOSE_FLAG=?, REJECT_RSN=?, IADV_ACPT_DT=SYSDATE WHERE C_MAIN_REF=?")) {
+            
+            pstmt.setString(1, statusJSP);
+            pstmt.setString(2, procBrCodeJSP);
+            pstmt.setString(3, authFlagJSP);
+            pstmt.setString(4, closeFlagJSP);
+            pstmt.setString(5, rejectRsnJSP);
+            pstmt.setString(6, cMainRefJSP);
+            pstmt.executeUpdate();
+            System.out.println("Executed IadvMasterUpdate");
+
+            pstmt1.setString(1, statusJSP);
+            pstmt1.setString(2, authFlagJSP);
+            pstmt1.setString(3, closeFlagJSP);
+            pstmt1.setString(4, rejectRsnJSP);
+            pstmt1.setString(5, cMainRefJSP);
+            pstmt1.executeUpdate();
+            System.out.println("Executed trxInboxUpdate");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        try (PrintWriter out = response.getWriter()) {
+            out.flush();
+        }
+    }
+
+    public void CallforfunctionID_IADV(String status123, String cMainRef) {
+        try (Connection conn = DSManager.getConnection("CET");
+             PreparedStatement pstmt5 = conn.prepareStatement("UPDATE IADV_MASTER SET C_LOCKED_FLAG=? WHERE C_MAIN_REF=?")) {
+            
+            if (!("5".equals(status123) || "13".equals(status123) || "16".equals(status123) || "18".equals(status123) || "3".equals(status123) || "4".equals(status123))) {
+                System.out.println("called CallforfunctionID_IADV and inside ifloop of CallforfunctionID_IADV");
+                pstmt5.setString(1, "F");
+                pstmt5.setString(2, cMainRef);
+                pstmt5.executeUpdate();
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
