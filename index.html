@@ -1,97 +1,135 @@
-<!--input div-->
-<div id="0_div" class="Tab" title="Drawing Details">
-<table>
-<tbody>
-    <tr>
-	     <td colspan="4">&nbsp;</td>
-	</tr>
-	<tr>
-		<td colspan="4" class="HeadingBg">Drawing Details</td>
-	</tr>
-    <tr>
-	     <td class="FldLabel">Inland Bill Reference No.</td>
-		 <td><input name="C_MAIN_REF" type="text" class="CHAR_P" id="C_MAIN_REF" title="Inland Bill Reference Number" size="16" maxlength="35"></td>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSP Div Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .panel {
+            display: none;
+        }
+    </style>
+</head>
+<body>
 
-         <td class="FldLabel">Inland Bill Type</td>
-	     <td><select name="EXP_BILL_TYPE" id="EXP_BILL_TYPE" class="INT_P" title="Inland Bill Type">
-		 <EXIMTAGS:FldConv fldName="EXP_BILL_TYPE" smType="false" emptyValue="" blankOption="TRUE" alwaysGetData="TRUE"/>
-         </select></td>
-	</tr>
-	<tr>
-         <td class="FldLabel">Date of Presentation</td>
-		 <td><input name="DT_OF_PRES1" type="text" class="DATE_O" id="DT_OF_PRES1" title="Date of Presentation" size="10" maxlength="8"></td>
-		 <td class="FldLabel star">Nature of Bill</td>
-	     <td><select name="NATURE_OF_BILLS" id="NATURE_OF_BILLS" class="INT_M" title="Nature of Bill">
-		 <EXIMTAGS:FldConv fldName="NATURE_OF_BILLS" smType="false" emptyValue="" blankOption="TRUE" alwaysGetData="TRUE"/>
-         </select></td>
-	</tr>
-	<tr>
-	     <td class="FldLabel">LC Number</td>
-		 <td><input name="LC_ORDER_NO1" type="text" class="CHAR_P" id="LC_ORDER_NO1" title="LC Number" size="24" maxlength="35"></td>
-         <td class="FldLabel">LC Amount</td>
-		 <td><input name="LC_CCY" type="text" class="CHAR_P" id="LC_CCY" title="LC Currency" size="3" maxlength="3">
-		 <input name="LC_AMT" type="text" class="AMT_P" id="LC_AMT" title="LC Amount" size="20" maxlength="18"></td>
-	</tr>
-</tbody>
-</table>
-</div>
+<h1>JSP Div Converter</h1>
+<p>Select a JSP file to convert the div structures.</p>
+<input type="file" id="jspFile" accept=".jsp"><br>
+<button onclick="convertDivs()">Convert Divs</button>
 
+<div class="result" id="result"></div>
 
-<!--output div-->
-<div style="padding: 10px; padding-bottom: 2px;">
-				<table style="width: 100%;">
-					<tr>
-						<td>
-							<div onclick="callMe(this)" class="accordion" id="Drawing_Details">
-								<table style="width: 100%;">
-									<tr>
-										<td style="text-align: left;">
-												<img src="/CEWeb/Images/icons/Tick.svg" href="#" id="tick" style="margin-bottom: -2px; margin-right: 7px; display:none;"/>&nbsp;Drawing Details
-										</td>
-										<td style="text-align: right;">
-											<img src="/CEWeb/Images/icons/arrow_accor.svg" id="mainTab_UpArrow" href="#" style="margin-bottom: -2px;margin-right: 7px;"/>
-											<img src="/CEWeb/Images/icons/arrow_accor1.svg" id="mainTab_DownArrow" href="#" style="margin-bottom: -2px;margin-right: 7px; display: none;"/>
-										</td>
-									</tr>
-								</table>
-							</div>
-							<br>
-							<div class="panel">
-							
-  <table style="width:100%;">
-    <tbody>
-	<tr>
-	<td colspan="3">&nbsp;</td>
-	</tr>
-<tr>
-	     <td class="FldLabel">Inland Bill Reference No.</td>
-		 <td><input name="C_MAIN_REF" type="text" class="CHAR_P" id="C_MAIN_REF" title="Inland Bill Reference Number" size="16" maxlength="35"></td>
+<script>
+function readFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+    });
+}
 
-         <td class="FldLabel">Inland Bill Type</td>
-	     <td><select name="EXP_BILL_TYPE" id="EXP_BILL_TYPE" class="INT_P" title="Inland Bill Type">
-		 <EXIMTAGS:FldConv fldName="EXP_BILL_TYPE" smType="false" emptyValue="" blankOption="TRUE" alwaysGetData="TRUE"/>
-         </select></td>
-	</tr>
-	<tr>
-         <td class="FldLabel">Date of Presentation</td>
-		 <td><input name="DT_OF_PRES1" type="text" class="DATE_O" id="DT_OF_PRES1" title="Date of Presentation" size="10" maxlength="8"></td>
-		 <td class="FldLabel star">Nature of Bill</td>
-	     <td><select name="NATURE_OF_BILLS" id="NATURE_OF_BILLS" class="INT_M" title="Nature of Bill">
-		 <EXIMTAGS:FldConv fldName="NATURE_OF_BILLS" smType="false" emptyValue="" blankOption="TRUE" alwaysGetData="TRUE"/>
-         </select></td>
-	</tr>
-	<tr>
-	     <td class="FldLabel">LC Number</td>
-		 <td><input name="LC_ORDER_NO1" type="text" class="CHAR_P" id="LC_ORDER_NO1" title="LC Number" size="24" maxlength="35"></td>
-         <td class="FldLabel">LC Amount</td>
-		 <td><input name="LC_CCY" type="text" class="CHAR_P" id="LC_CCY" title="LC Currency" size="3" maxlength="3">
-		 <input name="LC_AMT" type="text" class="AMT_P" id="LC_AMT" title="LC Amount" size="20" maxlength="18"></td>
-	</tr>
-		
-</tbody>
-</table>
-</div>
-</td>
-</tr>		
-</table>
-</div>
+function convertDivs() {
+    const fileInput = document.getElementById('jspFile');
+    const resultDiv = document.getElementById('result');
+
+    if (fileInput.files.length === 0) {
+        alert("Please select a JSP file.");
+        return;
+    }
+
+    const file = fileInput.files[0];
+    readFile(file).then(content => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(content, 'text/html');
+        
+        const inputDiv = doc.querySelector('#0_div');
+        if (!inputDiv) {
+            alert("Input div not found in the JSP file.");
+            return;
+        }
+
+        const outputDiv = createOutputDiv(inputDiv);
+        resultDiv.innerHTML = '';
+        resultDiv.appendChild(outputDiv);
+    }).catch(error => {
+        console.error('Error reading file:', error);
+    });
+}
+
+function createOutputDiv(inputDiv) {
+    const outputDiv = document.createElement('div');
+    outputDiv.style.padding = '10px';
+    outputDiv.style.paddingBottom = '2px';
+
+    const table = document.createElement('table');
+    table.style.width = '100%';
+
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+
+    const accordionDiv = document.createElement('div');
+    accordionDiv.className = 'accordion';
+    accordionDiv.id = 'Drawing_Details';
+    accordionDiv.onclick = function() { togglePanel(this) };
+
+    const accordionTable = document.createElement('table');
+    accordionTable.style.width = '100%';
+
+    const accordionTr = document.createElement('tr');
+    const leftTd = document.createElement('td');
+    leftTd.style.textAlign = 'left';
+    leftTd.innerHTML = '&nbsp;Drawing Details';
+
+    const rightTd = document.createElement('td');
+    rightTd.style.textAlign = 'right';
+    rightTd.innerHTML = `
+        <img src="/CEWeb/Images/icons/arrow_accor.svg" id="mainTab_UpArrow" style="margin-bottom: -2px; margin-right: 7px;"/>
+        <img src="/CEWeb/Images/icons/arrow_accor1.svg" id="mainTab_DownArrow" style="margin-bottom: -2px; margin-right: 7px; display: none;"/>
+    `;
+
+    accordionTr.appendChild(leftTd);
+    accordionTr.appendChild(rightTd);
+    accordionTable.appendChild(accordionTr);
+    accordionDiv.appendChild(accordionTable);
+
+    const panelDiv = document.createElement('div');
+    panelDiv.className = 'panel';
+    panelDiv.innerHTML = inputDiv.innerHTML;
+
+    td.appendChild(accordionDiv);
+    td.appendChild(document.createElement('br'));
+    td.appendChild(panelDiv);
+    tr.appendChild(td);
+    table.appendChild(tr);
+
+    outputDiv.appendChild(table);
+    return outputDiv;
+}
+
+function togglePanel(element) {
+    const panel = element.nextElementSibling.nextElementSibling;
+    const upArrow = element.querySelector('#mainTab_UpArrow');
+    const downArrow = element.querySelector('#mainTab_DownArrow');
+
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+        upArrow.style.display = 'block';
+        downArrow.style.display = 'none';
+    } else {
+        panel.style.display = 'block';
+        upArrow.style.display = 'none';
+        downArrow.style.display = 'block';
+    }
+}
+</script>
+
+</body>
+</html>
