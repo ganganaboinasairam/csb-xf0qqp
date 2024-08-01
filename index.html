@@ -1,10 +1,28 @@
-input:
-<input name="C_MAIN_REF" type="text" class="CHAR_P" id="C_MAIN_REF" title="Inland Bill Reference Number" size="16" maxlength="35">
-<select name="EXP_BILL_TYPE" id="EXP_BILL_TYPE" class="INT_P" title="Inland Bill Type"></select>
-<input name="DT_OF_PRES1" type="text" class="DATE_O" id="DT_OF_PRES1" title="Date of Presentation" size="10" maxlength="8">
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+public class TagExtractor {
 
-output :
-Inland Bill Reference Number - C_MAIN_REF
-Inland Bill Type - EXP_BILL_TYPE
-Date of Presentation - DT_OF_PRES1
+    public static void main(String[] args) {
+        String filePath = "path/to/your/input/file.txt";  // Update this with the actual file path
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            Pattern pattern = Pattern.compile("(input|select).*?id=\"(.*?)\".*?title=\"(.*?)\"");
+
+            while ((line = br.readLine()) != null) {
+                Matcher matcher = pattern.matcher(line);
+                while (matcher.find()) {
+                    String id = matcher.group(2);
+                    String title = matcher.group(3);
+                    System.out.println(title + " - " + id);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
