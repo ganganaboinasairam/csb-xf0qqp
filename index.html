@@ -50,17 +50,11 @@ function convertDivs() {
 
     const file = fileInput.files[0];
     readFile(file).then(content => {
-        // Create a temporary container to parse the content
         const parser = new DOMParser();
         const doc = parser.parseFromString(content, 'text/html');
 
-        // Collect the divs with class 'Tab'
-        const tabDivs = doc.querySelectorAll('.Tab');
-
-        // Ensure EXIMTAGS are self-closing and uppercase
-        const modifiedHtml = handleCustomFormatting(doc);
-
-        // Append style and script tags if needed
+        // Process the document
+        handleCustomFormatting(doc);
         appendStyleAndScript(doc);
 
         // Serialize the modified HTML document
@@ -77,18 +71,16 @@ function handleCustomFormatting(doc) {
     // Ensure EXIMTAGS are self-closing and uppercase
     const eximtags = doc.querySelectorAll('eximtags\\:includefile');
     eximtags.forEach(tag => {
-        tag.outerHTML = tag.outerHTML.replace(/<\/eximtags:[^>]*>/gi, ''); // Remove any closing EXIMTAGS tags
+        // Remove any closing EXIMTAGS tags and convert to uppercase
+        tag.outerHTML = tag.outerHTML.replace(/<\/eximtags:[^>]*>/gi, '');
+        tag.outerHTML = tag.outerHTML.toUpperCase();
     });
 
-    doc.querySelectorAll('jsp\\:include').forEach(tag => {
-        tag.outerHTML = tag.outerHTML.replace(/<\/jsp:include>/gi, '/>'); // Ensure JSP includes are self-closing
+    // Ensure JSP includes are self-closing
+    const jspIncludes = doc.querySelectorAll('jsp\\:include');
+    jspIncludes.forEach(tag => {
+        tag.outerHTML = tag.outerHTML.replace(/<\/jsp:include>/gi, '/>');
     });
-
-    doc.querySelectorAll('eximtags\\:includefile').forEach(tag => {
-        tag.outerHTML = tag.outerHTML.toUpperCase(); // Convert EXIMTAGS to uppercase
-    });
-
-    return doc;
 }
 
 function appendStyleAndScript(doc) {
@@ -97,14 +89,16 @@ function appendStyleAndScript(doc) {
 
     // Check if <jsp:include> tags are present and append style/script if needed
     doc.querySelectorAll('jsp\\:include').forEach(include => {
-        if (!include.nextElementSibling || (include.nextElementSibling.tagName !== 'STYLE' && include.nextElementSibling.tagName !== 'SCRIPT')) {
+        if (!include.nextElementSibling || 
+            (include.nextElementSibling.tagName !== 'STYLE' && include.nextElementSibling.tagName !== 'SCRIPT')) {
             include.insertAdjacentHTML('afterend', styleTag + scriptTag);
         }
     });
 
     // Check if <eximtags:includefile> tags are present and append style/script if needed
     doc.querySelectorAll('eximtags\\:includefile').forEach(include => {
-        if (!include.nextElementSibling || (include.nextElementSibling.tagName !== 'STYLE' && include.nextElementSibling.tagName !== 'SCRIPT')) {
+        if (!include.nextElementSibling || 
+            (include.nextElementSibling.tagName !== 'STYLE' && include.nextElementSibling.tagName !== 'SCRIPT')) {
             include.insertAdjacentHTML('afterend', styleTag + scriptTag);
         }
     });
