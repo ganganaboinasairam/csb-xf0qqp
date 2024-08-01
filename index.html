@@ -57,143 +57,66 @@ function convertDivs() {
         // Collect the divs with class 'Tab'
         const tabDivs = doc.querySelectorAll('.Tab');
 
-        if (tabDivs.length === 0) {
-            alert("No divs with class 'Tab' found in the JSP file.");
-            return;
-        }
+        // Ensure EXIMTAGS are self-closing and uppercase
+        const modifiedHtml = handleCustomFormatting(doc);
 
-        // Process each 'Tab' div and replace it with the new accordion structure
-        tabDivs.forEach((tabDiv, index) => {
-            const title = tabDiv.getAttribute('title');
-            if (title) {
-                const outputDiv = createOutputDiv(tabDiv, title, index + 1);
-                tabDiv.parentNode.replaceChild(outputDiv, tabDiv);
-            }
-        });
+        // Append style and script tags if needed
+        appendStyleAndScript(doc);
 
-        // Append <style> and <script> tags after <jsp:include> tags
-        appendStyleAndScriptTags(doc);
-
-        // Serialize the modified HTML document and escape it for display
+        // Serialize the modified HTML document
         const serializer = new XMLSerializer();
-        let modifiedHtml = serializer.serializeToString(doc);
+        let outputHtml = serializer.serializeToString(doc);
 
-        // Custom processing to handle self-closing tags and uppercase EXIMTAGS
-        modifiedHtml = handleCustomFormatting(modifiedHtml);
-
-        resultDiv.innerHTML = `<pre>${escapeHtml(modifiedHtml)}</pre>`;
+        resultDiv.innerHTML = `<pre>${escapeHtml(outputHtml)}</pre>`;
     }).catch(error => {
         console.error('Error reading file:', error);
     });
 }
 
-function appendStyleAndScriptTags(doc) {
-    // Find all <jsp:include> tags
-    const includes = doc.querySelectorAll('jsp\\:include');
-    
-    includes.forEach(include => {
-        // Create <style> and <script> tags
-        const style = doc.createElement('style');
-        style.textContent = '/* Add your CSS here */';
-        
-        const script = doc.createElement('script');
-        script.textContent = '// Add your JavaScript here';
-
-        // Append <style> and <script> tags right after the <jsp:include> tag
-        include.parentNode.insertBefore(style, include.nextSibling);
-        include.parentNode.insertBefore(script, include.nextSibling);
-    });
-}
-
-function handleCustomFormatting(html) {
+function handleCustomFormatting(doc) {
     // Ensure EXIMTAGS are self-closing and uppercase
-    html = html
-        .replace(/<eximtags:/gi, '<EXIMTAGS:')
-        .replace(/<\/eximtags:[^>]*>/gi, '') // Remove any closing EXIMTAGS tags
-        .replace(/<\/EXIMTAGS:[^>]*>/gi, '') // Remove any closing EXIMTAGS tags
-        .replace(/<jsp:include([^>]*)>/gi, '<jsp:include$1/>') // Ensure JSP includes are self-closing
-        .replace(/<\/jsp:include>/gi, '') // Remove any closing JSP include tags
-        .replace(/<cetags:/gi, '<CETAGS:')
-        .replace(/<\/cetags:[^>]*>/gi, '</CETAGS:>'); // Convert CETAGS to uppercase
+    const eximtags = doc.querySelectorAll('eximtags\\:includefile');
+    eximtags.forEach(tag => {
+        tag.outerHTML = tag.outerHTML.replace(/<\/eximtags:[^>]*>/gi, ''); // Remove any closing EXIMTAGS tags
+    });
 
-    return html;
+    doc.querySelectorAll('jsp\\:include').forEach(tag => {
+        tag.outerHTML = tag.outerHTML.replace(/<\/jsp:include>/gi, '/>'); // Ensure JSP includes are self-closing
+    });
+
+    doc.querySelectorAll('eximtags\\:includefile').forEach(tag => {
+        tag.outerHTML = tag.outerHTML.toUpperCase(); // Convert EXIMTAGS to uppercase
+    });
+
+    return doc;
 }
 
-function createOutputDiv(tabDiv, title, index) {
-    const outputDiv = document.createElement('div');
-    outputDiv.style.padding = '10px';
-    outputDiv.style.paddingBottom = '2px';
+function appendStyleAndScript(doc) {
+    const styleTag = '<style>/* Your default styles here */</style>';
+    const scriptTag = '<script>/* Your default script here */</script>';
 
-    const table = document.createElement('table');
-    table.style.width = '100%';
+    // Check if <jsp:include> tags are present and append style/script if needed
+    doc.querySelectorAll('jsp\\:include').forEach(include => {
+        if (!include.nextElementSibling || (include.nextElementSibling.tagName !== 'STYLE' && include.nextElementSibling.tagName !== 'SCRIPT')) {
+            include.insertAdjacentHTML('afterend', styleTag + scriptTag);
+        }
+    });
 
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-
-    const accordionDiv = document.createElement('div');
-    accordionDiv.className = 'accordion';
-    accordionDiv.id = title.replace(/\s+/g, '_');
-    accordionDiv.setAttribute('onclick', 'callMe(this)');
-
-    const accordionTable = document.createElement('table');
-    accordionTable.style.width = '100%';
-
-    const accordionTr = document.createElement('tr');
-    const leftTd = document.createElement('td');
-    leftTd.style.textAlign = 'left';
-    leftTd.innerHTML = `
-        <img src="/CEWeb/Images/icons/Tick.svg" id="tick${index}" style="margin-bottom: -2px; margin-right: 7px; display:none;"/> &nbsp;${title}
-    `;
-
-    const rightTd = document.createElement('td');
-    rightTd.style.textAlign = 'right';
-    rightTd.innerHTML = `
-        <img src="/CEWeb/Images/icons/arrow_accor.svg" id="mainTab_UpArrow" style="margin-bottom: -2px; margin-right: 7px;"/>
-        <img src="/CEWeb/Images/icons/arrow_accor1.svg" id="mainTab_DownArrow" style="margin-bottom: -2px; margin-right: 7px; display: none;"/>
-    `;
-
-    accordionTr.appendChild(leftTd);
-    accordionTr.appendChild(rightTd);
-    accordionTable.appendChild(accordionTr);
-    accordionDiv.appendChild(accordionTable);
-
-    const panelDiv = document.createElement('div');
-    panelDiv.className = 'panel';
-    panelDiv.innerHTML = tabDiv.innerHTML;
-
-    td.appendChild(accordionDiv);
-    td.appendChild(document.createElement('br'));
-    td.appendChild(panelDiv);
-    tr.appendChild(td);
-    table.appendChild(tr);
-
-    outputDiv.appendChild(table);
-    return outputDiv;
-}
-
-function callMe(element) {
-    const panel = element.nextElementSibling.nextElementSibling;
-    const upArrow = element.querySelector('#mainTab_UpArrow');
-    const downArrow = element.querySelector('#mainTab_DownArrow');
-
-    if (panel.style.display === 'block') {
-        panel.style.display = 'none';
-        upArrow.style.display = 'block';
-        downArrow.style.display = 'none';
-    } else {
-        panel.style.display = 'block';
-        upArrow.style.display = 'none';
-        downArrow.style.display = 'block';
-    }
+    // Check if <eximtags:includefile> tags are present and append style/script if needed
+    doc.querySelectorAll('eximtags\\:includefile').forEach(include => {
+        if (!include.nextElementSibling || (include.nextElementSibling.tagName !== 'STYLE' && include.nextElementSibling.tagName !== 'SCRIPT')) {
+            include.insertAdjacentHTML('afterend', styleTag + scriptTag);
+        }
+    });
 }
 
 function escapeHtml(unsafe) {
     return unsafe
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 </script>
 
