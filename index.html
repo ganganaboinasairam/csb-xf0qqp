@@ -91,7 +91,7 @@ function createOutputDiv(tabDiv, title, index) {
     const accordionDiv = document.createElement('div');
     accordionDiv.className = 'accordion';
     accordionDiv.id = title.replace(/\s+/g, '_');
-    accordionDiv.onclick = function() { togglePanel(this) };
+    accordionDiv.setAttribute('onclick', 'callMe(this)');
 
     const accordionTable = document.createElement('table');
     accordionTable.style.width = '100%';
@@ -129,7 +129,7 @@ function createOutputDiv(tabDiv, title, index) {
     return outputDiv;
 }
 
-function togglePanel(element) {
+function callMe(element) {
     const panel = element.nextElementSibling.nextElementSibling;
     const upArrow = element.querySelector('#mainTab_UpArrow');
     const downArrow = element.querySelector('#mainTab_DownArrow');
