@@ -84,8 +84,43 @@ function handleCustomFormatting(doc) {
 }
 
 function appendStyleAndScript(doc) {
-    const styleTag = '<style>/* Your default styles here */</style>';
-    const scriptTag = '<script>/* Your default script here */</script>';
+    const styleTag = `
+        <style>
+            .accordion {
+                cursor: pointer;
+                padding: 10px;
+                background-color: #f1f1f1;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
+            .panel {
+                display: none;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-top: none;
+                background-color: #f9f9f9;
+            }
+        </style>
+    `;
+    const scriptTag = `
+        <script>
+            function callMe(element) {
+                const panel = element.nextElementSibling;
+                const upArrow = element.querySelector('#mainTab_UpArrow');
+                const downArrow = element.querySelector('#mainTab_DownArrow');
+
+                if (panel.style.display === 'block') {
+                    panel.style.display = 'none';
+                    upArrow.style.display = 'block';
+                    downArrow.style.display = 'none';
+                } else {
+                    panel.style.display = 'block';
+                    upArrow.style.display = 'none';
+                    downArrow.style.display = 'block';
+                }
+            }
+        </script>
+    `;
 
     // Check if <jsp:include> tags are present and append style/script if needed
     doc.querySelectorAll('jsp\\:include').forEach(include => {
