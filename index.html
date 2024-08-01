@@ -50,102 +50,143 @@ function convertDivs() {
 
     const file = fileInput.files[0];
     readFile(file).then(content => {
+        // Create a temporary container to parse the content
         const parser = new DOMParser();
         const doc = parser.parseFromString(content, 'text/html');
 
-        // Process the document
-        handleCustomFormatting(doc);
-        appendStyleAndScript(doc);
+        // Collect the divs with class 'Tab'
+        const tabDivs = doc.querySelectorAll('.Tab');
 
-        // Serialize the modified HTML document
+        if (tabDivs.length === 0) {
+            alert("No divs with class 'Tab' found in the JSP file.");
+            return;
+        }
+
+        // Process each 'Tab' div and replace it with the new accordion structure
+        tabDivs.forEach((tabDiv, index) => {
+            const title = tabDiv.getAttribute('title');
+            if (title) {
+                const outputDiv = createOutputDiv(tabDiv, title, index + 1);
+                tabDiv.parentNode.replaceChild(outputDiv, tabDiv);
+            }
+        });
+
+        // Serialize the modified HTML document and escape it for display
         const serializer = new XMLSerializer();
-        let outputHtml = serializer.serializeToString(doc);
+        let modifiedHtml = serializer.serializeToString(doc);
 
-        resultDiv.innerHTML = `<pre>${escapeHtml(outputHtml)}</pre>`;
+        // Custom processing to handle self-closing tags and uppercase EXIMTAGS
+        modifiedHtml = handleCustomFormatting(modifiedHtml);
+		
+        resultDiv.innerHTML = `<pre>${escapeHtml(modifiedHtml)}</pre>`;
     }).catch(error => {
         console.error('Error reading file:', error);
     });
 }
 
-function handleCustomFormatting(doc) {
+function handleCustomFormatting(html) {
     // Ensure EXIMTAGS are self-closing and uppercase
-    const eximtags = doc.querySelectorAll('eximtags\\:includefile');
-    eximtags.forEach(tag => {
-        // Remove any closing EXIMTAGS tags and convert to uppercase
-        tag.outerHTML = tag.outerHTML.replace(/<\/eximtags:[^>]*>/gi, '');
-        tag.outerHTML = tag.outerHTML.toUpperCase();
-    });
+    html = html
+        .replace(/<eximtags:/gi, '<EXIMTAGS:')
+        .replace(/<\/eximtags:[^>]*>/gi, '') // Remove any closing EXIMTAGS tags
+        .replace(/<\/EXIMTAGS:[^>]*>/gi, '') // Remove any closing EXIMTAGS tags
+        .replace(/<jsp:include([^>]*)>/gi, '<jsp:include$1/>') // Ensure JSP includes are self-closing
+        .replace(/<EXIMTAGS:IncludeFile([^>]*)>/gi, '<EXIMTAGS:IncludeFile$1/>') // Ensure JSP includes are self-closing
+        .replace(/<\/jsp:include>/gi, '') // Remove any closing JSP include tags
+        .replace(/<cetags:/gi, '<CETAGS:')
+        .replace(/<\/cetags:[^>]*>/gi, '</CETAGS:>'); // Convert CETAGS to uppercase
 
-    // Ensure JSP includes are self-closing
-    const jspIncludes = doc.querySelectorAll('jsp\\:include');
-    jspIncludes.forEach(tag => {
-        tag.outerHTML = tag.outerHTML.replace(/<\/jsp:include>/gi, '/>');
-    });
+    return html;
 }
 
-function appendStyleAndScript(doc) {
-    const styleTag = `
-        <style>
-            .accordion {
-                cursor: pointer;
-                padding: 10px;
-                background-color: #f1f1f1;
-                border: 1px solid #ddd;
-                border-radius: 5px;
-            }
-            .panel {
-                display: none;
-                padding: 10px;
-                border: 1px solid #ddd;
-                border-top: none;
-                background-color: #f9f9f9;
-            }
-        </style>
-    `;
-    const scriptTag = `
-        <script>
-            function callMe(element) {
-                const panel = element.nextElementSibling;
-                const upArrow = element.querySelector('#mainTab_UpArrow');
-                const downArrow = element.querySelector('#mainTab_DownArrow');
+function createOutputDiv(tabDiv, title, index) {
+    const outputDiv = document.createElement('div');
+    outputDiv.style.padding = '10px';
+    outputDiv.style.paddingBottom = '2px';
 
-                if (panel.style.display === 'block') {
-                    panel.style.display = 'none';
-                    upArrow.style.display = 'block';
-                    downArrow.style.display = 'none';
-                } else {
-                    panel.style.display = 'block';
-                    upArrow.style.display = 'none';
-                    downArrow.style.display = 'block';
-                }
-            }
-        </script>
+    const table = document.createElement('table');
+    table.style.width = '100%';
+
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+
+    const accordionDiv = document.createElement('div');
+    accordionDiv.className = 'accordion';
+    accordionDiv.id = title.replace(/\s+/g, '_');
+    accordionDiv.setAttribute('onclick', 'callMe(this)');
+
+    const accordionTable = document.createElement('table');
+    accordionTable.style.width = '100%';
+
+    const accordionTr = document.createElement('tr');
+    const leftTd = document.createElement('td');
+    leftTd.style.textAlign = 'left';
+    leftTd.innerHTML = `
+        <img src="/CEWeb/Images/icons/Tick.svg" id="tick${index}" style="margin-bottom: -2px; margin-right: 7px; display:none;"/> &nbsp;${title}
     `;
 
-    // Check if <jsp:include> tags are present and append style/script if needed
-    doc.querySelectorAll('jsp\\:include').forEach(include => {
-        if (!include.nextElementSibling || 
-            (include.nextElementSibling.tagName !== 'STYLE' && include.nextElementSibling.tagName !== 'SCRIPT')) {
-            include.insertAdjacentHTML('afterend', styleTag + scriptTag);
-        }
-    });
+    const rightTd = document.createElement('td');
+    rightTd.style.textAlign = 'right';
+    rightTd.innerHTML = `
+        <img src="/CEWeb/Images/icons/arrow_accor.svg" id="mainTab_UpArrow" style="margin-bottom: -2px; margin-right: 7px;"/>
+        <img src="/CEWeb/Images/icons/arrow_accor1.svg" id="mainTab_DownArrow" style="margin-bottom: -2px; margin-right: 7px; display: none;"/>
+    `;
 
-    // Check if <eximtags:includefile> tags are present and append style/script if needed
-    doc.querySelectorAll('eximtags\\:includefile').forEach(include => {
-        if (!include.nextElementSibling || 
-            (include.nextElementSibling.tagName !== 'STYLE' && include.nextElementSibling.tagName !== 'SCRIPT')) {
-            include.insertAdjacentHTML('afterend', styleTag + scriptTag);
-        }
-    });
+    accordionTr.appendChild(leftTd);
+    accordionTr.appendChild(rightTd);
+    accordionTable.appendChild(accordionTr);
+    accordionDiv.appendChild(accordionTable);
+
+    const panelDiv = document.createElement('div');
+    panelDiv.className = 'panel';
+    panelDiv.innerHTML = tabDiv.innerHTML;
+
+    td.appendChild(accordionDiv);
+    td.appendChild(document.createElement('br'));
+    td.appendChild(panelDiv);
+    tr.appendChild(td);
+    table.appendChild(tr);
+
+    outputDiv.appendChild(table);
+    return outputDiv;
+}
+
+function callMe(element) {
+    const panel = element.nextElementSibling.nextElementSibling;
+    const upArrow = element.querySelector('#mainTab_UpArrow');
+    const downArrow = element.querySelector('#mainTab_DownArrow');
+
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+        upArrow.style.display = 'block';
+        downArrow.style.display = 'none';
+    } else {
+        panel.style.display = 'block';
+        upArrow.style.display = 'none';
+        downArrow.style.display = 'block';
+    }
 }
 
 function escapeHtml(unsafe) {
-    return unsafe
+    // Replace specific sequences with unique placeholders
+    let safeContent = unsafe
+        .replace(/&lt;%/g, "<%") // Unique placeholder for `<%`
+        .replace(/%&gt;/g, "%>"); // Unique placeholder for `%>`
+
+    // Escape all HTML characters
+    safeContent = safeContent
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+
+    // Restore specific sequences
+    /*safeContent = safeContent
+        .replace(/<<<%/g, "<%")
+        .replace(/%>>>/g, "%>");*/
+
+    return safeContent;
 }
 </script>
 
