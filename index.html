@@ -91,7 +91,7 @@ function handleCustomFormatting(html) {
         .replace(/<\/eximtags:[^>]*>/gi, '') // Remove any closing EXIMTAGS tags
         .replace(/<\/EXIMTAGS:[^>]*>/gi, '') // Remove any closing EXIMTAGS tags
         .replace(/<jsp:include([^>]*)>/gi, '<jsp:include$1/>') // Ensure JSP includes are self-closing
-        .replace(/<EXIMTAGS:IncludeFile([^>]*)>/gi, '<EXIMTAGS:IncludeFile$1/>') // Ensure EXIMTAGS are self-closing
+        .replace(/<EXIMTAGS:IncludeFile([^>]*)>/gi, '<EXIMTAGS:IncludeFile$1/>') // Ensure EXIMTAGS includes are self-closing
         .replace(/<\/jsp:include>/gi, '') // Remove any closing JSP include tags
         .replace(/<cetags:/gi, '<CETAGS:')
         .replace(/<\/cetags:[^>]*>/gi, '</CETAGS:>'); // Convert CETAGS to uppercase
