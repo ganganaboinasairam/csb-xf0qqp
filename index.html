@@ -1,45 +1,165 @@
-<%@ page import = "com.cs.ce.core.helper.ScriptConvHelper"%>
-<%@ taglib uri = "/EXIMTAGS" prefix = "EXIMTAGS"%>
-<%@ taglib uri = "/CETAGS" prefix = "CETAGS"%>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSP Div Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .panel {
+            display: none;
+        }
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
 
-<EXIMTAGS:IncludeFile filePath="../JS/IIND_Reg_NonLC_Event.js"/>
-<EXIMTAGS:IncludeFile filePath="../JS/IIND_Reg_NonLC_Function.js"/>
-<EXIMTAGS:IncludeFile filePath="../JS/IIND_BaseFunc.js"/>
-<EXIMTAGS:IncludeFile filePath="../SYS_JS/CSBaseFunc.js"/>
-<jsp:include  page="EEBranches.jsp"/>
+<h1>JSP Div Converter</h1>
+<p>Select a JSP file to convert the div structures.</p>
+<input type="file" id="jspFile" accept=".jsp"><br>
+<button onclick="convertDivs()">Convert Divs</button>
 
+<div class="result" id="result"></div>
 
-<input name="ADVN_PYMT_CCY" type="hidden" class="CHAR_O" id="ADVN_PYMT_CCY" title="Advance Payment CCY">
-<input name="AMT_OF_ADV_PMT" type="hidden" class="CHAR_O" id="AMT_OF_ADV_PMT" title="Amount of Advance Payment">
-<input name="INVC_CCY" type="hidden" class="CHAR_O" id="INVC_CCY" title="Invoice Currency">
+<script>
+function readFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+    });
+}
 
-<input name="REDISC" type="hidden" class="INT_O" id="REDISC" title="Rediscounting">
+function convertDivs() {
+    const fileInput = document.getElementById('jspFile');
+    const resultDiv = document.getElementById('result');
 
-<div id="5_div" class="Tab" title="Message">
-  <table>
-    <tbody>
-	<tr>
-		<td colspan="4">&nbsp;</td>
-	</tr>
-	<tr>
-        <td colspan="2" style="font-size:15px" class="HeadingBg">Messages</td>
-	</tr>
-	<tr>
-		<td class="FldLabel">Correspondence Between User & Superviser</td>
-		<td class="FldLabel">Correspondence with Bank</td>
-	</tr>
+    if (fileInput.files.length === 0) {
+        alert("Please select a JSP file.");
+        return;
+    }
 
-	<tr>
-        <td width="400"><textarea name="MSG_DESC" cols="35" rows="10" class="CHAR_O" id="MSG_DESC" title="Currespondence Between User & Superviser" style="height:150px;width:225px" charset="SX"></textarea></td>
+    const file = fileInput.files[0];
+    readFile(file).then(content => {
+        // Create a temporary container to parse the content
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(content, 'text/html');
 
-	
-        <td width="400"><textarea name="MSG_TO_BK" cols="35" rows="8" class="CHAR_O" id="MSG_TO_BK" title="Currespondence with Bank" style="height:150px;width:225px" charset="SX"></textarea></td>
-	</tr>
-  </tbody>
-</table>
-</div>
+        // Collect the divs with class 'Tab'
+        const tabDivs = doc.querySelectorAll('.Tab');
 
+        if (tabDivs.length === 0) {
+            alert("No divs with class 'Tab' found in the JSP file.");
+            return;
+        }
 
-<%if("TRUE".equals(ScriptConvHelper.declareScriptVar(request.getParameter("VIEWHISTORY")))){%>
-<CETAGS:ViewReport />
-<%}%>
+        // Process each 'Tab' div and replace it with the new accordion structure
+        tabDivs.forEach((tabDiv, index) => {
+            const title = tabDiv.getAttribute('title');
+            if (title) {
+                const outputDiv = createOutputDiv(tabDiv, title, index + 1);
+                tabDiv.parentNode.replaceChild(outputDiv, tabDiv);
+            }
+        });
+
+        // Serialize the modified HTML document and escape it for display
+        const serializer = new XMLSerializer();
+        const modifiedHtml = serializer.serializeToString(doc);
+        resultDiv.innerHTML = `<pre>${escapeHtml(modifiedHtml)}</pre>`;
+    }).catch(error => {
+        console.error('Error reading file:', error);
+    });
+}
+
+function createOutputDiv(tabDiv, title, index) {
+    const outputDiv = document.createElement('div');
+    outputDiv.style.padding = '10px';
+    outputDiv.style.paddingBottom = '2px';
+
+    const table = document.createElement('table');
+    table.style.width = '100%';
+
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+
+    const accordionDiv = document.createElement('div');
+    accordionDiv.className = 'accordion';
+    accordionDiv.id = title.replace(/\s+/g, '_');
+    accordionDiv.setAttribute('onclick', 'callMe(this)');
+
+    const accordionTable = document.createElement('table');
+    accordionTable.style.width = '100%';
+
+    const accordionTr = document.createElement('tr');
+    const leftTd = document.createElement('td');
+    leftTd.style.textAlign = 'left';
+    leftTd.innerHTML = `
+        <img src="/CEWeb/Images/icons/Tick.svg" id="tick${index}" style="margin-bottom: -2px; margin-right: 7px; display:none;"/> &nbsp;${title}
+    `;
+
+    const rightTd = document.createElement('td');
+    rightTd.style.textAlign = 'right';
+    rightTd.innerHTML = `
+        <img src="/CEWeb/Images/icons/arrow_accor.svg" id="mainTab_UpArrow" style="margin-bottom: -2px; margin-right: 7px;"/>
+        <img src="/CEWeb/Images/icons/arrow_accor1.svg" id="mainTab_DownArrow" style="margin-bottom: -2px; margin-right: 7px; display: none;"/>
+    `;
+
+    accordionTr.appendChild(leftTd);
+    accordionTr.appendChild(rightTd);
+    accordionTable.appendChild(accordionTr);
+    accordionDiv.appendChild(accordionTable);
+
+    const panelDiv = document.createElement('div');
+    panelDiv.className = 'panel';
+    panelDiv.innerHTML = tabDiv.innerHTML;
+
+    td.appendChild(accordionDiv);
+    td.appendChild(document.createElement('br'));
+    td.appendChild(panelDiv);
+    tr.appendChild(td);
+    table.appendChild(tr);
+
+    outputDiv.appendChild(table);
+    return outputDiv;
+}
+
+function callMe(element) {
+    const panel = element.nextElementSibling.nextElementSibling;
+    const upArrow = element.querySelector('#mainTab_UpArrow');
+    const downArrow = element.querySelector('#mainTab_DownArrow');
+
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+        upArrow.style.display = 'block';
+        downArrow.style.display = 'none';
+    } else {
+        panel.style.display = 'block';
+        upArrow.style.display = 'none';
+        downArrow.style.display = 'block';
+    }
+}
+
+function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+</script>
+
+</body>
+</html>
