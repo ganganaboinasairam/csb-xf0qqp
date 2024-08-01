@@ -71,6 +71,9 @@ function convertDivs() {
             }
         });
 
+        // Append <style> and <script> tags after <jsp:include> tags
+        appendStyleAndScriptTags(doc);
+
         // Serialize the modified HTML document and escape it for display
         const serializer = new XMLSerializer();
         let modifiedHtml = serializer.serializeToString(doc);
@@ -81,6 +84,24 @@ function convertDivs() {
         resultDiv.innerHTML = `<pre>${escapeHtml(modifiedHtml)}</pre>`;
     }).catch(error => {
         console.error('Error reading file:', error);
+    });
+}
+
+function appendStyleAndScriptTags(doc) {
+    // Find all <jsp:include> tags
+    const includes = doc.querySelectorAll('jsp\\:include');
+    
+    includes.forEach(include => {
+        // Create <style> and <script> tags
+        const style = doc.createElement('style');
+        style.textContent = '/* Add your CSS here */';
+        
+        const script = doc.createElement('script');
+        script.textContent = '// Add your JavaScript here';
+
+        // Append <style> and <script> tags right after the <jsp:include> tag
+        include.parentNode.insertBefore(style, include.nextSibling);
+        include.parentNode.insertBefore(script, include.nextSibling);
     });
 }
 
