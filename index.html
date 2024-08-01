@@ -14,21 +14,6 @@
         }
         .panel {
             display: none;
-            transition: max-height 0.2s ease-out;
-            padding: 0 18px;
-        }
-        .accordion {
-            background-color: #652a84;
-            color: white;
-            text-align: left;
-            transition: 0.4s;
-            cursor: pointer;
-            padding: 7.3px;
-            border: none;
-            outline: none;
-            font-size: 15px;
-            font-family: roboto-regular;
-            border-radius: 5px;
         }
         pre {
             background-color: #f4f4f4;
@@ -120,8 +105,8 @@ function createOutputDiv(tabDiv, title, index) {
     const rightTd = document.createElement('td');
     rightTd.style.textAlign = 'right';
     rightTd.innerHTML = `
-        <img src="/CEWeb/Images/icons/arrow_accor.svg" id="${title.replace(/\s+/g, '_')}_UpArrow" style="margin-bottom: -2px; margin-right: 7px;"/>
-        <img src="/CEWeb/Images/icons/arrow_accor1.svg" id="${title.replace(/\s+/g, '_')}_DownArrow" style="margin-bottom: -2px; margin-right: 7px; display: none;"/>
+        <img src="/CEWeb/Images/icons/arrow_accor.svg" id="mainTab_UpArrow" style="margin-bottom: -2px; margin-right: 7px;"/>
+        <img src="/CEWeb/Images/icons/arrow_accor1.svg" id="mainTab_DownArrow" style="margin-bottom: -2px; margin-right: 7px; display: none;"/>
     `;
 
     accordionTr.appendChild(leftTd);
@@ -143,48 +128,29 @@ function createOutputDiv(tabDiv, title, index) {
     return outputDiv;
 }
 
-function callMe(elem) {
-    hideall(elem);
-    document.body.scrollTop = elem.offsetTop; // For Chrome, Safari, and Opera
-    document.documentElement.scrollTop = elem.offsetTop; // For Firefox
-    elem.classList.toggle("active");
-    var panel = elem.nextElementSibling.nextElementSibling;
-    if (panel.style.display === "block") {
-        panel.style.display = "none";
-        elem.classList.toggle("active", false);
-        panel.firstElementChild.style.display = "none";
-    } else {
-        panel.style.display = "block";
-        panel.firstElementChild.style.display = "block";
-        var id = elem.id;
-        document.getElementById(id + "_UpArrow").style.display = "block";
-        document.getElementById(id + "_DownArrow").style.display = "none";
-    }
-}
+function callMe(element) {
+    const panel = element.nextElementSibling.nextElementSibling;
+    const upArrow = element.querySelector('#mainTab_UpArrow');
+    const downArrow = element.querySelector('#mainTab_DownArrow');
 
-function hideall(elem) {
-    var accordion = document.getElementsByClassName("accordion");
-    for (var i = 0; i < accordion.length; i++) {
-        accordion[i].classList.toggle("active", false);
-        var panel = accordion[i].nextElementSibling.nextElementSibling;
-        if (accordion[i] !== elem && panel.style.display === "block") {
-            panel.style.display = "none";
-            panel.firstElementChild.style.display = "none";
-        }
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+        upArrow.style.display = 'block';
+        downArrow.style.display = 'none';
+    } else {
+        panel.style.display = 'block';
+        upArrow.style.display = 'none';
+        downArrow.style.display = 'block';
     }
-    var downArrows = document.querySelectorAll("[id$='DownArrow']");
-    var upArrows = document.querySelectorAll("[id$='UpArrow']");
-    downArrows.forEach(function (arrow) { arrow.style.display = "block"; });
-    upArrows.forEach(function (arrow) { arrow.style.display = "none"; });
 }
 
 function escapeHtml(unsafe) {
     return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
 }
 </script>
 
