@@ -1,28 +1,97 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+<!--input div-->
+<div id="0_div" class="Tab" title="Drawing Details">
+<table>
+<tbody>
+    <tr>
+	     <td colspan="4">&nbsp;</td>
+	</tr>
+	<tr>
+		<td colspan="4" class="HeadingBg">Drawing Details</td>
+	</tr>
+    <tr>
+	     <td class="FldLabel">Inland Bill Reference No.</td>
+		 <td><input name="C_MAIN_REF" type="text" class="CHAR_P" id="C_MAIN_REF" title="Inland Bill Reference Number" size="16" maxlength="35"></td>
 
-public class TagExtractor {
+         <td class="FldLabel">Inland Bill Type</td>
+	     <td><select name="EXP_BILL_TYPE" id="EXP_BILL_TYPE" class="INT_P" title="Inland Bill Type">
+		 <EXIMTAGS:FldConv fldName="EXP_BILL_TYPE" smType="false" emptyValue="" blankOption="TRUE" alwaysGetData="TRUE"/>
+         </select></td>
+	</tr>
+	<tr>
+         <td class="FldLabel">Date of Presentation</td>
+		 <td><input name="DT_OF_PRES1" type="text" class="DATE_O" id="DT_OF_PRES1" title="Date of Presentation" size="10" maxlength="8"></td>
+		 <td class="FldLabel star">Nature of Bill</td>
+	     <td><select name="NATURE_OF_BILLS" id="NATURE_OF_BILLS" class="INT_M" title="Nature of Bill">
+		 <EXIMTAGS:FldConv fldName="NATURE_OF_BILLS" smType="false" emptyValue="" blankOption="TRUE" alwaysGetData="TRUE"/>
+         </select></td>
+	</tr>
+	<tr>
+	     <td class="FldLabel">LC Number</td>
+		 <td><input name="LC_ORDER_NO1" type="text" class="CHAR_P" id="LC_ORDER_NO1" title="LC Number" size="24" maxlength="35"></td>
+         <td class="FldLabel">LC Amount</td>
+		 <td><input name="LC_CCY" type="text" class="CHAR_P" id="LC_CCY" title="LC Currency" size="3" maxlength="3">
+		 <input name="LC_AMT" type="text" class="AMT_P" id="LC_AMT" title="LC Amount" size="20" maxlength="18"></td>
+	</tr>
+</tbody>
+</table>
+</div>
 
-    public static void main(String[] args) {
-        String filePath = "path/to/your/input/file.txt";  // Update this with the actual file path
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            Pattern pattern = Pattern.compile("(input|select).*?id=\"(.*?)\".*?title=\"(.*?)\"");
+<!--output div-->
+<div style="padding: 10px; padding-bottom: 2px;">
+				<table style="width: 100%;">
+					<tr>
+						<td>
+							<div onclick="callMe(this)" class="accordion" id="Drawing_Details">
+								<table style="width: 100%;">
+									<tr>
+										<td style="text-align: left;">
+												<img src="/CEWeb/Images/icons/Tick.svg" href="#" id="tick" style="margin-bottom: -2px; margin-right: 7px; display:none;"/>&nbsp;Drawing Details
+										</td>
+										<td style="text-align: right;">
+											<img src="/CEWeb/Images/icons/arrow_accor.svg" id="mainTab_UpArrow" href="#" style="margin-bottom: -2px;margin-right: 7px;"/>
+											<img src="/CEWeb/Images/icons/arrow_accor1.svg" id="mainTab_DownArrow" href="#" style="margin-bottom: -2px;margin-right: 7px; display: none;"/>
+										</td>
+									</tr>
+								</table>
+							</div>
+							<br>
+							<div class="panel">
+							
+  <table style="width:100%;">
+    <tbody>
+	<tr>
+	<td colspan="3">&nbsp;</td>
+	</tr>
+<tr>
+	     <td class="FldLabel">Inland Bill Reference No.</td>
+		 <td><input name="C_MAIN_REF" type="text" class="CHAR_P" id="C_MAIN_REF" title="Inland Bill Reference Number" size="16" maxlength="35"></td>
 
-            while ((line = br.readLine()) != null) {
-                Matcher matcher = pattern.matcher(line);
-                while (matcher.find()) {
-                    String id = matcher.group(2);
-                    String title = matcher.group(3);
-                    System.out.println(title + " - " + id);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-}
+         <td class="FldLabel">Inland Bill Type</td>
+	     <td><select name="EXP_BILL_TYPE" id="EXP_BILL_TYPE" class="INT_P" title="Inland Bill Type">
+		 <EXIMTAGS:FldConv fldName="EXP_BILL_TYPE" smType="false" emptyValue="" blankOption="TRUE" alwaysGetData="TRUE"/>
+         </select></td>
+	</tr>
+	<tr>
+         <td class="FldLabel">Date of Presentation</td>
+		 <td><input name="DT_OF_PRES1" type="text" class="DATE_O" id="DT_OF_PRES1" title="Date of Presentation" size="10" maxlength="8"></td>
+		 <td class="FldLabel star">Nature of Bill</td>
+	     <td><select name="NATURE_OF_BILLS" id="NATURE_OF_BILLS" class="INT_M" title="Nature of Bill">
+		 <EXIMTAGS:FldConv fldName="NATURE_OF_BILLS" smType="false" emptyValue="" blankOption="TRUE" alwaysGetData="TRUE"/>
+         </select></td>
+	</tr>
+	<tr>
+	     <td class="FldLabel">LC Number</td>
+		 <td><input name="LC_ORDER_NO1" type="text" class="CHAR_P" id="LC_ORDER_NO1" title="LC Number" size="24" maxlength="35"></td>
+         <td class="FldLabel">LC Amount</td>
+		 <td><input name="LC_CCY" type="text" class="CHAR_P" id="LC_CCY" title="LC Currency" size="3" maxlength="3">
+		 <input name="LC_AMT" type="text" class="AMT_P" id="LC_AMT" title="LC Amount" size="20" maxlength="18"></td>
+	</tr>
+		
+</tbody>
+</table>
+</div>
+</td>
+</tr>		
+</table>
+</div>
