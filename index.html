@@ -55,23 +55,22 @@ function convertDivs() {
     readFile(file).then(content => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(content, 'text/html');
-        
+
         const tabDivs = doc.querySelectorAll('.Tab');
         if (tabDivs.length === 0) {
             alert("No divs with class 'Tab' found in the JSP file.");
             return;
         }
 
-        let convertedHtml = '';
         tabDivs.forEach((tabDiv, index) => {
             const title = tabDiv.getAttribute('title');
             if (title) {
                 const outputDiv = createOutputDiv(tabDiv, title, index + 1);
-                convertedHtml += outputDiv.outerHTML + '\n';
+                tabDiv.parentNode.replaceChild(outputDiv, tabDiv);
             }
         });
 
-        resultDiv.innerHTML = `<pre>${escapeHtml(convertedHtml)}</pre>`;
+        resultDiv.innerHTML = `<pre>${escapeHtml(doc.documentElement.outerHTML)}</pre>`;
     }).catch(error => {
         console.error('Error reading file:', error);
     });
