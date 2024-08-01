@@ -15,6 +15,12 @@
         .panel {
             display: none;
         }
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow: auto;
+        }
     </style>
 </head>
 <body>
@@ -56,14 +62,16 @@ function convertDivs() {
             return;
         }
 
-        resultDiv.innerHTML = '';
+        let convertedHtml = '';
         tabDivs.forEach(tabDiv => {
             const title = tabDiv.getAttribute('title');
             if (title) {
                 const outputDiv = createOutputDiv(tabDiv, title);
-                resultDiv.appendChild(outputDiv);
+                convertedHtml += outputDiv.outerHTML + '\n';
             }
         });
+
+        resultDiv.innerHTML = `<pre>${escapeHtml(convertedHtml)}</pre>`;
     }).catch(error => {
         console.error('Error reading file:', error);
     });
@@ -135,6 +143,15 @@ function togglePanel(element) {
         upArrow.style.display = 'none';
         downArrow.style.display = 'block';
     }
+}
+
+function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
 }
 </script>
 
