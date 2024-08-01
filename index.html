@@ -77,7 +77,7 @@ function convertDivs() {
 
         // Custom processing to handle self-closing tags and uppercase EXIMTAGS
         modifiedHtml = handleCustomFormatting(modifiedHtml);
-		
+
         resultDiv.innerHTML = `<pre>${escapeHtml(modifiedHtml)}</pre>`;
     }).catch(error => {
         console.error('Error reading file:', error);
@@ -91,10 +91,61 @@ function handleCustomFormatting(html) {
         .replace(/<\/eximtags:[^>]*>/gi, '') // Remove any closing EXIMTAGS tags
         .replace(/<\/EXIMTAGS:[^>]*>/gi, '') // Remove any closing EXIMTAGS tags
         .replace(/<jsp:include([^>]*)>/gi, '<jsp:include$1/>') // Ensure JSP includes are self-closing
-        .replace(/<EXIMTAGS:IncludeFile([^>]*)>/gi, '<EXIMTAGS:IncludeFile$1/>') // Ensure JSP includes are self-closing
+        .replace(/<EXIMTAGS:IncludeFile([^>]*)>/gi, '<EXIMTAGS:IncludeFile$1/>') // Ensure EXIMTAGS are self-closing
         .replace(/<\/jsp:include>/gi, '') // Remove any closing JSP include tags
         .replace(/<cetags:/gi, '<CETAGS:')
         .replace(/<\/cetags:[^>]*>/gi, '</CETAGS:>'); // Convert CETAGS to uppercase
+
+    // Append style and script tags if not present
+    html = appendStyleAndScript(html);
+
+    return html;
+}
+
+function appendStyleAndScript(html) {
+    const styleTag = `
+        <style>
+            .accordion {
+                cursor: pointer;
+                padding: 10px;
+                background-color: #f1f1f1;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
+            .panel {
+                display: none;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-top: none;
+                background-color: #f9f9f9;
+            }
+        </style>
+    `;
+    const scriptTag = `
+        <script>
+            function callMe(element) {
+                const panel = element.nextElementSibling;
+                const upArrow = element.querySelector('#mainTab_UpArrow');
+                const downArrow = element.querySelector('#mainTab_DownArrow');
+
+                if (panel.style.display === 'block') {
+                    panel.style.display = 'none';
+                    upArrow.style.display = 'block';
+                    downArrow.style.display = 'none';
+                } else {
+                    panel.style.display = 'block';
+                    upArrow.style.display = 'none';
+                    downArrow.style.display = 'block';
+                }
+            }
+        </script>
+    `;
+
+    // Append style and script tags after <jsp:include> tags if not present
+    html = html.replace(/(<jsp:include[^>]*\/>)(?!.*<\/style>.*<\/script>)/gi, `$1${styleTag}${scriptTag}`);
+
+    // Append style and script tags after <EXIMTAGS:IncludeFile> tags if not present
+    html = html.replace(/(<EXIMTAGS:IncludeFile[^>]*\/>)(?!.*<\/style>.*<\/script>)/gi, `$1${styleTag}${scriptTag}`);
 
     return html;
 }
@@ -151,42 +202,15 @@ function createOutputDiv(tabDiv, title, index) {
     return outputDiv;
 }
 
-function callMe(element) {
-    const panel = element.nextElementSibling.nextElementSibling;
-    const upArrow = element.querySelector('#mainTab_UpArrow');
-    const downArrow = element.querySelector('#mainTab_DownArrow');
-
-    if (panel.style.display === 'block') {
-        panel.style.display = 'none';
-        upArrow.style.display = 'block';
-        downArrow.style.display = 'none';
-    } else {
-        panel.style.display = 'block';
-        upArrow.style.display = 'none';
-        downArrow.style.display = 'block';
-    }
-}
-
 function escapeHtml(unsafe) {
-    // Replace specific sequences with unique placeholders
-    let safeContent = unsafe
+    return unsafe
         .replace(/&lt;%/g, "<%") // Unique placeholder for `<%`
-        .replace(/%&gt;/g, "%>"); // Unique placeholder for `%>`
-
-    // Escape all HTML characters
-    safeContent = safeContent
+        .replace(/%&gt;/g, "%>") // Unique placeholder for `%>`
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-
-    // Restore specific sequences
-    /*safeContent = safeContent
-        .replace(/<<<%/g, "<%")
-        .replace(/%>>>/g, "%>");*/
-
-    return safeContent;
 }
 </script>
 
