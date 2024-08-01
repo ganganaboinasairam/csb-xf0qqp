@@ -30,6 +30,12 @@
             font-family: roboto-regular;
             border-radius: 5px;
         }
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow: auto;
+        }
     </style>
 </head>
 <body>
@@ -41,7 +47,6 @@
 
 <div class="result" id="result"></div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 function readFile(file) {
     return new Promise((resolve, reject) => {
@@ -139,9 +144,9 @@ function createOutputDiv(tabDiv, title, index) {
 }
 
 function callMe(elem) {
-    console.log(elem);
     hideall(elem);
-    $('html,body').animate({scrollTop: $(elem).position().top}, 'slow');
+    document.body.scrollTop = elem.offsetTop; // For Chrome, Safari, and Opera
+    document.documentElement.scrollTop = elem.offsetTop; // For Firefox
     elem.classList.toggle("active");
     var panel = elem.nextElementSibling.nextElementSibling;
     if (panel.style.display === "block") {
@@ -152,8 +157,8 @@ function callMe(elem) {
         panel.style.display = "block";
         panel.firstElementChild.style.display = "block";
         var id = elem.id;
-        $("#" + id + "_UpArrow").show();
-        $("#" + id + "_DownArrow").hide();
+        document.getElementById(id + "_UpArrow").style.display = "block";
+        document.getElementById(id + "_DownArrow").style.display = "none";
     }
 }
 
@@ -162,16 +167,15 @@ function hideall(elem) {
     for (var i = 0; i < accordion.length; i++) {
         accordion[i].classList.toggle("active", false);
         var panel = accordion[i].nextElementSibling.nextElementSibling;
-        if (accordion[i] == elem) {
-        } else {
-            if (panel.style.display === "block") {
-                panel.style.display = "none";
-                panel.firstElementChild.style.display = "none";
-            }
+        if (accordion[i] !== elem && panel.style.display === "block") {
+            panel.style.display = "none";
+            panel.firstElementChild.style.display = "none";
         }
     }
-    $("[id$='DownArrow']").show();
-    $("[id$='UpArrow']").hide();
+    var downArrows = document.querySelectorAll("[id$='DownArrow']");
+    var upArrows = document.querySelectorAll("[id$='UpArrow']");
+    downArrows.forEach(function (arrow) { arrow.style.display = "block"; });
+    upArrows.forEach(function (arrow) { arrow.style.display = "none"; });
 }
 
 function escapeHtml(unsafe) {
