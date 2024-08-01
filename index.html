@@ -50,21 +50,26 @@ function convertDivs() {
         const parser = new DOMParser();
         const doc = parser.parseFromString(content, 'text/html');
         
-        const inputDiv = doc.querySelector('#0_div');
-        if (!inputDiv) {
-            alert("Input div not found in the JSP file.");
+        const tabDivs = doc.querySelectorAll('.Tab');
+        if (tabDivs.length === 0) {
+            alert("No divs with class 'Tab' found in the JSP file.");
             return;
         }
 
-        const outputDiv = createOutputDiv(inputDiv);
         resultDiv.innerHTML = '';
-        resultDiv.appendChild(outputDiv);
+        tabDivs.forEach(tabDiv => {
+            const title = tabDiv.getAttribute('title');
+            if (title) {
+                const outputDiv = createOutputDiv(tabDiv, title);
+                resultDiv.appendChild(outputDiv);
+            }
+        });
     }).catch(error => {
         console.error('Error reading file:', error);
     });
 }
 
-function createOutputDiv(inputDiv) {
+function createOutputDiv(tabDiv, title) {
     const outputDiv = document.createElement('div');
     outputDiv.style.padding = '10px';
     outputDiv.style.paddingBottom = '2px';
@@ -77,7 +82,7 @@ function createOutputDiv(inputDiv) {
 
     const accordionDiv = document.createElement('div');
     accordionDiv.className = 'accordion';
-    accordionDiv.id = 'Drawing_Details';
+    accordionDiv.id = title.replace(/\s+/g, '_');
     accordionDiv.onclick = function() { togglePanel(this) };
 
     const accordionTable = document.createElement('table');
@@ -86,7 +91,9 @@ function createOutputDiv(inputDiv) {
     const accordionTr = document.createElement('tr');
     const leftTd = document.createElement('td');
     leftTd.style.textAlign = 'left';
-    leftTd.innerHTML = '&nbsp;Drawing Details';
+    leftTd.innerHTML = `
+        <img src="/CEWeb/Images/icons/Tick.svg" id="tick" style="margin-bottom: -2px; margin-right: 7px; display:none;"/> &nbsp;${title}
+    `;
 
     const rightTd = document.createElement('td');
     rightTd.style.textAlign = 'right';
@@ -102,7 +109,7 @@ function createOutputDiv(inputDiv) {
 
     const panelDiv = document.createElement('div');
     panelDiv.className = 'panel';
-    panelDiv.innerHTML = inputDiv.innerHTML;
+    panelDiv.innerHTML = tabDiv.innerHTML;
 
     td.appendChild(accordionDiv);
     td.appendChild(document.createElement('br'));
