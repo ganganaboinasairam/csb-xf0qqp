@@ -1,4 +1,11 @@
 @echo off
-cd /d "E:\IBM\WebSphere\AppServer\profiles\AppSrv02\bin>"
-stopServer.bat server1
-startServer.bat server1
+cd /d "E:\IBM\WebSphere\AppServer\profiles\AppSrv02\bin"
+call stopServer.bat server1
+cd ..
+call rmdir /s /q temp
+call rmdir /s /q wstemp
+call rmdir /s /q tranlog
+cd bin
+call osgiCfgInit.bat
+call clearClassCache.bat
+call startServer.bat server1
