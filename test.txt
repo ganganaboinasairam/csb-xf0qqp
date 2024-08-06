@@ -1,0 +1,29 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class TagExtractor {
+
+    public static void main(String[] args) {
+        String filePath = "path/to/your/input/file.txt";  // Update this with the actual file path
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            Pattern pattern = Pattern.compile("(input|select).*?id=\"(.*?)\".*?title=\"(.*?)\"");
+
+            while ((line = br.readLine()) != null) {
+                System.out.println("Reading line: " + line);  // Debug print
+                Matcher matcher = pattern.matcher(line);
+                while (matcher.find()) {
+                    String id = matcher.group(2);
+                    String title = matcher.group(3);
+                    System.out.println(title + " - " + id);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
