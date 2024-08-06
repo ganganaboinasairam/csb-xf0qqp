@@ -1,11 +1,29 @@
-@echo off
-cd /d "E:\IBM\WebSphere\AppServer\profiles\AppSrv02\bin"
-call stopServer.bat server1
-cd ..
-call rmdir /s /q temp
-call rmdir /s /q wstemp
-call rmdir /s /q tranlog
-cd bin
-call osgiCfgInit.bat
-call clearClassCache.bat
-call startServer.bat server1
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class TagExtractor {
+
+    public static void main(String[] args) {
+        String filePath = "path/to/your/input/file.txt";  // Update this with the actual file path
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            Pattern pattern = Pattern.compile("(input|select).*?id=\"(.*?)\".*?title=\"(.*?)\".*?class=\"(CHAR_O|CHAR_M|CHAR_P|INT_P|AMT_P|AMT_O.*?)\"");
+
+            while ((line = br.readLine()) != null) {
+                Matcher matcher = pattern.matcher(line);
+                while (matcher.find()) {
+                    String id = matcher.group(2);
+                    String title = matcher.group(3);
+                    String className = matcher.group(4);
+                    System.out.println("Title: " + title + " - ID: " + id + " - Class: " + className);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
