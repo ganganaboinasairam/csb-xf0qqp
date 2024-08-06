@@ -23,26 +23,67 @@
         th {
             background-color: #f4f4f4;
         }
+        .button {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
     <h1>Extract Attributes from HTML Tags</h1>
-    <input type="file" id="fileInput">
+    <input type="file" id="fileInput" multiple>
+    <button class="button" id="processButton">Process Files</button>
     <div id="result"></div>
 
     <script>
+        const files = [];
+
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+        document.getElementById('processButton').addEventListener('click', processFiles);
 
         function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const content = e.target.result;
-                    extractAttributes(content);
-                };
-                reader.readAsText(file);
+            const selectedFiles = event.target.files;
+            files.length = 0; // Clear previously selected files
+            for (const file of selectedFiles) {
+                files.push(file);
             }
+            console.log(`Selected files: ${files.map(f => f.name).join(', ')}`); // Debug print
+        }
+
+        function processFiles() {
+            if (files.length === 0) {
+                alert('No files selected.');
+                return;
+            }
+
+            const filePromises = files.map(file => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        resolve(e.target.result);
+                    };
+                    reader.onerror = function() {
+                        reject(new Error(`Failed to read file ${file.name}`));
+                    };
+                    reader.readAsText(file);
+                });
+            });
+
+            Promise.all(filePromises)
+                .then(fileContents => {
+                    const allContent = fileContents.join('\n');
+                    extractAttributes(allContent);
+                })
+                .catch(error => {
+                    console.error('Error reading files:', error);
+                });
         }
 
         function extractAttributes(text) {
