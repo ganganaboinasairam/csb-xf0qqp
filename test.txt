@@ -1,7 +1,41 @@
-input code:
-<input name="STATUS" type="hidden" class="CHAR_O" id="STATUS" title="Status" value="">
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-output:
-N/A - N/A - N/A
- name="STATUS" type="hidden" class="CHAR_O" id="STATUS" - <input - STATUS
-N/A - N/A - N/A
+public class TagExtractor {
+
+    public static void main(String[] args) {
+        String filePath = "path/to/your/input/file.txt";  // Update this with the actual file path
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            // Pattern to match input and select tags, and then extract id, title, and class attributes independently
+            Pattern tagPattern = Pattern.compile("<(input|select)[^>]*>");
+            Pattern idPattern = Pattern.compile("id=\"([^\"]*)\"");
+            Pattern titlePattern = Pattern.compile("title=\"([^\"]*)\"");
+            Pattern classPattern = Pattern.compile("class=\"([^\"]*)\"");
+
+            while ((line = br.readLine()) != null) {
+                System.out.println("Reading line: " + line);  // Debug print
+                Matcher tagMatcher = tagPattern.matcher(line);
+
+                while (tagMatcher.find()) {
+                    String tag = tagMatcher.group();
+                    Matcher idMatcher = idPattern.matcher(tag);
+                    Matcher titleMatcher = titlePattern.matcher(tag);
+                    Matcher classMatcher = classPattern.matcher(tag);
+
+                    String id = idMatcher.find() ? idMatcher.group(1) : "N/A";
+                    String title = titleMatcher.find() ? titleMatcher.group(1) : "N/A";
+                    String className = classMatcher.find() ? classMatcher.group(1) : "N/A";
+
+                    System.out.println(title + " - " + id + " - " + className);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
