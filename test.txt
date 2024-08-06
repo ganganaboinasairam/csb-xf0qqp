@@ -11,8 +11,17 @@
         #result {
             margin-top: 20px;
         }
-        .result-line {
-            margin-bottom: 5px;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
         }
     </style>
 </head>
@@ -40,6 +49,21 @@
             const resultDiv = document.getElementById('result');
             resultDiv.innerHTML = '';  // Clear previous results
 
+            // Create table
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            // Create table header
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = `
+                <th>Title</th>
+                <th>ID</th>
+                <th>Class</th>
+            `;
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
             // Define regex patterns for extracting attributes
             const tagPattern = /<(input|select)[^>]*>/g;
             const idPattern = /id="([^"]*)"/;
@@ -57,11 +81,18 @@
                 const title = titleMatch ? titleMatch[1] : 'N/A';
                 const className = classMatch ? classMatch[1] : 'N/A';
 
-                const resultLine = document.createElement('div');
-                resultLine.className = 'result-line';
-                resultLine.textContent = `${title} - ${id} - ${className}`;
-                resultDiv.appendChild(resultLine);
+                // Create table row
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${title}</td>
+                    <td>${id}</td>
+                    <td>${className}</td>
+                `;
+                tbody.appendChild(row);
             }
+
+            table.appendChild(tbody);
+            resultDiv.appendChild(table);
         }
     </script>
 </body>
