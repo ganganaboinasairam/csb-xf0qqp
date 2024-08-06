@@ -1,32 +1,7 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+input code:
+<input name="STATUS" type="hidden" class="CHAR_O" id="STATUS" title="Status" value="">
 
-public class TagExtractor {
-
-    public static void main(String[] args) {
-        String filePath = "path/to/your/input/file.txt";  // Update this with the actual file path
-
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            // Pattern to match id, title, and class attributes independently within input and select tags
-            Pattern pattern = Pattern.compile("(<input|<select)([^>]*?id=\"([^\"]*)\")?([^>]*?title=\"([^\"]*)\")?([^>]*?class=\"([^\"]*)\")?");
-
-            while ((line = br.readLine()) != null) {
-                System.out.println("Reading line: " + line);  // Debug print
-                Matcher matcher = pattern.matcher(line);
-
-                while (matcher.find()) {
-                    String id = matcher.group(3) != null ? matcher.group(3) : "N/A";
-                    String title = matcher.group(5) != null ? matcher.group(5) : "N/A";
-                    String className = matcher.group(7) != null ? matcher.group(7) : "N/A";
-                    System.out.println(title + " - " + id + " - " + className);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-}
+output:
+N/A - N/A - N/A
+ name="STATUS" type="hidden" class="CHAR_O" id="STATUS" - <input - STATUS
+N/A - N/A - N/A
