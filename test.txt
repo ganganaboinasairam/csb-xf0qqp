@@ -11,31 +11,19 @@ public class TagExtractor {
 
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
-            // Pattern to match id, title, and class attributes independently
-            Pattern pattern = Pattern.compile("(?<=id=\")([^\"]+)|(?<=title=\")([^\"]+)|(?<=class=\")([^\"]+)");
+            // Pattern to match id, title, and class attributes independently within input and select tags
+            Pattern pattern = Pattern.compile("(<input|<select)([^>]*?id=\"([^\"]*)\")?([^>]*?title=\"([^\"]*)\")?([^>]*?class=\"([^\"]*)\")?");
 
             while ((line = br.readLine()) != null) {
                 System.out.println("Reading line: " + line);  // Debug print
                 Matcher matcher = pattern.matcher(line);
 
-                String id = "N/A";
-                String title = "N/A";
-                String className = "N/A";
-
                 while (matcher.find()) {
-                    if (line.contains("id=\"")) {
-                        id = matcher.group(1) != null ? matcher.group(1) : id;
-                    }
-                    if (line.contains("title=\"")) {
-                        title = matcher.group(2) != null ? matcher.group(2) : title;
-                    }
-                    if (line.contains("class=\"")) {
-                        className = matcher.group(3) != null ? matcher.group(3) : className;
-                    }
+                    String id = matcher.group(3) != null ? matcher.group(3) : "N/A";
+                    String title = matcher.group(5) != null ? matcher.group(5) : "N/A";
+                    String className = matcher.group(7) != null ? matcher.group(7) : "N/A";
+                    System.out.println(title + " - " + id + " - " + className);
                 }
-
-                // Print the extracted values
-                System.out.println(title + " - " + id + " - " + className);
             }
         } catch (IOException e) {
             e.printStackTrace();
