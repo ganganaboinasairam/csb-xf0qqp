@@ -11,15 +11,15 @@ public class TagExtractor {
 
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
-            Pattern pattern = Pattern.compile("(input|select).*?id=\"(.*?)\".*?title=\"(.*?)\".*?class=\"(CHAR_O|CHAR_M|CHAR_P|INT_P|AMT_P|AMT_O.*?)\"");
+            Pattern pattern = Pattern.compile("(input|select).*?id=\"(.*?)\".*?title=\"(.*?)\"");
 
             while ((line = br.readLine()) != null) {
+                System.out.println("Reading line: " + line);  // Debug print
                 Matcher matcher = pattern.matcher(line);
                 while (matcher.find()) {
                     String id = matcher.group(2);
                     String title = matcher.group(3);
-                    String className = matcher.group(4);
-                    System.out.println("Title: " + title + " - ID: " + id + " - Class: " + className);
+                    System.out.println(title + " - " + id);
                 }
             }
         } catch (IOException e) {
