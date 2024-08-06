@@ -1,41 +1,68 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-public class TagExtractor {
-
-    public static void main(String[] args) {
-        String filePath = "path/to/your/input/file.txt";  // Update this with the actual file path
-
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            // Pattern to match input and select tags, and then extract id, title, and class attributes independently
-            Pattern tagPattern = Pattern.compile("<(input|select)[^>]*>");
-            Pattern idPattern = Pattern.compile("id=\"([^\"]*)\"");
-            Pattern titlePattern = Pattern.compile("title=\"([^\"]*)\"");
-            Pattern classPattern = Pattern.compile("class=\"([^\"]*)\"");
-
-            while ((line = br.readLine()) != null) {
-                System.out.println("Reading line: " + line);  // Debug print
-                Matcher tagMatcher = tagPattern.matcher(line);
-
-                while (tagMatcher.find()) {
-                    String tag = tagMatcher.group();
-                    Matcher idMatcher = idPattern.matcher(tag);
-                    Matcher titleMatcher = titlePattern.matcher(tag);
-                    Matcher classMatcher = classPattern.matcher(tag);
-
-                    String id = idMatcher.find() ? idMatcher.group(1) : "N/A";
-                    String title = titleMatcher.find() ? titleMatcher.group(1) : "N/A";
-                    String className = classMatcher.find() ? classMatcher.group(1) : "N/A";
-
-                    System.out.println(title + " - " + id + " - " + className);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extract Attributes from HTML Tags</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
         }
-    }
-}
+        #result {
+            margin-top: 20px;
+        }
+        .result-line {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Extract Attributes from HTML Tags</h1>
+    <input type="file" id="fileInput">
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    extractAttributes(content);
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function extractAttributes(text) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';  // Clear previous results
+
+            // Define regex patterns for extracting attributes
+            const tagPattern = /<(input|select)[^>]*>/g;
+            const idPattern = /id="([^"]*)"/;
+            const titlePattern = /title="([^"]*)"/;
+            const classPattern = /class="([^"]*)"/;
+
+            let match;
+            while ((match = tagPattern.exec(text)) !== null) {
+                const tag = match[0];
+                const idMatch = idPattern.exec(tag);
+                const titleMatch = titlePattern.exec(tag);
+                const classMatch = classPattern.exec(tag);
+
+                const id = idMatch ? idMatch[1] : 'N/A';
+                const title = titleMatch ? titleMatch[1] : 'N/A';
+                const className = classMatch ? classMatch[1] : 'N/A';
+
+                const resultLine = document.createElement('div');
+                resultLine.className = 'result-line';
+                resultLine.textContent = `${title} - ${id} - ${className}`;
+                resultDiv.appendChild(resultLine);
+            }
+        }
+    </script>
+</body>
+</html>
