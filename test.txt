@@ -1,62 +1,21 @@
-<div style="padding: 10px; padding-bottom: 2px;">
-				<table style="width: 100%;">
-					<tr>
-						<td>
-							<div onclick="callMe(this)" class="accordion" id="mainTab">
-								<table style="width: 100%;">
-									<tr>
-										<td style="text-align: left;">
-												<img src="/CEWeb/Images/icons/Tick.svg" href="#" id="tick" style="margin-bottom: -2px; margin-right: 7px; display:none;"/>&nbsp;Main Tab
-										</td>
-										<td style="text-align: right;">
-											<img src="/CEWeb/Images/icons/arrow_accor.svg" id="mainTab_UpArrow" href="#" style="margin-bottom: -2px;margin-right: 7px;"/>
-											<img src="/CEWeb/Images/icons/arrow_accor1.svg" id="mainTab_DownArrow" href="#" style="margin-bottom: -2px;margin-right: 7px; display: none;"/>
-										</td>
-									</tr>
-								</table>
-							</div>
-							<br>
-							<div class="panel">
-							
-  <table style="width:100%;">
-    <tbody>
-	<tr>
-	<td colspan="3">&nbsp;</td>
-	</tr>
-<tr>
-		 <td width="23%" class="FldLabel">CE Reference</td>
-        <td width="27%"><input name="C_MAIN_REF" type="text" class="CHAR_P" id="C_MAIN_REF" title="Our Reference" size="25" maxlength="17"></td>
-  
-	</tr>
-
-	  <tr>
-
-	  	  <td class="FldLabel star">Account to be Credited</td>
-	
-	  <td><input id="OPR_ACC_CRDT" class="INT_M" maxlength="11" size="11" name="OPR_ACC_CRDT"  style="width: 250px;resize:none;padding-right: 1px;"  title="Account to be credited" onblur='greenTick1()'></input></td>
-	  
-	   <td class="FldLabel star">Account to be Debited(for Charges)</td>
-	
-	  <td><input id="OPERA_ACC_NO" class="INT_M" maxlength="11" size="11" name="OPERA_ACC_NO"  style="width: 250px;resize:none;padding-right: 1px;"  title="Account to be Debited(for Charges)" onblur='greenTick1()'></input></td>
-	  
-	  </tr>
-	    <tr>
-
-	  <td class="FldLabel star">Bill Amount</td>
-	
-	  <td><input id="BILL_AMT" class="AMT_O" maxlength="15" size="15" name="BILL_AMT"  type="text" style="width: 250px;resize:none;padding-right: 1px;"  title="Bill Amount" onblur='greenTick1()'></input></td>
-	  
-	  	  <td class="FldLabel star">Tenor type</td>
-	
-	<td ><select name="TENOR_TYPE" id="TENOR_TYPE" class="CHAR_M" title="Tenor Type" onchange='greenTick1()'>
-			<EXIMTAGS:FldConv fldName="TENOR_TYPE" smType="false" emptyValue="" blankOption="TRUE" alwaysGetData="TRUE"/>
-          </select></td>
-	  </tr>
-		
-</tbody>
-</table>
-</div>
-</td>
-</tr>		
-</table>
-</div>
+function checkMandatoryFields(divId) {
+    // Get the parent div using the divId
+    var parentDiv = document.getElementById(divId);
+    
+    // Flag to check if all mandatory fields are filled
+    var allFilled = true;
+    
+    // Loop through each mandatory field (_M) within the div
+    $(parentDiv).find('input[class$="_M"], select[class$="_M"]').each(function() {
+        if ($(this).val() === '' || $(this).val() === null) {
+            allFilled = false;
+        }
+    });
+    
+    // If all fields are filled, show the tick; otherwise, hide it
+    if (allFilled) {
+        $(parentDiv).find('img[id^="tick"]').show();
+    } else {
+        $(parentDiv).find('img[id^="tick"]').hide();
+    }
+}
