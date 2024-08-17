@@ -1,4 +1,4 @@
-function checkMandatoryFields(divId) {
+function validateFields(divId) {
     // Get the parent div using the divId
     var parentDiv = document.getElementById(divId);
     
