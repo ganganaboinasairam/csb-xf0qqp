@@ -2,6 +2,9 @@ function checkMandatoryFields(divId) {
     // Get the parent div using the divId
     var parentDiv = document.getElementById(divId);
     
+    // Find the tick image within the div
+    var tick = $(parentDiv).find('img[id^="tick"]');
+
     // Flag to check if all mandatory fields are filled
     var allFilled = true;
     
@@ -12,10 +15,10 @@ function checkMandatoryFields(divId) {
         }
     });
     
-    // If all fields are filled, show the tick; otherwise, hide it
+    // Show the tick if all fields are filled; otherwise, hide it
     if (allFilled) {
-        $(parentDiv).find('img[id^="tick"]').show();
+        tick.show();
     } else {
-        $(parentDiv).find('img[id^="tick"]').hide();
+        tick.hide();
     }
 }
