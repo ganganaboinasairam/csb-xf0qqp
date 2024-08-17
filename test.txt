@@ -10,13 +10,14 @@ function checkMandatoryFields(divId) {
     
     // Loop through each mandatory field (_M) within the div
     $(parentDiv).find('input[class$="_M"], select[class$="_M"]').each(function() {
-        if ($(this).val().trim() === '') { // Check for empty string
+        var value = $(this).val().trim();
+        if (value === '' || value === '0') { // Check for empty string or zero
             allFilled = false;
-            return false; // Exit loop if a mandatory field is empty
+            return false; // Exit loop if a mandatory field is empty or zero
         }
     });
     
-    // Show the tick if all fields are filled; otherwise, hide it
+    // Show the tick if all fields are filled and not zero; otherwise, hide it
     if (allFilled) {
         tick.show();
     } else {
