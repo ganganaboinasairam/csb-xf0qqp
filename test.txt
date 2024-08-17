@@ -1,1 +1,34 @@
-document.getElementById('div1').find('div[class^="panel"]')
+function validateFields(divId, checkboxId) {
+    // Get the parent div using the divId
+    var parentDiv = document.getElementById(divId);
+    
+    // Find the tick image within the div
+    var tick = $(parentDiv).find('img[id^="tick"]');
+
+    // Flag to check if all mandatory fields are filled
+    var allFilled = true;
+    
+    // Loop through each mandatory field (_M) within the div
+    $(parentDiv).find('input[class$="_M"], select[class$="_M"]').each(function() {
+        var value = $(this).val().trim();
+        if (value === '' || value === '0') { // Check for empty string or zero
+            allFilled = false;
+            return false; // Exit loop if a mandatory field is empty or zero
+        }
+    });
+
+    // Check the mandatory checkbox
+    if (checkboxId) {
+        var checkbox = document.getElementById(checkboxId);
+        if (checkbox && !checkbox.checked) {
+            allFilled = false; // If checkbox is not checked, set allFilled to false
+        }
+    }
+
+    // Show the tick if all fields are filled and checkbox is checked; otherwise, hide it
+    if (allFilled) {
+        tick.show();
+    } else {
+        tick.hide();
+    }
+}
