@@ -1,52 +1,45 @@
-function getDetailsFromDatabase(tableName, whereClause, selectFields, fieldIds) {
-    // Convert arrays to JSON strings
-    var selectFieldsJson = JSON.stringify(selectFields);
-    var fieldIdsJson = JSON.stringify(fieldIds);
-    
-    // AJAX request to servlet
-    $.ajax({
-        type: "POST",
-        url: "YourServletURL", // Replace with your servlet URL
-        data: {
-            tableName: tableName,
-            whereClause: whereClause,
-            selectFields: selectFieldsJson,
-            fieldIds: fieldIdsJson
-        },
-        success: function(response) {
-            var data = JSON.parse(response);
-            // Populate screen fields with DB details
-            for (var i = 0; i < fieldIds.length; i++) {
-                document.getElementById(fieldIds[i]).value = data[i];
-            }
-        },
-        error: function(error) {
-            console.error("Error fetching data:", error);
-        }
-    });
-}
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.*;
+import java.util.List;
+import java.util.ArrayList;
 
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 @WebServlet("/YourServletURL")
 public class YourServletName extends HttpServlet {
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String tableName = request.getParameter("tableName");
-        String whereClause = request.getParameter("whereClause");
-        String selectFieldsJson = request.getParameter("selectFields");
-        String fieldIdsJson = request.getParameter("fieldIds");
+    private static final long serialVersionUID = 1L;
+    private static final Gson gson = new Gson();
 
-        // Convert JSON strings to arrays
-        Gson gson = new Gson();
-        String[] selectFields = gson.fromJson(selectFieldsJson, String[].class);
-        String[] fieldIds = gson.fromJson(fieldIdsJson, String[].class);
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // Read JSON data from request body
+        StringBuilder sb = new StringBuilder();
+        String line;
+        try (BufferedReader reader = request.getReader()) {
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+        }
+
+        JsonObject jsonRequest = JsonParser.parseString(sb.toString()).getAsJsonObject();
+
+        String tableName = jsonRequest.get("tableName").getAsString();
+        String whereClause = jsonRequest.get("whereClause").getAsString();
+        List<String> selectFields = gson.fromJson(jsonRequest.get("selectFields"), List.class);
+        List<String> fieldIds = gson.fromJson(jsonRequest.get("fieldIds"), List.class);
 
         // Construct SQL query
-        StringBuilder query = new StringBuilder("SELECT ");
-        query.append(String.join(", ", selectFields));
-        query.append(" FROM ").append(tableName);
-        query.append(" WHERE ").append(whereClause);
+        String query = String.format("SELECT %s FROM %s WHERE %s",
+                String.join(", ", selectFields), tableName, whereClause);
 
-        // Database connection
+        // Initialize database connection variables
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -54,28 +47,45 @@ public class YourServletName extends HttpServlet {
 
         try {
             // Initialize your DB connection here
-            conn = // Get your database connection;
-            pstmt = conn.prepareStatement(query.toString());
+            conn = getDatabaseConnection(); // Implement this method to return a DB connection
+
+            pstmt = conn.prepareStatement(query);
             rs = pstmt.executeQuery();
 
             if (rs.next()) {
                 for (String field : selectFields) {
                     results.add(rs.getString(field));
                 }
+            } else {
+                System.err.println("No data found for the given query.");
             }
 
             // Send results back to the client
-            String json = gson.toJson(results);
+            String jsonResponse = gson.toJson(results);
             response.setContentType("application/json");
-            response.getWriter().write(json);
+            response.setCharacterEncoding("UTF-8");
+            PrintWriter out = response.getWriter();
+            out.print(jsonResponse);
+            out.flush();
 
         } catch (SQLException e) {
             e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error occurred.");
         } finally {
             // Close resources
             try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); }
             try { if (pstmt != null) pstmt.close(); } catch (SQLException e) { e.printStackTrace(); }
             try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
         }
+    }
+
+    private Connection getDatabaseConnection() throws SQLException {
+        // Implement your database connection logic here
+        // For example:
+        // String url = "jdbc:mysql://localhost:3306/your_database";
+        // String username = "your_username";
+        // String password = "your_password";
+        // return DriverManager.getConnection(url, username, password);
+        return null;
     }
 }
