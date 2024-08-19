@@ -1,34 +1,81 @@
-function validateFields(divId, checkboxId) {
-    // Get the parent div using the divId
-    var parentDiv = document.getElementById(divId);
+function getDetailsFromDatabase(tableName, whereClause, selectFields, fieldIds) {
+    // Convert arrays to JSON strings
+    var selectFieldsJson = JSON.stringify(selectFields);
+    var fieldIdsJson = JSON.stringify(fieldIds);
     
-    // Find the tick image within the div
-    var tick = $(parentDiv).find('img[id^="tick"]');
-
-    // Flag to check if all mandatory fields are filled
-    var allFilled = true;
-    
-    // Loop through each mandatory field (_M) within the div
-    $(parentDiv).find('input[class$="_M"], select[class$="_M"]').each(function() {
-        var value = $(this).val().trim();
-        if (value === '' || value === '0') { // Check for empty string or zero
-            allFilled = false;
-            return false; // Exit loop if a mandatory field is empty or zero
+    // AJAX request to servlet
+    $.ajax({
+        type: "POST",
+        url: "YourServletURL", // Replace with your servlet URL
+        data: {
+            tableName: tableName,
+            whereClause: whereClause,
+            selectFields: selectFieldsJson,
+            fieldIds: fieldIdsJson
+        },
+        success: function(response) {
+            var data = JSON.parse(response);
+            // Populate screen fields with DB details
+            for (var i = 0; i < fieldIds.length; i++) {
+                document.getElementById(fieldIds[i]).value = data[i];
+            }
+        },
+        error: function(error) {
+            console.error("Error fetching data:", error);
         }
     });
+}
 
-    // Check the mandatory checkbox
-    if (checkboxId) {
-        var checkbox = document.getElementById(checkboxId);
-        if (checkbox && !checkbox.checked) {
-            allFilled = false; // If checkbox is not checked, set allFilled to false
+
+@WebServlet("/YourServletURL")
+public class YourServletName extends HttpServlet {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String tableName = request.getParameter("tableName");
+        String whereClause = request.getParameter("whereClause");
+        String selectFieldsJson = request.getParameter("selectFields");
+        String fieldIdsJson = request.getParameter("fieldIds");
+
+        // Convert JSON strings to arrays
+        Gson gson = new Gson();
+        String[] selectFields = gson.fromJson(selectFieldsJson, String[].class);
+        String[] fieldIds = gson.fromJson(fieldIdsJson, String[].class);
+
+        // Construct SQL query
+        StringBuilder query = new StringBuilder("SELECT ");
+        query.append(String.join(", ", selectFields));
+        query.append(" FROM ").append(tableName);
+        query.append(" WHERE ").append(whereClause);
+
+        // Database connection
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        List<String> results = new ArrayList<>();
+
+        try {
+            // Initialize your DB connection here
+            conn = // Get your database connection;
+            pstmt = conn.prepareStatement(query.toString());
+            rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                for (String field : selectFields) {
+                    results.add(rs.getString(field));
+                }
+            }
+
+            // Send results back to the client
+            String json = gson.toJson(results);
+            response.setContentType("application/json");
+            response.getWriter().write(json);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            // Close resources
+            try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); }
+            try { if (pstmt != null) pstmt.close(); } catch (SQLException e) { e.printStackTrace(); }
+            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
         }
-    }
-
-    // Show the tick if all fields are filled and checkbox is checked; otherwise, hide it
-    if (allFilled) {
-        tick.show();
-    } else {
-        tick.hide();
     }
 }
