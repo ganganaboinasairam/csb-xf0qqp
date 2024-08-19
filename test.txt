@@ -1,9 +1,31 @@
-if (rs.next()) {
-    System.out.println("inside rs if");
-    for (String field : selectFields) {
-        String value = rs.getString(field);
-        System.out.println("Retrieved value for field " + field + ": " + value);
-        results.add(value);
-    }
-    System.out.println("Final results: " + results);
+ function submitTab(){	
+if(!undertakingsTick()){
+		if($('#Undertakings').attr('class') != 'accordion active'){
+			$('#Undertakings').trigger("click");
+		}
+		alert("Please accept Terms&Conditions");
+		return false;
+	}
+	
+	$('input[class$="_M"], select[class$="_M"], Textarea[class$="_M"]').each(function() {
+        var value = $(this).val().trim();
+        if (value === '' || value === '0') { 
+            return false;
+        }
+		});
+	
+
+	if(!isCancel){ 
+				var myWindow=openWin("../Default/SCRN/IIND_RegisterBill_PreviewPage.jsp?","width=100","height=100","fullscreen='yes'");
+				myWindow.resizeTo("2000","2000");
+				myWindow.focus();
+				return true;
+	}
+
+else
+{
+alert("Fill Mandatory Fields!");
+$('#prim_confirm').hide();
+return false;
+}
 }
