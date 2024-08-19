@@ -1,84 +1,9 @@
-package com.cs.ceweb.servlets;
-
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import com.cs.core.dao.DSManager;
-import com.google.gson.Gson;
-
-public class getTableData extends HttpServlet {
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String tableName = request.getParameter("tableName");
-        String whereClause = request.getParameter("whereClause");
-        String selectFieldsJson = request.getParameter("selectFields");
-        String fieldIdsJson = request.getParameter("fieldIds");
-
-        // Convert JSON strings to arrays
-        Gson gson = new Gson();
-        String[] selectFields = gson.fromJson(selectFieldsJson, String[].class);
-        System.out.println("selectFields is  "+selectFields);
-        String[] fieldIds = gson.fromJson(fieldIdsJson, String[].class);
-
-        // Construct SQL query
-        StringBuilder query = new StringBuilder("SELECT ");
-        query.append(String.join(", ", selectFields));
-        query.append(" FROM ").append(tableName);
-        query.append(" WHERE ").append(whereClause);
-        
-        System.out.println("query is  "+query.toString());
-        // Database connection
-        Connection conn = null;
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-        List<String> results = new ArrayList<>();
-
-        try {
-            // Initialize your DB connection here
-            conn = DSManager.getConnection("CET");
-            pstmt = conn.prepareStatement(query.toString());
-            rs = pstmt.executeQuery();
-
-            System.out.println("query is executed");
-            
-            if (rs.next()) {
-            	System.out.println("inside rs if");
-                for (String field : selectFields) {
-                    results.add(rs.getString(field));
-                }
-            }
-
-            // Send results back to the client
-            System.out.println("results is  "+results);
-            String json = gson.toJson(results);
-            System.out.println("json is  "+json);
-            response.setContentType("application/json");
-            response.getWriter().write(json);
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-            // Close resources
-            try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); }
-            try { if (pstmt != null) pstmt.close(); } catch (SQLException e) { e.printStackTrace(); }
-            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
-        }
+if (rs.next()) {
+    System.out.println("inside rs if");
+    for (String field : selectFields) {
+        String value = rs.getString(field);
+        System.out.println("Retrieved value for field " + field + ": " + value);
+        results.add(value);
     }
+    System.out.println("Final results: " + results);
 }
