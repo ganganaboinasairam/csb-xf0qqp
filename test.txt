@@ -1,5 +1,5 @@
-<%
-	
+package com.cs.ceweb.servlets;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -31,6 +31,7 @@ public class getTableData extends HttpServlet {
         // Convert JSON strings to arrays
         Gson gson = new Gson();
         String[] selectFields = gson.fromJson(selectFieldsJson, String[].class);
+        System.out.println("selectFields is  "+selectFields);
         String[] fieldIds = gson.fromJson(fieldIdsJson, String[].class);
 
         // Construct SQL query
@@ -38,7 +39,8 @@ public class getTableData extends HttpServlet {
         query.append(String.join(", ", selectFields));
         query.append(" FROM ").append(tableName);
         query.append(" WHERE ").append(whereClause);
-
+        
+        System.out.println("query is  "+query.toString());
         // Database connection
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -51,14 +53,19 @@ public class getTableData extends HttpServlet {
             pstmt = conn.prepareStatement(query.toString());
             rs = pstmt.executeQuery();
 
+            System.out.println("query is executed");
+            
             if (rs.next()) {
+            	System.out.println("inside rs if");
                 for (String field : selectFields) {
                     results.add(rs.getString(field));
                 }
             }
 
             // Send results back to the client
+            System.out.println("results is  "+results);
             String json = gson.toJson(results);
+            System.out.println("json is  "+json);
             response.setContentType("application/json");
             response.getWriter().write(json);
 
@@ -75,5 +82,3 @@ public class getTableData extends HttpServlet {
         }
     }
 }
-
-%>
