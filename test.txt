@@ -1,31 +1,54 @@
- function submitTab(){	
-if(!undertakingsTick()){
-		if($('#Undertakings').attr('class') != 'accordion active'){
-			$('#Undertakings').trigger("click");
-		}
-		alert("Please accept Terms&Conditions");
-		return false;
-	}
-	
-	$('input[class$="_M"], select[class$="_M"], Textarea[class$="_M"]').each(function() {
-        var value = $(this).val().trim();
-        if (value === '' || value === '0') { 
-            return false;
+function submitTab() {        
+    // Check if Terms & Conditions are accepted
+    if (!undertakingsTick()) {
+        if ($('#Undertakings').attr('class') != 'accordion active') {
+            $('#Undertakings').trigger("click");
         }
-		});
-	
+        alert("Please accept Terms & Conditions");
+        return false; // Stop submission
+    }
 
-	if(!isCancel){ 
-				var myWindow=openWin("../Default/SCRN/IIND_RegisterBill_PreviewPage.jsp?","width=100","height=100","fullscreen='yes'");
-				myWindow.resizeTo("2000","2000");
-				myWindow.focus();
-				return true;
-	}
+    // Flag to indicate if any mandatory field is invalid
+    var allFieldsValid = true; 
 
-else
-{
-alert("Fill Mandatory Fields!");
-$('#prim_confirm').hide();
-return false;
-}
+    // Loop through each mandatory field
+    $('input[class$="_M"], select[class$="_M"], textarea[class$="_M"]').each(function() {
+        var value = $(this).val().trim();
+        
+        if (value === '' || value === '0') {
+            allFieldsValid = false; // Mark as invalid
+            
+            // Find the accordion associated with this field
+            var accordionId = $(this).data('accordion-id'); // Assuming each field has a data attribute for accordion ID
+            
+            if (accordionId) {
+                var $accordion = $('#' + accordionId);
+                if ($accordion.attr('class') != 'accordion active') {
+                    $accordion.trigger("click");
+                }
+            }
+            
+            return false; // Break out of the loop
+        }
+    });
+
+    // If any field is invalid, prevent submission
+    if (!allFieldsValid) {
+        alert("Fill Mandatory Fields!");
+        $('#prim_confirm').hide();
+        return false;
+    }
+
+    // If everything is valid and not canceled, open the preview window
+    if (!isCancel) {
+        var myWindow = openWin("../Default/SCRN/IIND_RegisterBill_PreviewPage.jsp?", "width=100", "height=100", "fullscreen='yes'");
+        myWindow.resizeTo("2000", "2000");
+        myWindow.focus();
+        return true;
+    }
+
+    // If canceled, prevent submission
+    alert("Fill Mandatory Fields!");
+    $('#prim_confirm').hide();
+    return false;
 }
