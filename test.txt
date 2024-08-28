@@ -1,9 +1,20 @@
- Override class reloading settings for Web and EJB modules
-Polling interval for updated files
-  Seconds
-Class loader order
- Classes loaded with parent class loader first
- Classes loaded with local class loader first (parent last)
-WAR class loader policy
- Class loader for each WAR file in application
- Single class loader for application
+<CLAUSE>
+        <SQL DESC="LC Number" DT="1" EEType="" TYPE="FLD">C_MAIN_REF</SQL>
+        <SQL TYPE="SQL"/>
+        <SQL DT="val" OPTYPE="OPERATE" TYPE="OP">OP0</SQL>
+        <SQL TYPE="SQL"> '</SQL>
+        <SQL DT="val" OPTYPE="VALUE" TYPE="OP">VALUE1</SQL>
+        <SQL TYPE="SQL">' AND </SQL>
+        <SQL DESC="TRANSACTION STATUS" DT="1" EEType="" TYPE="FLD">C_TRX_STATUS</SQL>
+        <SQL TYPE="SQL">='M' AND </SQL>
+        <SQL DESC="LC Outstanding Amount" DT="3" EEType="AMT"  TYPE="FLD">LC_BAL</SQL>
+        <SQL TYPE="SQL"> = </SQL>
+        <SQL DESC="LC Balance for Presentation" DT="3" EEType="AMT"  TYPE="FLD">LC_BAL_PRSNT AND </SQL>
+		<SQL DESC="Current Status" DT="12" EEType="Varchar_35" TYPE="FLD">CURRNT_STATUS</SQL>
+        <SQL TYPE="SQL"> IN('Inland_Railway_LC_DEO','rail_lc_amd_deo') AND (</SQL>
+        <SQL DESC="REJ FLAGFO" DT="12" EEType="Varchar_100" POS="WHEFLD" TYPE="FLD">REJ_FLAGFO</SQL>
+        <SQL TYPE="SQL"> NOT IN ('REJECTED') OR </SQL>
+        <SQL DESC="REJ FLAGFO" DT="12" EEType="Varchar_100" POS="WHEFLD" TYPE="FLD">REJ_FLAGFO</SQL>
+        <SQL TYPE="SQL"> IS NULL) ORDER BY </SQL>
+        <SQL DESC="LC Number" DT="1" EEType="" TYPE="FLD">C_MAIN_REF</SQL>
+    </CLAUSE>
