@@ -1,20 +1,65 @@
-<CLAUSE>
-        <SQL DESC="LC Number" DT="1" EEType="" TYPE="FLD">C_MAIN_REF</SQL>
-        <SQL TYPE="SQL"/>
-        <SQL DT="val" OPTYPE="OPERATE" TYPE="OP">OP0</SQL>
-        <SQL TYPE="SQL"> '</SQL>
-        <SQL DT="val" OPTYPE="VALUE" TYPE="OP">VALUE1</SQL>
-        <SQL TYPE="SQL">' AND </SQL>
-        <SQL DESC="TRANSACTION STATUS" DT="1" EEType="" TYPE="FLD">C_TRX_STATUS</SQL>
-        <SQL TYPE="SQL">='M' AND </SQL>
-        <SQL DESC="LC Outstanding Amount" DT="3" EEType="AMT"  TYPE="FLD">LC_BAL</SQL>
-        <SQL TYPE="SQL"> = </SQL>
-        <SQL DESC="LC Balance for Presentation" DT="3" EEType="AMT"  TYPE="FLD">LC_BAL_PRSNT AND </SQL>
-		<SQL DESC="Current Status" DT="12" EEType="Varchar_35" TYPE="FLD">CURRNT_STATUS</SQL>
-        <SQL TYPE="SQL"> IN('Inland_Railway_LC_DEO','rail_lc_amd_deo') AND (</SQL>
-        <SQL DESC="REJ FLAGFO" DT="12" EEType="Varchar_100" POS="WHEFLD" TYPE="FLD">REJ_FLAGFO</SQL>
-        <SQL TYPE="SQL"> NOT IN ('REJECTED') OR </SQL>
-        <SQL DESC="REJ FLAGFO" DT="12" EEType="Varchar_100" POS="WHEFLD" TYPE="FLD">REJ_FLAGFO</SQL>
-        <SQL TYPE="SQL"> IS NULL) ORDER BY </SQL>
-        <SQL DESC="LC Number" DT="1" EEType="" TYPE="FLD">C_MAIN_REF</SQL>
-    </CLAUSE>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL to XML Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+        }
+        .output {
+            background-color: #f4f4f4;
+            padding: 10px;
+            white-space: pre-wrap;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>SQL to XML Converter</h1>
+    <textarea id="sqlInput" placeholder="Enter your SQL query here"></textarea>
+    <button onclick="convertToXML()">Convert to XML</button>
+    <h2>XML Output:</h2>
+    <div id="xmlOutput" class="output"></div>
+
+    <script>
+        function convertToXML() {
+            const sqlInput = document.getElementById("sqlInput").value;
+            let xmlOutput = "<CLAUSE>\n";
+
+            // Simple example of parsing SQL
+            const tokens = sqlInput.split(/\s+/);
+            let index = 0;
+
+            while (index < tokens.length) {
+                const token = tokens[index];
+
+                if (token.match(/AND|OR|=/)) {
+                    xmlOutput += `    <SQL TYPE="SQL"> ${token} </SQL>\n`;
+                } else if (token.match(/ORDER\s+BY/i)) {
+                    xmlOutput += `    <SQL TYPE="SQL"> ${token} </SQL>\n`;
+                    index++;
+                    xmlOutput += `    <SQL DESC="${tokens[index]}" TYPE="FLD">${tokens[index]}</SQL>\n`;
+                } else if (token.match(/\w+/)) {
+                    xmlOutput += `    <SQL DESC="${token}" TYPE="FLD">${token}</SQL>\n`;
+                }
+                index++;
+            }
+
+            xmlOutput += "</CLAUSE>";
+            document.getElementById("xmlOutput").textContent = xmlOutput;
+        }
+    </script>
+</body>
+</html>
