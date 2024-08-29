@@ -1,17 +1,99 @@
-<FIELDLIST>
-		<FIELD CONFIG="Y" DATATYPE="1" DESC="LC Number" EEType="" HIDDEN="">C_MAIN_REF</FIELD>
-		<FIELD CONFIG="Y" DATATYPE="3" DESC="LC Amount" EEType="AMT" HIDDEN="">LC_AMT</FIELD>
-        <FIELD CONFIG="" DATATYPE="1" DESC="Status" EEType="INTERPRETER" HIDDEN="H">STATUS</FIELD>
-		<FIELD CONFIG="Y" DATATYPE="91" DESC="Date of Expiry" EEType="DATE" HIDDEN="">EXPIRY_DT</FIELD>
-        <FIELD CONFIG="" DATATYPE="12" DESC="Customer Reference Number" EEType="Varchar_35" HIDDEN="H">CUST_REFE</FIELD>
-        <FIELD CONFIG="" DATATYPE="1" DESC="UNIT CODE" EEType="" HIDDEN="H">C_UNIT_CODE</FIELD>
-        <FIELD CONFIG="" DATATYPE="4" DESC="EVENT TIMES" EEType="" HIDDEN="H">I_EVENT_TIMES</FIELD>
-        <FIELD CONFIG="" DATATYPE="1" DESC="TRANSACTION REF NO." EEType="" HIDDEN="H">C_TRX_REF</FIELD>
-        <FIELD CONFIG="" DATATYPE="1" DESC="TRANSACTION STATUS" EEType="" HIDDEN="H">C_TRX_STATUS</FIELD>
-        <FIELD CONFIG="" DATATYPE="12" DESC="LC Number1" EEType="Varchar_35" HIDDEN="H">LC_NO</FIELD>
-		<FIELD CONFIG="" DATATYPE="1" DESC="Draft for Interest Required" EEType="INTERPRETER" HIDDEN="">DRFT_FR_INT_REQ</FIELD>
-		<FIELD CONFIG="Y" DATATYPE="12" DESC="REJ FLAGFO" EEType="Varchar_100" HIDDEN="H">REJ_FLAGFO</FIELD>
-		<FIELD ALIAS="" COL="LC Currency" CONFIG="Y" DATATYPE="1" DESC="LC Currency" EEType="CCY" HIDDEN="">LC_CCY</FIELD>
-		<FIELD CONFIG="" DATATYPE="12" DESC="Current Status" EEType="Varchar_35" HIDDEN="H">CURRNT_STATUS</FIELD>
-        <FIELD CONFIG="" DATATYPE="1" DESC="MARGIN_STATUS" EEType="" HIDDEN="H">MARGIN_STATUS</FIELD>
-    </FIELDLIST>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL to XML Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+        }
+        .output {
+            background-color: #f4f4f4;
+            padding: 10px;
+            white-space: pre-wrap;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>SQL to XML Converter</h1>
+
+    <h2>Field List (XML)</h2>
+    <textarea id="fieldListInput" placeholder="Enter your field list XML here"></textarea>
+
+    <h2>SQL Query</h2>
+    <textarea id="sqlInput" placeholder="Enter your SQL query here"></textarea>
+
+    <button onclick="convertToXML()">Convert to XML</button>
+
+    <h2>XML Output:</h2>
+    <div id="xmlOutput" class="output"></div>
+
+    <script>
+        function parseFieldList(fieldListXML) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(fieldListXML, "text/xml");
+            const fields = xmlDoc.getElementsByTagName("FIELD");
+            const fieldMap = {};
+
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+                const fieldName = field.textContent.trim();
+                fieldMap[fieldName] = {
+                    DESC: field.getAttribute("DESC"),
+                    DATATYPE: field.getAttribute("DATATYPE"),
+                    EEType: field.getAttribute("EEType")
+                };
+            }
+
+            return fieldMap;
+        }
+
+        function convertToXML() {
+            const sqlInput = document.getElementById("sqlInput").value;
+            const fieldListInput = document.getElementById("fieldListInput").value;
+
+            const fieldMap = parseFieldList(fieldListInput);
+            let xmlOutput = "<CLAUSE>\n";
+
+            const tokens = sqlInput.split(/\s+/);
+            let index = 0;
+
+            while (index < tokens.length) {
+                const token = tokens[index];
+
+                if (token.match(/AND|OR|=/)) {
+                    xmlOutput += `    <SQL TYPE="SQL"> ${token} </SQL>\n`;
+                } else if (token.match(/ORDER\s+BY/i)) {
+                    xmlOutput += `    <SQL TYPE="SQL"> ${token} </SQL>\n`;
+                    index++;
+                    const fieldInfo = fieldMap[tokens[index]];
+                    if (fieldInfo) {
+                        xmlOutput += `    <SQL DESC="${fieldInfo.DESC}" DATATYPE="${fieldInfo.DATATYPE}" EEType="${fieldInfo.EEType}" TYPE="FLD">${tokens[index]}</SQL>\n`;
+                    }
+                } else if (fieldMap[token]) {
+                    const fieldInfo = fieldMap[token];
+                    xmlOutput += `    <SQL DESC="${fieldInfo.DESC}" DATATYPE="${fieldInfo.DATATYPE}" EEType="${fieldInfo.EEType}" TYPE="FLD">${token}</SQL>\n`;
+                } else {
+                    xmlOutput += `    <SQL TYPE="SQL"> ${token} </SQL>\n`;
+                }
+                index++;
+            }
+
+            xmlOutput += "</CLAUSE>";
+            document.getElementById("xmlOutput").textContent = xmlOutput;
+        }
+    </script>
+</body>
+</html>
