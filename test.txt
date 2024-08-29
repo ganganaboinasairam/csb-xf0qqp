@@ -1,4 +1,30 @@
-Uncaught TypeError: Cannot read properties of undefined (reading 'trim')
-    at parseFieldList (CATALOGUE.html:100:59)
-    at convertToXML (CATALOGUE.html:43:30)
-    at HTMLButtonElement.onclick (CATALOGUE.html:30:38)
+function parseFieldList(fieldListInput) {
+    const lines = fieldListInput.split('\n');
+    const fieldMap = {};
+
+    for (let line of lines) {
+        // Trim the line to remove any leading/trailing whitespace
+        line = line.trim();
+
+        // Skip empty lines
+        if (line === '') continue;
+
+        const parts = line.split(',');
+
+        // Ensure that the line has at least three elements (fieldName, desc, dt)
+        if (parts.length < 3) {
+            console.warn(`Skipping invalid field list line: ${line}`);
+            continue;
+        }
+
+        const [fieldName, desc, dt, eeType] = parts.map(part => part.trim());
+
+        fieldMap[fieldName] = { 
+            DESC: desc, 
+            DT: dt, 
+            EEType: eeType || "" // Use an empty string if eeType is undefined
+        };
+    }
+
+    return fieldMap;
+}
