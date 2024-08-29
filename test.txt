@@ -1,30 +1,50 @@
-function parseFieldList(fieldListInput) {
-    const lines = fieldListInput.split('\n');
-    const fieldMap = {};
+sql: C_MAIN_REF OPERAND 'VALUE' AND C_TRX_STATUS='M' AND CLOSE_FLG <> '2' AND EXPIRY_DT > SYS_BUSI_DATE AND LC_BAL =LC_BAL_PRSNT AND RISK_FLAG IN ('4','5') AND (REJ_FLAGFO NOT IN ('REJECTED') OR REJ_FLAGFO IS NULL) ORDER BY C_MAIN_REF
 
-    for (let line of lines) {
-        // Trim the line to remove any leading/trailing whitespace
-        line = line.trim();
+<CLAUSE>
+    <SQL DESC="LC Number" DT="1" EEType="" TYPE="FLD">C_MAIN_REF</SQL>
+    <SQL TYPE="SQL"/>
+    <SQL DT="val" OPTYPE="OPERATE" TYPE="OP">OP0</SQL>
+    <SQL TYPE="SQL"> '</SQL>
+    <SQL DT="val" OPTYPE="VALUE" TYPE="OP">VALUE</SQL>
+    <SQL TYPE="SQL">' AND </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL DESC="TRANSACTION STATUS" DT="1" EEType="" TYPE="FLD">C_TRX_STATUS</SQL>
+    <SQL TYPE="SQL">='M' </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL TYPE="SQL"> CLOSE_FLG </SQL>
+    <SQL TYPE="SQL"> <> </SQL>
+    <SQL TYPE="SQL"> '</SQL>
+    <SQL DT="val" OPTYPE="VALUE" TYPE="OP">2</SQL>
+    <SQL TYPE="SQL">' AND </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL DESC="Date of Expiry" DT="91" EEType="DATE" TYPE="FLD">EXPIRY_DT</SQL>
+    <SQL TYPE="SQL"> > </SQL>
+    <SQL TYPE="SQL"> SYS_BUSI_DATE </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL DESC="LC Outstanding Amount" DT="3" EEType="AMT" TYPE="FLD">LC_BAL</SQL>
+    <SQL TYPE="SQL">  </SQL>
+    <SQL TYPE="SQL">=LC_BAL_PRSNT </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL DESC="risk flag" DT="12" EEType="" TYPE="FLD">RISK_FLAG</SQL>
+    <SQL TYPE="SQL"> IN </SQL>
+    <SQL TYPE="SQL"> ('4','5') </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL TYPE="SQL"> (REJ_FLAGFO </SQL>
+    <SQL TYPE="SQL"> NOT </SQL>
+    <SQL TYPE="SQL"> IN </SQL>
+    <SQL TYPE="SQL"> ('REJECTED') </SQL>
+    <SQL TYPE="SQL"> OR </SQL>
+    <SQL DESC="REJ FLAGFO" DT="12" EEType="Varchar_100" TYPE="FLD">REJ_FLAGFO</SQL>
+    <SQL TYPE="SQL"> IS </SQL>
+    <SQL TYPE="SQL"> NULL) </SQL>
+    <SQL TYPE="SQL"> ORDER </SQL>
+    <SQL TYPE="SQL"> BY </SQL>
+    <SQL DESC="LC Number" DT="1" EEType="" TYPE="FLD">C_MAIN_REF</SQL>
+</CLAUSE>
 
-        // Skip empty lines
-        if (line === '') continue;
 
-        const parts = line.split(',');
 
-        // Ensure that the line has at least three elements (fieldName, desc, dt)
-        if (parts.length < 3) {
-            console.warn(`Skipping invalid field list line: ${line}`);
-            continue;
-        }
-
-        const [fieldName, desc, dt, eeType] = parts.map(part => part.trim());
-
-        fieldMap[fieldName] = { 
-            DESC: desc, 
-            DT: dt, 
-            EEType: eeType || "" // Use an empty string if eeType is undefined
-        };
-    }
-
-    return fieldMap;
-}
+Issues :
+1.line 8 contains extra AND which is not their in sql
+2.if any value is passed as hard coded like 'CLOSE_FLG <> '2' , it dosenot require seperate line and type attribute , it cna be written as '<SQL TYPE="SQL">'2'</SQL>'
+3.avoid creating new line for every word , like 'NOT IN ('REJECTED')','IS NULL)' and 'ORDER BY'
