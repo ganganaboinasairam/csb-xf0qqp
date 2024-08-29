@@ -1,50 +1,69 @@
-sql: C_MAIN_REF OPERAND 'VALUE' AND C_TRX_STATUS='M' AND CLOSE_FLG <> '2' AND EXPIRY_DT > SYS_BUSI_DATE AND LC_BAL =LC_BAL_PRSNT AND RISK_FLAG IN ('4','5') AND (REJ_FLAGFO NOT IN ('REJECTED') OR REJ_FLAGFO IS NULL) ORDER BY C_MAIN_REF
+function convertToXML(sql) {
+    const clauses = [];
+    const fieldMap = parseFieldList(fieldListInput); // Assuming fieldListInput is provided
 
-<CLAUSE>
-    <SQL DESC="LC Number" DT="1" EEType="" TYPE="FLD">C_MAIN_REF</SQL>
-    <SQL TYPE="SQL"/>
-    <SQL DT="val" OPTYPE="OPERATE" TYPE="OP">OP0</SQL>
-    <SQL TYPE="SQL"> '</SQL>
-    <SQL DT="val" OPTYPE="VALUE" TYPE="OP">VALUE</SQL>
-    <SQL TYPE="SQL">' AND </SQL>
-    <SQL TYPE="SQL"> AND </SQL>
-    <SQL DESC="TRANSACTION STATUS" DT="1" EEType="" TYPE="FLD">C_TRX_STATUS</SQL>
-    <SQL TYPE="SQL">='M' </SQL>
-    <SQL TYPE="SQL"> AND </SQL>
-    <SQL TYPE="SQL"> CLOSE_FLG </SQL>
-    <SQL TYPE="SQL"> <> </SQL>
-    <SQL TYPE="SQL"> '</SQL>
-    <SQL DT="val" OPTYPE="VALUE" TYPE="OP">2</SQL>
-    <SQL TYPE="SQL">' AND </SQL>
-    <SQL TYPE="SQL"> AND </SQL>
-    <SQL DESC="Date of Expiry" DT="91" EEType="DATE" TYPE="FLD">EXPIRY_DT</SQL>
-    <SQL TYPE="SQL"> > </SQL>
-    <SQL TYPE="SQL"> SYS_BUSI_DATE </SQL>
-    <SQL TYPE="SQL"> AND </SQL>
-    <SQL DESC="LC Outstanding Amount" DT="3" EEType="AMT" TYPE="FLD">LC_BAL</SQL>
-    <SQL TYPE="SQL">  </SQL>
-    <SQL TYPE="SQL">=LC_BAL_PRSNT </SQL>
-    <SQL TYPE="SQL"> AND </SQL>
-    <SQL DESC="risk flag" DT="12" EEType="" TYPE="FLD">RISK_FLAG</SQL>
-    <SQL TYPE="SQL"> IN </SQL>
-    <SQL TYPE="SQL"> ('4','5') </SQL>
-    <SQL TYPE="SQL"> AND </SQL>
-    <SQL TYPE="SQL"> (REJ_FLAGFO </SQL>
-    <SQL TYPE="SQL"> NOT </SQL>
-    <SQL TYPE="SQL"> IN </SQL>
-    <SQL TYPE="SQL"> ('REJECTED') </SQL>
-    <SQL TYPE="SQL"> OR </SQL>
-    <SQL DESC="REJ FLAGFO" DT="12" EEType="Varchar_100" TYPE="FLD">REJ_FLAGFO</SQL>
-    <SQL TYPE="SQL"> IS </SQL>
-    <SQL TYPE="SQL"> NULL) </SQL>
-    <SQL TYPE="SQL"> ORDER </SQL>
-    <SQL TYPE="SQL"> BY </SQL>
-    <SQL DESC="LC Number" DT="1" EEType="" TYPE="FLD">C_MAIN_REF</SQL>
-</CLAUSE>
+    // Define a mapping for operations if needed
+    const operationMap = {
+        "IN": "IN",
+        "NOT IN": "NOT IN",
+        "=": "=",
+        "<>": "<>",
+        ">": ">",
+        "<": "<",
+        "IS": "IS",
+        "NULL": "NULL",
+        "AND": " AND ",
+        "OR": " OR "
+    };
 
+    // Split the SQL string into tokens based on spaces and special characters
+    const tokens = sql.match(/('[^']*'|[^'\s()]+|||,)/g);
+    
+    tokens.forEach((token, i) => {
+        token = token.trim();
+        if (!token) return;
 
+        // Check if the token is a field in the fieldMap
+        if (fieldMap[token]) {
+            const { DESC, DT, EEType } = fieldMap[token];
+            clauses.push(`<SQL DESC="${DESC}" DT="${DT}" EEType="${EEType}" TYPE="FLD">${token}</SQL>`);
+        }
+        // Check if it's a SQL keyword or operation
+        else if (operationMap[token]) {
+            clauses.push(`<SQL TYPE="SQL">${operationMap[token]}</SQL>`);
+        }
+        // Handle hard-coded values or expressions (e.g., '2')
+        else if (/^'.*'$/.test(token)) {
+            clauses.push(`<SQL TYPE="SQL">${token}</SQL>`);
+        }
+        // Handle other operators and values (e.g., OPERAND, VALUE)
+        else {
+            if (tokens[i - 1] === "OPERAND") {
+                clauses.push(`<SQL DT="val" OPTYPE="OPERATE" TYPE="OP">OP${i}</SQL>`);
+            } else if (tokens[i - 1] === "VALUE") {
+                clauses.push(`<SQL DT="val" OPTYPE="VALUE" TYPE="OP">${token}</SQL>`);
+            } else {
+                // For other cases, consider them part of the SQL
+                clauses.push(`<SQL TYPE="SQL">${token}</SQL>`);
+            }
+        }
+    });
 
-Issues :
-1.line 8 contains extra AND which is not their in sql
-2.if any value is passed as hard coded like 'CLOSE_FLG <> '2' , it dosenot require seperate line and type attribute , it cna be written as '<SQL TYPE="SQL">'2'</SQL>'
-3.avoid creating new line for every word , like 'NOT IN ('REJECTED')','IS NULL)' and 'ORDER BY'
+    return `<CLAUSE>\n    ${clauses.join("\n    ")}\n</CLAUSE>`;
+}
+
+const sql = "C_MAIN_REF OPERAND 'VALUE' AND C_TRX_STATUS='M' AND CLOSE_FLG <> '2' AND EXPIRY_DT > SYS_BUSI_DATE AND LC_BAL =LC_BAL_PRSNT AND RISK_FLAG IN ('4','5') AND (REJ_FLAGFO NOT IN ('REJECTED') OR REJ_FLAGFO IS NULL) ORDER BY C_MAIN_REF";
+
+// Example fieldListInput:
+const fieldListInput = `
+C_MAIN_REF,LC Number,1,
+C_TRX_STATUS,TRANSACTION STATUS,1,
+CLOSE_FLG,Close Flag,1,
+EXPIRY_DT,Date of Expiry,91,DATE
+LC_BAL,LC Outstanding Amount,3,AMT
+LC_BAL_PRSNT,LC Balance for Presentation,3,AMT
+RISK_FLAG,risk flag,12,
+REJ_FLAGFO,REJ FLAGFO,12,Varchar_100
+`;
+
+console.log(convertToXML(sql));
