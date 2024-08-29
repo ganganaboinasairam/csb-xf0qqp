@@ -1,106 +1,38 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>SQL to XML Converter</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        textarea {
-            width: 100%;
-            height: 150px;
-            margin-bottom: 10px;
-        }
-        .output {
-            background-color: #f4f4f4;
-            padding: 10px;
-            white-space: pre-wrap;
-            border: 1px solid #ccc;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-    <h1>SQL to XML Converter</h1>
-
-    <h2>Field List (XML)</h2>
-    <textarea id="fieldListInput" placeholder="Enter your field list XML here"></textarea>
-
-    <h2>SQL Query</h2>
-    <textarea id="sqlInput" placeholder="Enter your SQL query here"></textarea>
-
-    <button onclick="convertToXML()">Convert to XML</button>
-
-    <h2>XML Output:</h2>
-    <div id="xmlOutput" class="output"></div>
-
-    <script>
-        function parseFieldList(fieldListXML) {
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(fieldListXML, "text/xml");
-            const fields = xmlDoc.getElementsByTagName("FIELD");
-            const fieldMap = {};
-
-            for (let i = 0; i < fields.length; i++) {
-                const field = fields[i];
-                const fieldName = field.textContent.trim();
-                fieldMap[fieldName] = {
-                    DESC: field.getAttribute("DESC"),
-                    DATATYPE: field.getAttribute("DATATYPE"),
-                    EEType: field.getAttribute("EEType")
-                };
-            }
-
-            return fieldMap;
-        }
-
-        function convertToXML() {
-            const sqlInput = document.getElementById("sqlInput").value;
-            const fieldListInput = document.getElementById("fieldListInput").value;
-
-            const fieldMap = parseFieldList(fieldListInput);
-            let xmlOutput = "<CLAUSE>\n";
-
-            const tokens = sqlInput.split(/\s+/);
-            let index = 0;
-
-            while (index < tokens.length) {
-                const token = tokens[index];
-
-                if (token.match(/AND|OR|=|<>|>|<|IN|NOT/)) {
-                    xmlOutput += `    <SQL TYPE="SQL"> ${token} </SQL>\n`;
-                } else if (token.match(/ORDER\s+BY/i)) {
-                    xmlOutput += `    <SQL TYPE="SQL"> ${token} </SQL>\n`;
-                    index++;
-                    const fieldInfo = fieldMap[tokens[index]];
-                    if (fieldInfo) {
-                        xmlOutput += `    <SQL DESC="${fieldInfo.DESC}" DATATYPE="${fieldInfo.DATATYPE}" EEType="${fieldInfo.EEType}" TYPE="FLD">${tokens[index]}</SQL>\n`;
-                    }
-                } else if (token.toLowerCase() === 'operand') {
-                    xmlOutput += `    <SQL TYPE="OP"> ${token} </SQL>\n`;
-                    index++;
-                } else if (token.match(/^'.*'$/)) { // Matches 'value'
-                    xmlOutput += `    <SQL TYPE="SQL"> '${token.slice(1)} </SQL>\n`; // Opening quote
-                    xmlOutput += `    <SQL TYPE="OP"> ${token.slice(1, -1)} </SQL>\n`; // Value
-                    xmlOutput += `    <SQL TYPE="SQL"> ' </SQL>\n`; // Closing quote
-                } else if (fieldMap[token]) {
-                    const fieldInfo = fieldMap[token];
-                    xmlOutput += `    <SQL DESC="${fieldInfo.DESC}" DATATYPE="${fieldInfo.DATATYPE}" EEType="${fieldInfo.EEType}" TYPE="FLD">${token}</SQL>\n`;
-                } else {
-                    xmlOutput += `    <SQL TYPE="SQL"> ${token} </SQL>\n`;
-                }
-                index++;
-            }
-
-            xmlOutput += "</CLAUSE>";
-            document.getElementById("xmlOutput").textContent = xmlOutput;
-        }
-    </script>
-</body>
-</html>
+<CLAUSE>
+    <SQL TYPE="SQL"> C_MAIN_REF </SQL>
+    <SQL TYPE="SQL"> OPERAND </SQL>
+    <SQL TYPE="SQL"> 'VALUE' </SQL>
+    <SQL TYPE="OP"> VALUE </SQL>
+    <SQL TYPE="SQL"> ' </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL TYPE="SQL"> C_TRX_STATUS='M' </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL TYPE="SQL"> CLOSE_FLG </SQL>
+    <SQL TYPE="SQL"> <> </SQL>
+    <SQL TYPE="SQL"> '2' </SQL>
+    <SQL TYPE="OP"> 2 </SQL>
+    <SQL TYPE="SQL"> ' </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL DESC="Date of Expiry" DATATYPE="91" EEType="DATE" TYPE="FLD">EXPIRY_DT</SQL>
+    <SQL TYPE="SQL"> > </SQL>
+    <SQL TYPE="SQL"> SYS_BUSI_DATE </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL TYPE="SQL"> LC_BAL </SQL>
+    <SQL TYPE="SQL"> =LC_BAL_PRSNT </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL TYPE="SQL"> RISK_FLAG </SQL>
+    <SQL TYPE="SQL"> IN </SQL>
+    <SQL TYPE="SQL"> ('4','5') </SQL>
+    <SQL TYPE="SQL"> AND </SQL>
+    <SQL TYPE="SQL"> (REJ_FLAGFO </SQL>
+    <SQL TYPE="SQL"> NOT </SQL>
+    <SQL TYPE="SQL"> IN </SQL>
+    <SQL TYPE="SQL"> ('REJECTED') </SQL>
+    <SQL TYPE="SQL"> OR </SQL>
+    <SQL DESC="REJ FLAGFO" DATATYPE="12" EEType="Varchar_100" TYPE="FLD">REJ_FLAGFO</SQL>
+    <SQL TYPE="SQL"> IS </SQL>
+    <SQL TYPE="SQL"> NULL) </SQL>
+    <SQL TYPE="SQL"> ORDER </SQL>
+    <SQL TYPE="SQL"> BY </SQL>
+    <SQL TYPE="SQL"> C_MAIN_REF </SQL>
+</CLAUSE>
