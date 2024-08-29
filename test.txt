@@ -1,24 +1,107 @@
-SQL: WHERE C_MAIN_REF OPERAND 'VALUE' AND C_TRX_STATUS='M' AND LC_BAL = LC_BAL_PRSNT AND CURRNT_STATUS IN('Inland_Railway_LC_DEO','rail_lc_amd_deo') AND (REJ_FLAGFO NOT IN ('REJECTED') OR REJ_FLAGFO IS NULL) ORDER BY C_MAIN_REF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL to XML Converter</title>
+</head>
+<body>
+    <h2>SQL to XML Converter</h2>
+    
+    <!-- Textarea for SQL Input -->
+    <label for="sqlInput">SQL Input:</label>
+    <textarea id="sqlInput" rows="6" cols="80">
+WHERE C_MAIN_REF OPERAND 'VALUE' AND C_TRX_STATUS='M' AND LC_BAL = LC_BAL_PRSNT AND CURRNT_STATUS IN('Inland_Railway_LC_DEO','rail_lc_amd_deo') AND (REJ_FLAGFO NOT IN ('REJECTED') OR REJ_FLAGFO IS NULL) ORDER BY C_MAIN_REF
+    </textarea>
+    <br><br>
+    
+    <!-- Textarea for Field List Input -->
+    <label for="fieldListInput">Field List Input:</label>
+    <textarea id="fieldListInput" rows="6" cols="80">
+C_MAIN_REF,LC Number,1,
+C_TRX_STATUS,TRANSACTION STATUS,1,
+LC_BAL,LC Outstanding Amount,3,AMT
+LC_BAL_PRSNT,LC Balance for Presentation,3,AMT
+CURRNT_STATUS,Current Status,12,Varchar_35
+REJ_FLAGFO,REJ FLAGFO,12,Varchar_100
+    </textarea>
+    <br><br>
+    
+    <!-- Convert Button -->
+    <button onclick="convertToXML()">Convert to XML</button>
+    <br><br>
+    
+    <!-- Output Area -->
+    <label for="xmlOutput">XML Output:</label>
+    <pre id="xmlOutput"></pre>
 
+    <!-- JavaScript -->
+    <script>
+        function convertToXML() {
+            const sqlInput = document.getElementById("sqlInput").value;
+            const fieldListInput = document.getElementById("fieldListInput").value;
 
-EXPECTED OUTPUT:
-<CLAUSE>
-        <SQL DESC="LC Number" DT="1" EEType="" TYPE="FLD">C_MAIN_REF</SQL>
-        <SQL TYPE="SQL"/>
-        <SQL DT="val" OPTYPE="OPERATE" TYPE="OP">OP0</SQL>
-        <SQL TYPE="SQL"> '</SQL>
-        <SQL DT="val" OPTYPE="VALUE" TYPE="OP">VALUE1</SQL>
-        <SQL TYPE="SQL">' AND </SQL>
-        <SQL DESC="TRANSACTION STATUS" DT="1" EEType="" TYPE="FLD">C_TRX_STATUS</SQL>
-        <SQL TYPE="SQL">='M' AND </SQL>
-        <SQL DESC="LC Outstanding Amount" DT="3" EEType="AMT"  TYPE="FLD">LC_BAL</SQL>
-        <SQL TYPE="SQL"> = </SQL>
-        <SQL DESC="LC Balance for Presentation" DT="3" EEType="AMT"  TYPE="FLD">LC_BAL_PRSNT AND </SQL>
-		<SQL DESC="Current Status" DT="12" EEType="Varchar_35" TYPE="FLD">CURRNT_STATUS</SQL>
-        <SQL TYPE="SQL"> IN('Inland_Railway_LC_DEO','rail_lc_amd_deo') AND (</SQL>
-        <SQL DESC="REJ FLAGFO" DT="12" EEType="Varchar_100" POS="WHEFLD" TYPE="FLD">REJ_FLAGFO</SQL>
-        <SQL TYPE="SQL"> NOT IN ('REJECTED') OR </SQL>
-        <SQL DESC="REJ FLAGFO" DT="12" EEType="Varchar_100" POS="WHEFLD" TYPE="FLD">REJ_FLAGFO</SQL>
-        <SQL TYPE="SQL"> IS NULL) ORDER BY </SQL>
-        <SQL DESC="LC Number" DT="1" EEType="" TYPE="FLD">C_MAIN_REF</SQL>
-    </CLAUSE>
+            const fieldMap = parseFieldList(fieldListInput);
+            let xmlOutput = "<CLAUSE>\n";
+
+            // Tokenize the SQL string by spaces, while keeping special characters intact
+            const tokens = sqlInput.match(/('[^']*'|\S+)/g);
+
+            for (let i = 0; i < tokens.length; i++) {
+                let token = tokens[i];
+
+                // Handle fields from fieldMap
+                if (fieldMap[token]) {
+                    const fieldInfo = fieldMap[token];
+                    xmlOutput += `    <SQL DESC="${fieldInfo.DESC}" DT="${fieldInfo.DT}" EEType="${fieldInfo.EEType}" TYPE="FLD">${token}</SQL>\n`;
+                }
+                // Handle OPERAND as type "OP"
+                else if (token.toUpperCase() === 'OPERAND') {
+                    xmlOutput += `    <SQL TYPE="SQL"/>\n`;  // Matching the provided XML structure
+                    xmlOutput += `    <SQL DT="val" OPTYPE="OPERATE" TYPE="OP">OP0</SQL>\n`;
+                }
+                // Handle values in single quotes
+                else if (token.startsWith("'") && token.endsWith("'")) {
+                    xmlOutput += `    <SQL TYPE="SQL"> '</SQL>\n`;
+                    xmlOutput += `    <SQL DT="val" OPTYPE="VALUE" TYPE="OP">${token.slice(1, -1)}</SQL>\n`;
+                    xmlOutput += `    <SQL TYPE="SQL">' AND </SQL>\n`;
+                }
+                // Handle typical SQL keywords and operators
+                else if (['AND', 'OR', '<>', '>', '<', 'IN', 'NOT', 'IS', 'NULL', 'ORDER', 'BY', '(', ')'].includes(token.toUpperCase())) {
+                    xmlOutput += `    <SQL TYPE="SQL"> ${token.toUpperCase()} </SQL>\n`;
+                }
+                // Handle cases like C_TRX_STATUS='M'
+                else if (token.includes('=')) {
+                    let [field, value] = token.split('=');
+                    if (fieldMap[field]) {
+                        const fieldInfo = fieldMap[field];
+                        xmlOutput += `    <SQL DESC="${fieldInfo.DESC}" DT="${fieldInfo.DT}" EEType="${fieldInfo.EEType}" TYPE="FLD">${field}</SQL>\n`;
+                    } else {
+                        xmlOutput += `    <SQL TYPE="SQL"> ${field} </SQL>\n`;
+                    }
+                    xmlOutput += `    <SQL TYPE="SQL">=${value} </SQL>\n`;
+                }
+                // Default handling for any other tokens
+                else {
+                    xmlOutput += `    <SQL TYPE="SQL"> ${token} </SQL>\n`;
+                }
+            }
+
+            xmlOutput += "</CLAUSE>";
+            document.getElementById("xmlOutput").textContent = xmlOutput;
+        }
+
+        // Assuming the fieldListInput contains information about fields like DESC, DT, EEType, etc.
+        function parseFieldList(fieldListInput) {
+            const lines = fieldListInput.split('\n');
+            const fieldMap = {};
+            
+            for (let line of lines) {
+                const [fieldName, desc, dt, eeType] = line.split(',');
+                fieldMap[fieldName.trim()] = { DESC: desc.trim(), DT: dt.trim(), EEType: eeType ? eeType.trim() : "" };
+            }
+
+            return fieldMap;
+        }
+    </script>
+</body>
+</html>
