@@ -1,9 +1,9 @@
-Dear sir,
+Dear Sir,
 
-As per the EE Functionality the following points.
+As per the EE functionality, please note the following points:
 
-Outward Bill (Non-LC):
-Multiple amendments are possible , there is not restriction.
+**Outward Bill (Non-LC):**
+- Multiple amendments are allowed with no restrictions.
 
-Discounting Non-LC:
-Amendment can be happen only one time for Bill amount and Bill due Date. For rest of the fields multiple amendments can be done .
+**Discounting Non-LC:**
+- Amendments can be made only once for the bill amount and bill due date. However, for all other fields, multiple amendments are permitted.
