@@ -1,9 +1,26 @@
-Dear Sir,
+Here's a draft for your email:
 
-As per the EE functionality, please note the following points:
+---
 
-**Outward Bill (Non-LC):**
-- Multiple amendments are allowed with no restrictions.
+**Subject:** Follow-up on CE Development Issues - Awaiting Resolution from CS Team
 
-**Discounting Non-LC:**
-- Amendments can be made only once for the bill amount and bill due date. However, for all other fields, multiple amendments are permitted.
+Dear [Manager's Name],
+
+I hope you are doing well.
+
+I would like to bring to your attention that, despite sharing the logs and following up with the CS team, we have not yet received any solution for the issues we are facing in CE Development. 
+
+The key challenges are:
+- Null Pointer Exception while demerging transactions from EE.
+- FAP issue when picking transactions from the catalogue in CE.
+
+We have already provided the necessary logs and details, but there has been no significant progress. Your assistance in expediting the resolution from the CS team would be greatly appreciated.
+
+Thank you for your support.
+
+Best regards,  
+[Your Name]
+
+---
+
+Let me know if you need further adjustments!
