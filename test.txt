@@ -1,26 +1,5 @@
-Here's a draft for your email:
-
----
-
-**Subject:** Follow-up on CE Development Issues - Awaiting Resolution from CS Team
-
-Dear [Manager's Name],
-
-I hope you are doing well.
-
-I would like to bring to your attention that, despite sharing the logs and following up with the CS team, we have not yet received any solution for the issues we are facing in CE Development. 
-
-The key challenges are:
-- Null Pointer Exception while demerging transactions from EE.
-- FAP issue when picking transactions from the catalogue in CE.
-
-We have already provided the necessary logs and details, but there has been no significant progress. Your assistance in expediting the resolution from the CS team would be greatly appreciated.
-
-Thank you for your support.
-
-Best regards,  
-[Your Name]
-
----
-
-Let me know if you need further adjustments!
+update eximtrx.inlc_master
+set expiry_dt =( select new_expiry_dt from eximtrx.inlc_em_amendment
+where c_main_ref ='0999524LC0B02389'
+and i_event_Times = (select max(i_event_Times)
+from eximtrx.inlc_em_amendment where c_main_ref ='0999524LC0B02389')) WHERE  c_main_ref ='0999524LC0B02389' and c_trx_status = 'M';
