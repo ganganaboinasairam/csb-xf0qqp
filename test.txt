@@ -1,5 +1,33 @@
-update eximtrx.inlc_master
-set expiry_dt =( select new_expiry_dt from eximtrx.inlc_em_amendment
-where c_main_ref ='0999524LC0B02389'
-and i_event_Times = (select max(i_event_Times)
-from eximtrx.inlc_em_amendment where c_main_ref ='0999524LC0B02389')) WHERE  c_main_ref ='0999524LC0B02389' and c_trx_status = 'M';
+DECLARE
+  -- Define a list of c_main_ref values
+  TYPE c_main_ref_list IS TABLE OF VARCHAR2(20);
+  c_main_refs c_main_ref_list := c_main_ref_list('0999524LC0B02389', '0999524LC0B02390', '0999524LC0B02391'); -- Add your values here
+  
+BEGIN
+  -- Loop through each c_main_ref in the list
+  FOR i IN 1 .. c_main_refs.COUNT LOOP
+    -- Perform the update for each c_main_ref
+    UPDATE eximtrx.inlc_master
+    SET expiry_dt = (
+      SELECT new_expiry_dt 
+      FROM eximtrx.inlc_em_amendment
+      WHERE c_main_ref = c_main_refs(i)
+      AND i_event_Times = (
+        SELECT MAX(i_event_Times)
+        FROM eximtrx.inlc_em_amendment
+        WHERE c_main_ref = c_main_refs(i)
+      )
+    )
+    WHERE c_main_ref = c_main_refs(i)
+    AND c_trx_status = 'M';
+    
+    -- Optionally, log or output a message
+    DBMS_OUTPUT.PUT_LINE('Updated c_main_ref: ' || c_main_refs(i));
+  
+  END LOOP;
+  
+  -- Commit changes if necessary
+  COMMIT;
+  
+END;
+/
