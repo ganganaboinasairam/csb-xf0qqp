@@ -1,5 +1,13 @@
-Dear team,
+Subject: Urgent Assistance Required: Unable to Release Transaction in CE DEV Region
 
-we are unable to Release transaction in CE DEV region, Kindly assist on this issue ASAP.
+Dear Team,
 
-Please find the attached screenshot and gapi mapping.
+We are currently unable to release the transaction in the CE DEV region and need your assistance to resolve this issue as soon as possible.
+
+Please find the attached screenshot and GAPI mapping for your reference.
+
+Your prompt support will be highly appreciated.
+
+Best regards,
+[Your Name]
+
