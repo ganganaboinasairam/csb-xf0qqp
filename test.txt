@@ -1,13 +1,38 @@
-Subject: Urgent Assistance Required: Unable to Release Transaction in CE DEV Region
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Regex Generator</title>
+</head>
+<body>
+    <h2>Select a Folder to Generate Regular Expression for File Filtering</h2>
 
-Dear Team,
+    <!-- Folder input -->
+    <input type="file" id="folderInput" webkitdirectory directory multiple />
+    
+    <h3>Generated Regular Expression:</h3>
+    <textarea id="regexOutput" rows="4" cols="50"></textarea>
 
-We are currently unable to release the transaction in the CE DEV region and need your assistance to resolve this issue as soon as possible.
+    <script>
+        // Function to generate regex based on file names
+        document.getElementById('folderInput').addEventListener('change', function(event) {
+            let files = event.target.files;
+            let regexParts = [];
+            
+            for (let i = 0; i < files.length; i++) {
+                let fileName = files[i].name;
+                // Escape special regex characters in file names
+                fileName = fileName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                regexParts.push(fileName);
+            }
 
-Please find the attached screenshot and GAPI mapping for your reference.
-
-Your prompt support will be highly appreciated.
-
-Best regards,
-[Your Name]
-
+            // Join file names with | (or) to create a regex pattern
+            let regex = regexParts.join('|');
+            
+            // Display the regular expression in the textarea
+            document.getElementById('regexOutput').value = regex;
+        });
+    </script>
+</body>
+</html>
