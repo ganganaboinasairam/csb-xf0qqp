@@ -3,35 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Regex Generator</title>
+    <title>Folder Structure Regex Generator</title>
 </head>
 <body>
-    <h2>Select a Folder to Generate Regular Expression for File Filtering</h2>
+    <h2>Select a Folder to Generate File List by Subfolder</h2>
 
     <!-- Folder input -->
     <input type="file" id="folderInput" webkitdirectory directory multiple />
     
-    <h3>Generated Regular Expression:</h3>
-    <textarea id="regexOutput" rows="4" cols="50"></textarea>
+    <h3>Generated Output:</h3>
+    <textarea id="regexOutput" rows="10" cols="80"></textarea>
 
     <script>
-        // Function to generate regex based on file names
         document.getElementById('folderInput').addEventListener('change', function(event) {
             let files = event.target.files;
-            let regexParts = [];
-            
+            let folderMap = {};
+
+            // Loop through all the files
             for (let i = 0; i < files.length; i++) {
-                let fileName = files[i].name;
-                // Escape special regex characters in file names
-                fileName = fileName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-                regexParts.push(fileName);
+                let relativePath = files[i].webkitRelativePath;
+                let parts = relativePath.split('/');  // Split the path into folder and file name
+                let folderName = parts[parts.length - 2];  // Get the folder name (second last part)
+                let fileName = files[i].name.replace(/\.[^/.]+$/, '');  // Get file name without extension
+
+                // Initialize subfolder in folderMap if not exists
+                if (!folderMap[folderName]) {
+                    folderMap[folderName] = [];
+                }
+
+                // Add file name with extension in the required format
+                folderMap[folderName].push(`*${files[i].name}*`);
             }
 
-            // Join file names with | (or) to create a regex pattern
-            let regex = regexParts.join('|');
-            
-            // Display the regular expression in the textarea
-            document.getElementById('regexOutput').value = regex;
+            // Create the output format
+            let output = '';
+            for (let folder in folderMap) {
+                let filesList = folderMap[folder].join(';');  // Join filenames with ;
+                output += `${folder} : ${filesList}\n`;
+            }
+
+            // Display the output in the textarea
+            document.getElementById('regexOutput').value = output;
         });
     </script>
 </body>
