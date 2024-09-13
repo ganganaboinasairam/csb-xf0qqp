@@ -1,50 +1,74 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Folder Structure Regex Generator</title>
-</head>
-<body>
-    <h2>Select a Folder to Generate File List by Subfolder</h2>
+9/13/2024 13:50:12 - Process(7076.8) User(SYSTEM) Program(amqzmur0.exe)
+                      Host(ITTFCEDEVAPP1) Installation(Installation1)
+                      VRMF(9.2.0.4) QMgr(CE_DEV_MQ)
+                      Time(2024-09-13T08:20:12.393Z)
+                      CommentInsert1(Windows Server 2019 Server Datacenter Edition, Build 17763 (MQ Windows (x64 platform) 64-bit))
+                      CommentInsert2(E:\Program Files\IBM\MQ (Installation1))
+                      CommentInsert3(9.2.0.4 (p920-004-211027))
+                     
+AMQ6287I: IBM MQ V9.2.0.4 (p920-004-211027).
 
-    <!-- Folder input -->
-    <input type="file" id="folderInput" webkitdirectory directory multiple />
-    
-    <h3>Generated Output:</h3>
-    <textarea id="regexOutput" rows="10" cols="80"></textarea>
+EXPLANATION:
+IBM MQ system information: 
+Host Info         :- Windows Server 2019 Server Datacenter Edition, Build 17763
+(MQ Windows (x64 platform) 64-bit) 
+Installation      :- E:\Program Files\IBM\MQ (Installation1) 
+Version           :- 9.2.0.4 (p920-004-211027)
+ACTION:
+None. 
+----- amqxeida.c : 6604 -------------------------------------------------------
+9/13/2024 13:50:12 - Process(20792.384) User(SYSTEM) Program(amqrmppa.exe)
+                      Host(ITTFCEDEVAPP1) Installation(Installation1)
+                      VRMF(9.2.0.4) QMgr(CE_DEV_MQ)
+                      Time(2024-09-13T08:20:12.390Z)
+                      CommentInsert1(MUSR_MQADMIN)
+                      CommentInsert2(CE.SVRCONN)
+                      CommentInsert3(CE_DEV_MQ)
+                     
+AMQ9245W: Unable to obtain account details for channel MCA user ID.
 
-    <script>
-        document.getElementById('folderInput').addEventListener('change', function(event) {
-            let files = event.target.files;
-            let folderMap = {};
+EXPLANATION:
+IBM MQ was unable to obtain the account details for MCA user ID 'MUSR_MQADMIN'.
+This user ID was the MCA user ID for channel 'CE.SVRCONN' on queue manager
+'CE_DEV_MQ' and may have been defined in the channel definition, or supplied
+either by a channel exit or by a client.
+ACTION:
+Ensure that the user ID is correct and that it is defined on the Windows local
+system, the local domain or on a trusted domain. For a domain user ID, ensure
+that all necessary domain controllers are available. 
+----- cmqxrsrv.c : 2250 -------------------------------------------------------
+9/13/2024 13:50:12 - Process(8032.375) User(SYSTEM) Program(amqzlaa0.exe)
+                      Host(ITTFCEDEVAPP1) Installation(Installation1)
+                      VRMF(9.2.0.4) QMgr(CE_DEV_MQ)
+                      Time(2024-09-13T08:20:12.422Z)
+                      CommentInsert1(musr_mqadmin)
+                     
+AMQ8075W: Authorization failed because the SID for entity 'musr_mqadmin' cannot
+be obtained.
 
-            // Loop through all the files
-            for (let i = 0; i < files.length; i++) {
-                let relativePath = files[i].webkitRelativePath;
-                let parts = relativePath.split('/');  // Split the path into folder and file name
-                let folderName = parts[parts.length - 2];  // Get the folder name (second last part)
-                let fileName = files[i].name.replace(/\.[^/.]+$/, '');  // Get file name without extension
+EXPLANATION:
+The Object Authority Manager was unable to obtain a SID for the specified
+entity. This could be because the local machine is not in the domain to locate
+the entity, or because the entity does not exist.
+ACTION:
+Ensure that the entity is valid, and that all necessary domain controllers are
+available. This might mean creating the entity on the local machine. 
+----- amqzfubn.c : 2382 -------------------------------------------------------
+9/13/2024 13:50:12 - Process(20792.384) User(SYSTEM) Program(amqrmppa.exe)
+                      Host(ITTFCEDEVAPP1) Installation(Installation1)
+                      VRMF(9.2.0.4) QMgr(CE_DEV_MQ)
+                      Time(2024-09-13T08:20:12.423Z)
+                      ArithInsert1(2) ArithInsert2(2035)
+                      CommentInsert1(MUSR_MQADMIN)
+                     
+AMQ9557E: Queue Manager User ID initialization failed for 'MUSR_MQADMIN'.
 
-                // Initialize subfolder in folderMap if not exists
-                if (!folderMap[folderName]) {
-                    folderMap[folderName] = [];
-                }
-
-                // Add file name with extension in the required format
-                folderMap[folderName].push(`*${files[i].name}*`);
-            }
-
-            // Create the output format
-            let output = '';
-            for (let folder in folderMap) {
-                let filesList = folderMap[folder].join(';');  // Join filenames with ;
-                output += `${folder} : ${filesList}\n`;
-            }
-
-            // Display the output in the textarea
-            document.getElementById('regexOutput').value = output;
-        });
-    </script>
-</body>
-</html>
+EXPLANATION:
+The call to initialize the User ID 'MUSR_MQADMIN' failed with CompCode 2 and
+Reason 2035. If an MQCSP block was used, the User ID in the MQCSP block was ''.
+If a userID flow was used, the User ID in the UID header was '' and any CHLAUTH
+rules applied prior to user adoption were evaluated case-sensitively against
+this value.
+ACTION:
+Correct the error and try again. 
+----- cmqxrsrv.c : 2580 -------------------------------------------------------
