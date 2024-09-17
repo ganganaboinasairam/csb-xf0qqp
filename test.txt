@@ -1,11 +1,3 @@
-Subject: Issue Connecting to UAT Region with Multiple Users
+Dear suresh,
 
-Dear Team,
-
-We attempted to connect to the UAT region with multiple users simultaneously, but encountered the issue outlined below.
-
-Kindly assist in resolving this at your earliest convenience.
-
-Best regards,
-[Your Name]
-
+we are facing problem in CE Applocation , when we try to sort the values in the catalogue they are sorting only in ascending order but not in decen=ding order , as this is a product level issue . we need assistance from product team to reslove this issue .  
