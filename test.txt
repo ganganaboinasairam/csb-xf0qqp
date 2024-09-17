@@ -1,3 +1,11 @@
-Dear suresh,
+Subject: Assistance Required for Sorting Issue in CE Application
 
-we are facing problem in CE Applocation , when we try to sort the values in the catalogue they are sorting only in ascending order but not in decen=ding order , as this is a product level issue . we need assistance from product team to reslove this issue .  
+Dear Suresh,
+
+We are encountering an issue in the CE Application where the values in the catalog are only sorting in ascending order and not in descending order. As this is a product-level issue, we require assistance from the product team to resolve it.
+
+Your support in addressing this matter would be appreciated.
+
+Best regards,
+[Your Name]
+
