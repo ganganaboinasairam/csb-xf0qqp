@@ -1,13 +1,35 @@
-remoteFilePath=/IBM/WebSphere/AppServer/profiles/AppSrv02/PARAM/Default/CALC
+public void getFiles(String remotePath) {
+    try {
+        connect();
+        
+        // Log the path being accessed
+        logger.info("Attempting to access remote path: " + remotePath);
+        
+        // Get the list of files and directories
+        Vector<ChannelSftp.LsEntry> fileList = sftpChannel.ls(remotePath);
+        
+        for (ChannelSftp.LsEntry fileEntry : fileList) {
+            String fileName = fileEntry.getFilename();
+            String fullRemotePath = remotePath + "/" + fileName; // Full path of the remote file
 
-E:\IBM\WebSphere\AppServer\profiles\AppSrv02\reports\railways>java -jar UATSFTPALL.jar                                  
-Sep 20, 2024 3:11:39 PM uatSftp.SFTPFileTransfer <init>                                                                 
-INFO: mode: get                                                                                                         
-Sep 20, 2024 3:11:39 PM uatSftp.SFTPFileTransfer main                                                                   
-INFO: mode: get                                                                                                         
-Sep 20, 2024 3:11:40 PM uatSftp.SFTPFileTransfer connect                                                                
-INFO: SFTP connection established.                                                                                      
-Sep 20, 2024 3:11:40 PM uatSftp.SFTPFileTransfer getFiles                                                               
-SEVERE: Failed to get file from SFTP: No such file                                                                      
-Sep 20, 2024 3:11:40 PM uatSftp.SFTPFileTransfer disconnect                                                             
-INFO: SFTP connection closed. 
+            // Log each entry found
+            logger.info("Found entry: " + fileName + " at " + fullRemotePath);
+
+            if (fileEntry.getAttrs().isDir()) {
+                // Skip "." and ".."
+                if (!fileName.equals(".") && !fileName.equals("..")) {
+                    getFiles(fullRemotePath);  // Recursively get files from subdirectory
+                }
+            } else {
+                // Download the file
+                // Existing download logic...
+            }
+        }
+    } catch (SftpException e) {
+        logger.severe("Failed to get file from SFTP: " + e.getMessage());
+    } catch (Exception e) {
+        logger.severe("Error in getFiles: " + e.getMessage());
+    } finally {
+        disconnect();
+    }
+}
