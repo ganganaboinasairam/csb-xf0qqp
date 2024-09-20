@@ -1,4 +1,4 @@
-package sftpFile;
+package uatSftp;
 
 import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
@@ -24,11 +24,12 @@ public class SFTPFileTransfer {
     private int port;
     private String localReplicaRoot;
     private String remoteFilePath;
+    private static String mode;
 
     public SFTPFileTransfer() {
         try {
             Properties pr = new Properties();
-            pr.load(new FileInputStream("XmlReadPath.properties")); // Load properties
+            pr.load(new FileInputStream("properties/XmlReadPath.properties"));
             
             this.host = pr.getProperty("host");
             this.user = pr.getProperty("user");
@@ -36,6 +37,7 @@ public class SFTPFileTransfer {
             this.port = Integer.parseInt(pr.getProperty("port"));
             this.localReplicaRoot = pr.getProperty("localReplicaRoot");
             this.remoteFilePath = pr.getProperty("remoteFilePath");
+            mode = pr.getProperty("mode");
 
         } catch (Exception e) {
             logger.severe("Failed to load SFTP connection properties: " + e.getMessage());
@@ -133,7 +135,10 @@ public class SFTPFileTransfer {
         SFTPFileTransfer sftpTool = new SFTPFileTransfer();
         
         // Example usage
+        if(mode.contentEquals("get")) {
         sftpTool.getFiles(); // Download file from SFTP based on the remote path from properties
+        }else if(mode.contentEquals("set")) {
         sftpTool.setFiles(); // Upload file to SFTP based on the local replica and remote path from properties
+        }
     }
 }
