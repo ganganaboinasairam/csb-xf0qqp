@@ -1,11 +1,261 @@
-Subject: Assistance Required for Sorting Issue in CE Application
+package sftpFile;
 
-Dear Suresh,
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Properties;
+import java.util.Vector;
+import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
+import storexml.StoreXML;
 
-We are encountering an issue in the CE Application where the values in the catalog are only sorting in ascending order and not in descending order. As this is a product-level issue, we require assistance from the product team to resolve it.
+public class readSFTPFile {
+    public static Logger logg = Logger.getLogger("Log1");
+    Vector<ChannelSftp.LsEntry> list = null;
+    public static String remoteFile = "";
+    public static String outbox = "";
+    public static String localOutbox = "";
+    public static ChannelSftp sftpChannel = null;
+    JSch jsch = new JSch();
+    Session session = null;
+    Properties pr = new Properties();
+    
 
-Your support in addressing this matter would be appreciated.
+    @SuppressWarnings({ "unused", "unchecked" })
+    public void sftpfile() {
+        Properties pr = new Properties();
+        try {
+            pr.load(new FileInputStream("properties/XmlReadPath.properties"));
+            remoteFile = pr.getProperty("path");
+            String user = pr.getProperty("user");
+            String host = pr.getProperty("host");
+            String password = pr.getProperty("password");
+            int port = Integer.parseInt(pr.getProperty("port"));
+            logg.info("user: " + user + "\n" + "host: " + host + "\n" + "port: " + port);
+            
+            this.session = this.jsch.getSession(user, host, port);
+            this.session.setPassword(password);
+            this.session.setConfig("StrictHostKeyChecking", "no");
+            this.session.connect();
+            logg.info("Connection established.");
+            sftpChannel = (ChannelSftp) this.session.openChannel("sftp");
+            sftpChannel.connect();
+            sftpChannel.cd(remoteFile);
 
-Best regards,
-[Your Name]
+            // Retrieve the directory listing
+            list = sftpChannel.ls(remoteFile);
 
+            logg.info("list Value : [" + this.list + "] sftpChannel : [" + sftpChannel + "]");
+
+            for (ChannelSftp.LsEntry entry : this.list) {
+                // Skip directories and non-XML files
+                if (entry.getAttrs().isDir() || !entry.getFilename().endsWith(".xml") ) {
+                    continue;
+                }
+
+                try (InputStream is = sftpChannel.get(remoteFile + "/" + entry.getFilename())) {
+                    logg.info("Processing file: " + entry.getFilename());
+
+                    DocumentBuilderFactory docbuildFactory = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder docBuilder = docbuildFactory.newDocumentBuilder();
+                    Document doc = docBuilder.parse(is);
+
+                    NodeList contractList = doc.getElementsByTagName("CONTRACTDTL");
+                    NodeList vendorList = doc.getElementsByTagName("VENDORDTL");
+                    if(contractList.getLength() != 0) {
+                    for (int i = 0; i < contractList.getLength(); i++) {
+                    	String contractId = null;
+                    	String type = "C";
+                        try {
+							Element contractElement = (Element) contractList.item(i);
+							contractId = contractElement.getElementsByTagName("CONTRACTID").item(0).getTextContent();
+							String contractValue = contractElement.getElementsByTagName("CONTRACT_VALUE").item(0).getTextContent();
+
+							logg.info("Generated contract ID: " + contractId);
+
+							StoreXML str_xml = new StoreXML(contractElement, contractId, contractValue, type);
+							logg.info("Record inserted in database successfully: " + contractId);
+							success(entry.getFilename(),contractId,type);
+						} catch (Exception e) {
+							//Auto-generated catch block
+							e.printStackTrace();
+							fail(e,entry.getFilename(),contractId,type);
+						}
+                    }
+                    // Delete the file after successful processing
+                    sftpChannel.rm(remoteFile + "/" + entry.getFilename());
+                    logg.info("Deleted file: " + entry.getFilename());
+                    }
+                    
+                    else if(vendorList.getLength() != 0) {
+                    	  for (int i = 0; i < vendorList.getLength(); i++) {
+                          	String vendorId=null;
+                          	String type = "V";
+                              try {
+      							Element vendorElement = (Element) vendorList.item(i);
+      							vendorId = vendorElement.getElementsByTagName("VENDOR_ID").item(0).getTextContent();
+
+      							logg.info("Generated vendor ID: " + vendorId);
+
+      							// Store XML content in the database
+      							StoreXML str_xml = new StoreXML(vendorElement, vendorId, null,type);
+      							logg.info("Record inserted in database successfully: " + vendorId);
+                      // Call success method after processing
+      							success(entry.getFilename(),vendorId,type);
+      						} catch (Exception e) {
+      							// Auto-generated catch block
+      							 logg.severe("Failed to process vendor id: " + vendorId);
+      			                    logg.severe("Error message: " + e.getMessage());
+      			                    fail(e,entry.getFilename(),vendorId,type);
+      						}
+                          }
+                    	  sftpChannel.rm(remoteFile + "/" + entry.getFilename());
+                          logg.info("Deleted file: " + entry.getFilename());
+                          logg.info("--------------------------------------------------");
+                      }else {
+                    	  continue;
+                      }
+                    
+
+                } catch (Exception e) {
+                    logg.severe("Failed to process file: " + entry.getFilename());
+                    logg.severe("Error message: " + e.getMessage());
+                    fail(e,entry.getFilename(), "","F");
+                    sftpChannel.rm(remoteFile + "/" + entry.getFilename());
+                    logg.info("Deleted file: " + entry.getFilename());
+                    logg.info("--------------------------------------------------");
+                }
+            }
+            this.session.disconnect();
+        } catch (SftpException e) {
+            logg.severe("SFTP Error: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            logg.severe("Error: " + e.getMessage());
+            e.printStackTrace();
+            fail(e, null, null,null);
+        }
+    }
+    
+    public static void success(String filename, String contractId, String type)
+    {
+    	String fileName = filename;
+        int dotIndex = fileName.lastIndexOf(".");
+        String onlyFileName = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
+      String sucess = onlyFileName +"_"+ contractId + "_success";
+      String absoluteFilePath = sucess + ".txt";
+      File file = new File(absoluteFilePath);
+      String msg;
+      if(type == "C") {
+    	  msg = "Contract ID :";
+      }else {
+    	  msg = "Vendor ID :";
+      }
+      Properties pr2 = new Properties();
+      try {
+        pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
+        outbox = pr2.getProperty("ackPath");
+        localOutbox = pr2.getProperty("localOutbox");
+        sftpChannel.cd(outbox);
+        String fileData =msg + contractId + " from " + onlyFileName + ".xml successfully recieved. ";
+        Files.write(Paths.get(absoluteFilePath, new String[0]), fileData.getBytes(), new OpenOption[0]);
+        if (file.isFile()) {
+          String put = outbox + file.getName();
+          InputStream ins = new FileInputStream(file);
+          sftpChannel.put(ins, put);
+          Files.copy(file.toPath(), Paths.get(localOutbox, file.getName()), StandardCopyOption.REPLACE_EXISTING);
+          ins.close();
+          file.delete();
+        }
+      }
+      catch (SftpException e)
+      {
+        e.printStackTrace();
+      } catch (FileNotFoundException e) {
+        e.printStackTrace();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+      logg.info("Success Acknowledgement generated for" + onlyFileName + ".xml");
+      logg.info("--------------------------------------------------");
+    }
+    
+    public static void fail(Exception e2, String filename, String contractId, String type)
+    {
+    	String fileName = filename;
+    	String fail = null; 
+    	String fileData = null;
+        int dotIndex = fileName.lastIndexOf(".");
+        String onlyFileName = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
+        if(e2.getMessage().contains("ORA-00001")) {
+        	fail = onlyFileName +"_"+ contractId + "_duplicate";
+        }else if(type == "F"){
+        	fail = onlyFileName + "_fail";
+        }else {
+        	fail = onlyFileName +"_"+ contractId + "_fail";
+        }
+      String absoluteFilePath = fail + ".txt";
+      File file = new File(absoluteFilePath);
+      String msg = " from " +  onlyFileName + ".xml failed due to reason " + e2;
+      if(type == "C") {
+    	  fileData = "Contract ID :" + contractId + msg;
+      }else if(type == "V") {
+    	  fileData = "Vendor ID :" + contractId + msg;
+      }else if(type == "F") {
+    	  fileData = "Data processing " + msg;
+      }if (e2.getMessage().contains("ORA-00001") && type == "C") {
+    	  fileData = "Contract XML with contract ID:" + contractId+ " is already recived.";
+      }else if (e2.getMessage().contains("ORA-00001") && type == "V") {
+    	  fileData = "Vendor XML with vendor ID:" + contractId+ " is already recived.";
+      }
+      Properties pr2 = new Properties();
+      try {
+        pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
+        outbox = pr2.getProperty("ackPath");
+        localOutbox = pr2.getProperty("localOutbox");
+        sftpChannel.cd(outbox);
+        Files.write(Paths.get(absoluteFilePath, new String[0]), fileData.getBytes(), new OpenOption[0]);
+        if (file.isFile()) {
+          String put = outbox + file.getName();
+          InputStream ins = new FileInputStream(file);
+          sftpChannel.put(ins, put);
+          Files.copy(file.toPath(), Paths.get(localOutbox, file.getName()), StandardCopyOption.REPLACE_EXISTING);
+          ins.close();
+          file.delete();
+        }
+      }
+      catch (SftpException e) {
+        e.printStackTrace();
+      } catch (FileNotFoundException e) {
+        e.printStackTrace();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+
+      logg.info("Failure Acknowledgement generated for" + onlyFileName + ".xml");
+      logg.info("--------------------------------------------------");
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+    	readSFTPFile sftpFile = new readSFTPFile();
+        
+        while(true){
+        	sftpFile.sftpfile();
+            Thread.sleep(600000);
+        }
+    }
+}
