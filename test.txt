@@ -1,5 +1,43 @@
-Exception in thread "main" java.lang.Error: Unresolved compilation problem: 
-	Cannot cast from SftpATTRS to ChannelSftp.LsEntry
+import com.jcraft.jsch.SftpATTRS;
+import java.util.Vector;
 
-	at uatSftp.SFTPFileTransfer.getFiles(SFTPFileTransfer.java:73)
-	at uatSftp.SFTPFileTransfer.main(SFTPFileTransfer.java:166)
+public void getFiles(String remotePath) {
+    try {
+        connect();
+
+        // Get the file attributes (SftpATTRS) to check if it's a directory or file
+        SftpATTRS attrs = sftpChannel.lstat(remotePath);
+
+        if (attrs.isDir()) {
+            // If it's a directory, list files and recurse into subdirectories
+            Vector<ChannelSftp.LsEntry> fileList = sftpChannel.ls(remotePath);
+            for (ChannelSftp.LsEntry fileEntry : fileList) {
+                String fileName = fileEntry.getFilename();
+                if (!fileName.equals(".") && !fileName.equals("..")) {
+                    getFiles(remotePath + "/" + fileName);  // Recursively call getFiles for directories
+                }
+            }
+        } else {
+            // If it's a file, download it
+            String localPath = replicateLocalPath(remotePath);  // Replicate SFTP directory structure locally
+            File localFile = new File(localPath);
+            localFile.getParentFile().mkdirs();  // Create directories if needed
+
+            try (InputStream inputStream = sftpChannel.get(remotePath);
+                 FileOutputStream fos = new FileOutputStream(localFile)) {
+                byte[] buffer = new byte[1024];
+                int readCount;
+                while ((readCount = inputStream.read(buffer)) > 0) {
+                    fos.write(buffer, 0, readCount);
+                }
+                logger.info("File downloaded successfully: " + remotePath);
+            }
+        }
+    } catch (SftpException e) {
+        logger.severe("Failed to get file from SFTP: " + e.getMessage());
+    } catch (Exception e) {
+        logger.severe("Error in getFiles: " + e.getMessage());
+    } finally {
+        disconnect();
+    }
+}
