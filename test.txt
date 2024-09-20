@@ -1,14 +1,13 @@
-# SFTP Connection Details
-host=10.191.153.213
-user=user
-password=user
-port=22
+C:\UAT>java -jar UATSFTPALL.jar
+Sep 20, 2024 6:11:24 PM uatSftp.SFTPFileTransfer connect
+INFO: SFTP connection established.
+Sep 20, 2024 6:11:24 PM uatSftp.SFTPFileTransfer downloadFile
+SEVERE: Failed to get file from SFTP: /IBM/WebSphere/AppServer/profiles/AppSrv02/IIND_Reg_NonLC_Event.jsNo such file
+Sep 20, 2024 6:11:24 PM uatSftp.SFTPFileTransfer downloadFile
+SEVERE: Failed to get file from SFTP: /IBM/WebSphere/AppServer/profiles/AppSrv02/IIND_Reg_NonLC_Function.jsNo such file
+Sep 20, 2024 6:11:24 PM uatSftp.SFTPFileTransfer disconnect
+INFO: SFTP connection closed.
 
-# Local replica root directory (the local directory you want to sync)
-localReplicaRoot=C:/UAT/IBM/WebSphere/AppServer/profiles/AppSrv02/
 
-# Remote directory path (the remote directory you want to sync)
-remoteFilePath=/IBM/WebSphere/AppServer/profiles/AppSrv02/
 
-# Mode to determine the operation: "get" to download from SFTP, "set" to upload to SFTP
-mode=get
+it should take the path : /IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS/IIND_Reg_NonLC_Function.js
