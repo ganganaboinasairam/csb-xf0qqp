@@ -1,82 +1,13 @@
-// Recursive function to download files from SFTP
-public void getFiles(String remotePath) {
-    try {
-        connect();
-        
-        // Get the file attributes (SftpATTRS) to check if it's a directory or file
-        Vector<ChannelSftp.LsEntry> fileList = sftpChannel.ls(remotePath);
-        for (ChannelSftp.LsEntry fileEntry : fileList) {
-            String fileName = fileEntry.getFilename();
-            String fullRemotePath = remotePath + "/" + fileName; // Full path of the remote file
+remoteFilePath=/IBM/WebSphere/AppServer/profiles/AppSrv02/PARAM/Default/CALC
 
-            // Check if it's a directory
-            if (fileEntry.getAttrs().isDir()) {
-                if (!fileName.equals(".") && !fileName.equals("..")) {
-                    getFiles(fullRemotePath);  // Recursively call getFiles for directories
-                }
-            } else {
-                // If it's a file, download it
-                String localPath = replicateLocalPath(fullRemotePath);  // Replicate SFTP directory structure locally
-                File localFile = new File(localPath);
-                localFile.getParentFile().mkdirs();  // Create directories if needed
-
-                try (InputStream inputStream = sftpChannel.get(fullRemotePath);
-                     FileOutputStream fos = new FileOutputStream(localFile)) {
-                    byte[] buffer = new byte[1024];
-                    int readCount;
-                    while ((readCount = inputStream.read(buffer)) > 0) {
-                        fos.write(buffer, 0, readCount);
-                    }
-                    logger.info("File downloaded successfully: " + fullRemotePath);
-                }
-            }
-        }
-    } catch (SftpException e) {
-        logger.severe("Failed to get file from SFTP: " + e.getMessage());
-    } catch (Exception e) {
-        logger.severe("Error in getFiles: " + e.getMessage());
-    } finally {
-        disconnect();
-    }
-}
-
-// Recursive function to upload files to SFTP
-public void setFiles(String localPath) {
-    try {
-        connect();
-
-        File localFile = new File(localPath);
-        if (localFile.isDirectory()) {
-            // If it's a directory, list files and recurse into subdirectories
-            File[] fileList = localFile.listFiles();
-            if (fileList != null) {
-                for (File file : fileList) {
-                    setFiles(file.getAbsolutePath());
-                }
-            }
-        } else {
-            // If it's a file, upload it
-            String remotePath = replicateRemotePath(localPath); // Replicate local path structure on SFTP
-            String remoteDir = remotePath.substring(0, remotePath.lastIndexOf('/'));
-
-            try {
-                sftpChannel.cd(remoteDir);
-            } catch (SftpException e) {
-                // If remote directory does not exist, create it
-                sftpChannel.mkdir(remoteDir);
-                sftpChannel.cd(remoteDir);
-            }
-
-            try (InputStream fis = new FileInputStream(localFile)) {
-                sftpChannel.put(fis, remotePath);
-                logger.info("File uploaded successfully: " + localPath);
-            }
-        }
-    } catch (SftpException e) {
-        logger.severe("Failed to set file to SFTP: " + e.getMessage());
-    } catch (Exception e) {
-        logger.severe("Error in setFiles: " + e.getMessage());
-    } finally {
-        disconnect();
-    }
-}
+E:\IBM\WebSphere\AppServer\profiles\AppSrv02\reports\railways>java -jar UATSFTPALL.jar                                  
+Sep 20, 2024 3:11:39 PM uatSftp.SFTPFileTransfer <init>                                                                 
+INFO: mode: get                                                                                                         
+Sep 20, 2024 3:11:39 PM uatSftp.SFTPFileTransfer main                                                                   
+INFO: mode: get                                                                                                         
+Sep 20, 2024 3:11:40 PM uatSftp.SFTPFileTransfer connect                                                                
+INFO: SFTP connection established.                                                                                      
+Sep 20, 2024 3:11:40 PM uatSftp.SFTPFileTransfer getFiles                                                               
+SEVERE: Failed to get file from SFTP: No such file                                                                      
+Sep 20, 2024 3:11:40 PM uatSftp.SFTPFileTransfer disconnect                                                             
+INFO: SFTP connection closed. 
