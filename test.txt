@@ -1,40 +1,139 @@
-public void getFiles(String remotePath) {
-    try {
-        connect();
-        
-        // Log the path being accessed
-        logger.info("Attempting to access remote path: " + remotePath);
-        
-        // Get the list of files and directories
-        Vector<ChannelSftp.LsEntry> fileList = sftpChannel.ls(remotePath);
-        
-        for (ChannelSftp.LsEntry fileEntry : fileList) {
-            String fileName = fileEntry.getFilename();
-            String fullRemotePath = remotePath + (remotePath.endsWith("/") ? "" : "/") + fileName; // Correctly build the full path
+package sftpFile;
 
-            // Log each entry found
-            logger.info("Found entry: " + fileName + " at " + fullRemotePath);
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
 
-            if (fileEntry.getAttrs().isDir()) {
-                // Skip "." and ".."
-                if (!fileName.equals(".") && !fileName.equals("..")) {
-                    getFiles(fullRemotePath);  // Recursively get files from subdirectory
-                }
-            } else {
-                // Download the file
-                try {
-                    logger.info("Downloading file: " + fullRemotePath);
-                    sftpChannel.get(fullRemotePath, localDirectory + "/" + fileName);
-                } catch (SftpException e) {
-                    logger.severe("Failed to download file: " + fullRemotePath + " - " + e.getMessage());
-                }
-            }
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.util.Properties;
+import java.util.logging.Logger;
+
+public class SFTPFileTransfer {
+    private static Logger logger = Logger.getLogger(SFTPFileTransfer.class.getName());
+    private static ChannelSftp sftpChannel = null;
+    private Session session = null;
+    private JSch jsch = new JSch();
+    
+    private String host;
+    private String user;
+    private String password;
+    private int port;
+    private String localReplicaRoot;
+    private String remoteFilePath;
+
+    public SFTPFileTransfer() {
+        try {
+            Properties pr = new Properties();
+            pr.load(new FileInputStream("XmlReadPath.properties")); // Load properties
+            
+            this.host = pr.getProperty("host");
+            this.user = pr.getProperty("user");
+            this.password = pr.getProperty("password");
+            this.port = Integer.parseInt(pr.getProperty("port"));
+            this.localReplicaRoot = pr.getProperty("localReplicaRoot");
+            this.remoteFilePath = pr.getProperty("remoteFilePath");
+
+        } catch (Exception e) {
+            logger.severe("Failed to load SFTP connection properties: " + e.getMessage());
         }
-    } catch (SftpException e) {
-        logger.severe("Failed to get files from SFTP: " + e.getMessage());
-    } catch (Exception e) {
-        logger.severe("Error in getFiles: " + e.getMessage());
-    } finally {
-        disconnect();
+    }
+
+    private void connect() throws Exception {
+        if (session == null || !session.isConnected()) {
+            session = jsch.getSession(user, host, port);
+            session.setPassword(password);
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
+            sftpChannel = (ChannelSftp) session.openChannel("sftp");
+            sftpChannel.connect();
+            logger.info("SFTP connection established.");
+        }
+    }
+
+    private void disconnect() {
+        if (sftpChannel != null && sftpChannel.isConnected()) {
+            sftpChannel.disconnect();
+        }
+        if (session != null && session.isConnected()) {
+            session.disconnect();
+        }
+        logger.info("SFTP connection closed.");
+    }
+
+    public void getFiles() {
+        try {
+            connect();
+
+            // Get file from SFTP using the remoteFilePath from properties
+            String localPath = replicateLocalPath(remoteFilePath); // Replicate SFTP directory structure locally
+            File localFile = new File(localPath);
+            localFile.getParentFile().mkdirs(); // Create directories if needed
+
+            try (InputStream inputStream = sftpChannel.get(remoteFilePath);
+                 FileOutputStream fos = new FileOutputStream(localFile)) {
+                byte[] buffer = new byte[1024];
+                int readCount;
+                while ((readCount = inputStream.read(buffer)) > 0) {
+                    fos.write(buffer, 0, readCount);
+                }
+                logger.info("File downloaded successfully: " + remoteFilePath);
+            }
+        } catch (SftpException e) {
+            logger.severe("Failed to get file from SFTP: " + e.getMessage());
+        } catch (Exception e) {
+            logger.severe("Error in getFiles: " + e.getMessage());
+        } finally {
+            disconnect();
+        }
+    }
+
+    public void setFiles() {
+        try {
+            connect();
+
+            // Upload file to SFTP using the remoteFilePath from properties
+            String localPath = replicateLocalPath(remoteFilePath); // Replicate local path structure
+            File localFile = new File(localPath);
+            if (!localFile.exists()) {
+                logger.severe("Local file not found: " + localPath);
+                return;
+            }
+
+            try (InputStream fis = new FileInputStream(localFile)) {
+                String remoteDir = remoteFilePath.substring(0, remoteFilePath.lastIndexOf('/'));
+                try {
+                    sftpChannel.cd(remoteDir);
+                } catch (SftpException e) {
+                    // If remote directory does not exist, create it
+                    sftpChannel.mkdir(remoteDir);
+                    sftpChannel.cd(remoteDir);
+                }
+                sftpChannel.put(fis, remoteFilePath);
+                logger.info("File uploaded successfully: " + remoteFilePath);
+            }
+        } catch (SftpException e) {
+            logger.severe("Failed to set file to SFTP: " + e.getMessage());
+        } catch (Exception e) {
+            logger.severe("Error in setFiles: " + e.getMessage());
+        } finally {
+            disconnect();
+        }
+    }
+
+    // Replicate the directory structure locally based on the given SFTP file path
+    private String replicateLocalPath(String sftpFilePath) {
+        return localReplicaRoot + sftpFilePath; // Build local path using the localReplicaRoot from properties
+    }
+
+    public static void main(String[] args) {
+        SFTPFileTransfer sftpTool = new SFTPFileTransfer();
+        
+        // Example usage
+        sftpTool.getFiles(); // Download file from SFTP based on the remote path from properties
+        sftpTool.setFiles(); // Upload file to SFTP based on the local replica and remote path from properties
     }
 }
