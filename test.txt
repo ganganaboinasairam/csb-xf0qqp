@@ -10,6 +10,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.Vector;
 import java.util.logging.Logger;
 
 public class SFTPFileTransfer {
@@ -64,23 +65,37 @@ public class SFTPFileTransfer {
         logger.info("SFTP connection closed.");
     }
 
-    public void getFiles() {
+    // Recursive function to download files from SFTP
+    public void getFiles(String remotePath) {
         try {
             connect();
-
-            // Get file from SFTP using the remoteFilePath from properties
-            String localPath = replicateLocalPath(remoteFilePath); // Replicate SFTP directory structure locally
-            File localFile = new File(localPath);
-            localFile.getParentFile().mkdirs(); // Create directories if needed
-
-            try (InputStream inputStream = sftpChannel.get(remoteFilePath);
-                 FileOutputStream fos = new FileOutputStream(localFile)) {
-                byte[] buffer = new byte[1024];
-                int readCount;
-                while ((readCount = inputStream.read(buffer)) > 0) {
-                    fos.write(buffer, 0, readCount);
+            
+            // Check if the remote path is a directory or a file
+            ChannelSftp.LsEntry entry = (ChannelSftp.LsEntry) sftpChannel.lstat(remotePath);
+            if (entry.getAttrs().isDir()) {
+                // If it's a directory, list files and recurse into subdirectories
+                Vector<ChannelSftp.LsEntry> fileList = sftpChannel.ls(remotePath);
+                for (ChannelSftp.LsEntry fileEntry : fileList) {
+                    String fileName = fileEntry.getFilename();
+                    if (!fileName.equals(".") && !fileName.equals("..")) {
+                        getFiles(remotePath + "/" + fileName);
+                    }
                 }
-                logger.info("File downloaded successfully: " + remoteFilePath);
+            } else {
+                // If it's a file, download it
+                String localPath = replicateLocalPath(remotePath); // Replicate SFTP directory structure locally
+                File localFile = new File(localPath);
+                localFile.getParentFile().mkdirs(); // Create directories if needed
+
+                try (InputStream inputStream = sftpChannel.get(remotePath);
+                     FileOutputStream fos = new FileOutputStream(localFile)) {
+                    byte[] buffer = new byte[1024];
+                    int readCount;
+                    while ((readCount = inputStream.read(buffer)) > 0) {
+                        fos.write(buffer, 0, readCount);
+                    }
+                    logger.info("File downloaded successfully: " + remotePath);
+                }
             }
         } catch (SftpException e) {
             logger.severe("Failed to get file from SFTP: " + e.getMessage());
@@ -91,20 +106,25 @@ public class SFTPFileTransfer {
         }
     }
 
-    public void setFiles() {
+    // Recursive function to upload files to SFTP
+    public void setFiles(String localPath) {
         try {
             connect();
 
-            // Upload file to SFTP using the remoteFilePath from properties
-            String localPath = replicateLocalPath(remoteFilePath); // Replicate local path structure
             File localFile = new File(localPath);
-            if (!localFile.exists()) {
-                logger.severe("Local file not found: " + localPath);
-                return;
-            }
+            if (localFile.isDirectory()) {
+                // If it's a directory, list files and recurse into subdirectories
+                File[] fileList = localFile.listFiles();
+                if (fileList != null) {
+                    for (File file : fileList) {
+                        setFiles(file.getAbsolutePath());
+                    }
+                }
+            } else {
+                // If it's a file, upload it
+                String remotePath = replicateRemotePath(localPath); // Replicate local path structure on SFTP
+                String remoteDir = remotePath.substring(0, remotePath.lastIndexOf('/'));
 
-            try (InputStream fis = new FileInputStream(localFile)) {
-                String remoteDir = remoteFilePath.substring(0, remoteFilePath.lastIndexOf('/'));
                 try {
                     sftpChannel.cd(remoteDir);
                 } catch (SftpException e) {
@@ -112,8 +132,11 @@ public class SFTPFileTransfer {
                     sftpChannel.mkdir(remoteDir);
                     sftpChannel.cd(remoteDir);
                 }
-                sftpChannel.put(fis, remoteFilePath);
-                logger.info("File uploaded successfully: " + remoteFilePath);
+
+                try (InputStream fis = new FileInputStream(localFile)) {
+                    sftpChannel.put(fis, remotePath);
+                    logger.info("File uploaded successfully: " + localPath);
+                }
             }
         } catch (SftpException e) {
             logger.severe("Failed to set file to SFTP: " + e.getMessage());
@@ -129,11 +152,21 @@ public class SFTPFileTransfer {
         return localReplicaRoot + sftpFilePath; // Build local path using the localReplicaRoot from properties
     }
 
+    // Replicate the directory structure remotely based on the given local file path
+    private String replicateRemotePath(String localFilePath) {
+        return remoteFilePath + localFilePath.substring(localReplicaRoot.length()); // Build remote path by appending to remoteFilePath
+    }
+
     public static void main(String[] args) {
         SFTPFileTransfer sftpTool = new SFTPFileTransfer();
         
         // Example usage
-        sftpTool.getFiles(); // Download file from SFTP based on the remote path from properties
-        sftpTool.setFiles(); // Upload file to SFTP based on the local replica and remote path from properties
+        String remoteOrLocalPath = sftpTool.remoteFilePath; // Can be individual file or directory
+
+        // Get files from SFTP (single file or all files in directory recursively)
+        sftpTool.getFiles(remoteOrLocalPath);
+
+        // Set files to SFTP (upload single file or all files in directory recursively)
+        sftpTool.setFiles(sftpTool.localReplicaRoot);
     }
 }
