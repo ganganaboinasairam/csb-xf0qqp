@@ -1,22 +1,56 @@
-EXCEPTION  :  SEVERE: Failed to get file from SFTP: IBM\WebSphere\AppServer\profiles\AppSrv02\installedApps\ITTFCEAPP1STNode02Cell\CE.ear\CEWeb.war\JS\IIND_Reg_NonLC_Function.js - No such file 
+private void connect() throws Exception {
+    if (session == null || !session.isConnected()) {
+        session = jsch.getSession(user, host, port);
+        session.setPassword(password);
+        session.setConfig("StrictHostKeyChecking", "no");
+        session.connect();
+        sftpChannel = (ChannelSftp) session.openChannel("sftp");
+        sftpChannel.connect();
+        logger.info("SFTP connection established.");
+    }
+}
 
-But the path in the sftp server is E:\IBM\WebSphere\AppServer\profiles\AppSrv02\installedApps\ITTFCEAPP1STNode02Cell\CE.ear\CEWeb.war\JS\IIND_Reg_NonLC_Function.js
+public void getFiles() {
+    try {
+        connect();
 
+        // Loop through files and directories recursively
+        File folder = new File(localReplicaRoot);
+        for (File file : folder.listFiles()) {
+            processFile(file);
+        }
 
+    } catch (Exception e) {
+        logger.severe("Error in getFiles: " + e.getMessage());
+    } finally {
+        disconnect();
+    }
+}
 
-my path in the properties file is 
+private void processFile(File file) {
+    try {
+        if (file.isDirectory()) {
+            for (File subFile : file.listFiles()) {
+                processFile(subFile);
+            }
+        } else {
+            // Process file
+            String sftpFilePath = file.getAbsolutePath().replace("\\", "/"); // Ensure correct separator
+            logger.info("Processing file: " + sftpFilePath);
 
-remoteFilePath=/IBM/WebSphere/AppServer/profiles/AppSrv02/
-
-ftppath=D:/Outbox/
-
-mode=get
-
-localReplicaRoot=sairam/
-
-folderPath=IBM/
-
-user=user
-host=10.191.153.213
-password=user
-port = 22
+            try (InputStream inputStream = new FileInputStream(file);
+                 FileOutputStream fos = new FileOutputStream(sftpFilePath)) {
+                byte[] buffer = new byte[1024];
+                int readCount;
+                while ((readCount = inputStream.read(buffer)) > 0) {
+                    fos.write(buffer, 0, readCount);
+                }
+                logger.info("File processed successfully: " + sftpFilePath);
+            } catch (Exception e) {
+                logger.severe("Failed to process file: " + file.getName() + ". Error: " + e.getMessage());
+            }
+        }
+    } catch (Exception e) {
+        logger.severe("Error in processFile: " + e.getMessage());
+    }
+}
