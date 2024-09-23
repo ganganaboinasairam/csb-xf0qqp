@@ -150,14 +150,14 @@ public class SFTPFileTransfer {
             logger.severe("Error in downloadFile: " + e.getMessage());
         }
     }
-    
-    
- // Upload a file from local to the remote server
+
+
+    // Upload a file from local to the remote server
     private void uploadFile(String localFilePath) {
         try {
             String remotePath = replicateRemotePath(localFilePath);
             File localFile = new File(localFilePath);
-            
+
             if (localFile.exists() && localFile.isFile()) {
                 try (FileInputStream fis = new FileInputStream(localFile)) {
                     sftpChannel.put(fis, remotePath);
