@@ -21,3 +21,10 @@ private void uploadFile(String localFilePath) {
 private String replicateRemotePath(String localFilePath) {
     return remoteFilePath + localFilePath.substring(localReplicaRoot.length()).replace("\\", "/");
 }
+
+else if (mode.equals("set")) {
+    List<String> localFiles = getLocalFileList(new File(localReplicaRoot));
+    for (String localFile : localFiles) {
+        uploadFile(localReplicaRoot + localFile);  // Upload files from local to remote
+    }
+}
