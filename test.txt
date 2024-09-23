@@ -1,65 +1,476 @@
 package com.tcs.lc;
 
+import com.cs.ceweb.servlets.RailwayApiConsume;
+import com.sun.org.apache.xml.internal.serialize.OutputFormat;
+import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.sql.Connection;
-import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Level;
+import java.util.logging.FileHandler;
 import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
-public class DBCON
+public class XmlGen
 {
-    public static Logger logg = Logger.getLogger("Log1");
-    private static String driver;
-    private static String connString;
-    private static String userName;
-    private static String pwd;
+  static Properties prop = new Properties();
+  public static String SQL_LC;
+  public static String SQL_PAY;
+  public static String main_ref = "";
+  public static String cust_ref = "";
+  public static double payamt = 0.0D;
+  public static String etrade_ref = "";
+  public static String amd_typ = "";
+  public static String accunit = "";
+  public static String lc_type = "";
+  public static String lc_number = "";
+  public static String created_by = "";
+  public static String release_by = "";
+  public static String designation = "";
+  public static String mobno = "";
+  public static String benebkname = "";
+  public static String benebkifsc = "";
+  public static String benebkacc = "";
+  public static String output = "";
+  public static String output1 = "";
+  public static String acc_unit = "";
+  public static String lcda_amt = "";
+  public static String i_event_times = "";
+  public static String oldref = "";
+  public static String cmainref = "";
+  public static Connection conn = null;
+  public static Connection conn1 = null;
+  public static String[] functions = null;
+  public static Logger logg = Logger.getLogger("Log1");
+  static FileHandler fh = null;
+  private static BankInfoBean bankInfoBean = null;
 
-    public static Connection getConnection()
-    {
-        Connection con = null;
-        try (FileInputStream fis = new FileInputStream("./properties/RailwayDBInfo.properties"))
-        {
-            Properties pr = new Properties();
-            pr.load(fis);
+  public static void main(String[] args) throws Exception {
+    conn = DBCON.getConnection();
+    Map map = new HashMap();
+    Statement statement = conn.createStatement();
 
-            driver = pr.getProperty("driver");
-            connString = pr.getProperty("connString");
-            userName = pr.getProperty("userName");
-            pwd = pr.getProperty("pwd");
-
-            logg.info(driver + "\n" + connString + "\n" + userName + "\n" + pwd);
-
-            Class.forName(driver);
-            con = DriverManager.getConnection(connString, userName, pwd);
-
-            logg.info("Connection success for Railway Database");
-        }
-        catch (IOException e)
-        {
-            logg.log(Level.SEVERE, "Error loading properties file", e);
-        }
-        catch (ClassNotFoundException e)
-        {
-            logg.log(Level.SEVERE, "Database driver class not found", e);
-        }
-        catch (SQLException e)
-        {
-            logg.log(Level.SEVERE, "Error establishing database connection", e);
-        }
-
-        return con;
+    Properties pr = new Properties();
+    try {
+      pr.load(new FileInputStream("./properties/XmlgenPath.properties"));
+      String function = pr.getProperty("function");
+      functions = function.split(",");
+    } catch (IOException e) {
+      e.printStackTrace();
     }
-
-    public static void main(String[] args)
-    {
-        Connection connection = getConnection();
-        if (connection != null) {
-            logg.info("Database connection established successfully.");
-        } else {
-            logg.warning("Failed to establish database connection.");
+    for (int i = 0; i < functions.length; ++i) {
+      ResultSet issueRS = null;
+      ResultSet issueRS1 = null;
+      if (functions[i].equalsIgnoreCase("IssueLC")) {
+        Properties prQuery = new Properties();
+        prQuery.load(new FileInputStream("./properties/RailQueries.properties"));
+        SQL_LC = prQuery.getProperty("sql1");
+        issueRS = statement.executeQuery(SQL_LC);
+        logg.info(SQL_LC);
+        try {
+          buildIssueLCXML(issueRS);
+          logg.info("Issue xml Generated");
+        } catch (Exception e) {
+          System.out.println("buildIssueLCXML" + e.getMessage());
         }
+        issueRS.close();
+      }
+
+      if (functions[i].equalsIgnoreCase("BillNegotiation")) {
+        Properties prQuery = new Properties();
+        prQuery.load(new FileInputStream("./properties/RailQueries.properties"));
+        SQL_PAY = prQuery.getProperty("sql2");
+        issueRS1 = statement.executeQuery(SQL_PAY);
+        try {
+          buildBillNegotiationXML(issueRS1);
+          logg.info("payment xml Generated");
+        } catch (Exception e) {
+          System.out.println("buildBillNegotiationXML" + e.getMessage());
+        }
+        issueRS1.close();
+        statement.close();
+        conn.close();
+      }
     }
+  }
+
+  private static void buildIssueLCXML(ResultSet rs1) throws Exception {
+    while (rs1.next()) {
+      Document dataDoc = null;
+      try
+      {
+        DocumentBuilderFactory dbfactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder docbuilder = dbfactory.newDocumentBuilder();
+        dataDoc = docbuilder.newDocument();
+      } catch (Exception e) {
+        logg.info(e.getMessage());
+      }
+      Element dataRoot = dataDoc.createElement("data");
+      Element rowEl = dataDoc.createElement("row");
+      for (int i = 1; i <= 12; ++i) {
+        main_ref = rs1.getString("LCNUMBER");
+        cust_ref = rs1.getString("CUSTREF");
+        etrade_ref = rs1.getString("ETRADEREF");
+        String colName = rs1.getMetaData().getColumnName(i);
+        String colVal1 = rs1.getString(i);
+        if (colName.equalsIgnoreCase("CONTRACT_DETAIL"))
+        {
+          if (colVal1 != null)
+          {
+            colVal1 = ASStrZipUtil.decompress(colVal1);
+          }
+          else
+          {
+            colVal1 = "";
+          }
+        }
+        Element lcNo = dataDoc.createElement(colName);
+        lcNo.appendChild(dataDoc.createTextNode(colVal1));
+        rowEl.appendChild(lcNo);
+      }
+      i_event_times = rs1.getString("IEVENTTIMES");
+      if (rs1.getString("LCDATE").length() > 10)
+      {
+        output = rs1.getString("LCDATE").substring(0, 10);
+      }
+      Element lcdate = dataDoc.createElement("LCDATE");
+      lcdate.appendChild(dataDoc.createTextNode(output));
+      rowEl.appendChild(lcdate);
+      if (rs1.getString("LCVALDATE").length() > 10)
+      {
+        output1 = rs1.getString("LCVALDATE").substring(0, 10);
+      }
+      Element lcvaldate = dataDoc.createElement("LCVALDATE");
+      lcvaldate.appendChild(dataDoc.createTextNode(output1));
+      rowEl.appendChild(lcvaldate);
+      if (rs1.getString("LCTYPE") == null)
+      {
+        amd_typ = "0";
+      }
+      else {
+        amd_typ = rs1.getString("LCTYPE");
+      }
+      logg.info("amd type" + amd_typ);
+      Element lctype = dataDoc.createElement("LCTYPE");
+      lctype.appendChild(dataDoc.createTextNode(amd_typ));
+      rowEl.appendChild(lctype);
+      if ((etrade_ref != null) && (etrade_ref.length() >= 16))
+      {
+        acc_unit = etrade_ref.substring(7, 11);
+        accunit = getAccountUnit(acc_unit);
+      }
+      if (accunit == null)
+      {
+        accunit = "";
+      }
+
+      Element acunit = dataDoc.createElement("ACCUNIT");
+      acunit.appendChild(dataDoc.createTextNode(accunit));
+      rowEl.appendChild(acunit);
+
+      Map map = new HashMap();
+      map = RailwayApiConsume.consumingRailwayAPI(etrade_ref, "0.0");
+      logg.info("Issue map:" + map);
+
+      Element creat_by = dataDoc.createElement("CREATEDBY");
+      creat_by.appendChild(dataDoc.createTextNode((String)map.get("C_CREA_BY")));
+      rowEl.appendChild(creat_by);
+
+      Element maker_email = dataDoc.createElement("MAKER-DESIGNATION");
+      maker_email.appendChild(dataDoc.createTextNode((String)map.get("MAK_DESIGNATION")));
+      rowEl.appendChild(maker_email);
+
+      Element maker_mobno = dataDoc.createElement("MAKER-MOBNO");
+      maker_mobno.appendChild(dataDoc.createTextNode((String)map.get("MAK_MOB_NO")));
+      rowEl.appendChild(maker_mobno);
+
+      Element rele_by = dataDoc.createElement("RELEASEDBY");
+      rele_by.appendChild(dataDoc.createTextNode((String)map.get("C_AUTH_USER")));
+      rowEl.appendChild(rele_by);
+
+      Element chkr_email = dataDoc.createElement("CHECKER-DESIGNATION");
+      chkr_email.appendChild(dataDoc.createTextNode((String)map.get("CHK_DESIGNATION")));
+      rowEl.appendChild(chkr_email);
+
+      Element chkr_mobno = dataDoc.createElement("CHECKER-MOBNO");
+      chkr_mobno.appendChild(dataDoc.createTextNode((String)map.get("CHK_MOB_NO")));
+      rowEl.appendChild(chkr_mobno);
+
+      Element benebankdetails = dataDoc.createElement("BENEBKNAME");
+      benebankdetails.appendChild(dataDoc.createTextNode((String)map.get("BENE_BANK_NAME")));
+      rowEl.appendChild(benebankdetails);
+
+      Element benebankifsc = dataDoc.createElement("BENEBKIFSC");
+      benebankifsc.appendChild(dataDoc.createTextNode((String)map.get("BENE_IFSC_CODE")));
+      rowEl.appendChild(benebankifsc);
+
+      Element benebankacc = dataDoc.createElement("BENEBKACCOUNT");
+      benebankacc.appendChild(dataDoc.createTextNode((String)map.get("BENE_ACC_NO")));
+      rowEl.appendChild(benebankacc);
+
+      dataRoot.appendChild(rowEl);
+      dataDoc.appendChild(dataRoot);
+
+      String filename = "";
+      if (amd_typ.equals("0")) {
+        filename = "LC_Issue" + main_ref + ".xml";
+      } else if (amd_typ.length() == 1) {
+        filename = "LC_Amend_0" + amd_typ + main_ref + ".xml";
+        logg.info("Amendment No:" + amd_typ + " " + "Filename:" + filename);
+      }
+      else {
+        filename = "LC_Amend_" + amd_typ + main_ref + ".xml";
+        logg.info("Amendment No:" + amd_typ + " " + "Filename:" + filename);
+      }
+
+      cmainref = rs1.getString("C_MAIN_REF");
+      oldref = rs1.getString("OLDREFNUM");
+      if (cmainref != null) {
+        main_ref = cmainref;
+      }
+      logg.info("C_MAIN_REF : " + cmainref + " " + "OLD REF Number : " + oldref);
+      Properties pr = new Properties();
+      pr.load(new FileInputStream("./properties/XmlgenPath.properties"));
+      String remoteFile1 = pr.getProperty("putpath");
+      File outputFile = new File(remoteFile1 + '/' + filename);
+      printDOM(dataDoc, outputFile);
+
+      InputStream targetfile = new FileInputStream(outputFile);
+      File file = new File(filename);
+      SFTPFile sftpput = new SFTPFile();
+      sftpput.sftpPutFile(outputFile);
+
+      conn = DBCON.getConnection();
+      logg.info("connection success to pick issue pdfs");
+      Statement statement = conn.createStatement();
+      Properties prQuery = new Properties();
+      prQuery.load(new FileInputStream("./properties/RailQueries.properties"));
+      String pdf_qry = "";
+
+      if (amd_typ.equals("0"))
+      {
+        pdf_qry = prQuery.getProperty("pdf") + "'" + main_ref + "'";
+        logg.info("Issue pdfs:" + pdf_qry);
+      }
+      else if (oldref == null) {
+        pdf_qry = prQuery.getProperty("pdfamd") + "'" + main_ref + "' AND I_EVENT_TIMES = '" + i_event_times + "'";
+        logg.info("Amended pdfs:" + pdf_qry);
+      } else {
+        pdf_qry = prQuery.getProperty("pdfMgRail") + "'" + main_ref + "' AND I_EVENT_TIMES = '" + i_event_times + "'";
+        logg.info("Amended pdfs:" + pdf_qry);
+      }
+
+      ResultSet pdfRs = statement.executeQuery(pdf_qry);
+      while (pdfRs.next()) {
+        try
+        {
+          String doc_name = pdfRs.getString(1);
+          SFTPFile sftpget = new SFTPFile();
+          sftpget.sftpgetfile(doc_name);
+          File f1 = new File(remoteFile1 + doc_name);
+          File issuepdf;
+          if (oldref != null) {
+            File dir = new File(remoteFile1 + '/' + doc_name + ".pdf");
+
+            StringBuffer Original = new StringBuffer(dir.getName());
+            Original.replace(0, 16, oldref);
+            String Original1 = Original.toString();
+            Original1 = Original1.replaceAll("_MgRail", "");
+            logg.info(remoteFile1 + " " + Original1);
+            dir.renameTo(new File(remoteFile1 + "//" + Original1));
+            File issuepdf = new File(remoteFile1 + '/' + Original1);
+            logg.info("PDF Name.." + issuepdf);
+          }
+          else {
+            issuepdf = new File(remoteFile1 + '/' + doc_name + ".pdf");
+            logg.info("PDF Name.." + issuepdf);
+          }
+          sftpput.sftpPutFile(issuepdf);
+          updateStatus(main_ref);
+          logg.info("PDF_GENERATION COMPLETE");
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+      pdfRs.close();
+    }
+  }
+
+  private static String getAccountUnit(String etrade_ref2)
+  {
+    Properties pr = new Properties();
+    try {
+      Statement statement1 = conn.createStatement();
+      pr.load(new FileInputStream("./properties/RailQueries.properties"));
+      String query = pr.getProperty("sql_accunit") + "'" + acc_unit + "'";
+      ResultSet res = statement1.executeQuery(query);
+      while (res.next())
+        acc_unit = res.getString(1);
+      res.close();
+      statement1.close();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return acc_unit;
+  }
+
+  private static void buildBillNegotiationXML(ResultSet rs2) throws Exception {
+    Map map = new HashMap();
+
+    while (rs2.next()) {
+      map = RailwayApiConsume.consumingRailwayAPI(rs2.getString("ETRADEREF"), String.valueOf(rs2.getDouble("PAYAMT")));
+      logg.info("payment map:" + map);
+      Document dataDoc = null;
+      try {
+        DocumentBuilderFactory dbfactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder docbuilder = dbfactory.newDocumentBuilder();
+        dataDoc = docbuilder.newDocument();
+      } catch (Exception e) {
+        logg.info("Problem creating document: " + e.getMessage());
+      }
+
+      Element dataRoot = dataDoc.createElement("data");
+      Element rowEl = dataDoc.createElement("row");
+      for (int i = 2; i <= 8; ++i) {
+        main_ref = rs2.getString("BILLNUMBER");
+        cust_ref = rs2.getString("LCDANUMBER");
+        lc_number = rs2.getString("LCNUMBER");
+        String colName = rs2.getMetaData().getColumnName(i);
+        String colVal1 = rs2.getString(i);
+        Element lcNo = dataDoc.createElement(colName);
+        lcNo.appendChild(dataDoc.createTextNode(colVal1));
+        rowEl.appendChild(lcNo);
+      }
+
+      lcda_amt = getLcdaAmt(cust_ref);
+      if (lcda_amt == null)
+      {
+        lcda_amt = "";
+      }
+      Element lcamt = dataDoc.createElement("LCDAAMT");
+      lcamt.appendChild(dataDoc.createTextNode(lcda_amt));
+      rowEl.appendChild(lcamt);
+
+      if (cust_ref != null)
+      {
+        accunit = cust_ref.substring(0, 4);
+        Element acunit = dataDoc.createElement("ACCUNIT");
+        acunit.appendChild(dataDoc.createTextNode(accunit));
+        rowEl.appendChild(acunit);
+      }
+
+      if (rs2.getString("PAYDATE").length() > 10)
+      {
+        output1 = rs2.getString("PAYDATE").substring(0, 10);
+      }
+      Element paydate = dataDoc.createElement("PAYDATE");
+      paydate.appendChild(dataDoc.createTextNode(output1));
+      rowEl.appendChild(paydate);
+
+      dataRoot.appendChild(rowEl);
+      dataDoc.appendChild(dataRoot);
+
+      String filename = "Bill_Nego" + main_ref + ".xml";
+
+      Properties pr = new Properties();
+      pr.load(new FileInputStream("./properties/XmlgenPath.properties"));
+      String remoteFile1 = pr.getProperty("putpath");
+      File outputFile = new File(remoteFile1 + '/' + filename);
+
+      printDOM(dataDoc, outputFile);
+
+      InputStream targetfile = new FileInputStream(outputFile);
+      File file = new File(filename);
+      SFTPFile sftpput = new SFTPFile();
+      sftpput.sftpPutFile(outputFile);
+
+      conn = DBCON.getConnection();
+      Statement statement = conn.createStatement();
+      Properties prQuery = new Properties();
+      prQuery.load(new FileInputStream("./properties/RailQueries.properties"));
+      String pdf_qry = "";
+      pdf_qry = prQuery.getProperty("pfdnego") + "'" + main_ref + "'";
+      logg.info("Negotiation PDFs : " + pdf_qry);
+      ResultSet pdfRs = statement.executeQuery(pdf_qry);
+      while (pdfRs.next()) {
+        try
+        {
+          String doc_name = pdfRs.getString(1);
+          SFTPFile sftpget = new SFTPFile();
+          sftpget.sftpgetfile(doc_name);
+          File f1 = new File(remoteFile1 + doc_name);
+          File issuepdf = new File(remoteFile1 + '/' + doc_name + ".pdf");
+          sftpput.sftpPutFile(issuepdf);
+          updateStatus(main_ref);
+          logg.info("PDF_GENERATION COMPLETE");
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+      pdfRs.close();
+    }
+  }
+
+  private static String getLcdaAmt(String cust_ref) {
+    String lcdaamt = null;
+
+    Properties pr = new Properties();
+    try {
+      Statement statement1 = conn.createStatement();
+      pr.load(new FileInputStream("./properties/RailQueries.properties"));
+      String query = pr.getProperty("lcda_amt") + "'" + cust_ref + "'";
+      ResultSet res = statement1.executeQuery(query);
+      while (res.next())
+        lcdaamt = res.getString(1);
+      res.close();
+      statement1.close();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    return lcdaamt;
+  }
+
+  public static void updateStatus(String main_ref_status) throws SQLException {
+    String status = null;
+    Connection conn2 = DBCON.getConnection();
+
+    Properties pr = new Properties();
+    try {
+      Statement statement2 = conn2.createStatement();
+      pr.load(new FileInputStream("./properties/RailQueries.properties"));
+      if (main_ref_status.contains("LC"))
+        status = pr.getProperty("updateINLC");
+      else {
+        status = pr.getProperty("updateIINE");
+      }
+      status = status + "'" + main_ref_status + "'";
+      int i = statement2.executeUpdate(status);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    conn2.commit();
+  }
+  private static void printDOM(Document _xmlDoc, File _outputFile) throws Exception {
+    OutputFormat outputFormat = new OutputFormat("XML", "UTF-8", true);
+    FileWriter fileWriter = new FileWriter(_outputFile);
+
+    XMLSerializer xmlSerializer = new XMLSerializer(fileWriter, outputFormat);
+
+    xmlSerializer.asDOMSerializer();
+
+    xmlSerializer.serialize(_xmlDoc.getDocumentElement());
+  }
 }
