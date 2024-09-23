@@ -1,6 +1,9 @@
 Dear Suresh,
 
-We have email functionality in CE Application, We nee product support to Develop the same . Please do the Needful.
+We currently have email functionality in the CE Application, and we require product support to further develop this feature. Your assistance in this matter would be greatly appreciated.
 
+Please find the detailed requirements below:
 
-Please find the Requirement mentioned below 
+Best regards,
+[Your Name]
+
