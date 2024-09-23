@@ -1,5 +1,47 @@
-C:\UAT>java -jar UATSFTPALL.jar
-Sep 23, 2024 4:02:11 PM uatSftp.SFTPFileTransfer connect
-INFO: SFTP connection established.
-Sep 23, 2024 4:02:12 PM uatSftp.SFTPFileTransfer disconnect
-INFO: SFTP connection closed.
+public void syncFiles() {
+    try {
+        connect();
+        List<String> localFiles = getLocalFileList(new File(localReplicaRoot));
+        logger.info("Local files found: " + localFiles);  // Log local files found
+        List<String> filesToReplace = new ArrayList<>();
+
+        // Check files on remote, only download if they exist locally
+        listAndCompareFiles(remoteFilePath, localFiles, filesToReplace);
+
+        logger.info("Files to replace: " + filesToReplace);  // Log files to be replaced
+
+        for (String remoteFile : filesToReplace) {
+            downloadFile(remoteFile);
+        }
+
+        logger.info("Sync completed. Total files downloaded: " + filesToReplace.size());
+    } catch (Exception e) {
+        logger.severe("Error in syncFiles: " + e.getMessage());
+    } finally {
+        disconnect();
+    }
+}
+
+
+
+private void listAndCompareFiles(String directory, List<String> localFiles, List<String> filesToReplace) throws SftpException {
+    sftpChannel.cd(directory);
+    List<ChannelSftp.LsEntry> entries = sftpChannel.ls("*");
+
+    logger.info("Checking remote directory: " + directory);  // Log current remote directory
+    for (ChannelSftp.LsEntry entry : entries) {
+        logger.info("Found remote file: " + entry.getFilename());  // Log each file found
+
+        if (entry.getAttrs().isDir()) {
+            // Recursively check subdirectories
+            listAndCompareFiles(directory + "/" + entry.getFilename(), localFiles, filesToReplace);
+        } else {
+            String remoteFilePath = directory + "/" + entry.getFilename();
+            String relativePath = remoteFilePath.substring(this.remoteFilePath.length());
+
+            if (localFiles.contains(relativePath)) {
+                filesToReplace.add(remoteFilePath);  // Add file to download if it exists locally
+            }
+        }
+    }
+}
