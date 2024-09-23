@@ -1,22 +1,175 @@
-private void listAndCompareFiles(String directory, List<String> localFiles, List<String> filesToReplace) throws SftpException {
-    sftpChannel.cd(directory);
-    List<ChannelSftp.LsEntry> entries = sftpChannel.ls("*");
+import com.jcraft.jsch.*;
+import java.io.*;
+import java.util.*;
+import java.util.logging.Logger;
 
-    logger.info("Checking remote directory: " + directory);
-    for (ChannelSftp.LsEntry entry : entries) {
-        if (entry.getAttrs().isDir()) {
-            // Recursively check subdirectories
-            listAndCompareFiles(directory + "/" + entry.getFilename(), localFiles, filesToReplace);
-        } else {
-            String remoteFilePath = directory + "/" + entry.getFilename();
-            String relativeRemotePath = remoteFilePath.substring(this.remoteFilePath.length()).replace("\\", "/");
+public class SFTPFileTransfer {
 
-            logger.info("Remote file relative path: " + relativeRemotePath);  // Log the remote relative path
+    private static final Logger logger = Logger.getLogger(SFTPFileTransfer.class.getName());
+    private ChannelSftp sftpChannel;
+    private Session session;
+    private String remoteFilePath = "/IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS/";
+    private String localReplicaRoot = "C:/UAT/LocalFiles/"; // Path to local directory
 
-            if (localFiles.contains(relativeRemotePath)) {
-                logger.info("File matched for download: " + relativeRemotePath);  // Log the matching file
-                filesToReplace.add(remoteFilePath);  // Add file to the list to be downloaded
+    // SFTP connection parameters
+    private String host = "sftp.example.com";
+    private String user = "username";
+    private String password = "password";
+    private int port = 22;
+
+    // Establishing SFTP connection
+    public void connect() throws JSchException {
+        JSch jsch = new JSch();
+        session = jsch.getSession(user, host, port);
+        session.setPassword(password);
+        session.setConfig("StrictHostKeyChecking", "no");
+        session.connect();
+        Channel channel = session.openChannel("sftp");
+        channel.connect();
+        sftpChannel = (ChannelSftp) channel;
+        logger.info("SFTP connection established.");
+    }
+
+    // Disconnect SFTP connection
+    public void disconnect() {
+        if (sftpChannel != null && sftpChannel.isConnected()) {
+            sftpChannel.disconnect();
+        }
+        if (session != null && session.isConnected()) {
+            session.disconnect();
+        }
+        logger.info("SFTP connection closed.");
+    }
+
+    // Sync method: syncs files between local and remote directories
+    public void syncFiles() {
+        try {
+            connect();
+            List<String> localFiles = getLocalFileList(new File(localReplicaRoot));
+            logger.info("Local files found: " + localFiles);
+            List<String> filesToReplace = new ArrayList<>();
+
+            // Check files on remote, force download of matched files
+            listAndCompareFiles(remoteFilePath, localFiles, filesToReplace);
+
+            logger.info("Files to replace: " + filesToReplace);
+
+            for (String remoteFile : filesToReplace) {
+                logger.info("Attempting to download: " + remoteFile);
+                downloadFile(remoteFile);
+            }
+
+            logger.info("Sync completed. Total files downloaded: " + filesToReplace.size());
+        } catch (Exception e) {
+            logger.severe("Error in syncFiles: " + e.getMessage());
+        } finally {
+            disconnect();
+        }
+    }
+
+    // List files on the remote server and compare them with local files
+    private void listAndCompareFiles(String directory, List<String> localFiles, List<String> filesToReplace) throws SftpException {
+        sftpChannel.cd(directory);
+        List<ChannelSftp.LsEntry> entries = sftpChannel.ls("*");
+
+        logger.info("Checking remote directory: " + directory);
+        for (ChannelSftp.LsEntry entry : entries) {
+            if (entry.getAttrs().isDir()) {
+                // Recursively check subdirectories
+                listAndCompareFiles(directory + "/" + entry.getFilename(), localFiles, filesToReplace);
+            } else {
+                String remoteFilePath = directory + "/" + entry.getFilename();
+                String relativeRemotePath = remoteFilePath.substring(this.remoteFilePath.length()).replace("\\", "/");
+
+                logger.info("Remote file relative path: " + relativeRemotePath);
+
+                // Force downloading of matched files
+                if (localFiles.contains(entry.getFilename())) {
+                    filesToReplace.add(remoteFilePath);
+                    logger.info("File added for download: " + remoteFilePath);
+                }
             }
         }
+    }
+
+    // Download file from SFTP server
+    private void downloadFile(String remoteFilePath) {
+        try {
+            String localPath = replicateLocalPath(remoteFilePath);
+            File localFile = new File(localPath);
+            localFile.getParentFile().mkdirs(); // Create directories if needed
+
+            try (InputStream inputStream = sftpChannel.get(remoteFilePath);
+                 FileOutputStream fos = new FileOutputStream(localFile)) {
+
+                logger.info("Downloading file from remote: " + remoteFilePath + " to local: " + localPath);
+
+                byte[] buffer = new byte[1024];
+                int readCount;
+                while ((readCount = inputStream.read(buffer)) > 0) {
+                    fos.write(buffer, 0, readCount);
+                }
+                logger.info("File downloaded successfully: " + remoteFilePath);
+            }
+        } catch (SftpException e) {
+            logger.severe("Failed to get file from SFTP: " + remoteFilePath + " - " + e.getMessage());
+        } catch (Exception e) {
+            logger.severe("Error in downloadFile: " + e.getMessage());
+        }
+    }
+
+    // Upload file to the SFTP server
+    public void uploadFile(String localFilePath) {
+        try {
+            String remoteFilePath = replicateRemotePath(localFilePath);
+            File localFile = new File(localFilePath);
+
+            if (localFile.exists()) {
+                try (InputStream inputStream = new FileInputStream(localFile)) {
+                    logger.info("Uploading file from local: " + localFilePath + " to remote: " + remoteFilePath);
+                    sftpChannel.put(inputStream, remoteFilePath);
+                    logger.info("File uploaded successfully: " + localFilePath);
+                }
+            } else {
+                logger.warning("Local file does not exist: " + localFilePath);
+            }
+        } catch (SftpException e) {
+            logger.severe("Failed to upload file to SFTP: " + localFilePath + " - " + e.getMessage());
+        } catch (Exception e) {
+            logger.severe("Error in uploadFile: " + e.getMessage());
+        }
+    }
+
+    // Helper method to get a list of local files
+    private List<String> getLocalFileList(File directory) {
+        List<String> localFiles = new ArrayList<>();
+        if (directory.isDirectory()) {
+            for (File file : directory.listFiles()) {
+                if (file.isFile()) {
+                    localFiles.add(file.getName());
+                }
+            }
+        }
+        return localFiles;
+    }
+
+    // Helper method to replicate local path for download
+    private String replicateLocalPath(String remoteFilePath) {
+        String relativePath = remoteFilePath.substring(remoteFilePath.indexOf(remoteFilePath) + remoteFilePath.length());
+        return localReplicaRoot + relativePath;
+    }
+
+    // Helper method to replicate remote path for upload
+    private String replicateRemotePath(String localFilePath) {
+        String relativePath = localFilePath.substring(localFilePath.indexOf(localReplicaRoot) + localReplicaRoot.length());
+        return remoteFilePath + relativePath;
+    }
+
+    public static void main(String[] args) {
+        SFTPFileTransfer transfer = new SFTPFileTransfer();
+        transfer.syncFiles();
+        
+        // Example: To upload a specific file
+        transfer.uploadFile("C:/UAT/LocalFiles/somefile.js");
     }
 }
