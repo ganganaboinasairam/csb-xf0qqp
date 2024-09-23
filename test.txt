@@ -1,28 +1,22 @@
-C:\UAT>java -jar UATSFTPALL.jar
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer connect
-INFO: SFTP connection established.
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer syncFiles
-INFO: Local files found: [IIND_BaseFunc.js, IIND_Reg_NonLC_Event.js, IIND_Reg_NonLC_Function.js]
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Checking remote directory: /IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS/
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: autoComplete
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: TSUM_UploadPO_Event.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: IIND_Reg_NonLC_Event.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: IIND_BaseFunc.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: TSUM_ViewPO_Function.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: IIND_Reg_NonLC_Function.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer syncFiles
-INFO: Files to replace: []
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer syncFiles
-INFO: Sync completed. Total files downloaded: 0
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer disconnect
-INFO: SFTP connection closed.
+private void listAndCompareFiles(String directory, List<String> localFiles, List<String> filesToReplace) throws SftpException {
+    sftpChannel.cd(directory);
+    List<ChannelSftp.LsEntry> entries = sftpChannel.ls("*");
 
+    logger.info("Checking remote directory: " + directory);
+    for (ChannelSftp.LsEntry entry : entries) {
+        if (entry.getAttrs().isDir()) {
+            // Recursively check subdirectories
+            listAndCompareFiles(directory + "/" + entry.getFilename(), localFiles, filesToReplace);
+        } else {
+            String remoteFilePath = directory + "/" + entry.getFilename();
+            String relativeRemotePath = remoteFilePath.substring(this.remoteFilePath.length()).replace("\\", "/");
 
-the log shows that 3 files matched with remote but 0 files are downloaded, the matched files are to be downloaded
+            logger.info("Remote file relative path: " + relativeRemotePath);  // Log the remote relative path
+
+            if (localFiles.contains(relativeRemotePath)) {
+                logger.info("File matched for download: " + relativeRemotePath);  // Log the matching file
+                filesToReplace.add(remoteFilePath);  // Add file to the list to be downloaded
+            }
+        }
+    }
+}
