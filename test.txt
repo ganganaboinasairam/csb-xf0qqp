@@ -1,47 +1,65 @@
 package com.tcs.lc;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Properties;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class DBCON
 {
-  public static Logger logg = Logger.getLogger("Log1");
-  private static String driver;
-  private static String connString;
-  private static String userName;
-  private static String pwd;
+    public static Logger logg = Logger.getLogger("Log1");
+    private static String driver;
+    private static String connString;
+    private static String userName;
+    private static String pwd;
 
-  public static Connection getConnection()
-  {
-    Connection con = null;
-    try
+    public static Connection getConnection()
     {
-      Properties pr = new Properties();
-      pr.load(new FileInputStream("./properties/RailwayDBInfo.properties"));
-      driver = pr.getProperty("driver");
-      connString = pr.getProperty("connString");
-      userName = pr.getProperty("userName");
-      pwd = pr.getProperty("pwd");
-      logg.info(driver + "\n" + connString + "\n" + userName +"\n"+ pwd);
-      Class.forName(driver);
-      con = DriverManager.getConnection(connString, userName, pwd);
-      logg.info("connection suuceess for EE Database");
-    }
-    catch (Exception e)
-    {
-      logg.info(e.getMessage());
-    }
-    return con;
-  }
-  
-  public static void main(String[] args) {
-	  DBCON sftpTool = new DBCON();
+        Connection con = null;
+        try (FileInputStream fis = new FileInputStream("./properties/RailwayDBInfo.properties"))
+        {
+            Properties pr = new Properties();
+            pr.load(fis);
 
-      // Example usage
-          sftpTool.getConnection(); // Download files from SFTP based on the remote path from properties
-     
-  }
+            driver = pr.getProperty("driver");
+            connString = pr.getProperty("connString");
+            userName = pr.getProperty("userName");
+            pwd = pr.getProperty("pwd");
+
+            logg.info(driver + "\n" + connString + "\n" + userName + "\n" + pwd);
+
+            Class.forName(driver);
+            con = DriverManager.getConnection(connString, userName, pwd);
+
+            logg.info("Connection success for Railway Database");
+        }
+        catch (IOException e)
+        {
+            logg.log(Level.SEVERE, "Error loading properties file", e);
+        }
+        catch (ClassNotFoundException e)
+        {
+            logg.log(Level.SEVERE, "Database driver class not found", e);
+        }
+        catch (SQLException e)
+        {
+            logg.log(Level.SEVERE, "Error establishing database connection", e);
+        }
+
+        return con;
+    }
+
+    public static void main(String[] args)
+    {
+        Connection connection = getConnection();
+        if (connection != null) {
+            logg.info("Database connection established successfully.");
+        } else {
+            logg.warning("Failed to establish database connection.");
+        }
+    }
 }
