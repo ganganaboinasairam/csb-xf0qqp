@@ -1,143 +1,168 @@
-C:\UAT>java -jar UATSFTPALL.jar
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer connect
-INFO: SFTP connection established.
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer syncFiles
-INFO: Local files found: [IIND_BaseFunc.js, IIND_Reg_NonLC_Event.js, IIND_Reg_NonLC_Function.js]
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Checking remote directory: /IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS/
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: autoComplete
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Checking remote directory: /IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS//autoComplete
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: Tautocomplete.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: TautoComplete_Clause.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BaseFunc.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BatchManager.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_AmendBGTrack.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_AmendBG_Event.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_AmendBG_EventTrack.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_AmendBG_Function.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_AmendBG_FunctionTrack.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_BaseFunc.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_Close_Event .js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_Close_Function.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_IssueBG_Event.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_IssueBG_Event.js_bkp_18072024
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_IssueBG_Function.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_IssueBG_Process_Event.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_IssueBG_Process_Function.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_MasterEnq_Event.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_MasterEnq_Function.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BGIS_Track_Enquire_Details.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BRDC_BaseFunc.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BRDC_ISSUE_Event.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: BRDC_ISSUE_Function.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: Buttons.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: calendar
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Checking remote directory: /IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS//calendar
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: calendar-en.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: calendar-setup.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: calendar.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: Calendar.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: CE_AddGroup.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: CE_AddUserInfo.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: CE_Company_AddStruc_Function.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: CE_Company_Add_Function.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: cindytemp1.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: Create_table_cug.sql
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: CrossBrowser.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: CrossBrowser1.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: CUGList.js
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: custom
-Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Checking remote directory: /IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS//custom
-.
-.
-.
-.
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: SYS_SecuCatalog.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: SYS_SubCatalog.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: SYS_Upload.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: SYS_UserProfile.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: SYS_userprofile_OpFunc.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: SYS_userprofile_unitfunc.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: SYS_userprofile_View.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: templateViewAll.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: TMPL_BaseFunc.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: TMPL_Template_Event.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: TMPL_Template_Function.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: Track_Event.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: Track_Reports.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: Tracl_Function.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: TSUM_BaseFunc.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: TSUM_UploadPO_Event.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: TSUM_UploadPO_Function.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: TSUM_ViewPO_Event.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: TSUM_ViewPO_Function.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
-INFO: Found remote file: Validation.js
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer syncFiles
-INFO: Files to replace: []
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer syncFiles
-INFO: Sync completed. Total files downloaded: 0
-Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer disconnect
-INFO: SFTP connection closed.
+package uatSftp;
+
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.logging.Logger;
+
+public class SFTPFileTransfer {
+    private static Logger logger = Logger.getLogger(SFTPFileTransfer.class.getName());
+    private static ChannelSftp sftpChannel = null;
+    private Session session = null;
+    private JSch jsch = new JSch();
+
+    private String host;
+    private String user;
+    private String password;
+    private int port;
+    private String localReplicaRoot;
+    private String remoteFilePath;
+    private static String mode;
+
+    public SFTPFileTransfer() {
+        try {
+            Properties pr = new Properties();
+            pr.load(new FileInputStream("properties/XmlReadPath.properties"));
+
+            this.host = pr.getProperty("host");
+            this.user = pr.getProperty("user");
+            this.password = pr.getProperty("password");
+            this.port = Integer.parseInt(pr.getProperty("port"));
+            this.localReplicaRoot = pr.getProperty("localReplicaRoot");
+            this.remoteFilePath = pr.getProperty("remoteFilePath");
+            mode = pr.getProperty("mode");
+
+        } catch (Exception e) {
+            logger.severe("Failed to load SFTP connection properties: " + e.getMessage());
+        }
+    }
+
+    private void connect() throws Exception {
+        if (session == null || !session.isConnected()) {
+            session = jsch.getSession(user, host, port);
+            session.setPassword(password);
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
+            sftpChannel = (ChannelSftp) session.openChannel("sftp");
+            sftpChannel.connect();
+            logger.info("SFTP connection established.");
+        }
+    }
+
+    private void disconnect() {
+        if (sftpChannel != null && sftpChannel.isConnected()) {
+            sftpChannel.disconnect();
+        }
+        if (session != null && session.isConnected()) {
+            session.disconnect();
+        }
+        logger.info("SFTP connection closed.");
+    }
+
+    public void syncFiles() {
+        try {
+            connect();
+            List<String> localFiles = getLocalFileList(new File(localReplicaRoot));
+            logger.info("Local files found: " + localFiles);  // Log local files found
+            List<String> filesToReplace = new ArrayList<>();
+
+            // Check files on remote, only download if they exist locally
+            listAndCompareFiles(remoteFilePath, localFiles, filesToReplace);
+
+            logger.info("Files to replace: " + filesToReplace);  // Log files to be replaced
+
+            for (String remoteFile : filesToReplace) {
+                downloadFile(remoteFile);
+            }
+
+            logger.info("Sync completed. Total files downloaded: " + filesToReplace.size());
+        } catch (Exception e) {
+            logger.severe("Error in syncFiles: " + e.getMessage());
+        } finally {
+            disconnect();
+        }
+    }
+
+    // List local files and return a list of their paths relative to the localReplicaRoot
+    private List<String> getLocalFileList(File localDir) {
+        List<String> localFiles = new ArrayList<>();
+        for (File file : localDir.listFiles()) {
+            if (file.isFile()) {
+                String relativePath = file.getPath().substring(localReplicaRoot.length()).replace("\\", "/");
+                localFiles.add(relativePath);
+            }
+        }
+        return localFiles;
+    }
+
+    // Compare remote directory and local file list
+    private void listAndCompareFiles(String directory, List<String> localFiles, List<String> filesToReplace) throws SftpException {
+        sftpChannel.cd(directory);
+        List<ChannelSftp.LsEntry> entries = sftpChannel.ls("*");
+
+        logger.info("Checking remote directory: " + directory);  // Log current remote directory
+        for (ChannelSftp.LsEntry entry : entries) {
+            logger.info("Found remote file: " + entry.getFilename());  // Log each file found
+
+            if (entry.getAttrs().isDir()) {
+                // Recursively check subdirectories
+                listAndCompareFiles(directory + "/" + entry.getFilename(), localFiles, filesToReplace);
+            } else {
+                String remoteFilePath = directory + "/" + entry.getFilename();
+                String relativePath = remoteFilePath.substring(this.remoteFilePath.length());
+
+                if (localFiles.contains(relativePath)) {
+                    filesToReplace.add(remoteFilePath);  // Add file to download if it exists locally
+                }
+            }
+        }
+    }
+
+    // Download a file from the remote server
+    private void downloadFile(String remoteFilePath) {
+        try {
+            String localPath = replicateLocalPath(remoteFilePath);
+            File localFile = new File(localPath);
+            localFile.getParentFile().mkdirs(); // Create directories if needed
+
+            try (InputStream inputStream = sftpChannel.get(remoteFilePath);
+                 FileOutputStream fos = new FileOutputStream(localFile)) {
+                byte[] buffer = new byte[1024];
+                int readCount;
+                while ((readCount = inputStream.read(buffer)) > 0) {
+                    fos.write(buffer, 0, readCount);
+                }
+                logger.info("File downloaded successfully: " + remoteFilePath);
+            }
+        } catch (SftpException e) {
+            logger.severe("Failed to get file from SFTP: " + remoteFilePath + " - " + e.getMessage());
+        } catch (Exception e) {
+            logger.severe("Error in downloadFile: " + e.getMessage());
+        }
+    }
+
+    // Replicate the directory structure locally based on the given SFTP file path
+    private String replicateLocalPath(String sftpFilePath) {
+        return localReplicaRoot + sftpFilePath.substring(remoteFilePath.length()).replace("/", "\\");
+    }
+
+    public static void main(String[] args) {
+        SFTPFileTransfer sftpTool = new SFTPFileTransfer();
+
+        // Example usage
+        if (mode.equals("get")) {
+            sftpTool.syncFiles(); // Sync files from remote to local
+        } else if (mode.equals("set")) {
+            // Implement upload functionality if required
+        }
+    }
+}
