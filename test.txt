@@ -1,47 +1,817 @@
-public void syncFiles() {
-    try {
-        connect();
-        List<String> localFiles = getLocalFileList(new File(localReplicaRoot));
-        logger.info("Local files found: " + localFiles);  // Log local files found
-        List<String> filesToReplace = new ArrayList<>();
-
-        // Check files on remote, only download if they exist locally
-        listAndCompareFiles(remoteFilePath, localFiles, filesToReplace);
-
-        logger.info("Files to replace: " + filesToReplace);  // Log files to be replaced
-
-        for (String remoteFile : filesToReplace) {
-            downloadFile(remoteFile);
-        }
-
-        logger.info("Sync completed. Total files downloaded: " + filesToReplace.size());
-    } catch (Exception e) {
-        logger.severe("Error in syncFiles: " + e.getMessage());
-    } finally {
-        disconnect();
-    }
-}
-
-
-
-private void listAndCompareFiles(String directory, List<String> localFiles, List<String> filesToReplace) throws SftpException {
-    sftpChannel.cd(directory);
-    List<ChannelSftp.LsEntry> entries = sftpChannel.ls("*");
-
-    logger.info("Checking remote directory: " + directory);  // Log current remote directory
-    for (ChannelSftp.LsEntry entry : entries) {
-        logger.info("Found remote file: " + entry.getFilename());  // Log each file found
-
-        if (entry.getAttrs().isDir()) {
-            // Recursively check subdirectories
-            listAndCompareFiles(directory + "/" + entry.getFilename(), localFiles, filesToReplace);
-        } else {
-            String remoteFilePath = directory + "/" + entry.getFilename();
-            String relativePath = remoteFilePath.substring(this.remoteFilePath.length());
-
-            if (localFiles.contains(relativePath)) {
-                filesToReplace.add(remoteFilePath);  // Add file to download if it exists locally
-            }
-        }
-    }
-}
+C:\UAT>java -jar UATSFTPALL.jar
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer connect
+INFO: SFTP connection established.
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer syncFiles
+INFO: Local files found: [IIND_BaseFunc.js, IIND_Reg_NonLC_Event.js, IIND_Reg_NonLC_Function.js]
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Checking remote directory: /IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS/
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: autoComplete
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Checking remote directory: /IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS//autoComplete
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Tautocomplete.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: TautoComplete_Clause.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BatchManager.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_AmendBGTrack.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_AmendBG_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_AmendBG_EventTrack.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_AmendBG_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_AmendBG_FunctionTrack.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_Close_Event .js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_Close_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_IssueBG_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_IssueBG_Event.js_bkp_18072024
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_IssueBG_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_IssueBG_Process_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_IssueBG_Process_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_MasterEnq_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_MasterEnq_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BGIS_Track_Enquire_Details.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BRDC_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BRDC_ISSUE_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: BRDC_ISSUE_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Buttons.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: calendar
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Checking remote directory: /IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS//calendar
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: calendar-en.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: calendar-setup.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: calendar.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Calendar.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: CE_AddGroup.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: CE_AddUserInfo.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: CE_Company_AddStruc_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: CE_Company_Add_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: cindytemp1.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Create_table_cug.sql
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: CrossBrowser.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: CrossBrowser1.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: CUGList.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: custom
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Checking remote directory: /IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS//custom
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Layout.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Pagination.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Panel.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Widget.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: DealButtons.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: DocumentList.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: draftsViewAll.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EADV_Active_ViewDetails.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EADV_Amendment_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EADV_Amendment_Event_tanvi.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EADV_Amendment_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EADV_AuthCriteria.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EADV_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EADV_Dashboard.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EADV_LC_CONFIRM_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EADV_ModifyCriteria.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EADV_Past_Trx.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Eadv_View_History.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EADV_View_Trx.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_Amdt_Req_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_Amdt_Req_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_AuthCriteria.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_AuthCriteria_10052022.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_DashboardCriteria.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_DashboardDetails.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_DMS_Func.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_EnqCriteria.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_Enq_NONLC.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_ExpLCColl_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_ExpLCColl_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_ExpLCColl_Process_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_ExpLCColl_Process_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_ModifyCriteria.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_RegFullAdvPymt_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_RegFullAdvPymt_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_RegFullAdvPymt_Process_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_RegFullAdvPymt_Process_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_RegNonLCBill_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_RegNonLCBill_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_RegNonLCBill_Process_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_RegNonLCBill_Process_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_ReqForGrantAdv_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_ReqForGrantAdv_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_Req_adv.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_ResAmd.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXBC_UnlockCriteria.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXCO_Amd_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXCO_Amd_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXCO_ApplyAmd_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXCO_ApplyAmd_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXCO_ApplyExpColl_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXCO_ApplyExpColl_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXCO_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXCO_PmtInstr_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXCO_PmtInstr_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXCO_RecvdPmt_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXCO_RecvdPmt_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_AmdmntAdv_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_AmdmntAdv_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_DispolInstr_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_DispolInstr_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_DocPrestin_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_DocPrestin_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_ExpLcAdv_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_ExpLcAdv_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_PmtInstr_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_PmtInstr_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_RsponAmdmntDesin_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_RsponAmdmntDesin_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_ViewExpLc_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXLC_ViewExpLc_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXND_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXND_Enq_Master_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXND_Enq_Master_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXND_ExpBillReg_Non-LC_EBR_NON_EBR_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXND_ExpBillReg_Non-LC_EBR_NON_EBR_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXND_ExportBillRegisterLC_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXND_ExportBillRegisterLC_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXND_RegConvBill_Disc_EBR_NON_EBR_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXND_RegConvBill_Disc_EBR_NON_EBR_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXND_RegConvCollBillNego_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: EXND_RegConvCollBillNego_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: FWCO_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: FWCO_doc_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: FWCO_doc_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: HelpTips.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: HSN_DO_AMEND_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: HSN_DO_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_AcceptRejectAmend_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_AcceptRejectAmend_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_Active_ViewDetails.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_Amendment_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_Amendment_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_AuthCriteria - Copy.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_AuthCriteria.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_BaseFunc(3).js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_Dashboard.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_LC_Confirmation.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_LC_CONFIRM_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_Past_Trx.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_TransferLC_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_TransferLC_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IADV_View_Trx.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IIND_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IIND_ConvColltoDisc_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IIND_ConvColltoDisc_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IIND_Reg_LC_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IIND_Reg_LC_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IIND_Reg_NonLC_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IIND_Reg_NonLC_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IIND_Request_Amendment_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IIND_Request_Amendment_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCL_AcptRejBill_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCL_AcptRejBill_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCL_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCL_LodgeBill_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCL_LodgeBill_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCO_AmdAdv_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCO_AmdAdv_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCO_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCO_ImpCollAcptAdv_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCO_ImpCollAcptAdv_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCO_ImpCollAdv_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCO_ImpCollAdv_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCO_PmtInstr_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCO_PmtInstr_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCO_RecvdStl_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCO_RecvdStl_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCP_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCP_Bill_PrePayment_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCP_Bill_PrePayment_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCP_DMS_Func_Main_AddDocs.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCP_Reg_Adv_Pmt_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCP_Reg_Adv_Pmt_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCP_Reg_Outwrd_Remit_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMCP_Reg_Outwrd_Remit_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMIS_AmendLC_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMIS_AmendLC_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMIS_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMIS_Close_LC_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMIS_Close_LC_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMIS_EDPMS_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMIS_IDPMS_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMIS_IssueLC_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMIS_IssueLC_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: imis_lc_create.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMIS_LC_Issue_Process_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMIS_LC_Issue_Process_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLB_AuthCriteria.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLB_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLB_Bill_Acceptance_Response_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLB_Bill_Acceptance_Response_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLB_loadLCViewOnly.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLB_Load_Enquire_Details.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLB_Past_Trx.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLB_View_Trx.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_Amd_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_Amd_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_ApplyAmd_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_ApplyAmd_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_ApplyImpLc_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_ApplyImpLc_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_BkDesinAmd_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_BkDesinAmd_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_BkDesinImpLc_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_BkDesinImpLc_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_DiscrpcsDesin_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_DiscrpcsDesin_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_DiscrpcsNtfctn_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_DiscrpcsNtfctn_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_DocPres_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_DocPres_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_ImpLcIsse_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_ImpLcIsse_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_PmtAdv_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_PmtAdv_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_PmtInstr_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_PmtInstr_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_RecvdBeneConsent_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_RecvdBeneConsent_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_RecvdBeneDesin_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_RecvdBeneDesin_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_Reports.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_ViewImpLc_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IMLC_ViewImpLc_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Inbox.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIC_ACPT_REJ_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIC_ACPT_REJ_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIC_AuthCriteria.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIC_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIC_Bill_Amendment_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIC_Bill_Amendment_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIC_Bill_Payment_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIC_Bill_Payment_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_Close_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_Close_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_Draftview_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_Draftview_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_LCAmendment_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_LCAmendment_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_LCApplication_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_LCApplication_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_LCApplication_Process_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_LCApplication_Process_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_LCApplication_Rail_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INIS_LCApplication_Rail_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_AuthCriteria.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_Bill_Acceptance_Response_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_Bill_Acceptance_Response_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_Bill_Amendment_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_Bill_Amendment_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_Bill_PrePayment_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_Bill_PrePayment_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_loadLCViewOnly.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_Load_Enquire_Details.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_Past_Trx.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INLD_View_Trx.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INOC_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INOC_Conversion_of_Disc_to_Coll_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INOC_Conversion_of_Disc_to_Coll_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INOC_OutwrdLCColl_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INOC_OutwrdLCColl_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INOC_RegisterBillLodgement_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INOC_RegisterBillLodgement_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INOC_Request_Amendment_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: INOC_Request_Amendment_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IWGT_AmdDesin_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IWGT_AmdDesin_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IWGT_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IWGT_ClmPmtInstr_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IWGT_ClmPmtInstr_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IWGT_RecvdGtee_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IWGT_RecvdGtee_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IWGT_RecvdSttlm_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IWGT_RecvdSttlm_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IWGT_ViewGtee_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: IWGT_ViewGtee_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: jsencrypt.min.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: json2.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: LC_Confirmation.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: LF_UploadImg.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: loadLCViewOnly.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Login.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: MainMenu.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: MESG_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: MESG_NewCrspdc_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: MESG_NewCrspdc_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: MESG_ReplyFollowFrmBk_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: MESG_ReplyFollowFrmBk_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: MESG_ViewReplyFollow_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: MESG_ViewReplyFollow_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_Amd_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_Amd_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_ApplyForAmd_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_ApplyForAmd_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_ApplyForGtee_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_ApplyForGtee_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_BaseFunc.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_BkDesinAmd_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_BkDesinAmd_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_BkDesinGtee_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_BkDesinGtee_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_ClmRsponSttlmInstr_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_ClmRsponSttlmInstr_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_GteeIsse_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_GteeIsse_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_RecvdClm_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_RecvdClm_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_RecvdSttlm_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_RecvdSttlm_Function.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_ViewGtee_Event.js
+Sep 23, 2024 4:08:10 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: OWGT_ViewGtee_Function.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Pagination.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: PastAmend.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Print.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Publickey.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Reports.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: RPRT_BaseFunc.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: RPRT_Event.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: RPRT_Function.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: rsaencrypt
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Checking remote directory: /IBM/WebSphere/AppServer/profiles/AppSrv02/installedApps/ITTFCEAPP1STNode02Cell/CE.ear/CEWeb.war/JS//rsaencrypt
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: jsencrypt.min.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Publickey.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SecuAuthMgr_Rules_Matrix_Function.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_CreateUserConfirmTcs.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_CreateUserTcs.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_Personalize.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_RoleAssign.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuAdmin.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuAdminFunc_Add.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuAuthUserRuleByFunc.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuCompany.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuCompanyGrp.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuCompanyStruc_Add.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuOperator.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuOperatorFunc_Add.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuRefNum.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuRelease.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuRole.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuRoleAssign.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_SecuUnitFunc_Add.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Secu_Template_Info.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_UnlockRef.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SECU_UnlockRefConfirmTcs.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: STAN_Bank.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: STAN_Catalog.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: STAN_Clause.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: STAN_CustAc.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: STAN_Email.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: STAN_EmailGrp.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: STAN_Holiday.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: STAN_NotificationCatalog.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: STAN_NotificationLabel.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: STAN_Party.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: STAN_Weekends.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Std_Release.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Std_Template.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYST_ApplyRef.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYST_CompanyRpt.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYST_CompanyRpt_Event.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYST_CompanyRpt_Function.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYST_CSXTOCE.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_ActionFunc_CAL.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_BaseFunc_CAL.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_Common.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_CrossBrowser.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_DealButton.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_Forgot_Password.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_InqCUBK.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_MultiCatalog.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_Reset_Password.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_ResultSuccess.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_SecuCatalog.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_SubCatalog.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_Upload.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_UserProfile.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_userprofile_OpFunc.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_userprofile_unitfunc.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: SYS_userprofile_View.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: templateViewAll.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: TMPL_BaseFunc.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: TMPL_Template_Event.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: TMPL_Template_Function.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Track_Event.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Track_Reports.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Tracl_Function.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: TSUM_BaseFunc.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: TSUM_UploadPO_Event.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: TSUM_UploadPO_Function.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: TSUM_ViewPO_Event.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: TSUM_ViewPO_Function.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer listAndCompareFiles
+INFO: Found remote file: Validation.js
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer syncFiles
+INFO: Files to replace: []
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer syncFiles
+INFO: Sync completed. Total files downloaded: 0
+Sep 23, 2024 4:08:11 PM uatSftp.SFTPFileTransfer disconnect
+INFO: SFTP connection closed.
