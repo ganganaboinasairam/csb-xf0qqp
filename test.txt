@@ -1,5 +1,11 @@
-Dear team,
+Dear Team,
 
-When we login CE UAT( 10.189.49.232:4489 ) using our credentials ( CORP\userName ), we are unable to edit files .
+We are experiencing an issue when logging into CE UAT (10.189.49.232:4489) with our credentials (CORP\userName), as we are unable to edit files.
 
-Kindly provide Access to make changes in files
+Could you kindly provide the necessary access to allow us to make changes to the files?
+
+Thank you for your assistance.
+
+Best regards,
+[Your Name]
+
