@@ -1,4 +1,5 @@
-Total :: 49
-Open :: 18
-Closed :: 3
-OPen with UAT :: 21
+Dear team,
+
+When we login CE UAT( 10.189.49.232:4489 ) using our credentials ( CORP\userName ), we are unable to edit files .
+
+Kindly provide Access to make changes in files
