@@ -1,11 +1,47 @@
-a b c d e f g h i j k l m n o p q r s t u v w x y z
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restrict Characters</title>
+</head>
+<body>
+    <form onsubmit="return validateInput()">
+        <label for="inputField">Enter Text:</label>
+        <input type="text" id="inputField" name="inputField" oninput="sanitizeInput()">
+        <input type="submit" value="Submit">
+    </form>
+    <p id="errorMsg" style="color: red;"></p>
 
-A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+    <script>
+        function validateInput() {
+            const inputField = document.getElementById('inputField');
+            const input = inputField.value;
 
-0 1 2 3 4 5 6 7 8 9
+            // Regular expression for allowed characters
+            const regex = /^[a-zA-Z0-9\.,\-\/='+:?!\"%&*<>;{#@_ \r\n]*$/;
 
-. , - ( ) / = ' + : ? ! " % & * < > ; {
+            if (!regex.test(input)) {
+                document.getElementById("errorMsg").innerText = "Invalid characters detected!";
+                return false; // Prevent form submission if invalid input
+            } else {
+                document.getElementById("errorMsg").innerText = "";
+                return true; // Allow form submission if input is valid
+            }
+        }
 
-@ # _
+        function sanitizeInput() {
+            const inputField = document.getElementById('inputField');
+            let input = inputField.value;
 
-Cr Lf Space
+            // Regular expression for allowed characters
+            const regex = /[^a-zA-Z0-9\.,\-\/='+:?!\"%&*<>;{#@_ \r\n]/g;
+
+            // Replace disallowed characters with an empty string
+            inputField.value = input.replace(regex, '');
+
+            document.getElementById("errorMsg").innerText = "";
+        }
+    </script>
+</body>
+</html>
