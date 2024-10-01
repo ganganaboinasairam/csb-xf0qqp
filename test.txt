@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restrict Characters</title>
+    <title>Restrict HTML Injection and XSS</title>
 </head>
 <body>
-    <form onsubmit="return validateInput()">
+    <form onsubmit="return validateAndSanitizeInput()">
         <label for="inputField">Enter Text:</label>
         <input type="text" id="inputField" name="inputField" oninput="sanitizeInput()">
         <input type="submit" value="Submit">
@@ -14,33 +14,48 @@
     <p id="errorMsg" style="color: red;"></p>
 
     <script>
-        function validateInput() {
+        // Function to validate and sanitize input for allowed characters
+        function validateAndSanitizeInput() {
             const inputField = document.getElementById('inputField');
-            const input = inputField.value;
+            let input = inputField.value;
 
-            // Regular expression for allowed characters
-            const regex = /^[a-zA-Z0-9\.,\-\/='+:?!\"%&*<>;{#@_ \r\n]*$/;
+            // Regular expression for allowed characters (letters, digits, and some special characters)
+            const allowedCharsRegex = /^[a-zA-Z0-9\.,\-\/='+:?!\"%&*<>;{#@_ \r\n]*$/;
 
-            if (!regex.test(input)) {
+            // Check if input contains only allowed characters
+            if (!allowedCharsRegex.test(input)) {
                 document.getElementById("errorMsg").innerText = "Invalid characters detected!";
-                return false; // Prevent form submission if invalid input
+                return false; // Prevent form submission if input is invalid
             } else {
                 document.getElementById("errorMsg").innerText = "";
+                inputField.value = encodeHTML(input); // Encode input to prevent XSS
                 return true; // Allow form submission if input is valid
             }
         }
 
+        // Function to sanitize input by removing disallowed characters dynamically
         function sanitizeInput() {
             const inputField = document.getElementById('inputField');
             let input = inputField.value;
 
-            // Regular expression for allowed characters
-            const regex = /[^a-zA-Z0-9\.,\-\/='+:?!\"%&*<>;{#@_ \r\n]/g;
+            // Regular expression to remove all disallowed characters
+            const sanitizeRegex = /[^a-zA-Z0-9\.,\-\/='+:?!\"%&*<>;{#@_ \r\n]/g;
 
-            // Replace disallowed characters with an empty string
-            inputField.value = input.replace(regex, '');
+            // Sanitize input by removing disallowed characters
+            inputField.value = input.replace(sanitizeRegex, '');
+        }
 
-            document.getElementById("errorMsg").innerText = "";
+        // Function to encode potentially dangerous characters to prevent XSS
+        function encodeHTML(str) {
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#39;')
+                      .replace(/\//g, '&#47;')
+                      .replace(//g, '&#40;')
+                      .replace(//g, '&#41;')
+                      .replace(/%/g, '&#37;');
         }
     </script>
 </body>
