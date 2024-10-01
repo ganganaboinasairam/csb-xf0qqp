@@ -1,11 +1,1 @@
-Dear Team,
-
-We are experiencing an issue when logging into CE UAT (10.189.49.232:4489) with our credentials (CORP\userName), as we are unable to edit files.
-
-Could you kindly provide the necessary access to allow us to make changes to the files?
-
-Thank you for your assistance.
-
-Best regards,
-[Your Name]
-
+$('.TB_TRANCATA_001')[0].appendChild('<tr id="labTr"><td class="FldLabel" style="padding-left: 5px; padding-bottom: 25px;">Are you sure, you want to authorize the following transactions?</td></tr>')
