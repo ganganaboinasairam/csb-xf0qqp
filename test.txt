@@ -1,3 +1,32 @@
-$('.TB_TRANCATA_001')[0].insertAdjacentHTML('beforeend', 
-    '<tr id="labTr"><td class="FldLabel" style="padding-left: 5px; padding-bottom: 25px;">Are you sure, you want to authorize the following transactions?</td></tr>'
-);
+function tickAll()
+{
+var check=document.getElementById("selectAll");
+if(sessionStorage.getItem('viewAuthINOC') == "L"){
+viewDivId="#id_getTranCata input[name=_Sel_CheckBox]";
+}
+else if(sessionStorage.getItem('viewAuthINOC') == "C")
+{
+viewDivId="#Oct_Ammend input[name=_Sel_CheckBox]";
+}
+if(check.checked==true)
+{
+$(viewDivId).attr('checked',true);
+$("input[name=_Authorize]").attr("onclick","CheckAuthorizeReference()");
+
+}
+else
+{
+$(viewDivId).attr('checked',false);
+}	
+if(totalRecordNum==1 || check.checked==false)
+{
+$('#rejectBtn').show();
+$("input[name=_View]").hide();
+}
+else
+{
+$('#rejectBtn').hide();
+
+$("input[name=_View]").hide();
+}	
+}
