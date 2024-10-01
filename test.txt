@@ -1,50 +1,11 @@
-$(document).ready(function() {
-    var viewDivId = "";
+a b c d e f g h i j k l m n o p q r s t u v w x y z
 
-    // Function to handle manual checkbox clicks
-    function updateSelectAll() {
-        // Determine viewDivId based on session storage value
-        if (sessionStorage.getItem('viewAuthINOC') == "L") {
-            viewDivId = "#id_getTranCata input[name=_Sel_CheckBox]";
-        } else if (sessionStorage.getItem('viewAuthINOC') == "C") {
-            viewDivId = "#Oct_Ammend input[name=_Sel_CheckBox]";
-        }
+A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
 
-        // Check if all checkboxes are checked, update selectAll checkbox accordingly
-        var allChecked = $(viewDivId).length === $(viewDivId + ":checked").length;
-        $('#selectAll').prop('checked', allChecked);
-    }
+0 1 2 3 4 5 6 7 8 9
 
-    // Handle selectAll checkbox click
-    $('#selectAll').change(function() {
-        var check = this.checked; // Select all checkbox state
+. , - ( ) / = ' + : ? ! " % & * < > ; {
 
-        // Determine viewDivId based on session storage value
-        if (sessionStorage.getItem('viewAuthINOC') == "L") {
-            viewDivId = "#id_getTranCata input[name=_Sel_CheckBox]";
-        } else if (sessionStorage.getItem('viewAuthINOC') == "C") {
-            viewDivId = "#Oct_Ammend input[name=_Sel_CheckBox]";
-        }
+@ # _
 
-        // Check/uncheck all individual checkboxes
-        $(viewDivId).prop('checked', check);
-
-        if (check) {
-            $("input[name=_Authorize]").attr("onclick", "CheckAuthorizeReference()");
-        }
-
-        // Update reject button and view inputs
-        if (totalRecordNum == 1 || !check) {
-            $('#rejectBtn').show();
-            $("input[name=_View]").hide();
-        } else {
-            $('#rejectBtn').hide();
-            $("input[name=_View]").hide();
-        }
-    });
-
-    // Attach change event to individual checkboxes to detect manual clicks
-    $(document).on('change', 'input[name=_Sel_CheckBox]', function() {
-        updateSelectAll(); // Update the state of selectAll checkbox when any individual checkbox is changed
-    });
-});
+Cr Lf Space
