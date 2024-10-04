@@ -1,62 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restrict HTML Injection and XSS</title>
-</head>
-<body>
-    <form onsubmit="return validateAndSanitizeInput()">
-        <label for="inputField">Enter Text:</label>
-        <input type="text" id="inputField" name="inputField" oninput="sanitizeInput()">
-        <input type="submit" value="Submit">
-    </form>
-    <p id="errorMsg" style="color: red;"></p>
-
-    <script>
-        // Function to validate and sanitize input for allowed characters
-        function validateAndSanitizeInput() {
-            const inputField = document.getElementById('inputField');
-            let input = inputField.value;
-
-            // Regular expression for allowed characters (letters, digits, and some special characters)
-            const allowedCharsRegex = /^[a-zA-Z0-9\.,\-\/='+:?!\"%&*<>;{#@_ \r\n]*$/;
-
-            // Check if input contains only allowed characters
-            if (!allowedCharsRegex.test(input)) {
-                document.getElementById("errorMsg").innerText = "Invalid characters detected!";
-                return false; // Prevent form submission if input is invalid
-            } else {
-                document.getElementById("errorMsg").innerText = "";
-                inputField.value = encodeHTML(input); // Encode input to prevent XSS
-                return true; // Allow form submission if input is valid
-            }
-        }
-
-        // Function to sanitize input by removing disallowed characters dynamically
-        function sanitizeInput() {
-            const inputField = document.getElementById('inputField');
-            let input = inputField.value;
-
-            // Regular expression to remove all disallowed characters
-            const sanitizeRegex = /[^a-zA-Z0-9\.,\-\/='+:?!\"%&*<>;{#@_ \r\n]/g;
-
-            // Sanitize input by removing disallowed characters
-            inputField.value = input.replace(sanitizeRegex, '');
-        }
-
-        // Function to encode potentially dangerous characters to prevent XSS
-        function encodeHTML(str) {
-            return str.replace(/&/g, '&amp;')
-                      .replace(/</g, '&lt;')
-                      .replace(/>/g, '&gt;')
-                      .replace(/"/g, '&quot;')
-                      .replace(/'/g, '&#39;')
-                      .replace(/\//g, '&#47;')
-                      .replace(//g, '&#40;')
-                      .replace(//g, '&#41;')
-                      .replace(/%/g, '&#37;');
-        }
-    </script>
-</body>
-</html>
+select 
+CASE 
+WHEN new_part_pymt = 1 THEN 'Yes'
+WHEN new_part_pymt = 2 THEN 'No'
+ELSE ''
+END as new_part_pymt 
+CASE 
+WHEN old_part_pymt = 1 THEN 'Yes'
+WHEN old_part_pymt = 2 THEN 'No'
+ELSE ''
+END as old_part_pymt 
+from iind_master where c_main_ref='0999524BR0400177';
