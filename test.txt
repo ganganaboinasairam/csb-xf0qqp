@@ -1,1 +1,2 @@
-form attachment is comming in mail if we do the single authorization and the same is not comming in case of multiple authorization
+The form attachment is included in the email when a single authorization is performed, but it is not included in the case of multiple authorizations.
+
