@@ -1,8 +1,13 @@
 Dear Sir,
 
-As per the trail mail,
+As per the previous correspondence,
 
-Impacted functionalities are correct.
-Process for making transaction for both IR (23110101 and 24060022) is correct.
-Application URL and credentials are provided.
-Source code and DB review is provided.
+The impacted functionalities have been identified correctly.
+
+The process for making transactions for both IRs (23110101 and 24060022) is accurate.
+
+The application URL and credentials have been provided.
+
+A review of the source code and database has been completed.
+
+
