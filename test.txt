@@ -1,2 +1,8 @@
-The form attachment is included in the email when a single authorization is performed, but it is not included in the case of multiple authorizations.
+Dear Sir,
 
+As per the trail mail,
+
+Impacted functionalities are correct.
+Process for making transaction for both IR (23110101 and 24060022) is correct.
+Application URL and credentials are provided.
+Source code and DB review is provided.
