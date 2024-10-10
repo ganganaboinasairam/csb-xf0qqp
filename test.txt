@@ -1,12 +1,1 @@
-select 
-CASE 
-WHEN new_part_pymt = 1 THEN 'Yes'
-WHEN new_part_pymt = 2 THEN 'No'
-ELSE ''
-END as new_part_pymt 
-CASE 
-WHEN old_part_pymt = 1 THEN 'Yes'
-WHEN old_part_pymt = 2 THEN 'No'
-ELSE ''
-END as old_part_pymt 
-from iind_master where c_main_ref='0999524BR0400177';
+form attachment is comming in mail if we do the single authorization and the same is not comming in case of multiple authorization
