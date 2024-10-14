@@ -1,69 +1,59 @@
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Base64;
+
 @WebServlet("/downloadImage")
 public class ImageDownloadServlet extends HttpServlet {
-    
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    private static final long serialVersionUID = 1L;
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
         String c_img_indx = request.getParameter("c_img_indx");
         String c_main_ref = request.getParameter("c_main_ref");
 
-        if (c_img_indx == null || c_main_ref == null) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing parameters.");
-            return;
-        }
+        // Database connection
+        String jdbcURL = "jdbc:oracle:thin:@localhost:1521:xe";
+        String dbUser = "username";
+        String dbPassword = "password";
 
-        // Retrieve the base64 image string from the database
-        String base64Image = getImageFromDatabase(c_img_indx, c_main_ref);
+        try (Connection connection = DriverManager.getConnection(jdbcURL, dbUser, dbPassword)) {
+            // Query to get the image content
+            String query = "SELECT b_img_content FROM trx_image_dtal WHERE c_img_indx = ? AND c_main_ref = ?";
+            try (PreparedStatement statement = connection.prepareStatement(query)) {
+                statement.setString(1, c_img_indx);
+                statement.setString(2, c_main_ref);
+                
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        String base64Image = resultSet.getString("b_img_content");
 
-        if (base64Image == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Image not found.");
-            return;
-        }
+                        // Decode the Base64 image
+                        byte[] imageBytes = Base64.getDecoder().decode(base64Image);
 
-        // Decode the base64 image
-        byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+                        // Set response headers
+                        response.setContentType("image/jpeg"); // Adjust according to your image type (e.g., image/png)
+                        response.setHeader("Content-Disposition", "attachment; filename=\"image_" + c_img_indx + ".jpg\"");
 
-        // Set the content type and disposition (you can adjust the content type based on the image format)
-        response.setContentType("image/jpeg"); // Change to image/png or other type if needed
-        response.setHeader("Content-Disposition", "attachment; filename=image_" + c_img_indx + ".jpg");
-
-        // Write the image bytes to the response output stream
-        response.setContentLength(imageBytes.length);
-        ServletOutputStream outStream = response.getOutputStream();
-        outStream.write(imageBytes);
-        outStream.flush();
-        outStream.close();
-    }
-
-    private String getImageFromDatabase(String c_img_indx, String c_main_ref) {
-        String base64Image = null;
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-
-        try {
-            // Get connection to the database
-            conn = DatabaseConnection.getConnection(); // Ensure DatabaseConnection is implemented
-
-            // SQL Query to retrieve the base64 image based on c_img_indx and c_main_ref
-            String sql = "SELECT image_data FROM trx_image_dtal WHERE c_img_indx = ? AND c_main_ref = ?";
-            stmt = conn.prepareStatement(sql);
-            stmt.setString(1, c_img_indx);
-            stmt.setString(2, c_main_ref);
-
-            rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                base64Image = rs.getString("image_data"); // Adjust column name if different
+                        // Write the image to the response
+                        OutputStream out = response.getOutputStream();
+                        out.write(imageBytes);
+                        out.flush();
+                    } else {
+                        response.sendError(HttpServletResponse.SC_NOT_FOUND, "Image not found");
+                    }
+                }
             }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); }
-            try { if (stmt != null) stmt.close(); } catch (SQLException e) { e.printStackTrace(); }
-            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            throw new ServletException("Error retrieving image", e);
         }
-
-        return base64Image;
     }
 }
