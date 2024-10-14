@@ -23,31 +23,62 @@ public class ImageDownloadServlet extends HttpServlet {
         // Database connection
         Connection conn = DSManager.getConnection("CET");
 
-        String query = "SELECT b_img_content FROM trx_image_dtal WHERE c_img_indx = ? AND c_main_ref = ?";
-        try (PreparedStatement statement = conn.prepareStatement(query)) {  // Use 'conn' instead of 'Connection'
+        // Query to fetch both the file content and the file type
+        String query = "SELECT b_img_content, c_img_file_type FROM trx_image_dtal WHERE c_img_indx = ? AND c_main_ref = ?";
+        try (PreparedStatement statement = conn.prepareStatement(query)) {
             statement.setString(1, c_img_indx);
             statement.setString(2, c_main_ref);
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    String base64Image = resultSet.getString("b_img_content");
-                    byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+                    String base64Content = resultSet.getString("b_img_content");
+                    String fileType = resultSet.getString("c_img_file_type");
+                    byte[] fileBytes = Base64.getDecoder().decode(base64Content);
 
-                    // Set response headers for image download
-                    response.setContentType("image/jpeg");  // Adjust for other formats if needed
-                    response.setHeader("Content-Disposition", "attachment; filename=\"image_" + c_img_indx + ".jpg\"");
+                    // Determine the content type and file extension based on c_img_file_type
+                    String contentType = "application/octet-stream";  // Default content type for unknown types
+                    String fileExtension = "";  // Default extension
 
-                    // Write the image to the response output stream
+                    switch (fileType.toUpperCase()) {
+                        case "PDF":
+                            contentType = "application/pdf";
+                            fileExtension = "pdf";
+                            break;
+                        case "TXT":
+                            contentType = "text/plain";
+                            fileExtension = "txt";
+                            break;
+                        case "XLS":
+                        case "XLSX":
+                            contentType = "application/vnd.ms-excel";
+                            fileExtension = fileType.toLowerCase();
+                            break;
+                        case "JPG":
+                        case "JPEG":
+                            contentType = "image/jpeg";
+                            fileExtension = "jpg";
+                            break;
+                        default:
+                            // If no valid file type is found, send a 415 Unsupported Media Type
+                            response.sendError(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE, "Unsupported file type: " + fileType);
+                            return;
+                    }
+
+                    // Set response headers for download
+                    response.setContentType(contentType);
+                    response.setHeader("Content-Disposition", "attachment; filename=\"file_" + c_img_indx + "." + fileExtension + "\"");
+
+                    // Write the file to the response output stream
                     OutputStream out = response.getOutputStream();
-                    out.write(imageBytes);
+                    out.write(fileBytes);
                     out.flush();
                 } else {
-                    // If no image is found, return a 404 error
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "Image not found");
+                    // If no file is found, return a 404 error
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "File not found");
                 }
             }
         } catch (Exception e) {
-            throw new ServletException("Error retrieving image", e);
+            throw new ServletException("Error retrieving file", e);
         }
     }
 }
