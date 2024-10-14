@@ -1,57 +1,19 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Download Image via AJAX</title>
-</head>
-<body>
-    <input type="text" id="c_img_indx" placeholder="Enter Image Index" required>
-    <input type="text" id="c_main_ref" placeholder="Enter Main Reference" required>
-    <button onclick="downloadImage()">Download Image</button>
 
-    <script>
-        function downloadImage() {
-            const c_img_indx = document.getElementById('c_img_indx').value;
-            const c_main_ref = document.getElementById('c_main_ref').value;
 
-            if (!c_img_indx || !c_main_ref) {
-                alert('Please enter both Image Index and Main Reference');
-                return;
-            }
+package com.cs.ceweb.servlets;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Base64;
+import com.cs.core.dao.DSManager;
 
-            // Create the request URL with query parameters
-            const url = `/yourApp/downloadImage?c_img_indx=${encodeURIComponent(c_img_indx)}&c_main_ref=${encodeURIComponent(c_main_ref)}`;
-
-            // Use fetch to send the request to the servlet
-            fetch(url, {
-                method: 'GET'
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.blob();  // Get the response as a Blob (binary data)
-                } else {
-                    throw new Error('Image not found');
-                }
-            })
-            .then(blob => {
-                // Create a download link for the image
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `image_${c_img_indx}.jpg`;  // Set the file name
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                window.URL.revokeObjectURL(url);  // Clean up
-            })
-            .catch(error => {
-                alert('Error: ' + error.message);
-            });
-        }
-    </script>
-</body>
-</html>
-
-@WebServlet("/downloadImage")
 public class ImageDownloadServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
@@ -61,9 +23,10 @@ public class ImageDownloadServlet extends HttpServlet {
         String c_main_ref = request.getParameter("c_main_ref");
 
         // Database connection and query logic here...
+        Connection conn = DSManager.getConnection("CET");
 
         String query = "SELECT b_img_content FROM trx_image_dtal WHERE c_img_indx = ? AND c_main_ref = ?";
-        try (PreparedStatement statement = connection.prepareStatement(query)) {
+        try (PreparedStatement statement = Connection.prepareStatement(query)) {
             statement.setString(1, c_img_indx);
             statement.setString(2, c_main_ref);
 
