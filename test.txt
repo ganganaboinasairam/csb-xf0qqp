@@ -1,2 +1,69 @@
-"C_BK_GROUP_ID"	"C_CNTY_CODE"	"C_IMG_DOC_DESC"	"C_IMG_DOC_TYPE"	"C_IMG_FILE_PATH"	"C_IMG_FILE_TYPE"	"C_IMG_INDX"	"C_IMG_REF_NO"	"C_MAIN_REF"	"C_UNIT_CODE"	"C_UPLOADED_STATE"	"C_UPLOAD_QID"	"C_UPLOAD_REF"	"C_UPLOAD_TYPE"	"I_EVENT_TIMES"	"I_IMG_FILE_SIZE"	"I_UPLOAD_PROINFO"	"I_UPLOAD_TIMES"	"T_UPLOAD_TIME"	"B_IMG_CONTENT"	"C_THIRD_INDEX"
-"SBI"	"IN"	"Commercial/ Tax Invoice"	""	"INOC_Request_Amendment_FORM (4).pdf"	"PDF"	"20241004160520643317596435546875"	"001"	"0999524BR0400259"	"BR04"	"V"	""	"0000"	"Commercial/ Tax Invoice"	1	45385		0	04-OCT-24	"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..."	""
+@WebServlet("/downloadImage")
+public class ImageDownloadServlet extends HttpServlet {
+    
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String c_img_indx = request.getParameter("c_img_indx");
+        String c_main_ref = request.getParameter("c_main_ref");
+
+        if (c_img_indx == null || c_main_ref == null) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing parameters.");
+            return;
+        }
+
+        // Retrieve the base64 image string from the database
+        String base64Image = getImageFromDatabase(c_img_indx, c_main_ref);
+
+        if (base64Image == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Image not found.");
+            return;
+        }
+
+        // Decode the base64 image
+        byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+
+        // Set the content type and disposition (you can adjust the content type based on the image format)
+        response.setContentType("image/jpeg"); // Change to image/png or other type if needed
+        response.setHeader("Content-Disposition", "attachment; filename=image_" + c_img_indx + ".jpg");
+
+        // Write the image bytes to the response output stream
+        response.setContentLength(imageBytes.length);
+        ServletOutputStream outStream = response.getOutputStream();
+        outStream.write(imageBytes);
+        outStream.flush();
+        outStream.close();
+    }
+
+    private String getImageFromDatabase(String c_img_indx, String c_main_ref) {
+        String base64Image = null;
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            // Get connection to the database
+            conn = DatabaseConnection.getConnection(); // Ensure DatabaseConnection is implemented
+
+            // SQL Query to retrieve the base64 image based on c_img_indx and c_main_ref
+            String sql = "SELECT image_data FROM trx_image_dtal WHERE c_img_indx = ? AND c_main_ref = ?";
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, c_img_indx);
+            stmt.setString(2, c_main_ref);
+
+            rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                base64Image = rs.getString("image_data"); // Adjust column name if different
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); }
+            try { if (stmt != null) stmt.close(); } catch (SQLException e) { e.printStackTrace(); }
+            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+        }
+
+        return base64Image;
+    }
+}
