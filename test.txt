@@ -1,10 +1,8 @@
-
-
 package com.cs.ceweb.servlets;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import javax.servlet.ServletException;
@@ -22,11 +20,11 @@ public class ImageDownloadServlet extends HttpServlet {
         String c_img_indx = request.getParameter("c_img_indx");
         String c_main_ref = request.getParameter("c_main_ref");
 
-        // Database connection and query logic here...
+        // Database connection
         Connection conn = DSManager.getConnection("CET");
 
         String query = "SELECT b_img_content FROM trx_image_dtal WHERE c_img_indx = ? AND c_main_ref = ?";
-        try (PreparedStatement statement = Connection.prepareStatement(query)) {
+        try (PreparedStatement statement = conn.prepareStatement(query)) {  // Use 'conn' instead of 'Connection'
             statement.setString(1, c_img_indx);
             statement.setString(2, c_main_ref);
 
@@ -35,13 +33,16 @@ public class ImageDownloadServlet extends HttpServlet {
                     String base64Image = resultSet.getString("b_img_content");
                     byte[] imageBytes = Base64.getDecoder().decode(base64Image);
 
-                    response.setContentType("image/jpeg"); // or image/png
+                    // Set response headers for image download
+                    response.setContentType("image/jpeg");  // Adjust for other formats if needed
                     response.setHeader("Content-Disposition", "attachment; filename=\"image_" + c_img_indx + ".jpg\"");
 
+                    // Write the image to the response output stream
                     OutputStream out = response.getOutputStream();
                     out.write(imageBytes);
                     out.flush();
                 } else {
+                    // If no image is found, return a 404 error
                     response.sendError(HttpServletResponse.SC_NOT_FOUND, "Image not found");
                 }
             }
