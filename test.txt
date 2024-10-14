@@ -1,5 +1,8 @@
-[10/14/24 15:42:16:291 IST] 00000072 ServletWrappe E com.ibm.ws.webcontainer.servlet.ServletWrapper service SRVE0014E: Uncaught service() exception root cause ImageDownloadServlet: javax.servlet.ServletException: Error retrieving file
-	at com.cs.ceweb.servlets.ImageDownloadServlet.doGet(ImageDownloadServlet.java:90)
+[10/14/24 16:11:16:593 IST] 00000073 webapp        E com.ibm.ws.webcontainer.webapp.WebApp logServletError SRVE0293E: [Servlet Error]-[ImageDownloadServlet]: java.lang.IllegalArgumentException: Illegal base64 character a
+	at java.util.Base64$Decoder.decode0(Base64.java:725)
+	at java.util.Base64$Decoder.decode(Base64.java:537)
+	at java.util.Base64$Decoder.decode(Base64.java:560)
+	at com.cs.ceweb.servlets.ImageDownloadServlet.doGet(ImageDownloadServlet.java:45)
 	at javax.servlet.http.HttpServlet.service(HttpServlet.java:575)
 	at javax.servlet.http.HttpServlet.service(HttpServlet.java:668)
 	at com.ibm.ws.webcontainer.servlet.ServletWrapper.service(ServletWrapper.java:1233)
@@ -31,9 +34,7 @@
 	at com.ibm.ws.http.channel.inbound.impl.HttpInboundLink.handleDiscrimination(HttpInboundLink.java:463)
 	at com.ibm.ws.http.channel.inbound.impl.HttpInboundLink.handleNewRequest(HttpInboundLink.java:530)
 	at com.ibm.ws.http.channel.inbound.impl.HttpInboundLink.processRequest(HttpInboundLink.java:316)
-	at com.ibm.ws.http.channel.inbound.impl.HttpInboundLink.ready(HttpInboundLink.java:287)
-	at com.ibm.ws.tcp.channel.impl.NewConnectionInitialReadCallback.sendToDiscriminators(NewConnectionInitialReadCallback.java:214)
-	at com.ibm.ws.tcp.channel.impl.NewConnectionInitialReadCallback.complete(NewConnectionInitialReadCallback.java:113)
+	at com.ibm.ws.http.channel.inbound.impl.HttpICLReadCallback.complete(HttpICLReadCallback.java:88)
 	at com.ibm.ws.tcp.channel.impl.AioReadCompletionListener.futureCompleted(AioReadCompletionListener.java:175)
 	at com.ibm.io.async.AbstractAsyncFuture.invokeCallback(AbstractAsyncFuture.java:217)
 	at com.ibm.io.async.AsyncChannelFuture.fireCompletionActions(AsyncChannelFuture.java:161)
@@ -42,12 +43,3 @@
 	at com.ibm.io.async.ResultHandler.runEventProcessingLoop(ResultHandler.java:775)
 	at com.ibm.io.async.ResultHandler$2.run(ResultHandler.java:905)
 	at com.ibm.ws.util.ThreadPool$Worker.run(ThreadPool.java:1892)
-Caused by: java.sql.SQLException: Invalid column index
-	at oracle.jdbc.driver.OraclePreparedStatement.setFormOfUseInternal(OraclePreparedStatement.java:10470)
-	at oracle.jdbc.driver.OraclePreparedStatement.setFormOfUseInternal(OraclePreparedStatement.java:10451)
-	at oracle.jdbc.driver.OraclePreparedStatement.setString(OraclePreparedStatement.java:5240)
-	at oracle.jdbc.driver.OraclePreparedStatementWrapper.setString(OraclePreparedStatementWrapper.java:255)
-	at com.ibm.ws.rsadapter.spi.InternalOracleDataStoreHelper.psSetString(InternalOracleDataStoreHelper.java:427)
-	at com.ibm.ws.rsadapter.jdbc.WSJdbcPreparedStatement.setString(WSJdbcPreparedStatement.java:2777)
-	at com.cs.ceweb.servlets.ImageDownloadServlet.doGet(ImageDownloadServlet.java:38)
-	... 42 more
