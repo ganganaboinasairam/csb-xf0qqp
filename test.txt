@@ -1,45 +1,51 @@
-[10/14/24 16:11:16:593 IST] 00000073 webapp        E com.ibm.ws.webcontainer.webapp.WebApp logServletError SRVE0293E: [Servlet Error]-[ImageDownloadServlet]: java.lang.IllegalArgumentException: Illegal base64 character a
-	at java.util.Base64$Decoder.decode0(Base64.java:725)
-	at java.util.Base64$Decoder.decode(Base64.java:537)
-	at java.util.Base64$Decoder.decode(Base64.java:560)
-	at com.cs.ceweb.servlets.ImageDownloadServlet.doGet(ImageDownloadServlet.java:45)
-	at javax.servlet.http.HttpServlet.service(HttpServlet.java:575)
-	at javax.servlet.http.HttpServlet.service(HttpServlet.java:668)
-	at com.ibm.ws.webcontainer.servlet.ServletWrapper.service(ServletWrapper.java:1233)
-	at com.ibm.ws.webcontainer.servlet.ServletWrapper.handleRequest(ServletWrapper.java:782)
-	at com.ibm.ws.webcontainer.servlet.ServletWrapper.handleRequest(ServletWrapper.java:481)
-	at com.ibm.ws.webcontainer.servlet.ServletWrapperImpl.handleRequest(ServletWrapperImpl.java:178)
-	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.invokeTarget(WebAppFilterChain.java:136)
-	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:97)
-	at com.cs.ceweb.secu.utility.CECommonSecurityWebFilter.doFilter(CECommonSecurityWebFilter.java:127)
-	at com.cs.ceweb.servlets.CEPenTestFilter.doFilter(CEPenTestFilter.java:43)
-	at com.ibm.ws.webcontainer.filter.FilterInstanceWrapper.doFilter(FilterInstanceWrapper.java:195)
-	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:91)
-	at com.cs.ceweb.servlets.getPostFilter.doFilter(getPostFilter.java:50)
-	at com.ibm.ws.webcontainer.filter.FilterInstanceWrapper.doFilter(FilterInstanceWrapper.java:195)
-	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:91)
-	at com.cs.ceweb.secu.utility.CECommonSecurityWebFilter.doFilter(CECommonSecurityWebFilter.java:127)
-	at com.cs.ceweb.servlets.CERequestFilter.doFilter(CERequestFilter.java:71)
-	at com.ibm.ws.webcontainer.filter.FilterInstanceWrapper.doFilter(FilterInstanceWrapper.java:195)
-	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:91)
-	at com.cs.eximweb.servlets.CEDencrptURLFilter.doFilter(CEDencrptURLFilter.java:45)
-	at com.ibm.ws.webcontainer.filter.FilterInstanceWrapper.doFilter(FilterInstanceWrapper.java:195)
-	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:91)
-	at com.ibm.ws.webcontainer.filter.WebAppFilterManager.doFilter(WebAppFilterManager.java:967)
-	at com.ibm.ws.webcontainer.filter.WebAppFilterManager.invokeFilters(WebAppFilterManager.java:1107)
-	at com.ibm.ws.webcontainer.servlet.CacheServletWrapper.handleRequest(CacheServletWrapper.java:87)
-	at com.ibm.ws.webcontainer.WebContainer.handleRequest(WebContainer.java:952)
-	at com.ibm.ws.webcontainer.WSWebContainer.handleRequest(WSWebContainer.java:1817)
-	at com.ibm.ws.webcontainer.channel.WCChannelLink.ready(WCChannelLink.java:213)
-	at com.ibm.ws.http.channel.inbound.impl.HttpInboundLink.handleDiscrimination(HttpInboundLink.java:463)
-	at com.ibm.ws.http.channel.inbound.impl.HttpInboundLink.handleNewRequest(HttpInboundLink.java:530)
-	at com.ibm.ws.http.channel.inbound.impl.HttpInboundLink.processRequest(HttpInboundLink.java:316)
-	at com.ibm.ws.http.channel.inbound.impl.HttpICLReadCallback.complete(HttpICLReadCallback.java:88)
-	at com.ibm.ws.tcp.channel.impl.AioReadCompletionListener.futureCompleted(AioReadCompletionListener.java:175)
-	at com.ibm.io.async.AbstractAsyncFuture.invokeCallback(AbstractAsyncFuture.java:217)
-	at com.ibm.io.async.AsyncChannelFuture.fireCompletionActions(AsyncChannelFuture.java:161)
-	at com.ibm.io.async.AsyncFuture.completed(AsyncFuture.java:138)
-	at com.ibm.io.async.ResultHandler.complete(ResultHandler.java:204)
-	at com.ibm.io.async.ResultHandler.runEventProcessingLoop(ResultHandler.java:775)
-	at com.ibm.io.async.ResultHandler$2.run(ResultHandler.java:905)
-	at com.ibm.ws.util.ThreadPool$Worker.run(ThreadPool.java:1892)
+APLog.reportLog("Fetching PDF Report : " + json);
+String whereClause = " WHERE AGENCY_REF='" + (String) json.get("mnsIdentifier") + "' and  REPORT_DT= TO_DATE('" + (String) json.get("REPORT_DT") + "', 'DD-MM-YYYY')";//Where Condition
+CSSQLStatement aSGenSQLTool = new CSSQLStatement(4, "EXIMTRX.OPINION_REPORT_TABLE", "EXIMT");//Table
+aSGenSQLTool.addField("REPORT_FILE", null, null);//Column where base64 string is inserted as BLOB content
+
+CSSQLClause SQLwhereClause = new CSSQLClause();
+SQLwhereClause.setClause(whereClause, null, null);
+aSGenSQLTool.setClause(SQLwhereClause);
+Document rtnDoc = CSEEDAOHelper.commExecuteQuery(aSGenSQLTool);
+
+Element eroot = rtnDoc.getDocumentElement();
+
+String err = eroot.getAttribute("domType");
+
+if ((err != null) && (err.equalsIgnoreCase("sysFail")))
+      throw new Exception(err);
+err = eroot.getAttribute("errMsg");
+if ((err != null) && (err.length() > 0))
+      throw new Exception(err);
+NodeList nl = eroot.getElementsByTagName("record");
+
+Node n = nl.item(0);
+String base64 = XMLManager.getChildNodeValue(n, "REPORT_FILE", true);
+
+if (base64 != "" && base64 != null && base64 != "null") {
+      APLog.reportLog("Opinion Report View PDF Received Response" + base64);
+      APLog.reportLog("base64 string is=====\n" + base64);
+
+      try {
+            byte[] decoder = Base64.getDecoder().decode(base64);
+            response.setContentType("application/pdf");
+            response.setHeader("Pragma", "No-cache");
+            response.setHeader("Cache-Control", "no-cache");
+            response.setDateHeader("Expires", 2002L); // Saving BASE64 PDF Content in pdffile---S
+            OutputStream out = response.getOutputStream();
+            out.write(decoder);
+            out.close();
+      } catch (Exception e) { // TODOAuto-generated catch block
+            APLog.reportLog(WSTools.getErrorStackTrace(e));
+            e.printStackTrace();
+      }
+} else {
+      APLog.reportLog("No Report data found in DB ~~~~" + base64);
+      response.setContentType("text/html");
+      PrintWriter out = response.getWriter();
+      out.println("<html><body>");
+      out.println(
+                  "<div style=\"display: flex;justify-content: center;align-items: center;min-height: 100vh;font-size: xx-large;color: red;\">Report file not found...</div>");
+      out.println("</body></html>");
+      out.flush();
+}
