@@ -1,1 +1,15 @@
-i have a table with id 'outwardMainDiv' i want to disabled all the input, textarea, buttons, etc all the fields disabled using one function
+function disableAllFields(divId) {
+    // Get the div by its ID
+    var div = document.getElementById(divId);
+    
+    // Find all input, textarea, select, and button elements inside the div
+    var fields = div.querySelectorAll('input, textarea, select, button');
+    
+    // Loop through all the elements and disable them
+    fields.forEach(function(field) {
+        field.disabled = true;
+    });
+}
+
+// Call the function and pass the 'outwardMainDiv' id
+disableAllFields('outwardMainDiv');
