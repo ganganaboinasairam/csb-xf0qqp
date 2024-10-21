@@ -1,4 +1,5 @@
 package com.cs.ceweb.servlets;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -14,19 +15,15 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 import com.cs.base.xml.XMLManager;
 import com.cs.core.dao.DSManager;
 import com.cs.eximap.utility.APLog;
 
+@WebServlet("/FetchReportServlet")
 public class FetchReportServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
-    
-    
+
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String requestType = request.getParameter("reqType");
         String contractId = request.getParameter("contractId");
@@ -40,9 +37,9 @@ public class FetchReportServlet extends HttpServlet {
             response.setContentType("application/json");
 
             if ("getContractDetails".equals(requestType)) {
-                //processRequestGetContractDetails(conn, response, contractId);
+                // Implement logic for getting contract details
             } else if ("validateContractID".equals(requestType)) {
-                //processRequestValidateContractID(conn, response, contractId);
+                // Implement logic for validating contract ID
             } else {
                 sendErrorResponse(response, "Invalid request");
             }
@@ -58,50 +55,39 @@ public class FetchReportServlet extends HttpServlet {
         // Log the start of the process
         APLog.reportLog("Fetching Report: " + request.getParameter("json"));
 
-        try (Connection conn = DSManager.getConnection("CET")){
-        	
-        	String contractId = request.getParameter("contractId");
-        	 String query = "SELECT * FROM STORE_FILES WHERE FID = ?";
-        	 PreparedStatement pstmt = conn.prepareStatement(query);
-        	 pstmt.setString(1, contractId);
-        	 Document rtnDoc = pstmt.executeQuery();
-            
-            
-            Element eroot = rtnDoc.getDocumentElement();
+        try (Connection conn = DSManager.getConnection("CET")) {
 
-            // Check for system errors or failures
-            String err = eroot.getAttribute("domType");
-            if ((err != null) && (err.equalsIgnoreCase("sysFail"))) {
-                throw new Exception(err);
-            }
-
-            err = eroot.getAttribute("errMsg");
-            if ((err != null) && (err.length() > 0)) {
-                throw new Exception(err);
-            }
-
-            // Fetch the record from the result document
-            NodeList nl = eroot.getElementsByTagName("record");
-            if (nl.getLength() == 0) {
-                handleNoDataFound(response);
+            String contractId = request.getParameter("contractId");
+            if (contractId == null || contractId.isEmpty()) {
+                sendErrorResponse(response, "Contract ID is missing");
                 return;
             }
 
-            Node n = nl.item(0);
-            String base64 = XMLManager.getChildNodeValue(n, "REPORT_FILE", true);
-            String fileType = XMLManager.getChildNodeValue(n, "C_IMG_FILE_TYPE", true);
+            // Prepare the SQL query
+            String query = "SELECT REPORT_FILE, C_IMG_FILE_TYPE FROM STORE_FILES WHERE FID = ?";
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, contractId);
 
-            // Check if the report data exists
-            if (base64 != null && !base64.equals("") && !base64.equalsIgnoreCase("null")) {
-                APLog.reportLog("Report Received Response: " + base64);
-                processFileResponse(base64, fileType, response);
+            // Execute the query
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                String base64 = rs.getString("REPORT_FILE");
+                String fileType = rs.getString("C_IMG_FILE_TYPE");
+
+                // Check if the report data exists
+                if (base64 != null && !base64.isEmpty() && !"null".equalsIgnoreCase(base64)) {
+                    APLog.reportLog("Report Received Response: " + base64);
+                    processFileResponse(base64, fileType, response);
+                } else {
+                    handleNoDataFound(response);
+                }
             } else {
                 handleNoDataFound(response);
             }
 
         } catch (Exception e) {
             // Log and handle any errors
-            //APLog.reportLog(WSTools.getErrorStackTrace(e));
             e.printStackTrace();
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while fetching the report.");
         }
@@ -111,7 +97,7 @@ public class FetchReportServlet extends HttpServlet {
     private void processFileResponse(String base64, String fileType, HttpServletResponse response) throws IOException {
         try {
             // Decode the base64 content
-            byte[] decoder = Base64.getDecoder().decode(base64);
+            byte[] decodedBytes = Base64.getDecoder().decode(base64);
 
             // Set the appropriate content type based on file type
             if ("PDF".equalsIgnoreCase(fileType)) {
@@ -133,11 +119,10 @@ public class FetchReportServlet extends HttpServlet {
 
             // Write the decoded byte content to the response output stream
             OutputStream out = response.getOutputStream();
-            out.write(decoder);
+            out.write(decodedBytes);
             out.close();
         } catch (Exception e) {
             // Log the exception and its stack trace
-            //APLog.reportLog(WSTools.getErrorStackTrace(e));
             e.printStackTrace();
         }
     }
@@ -158,7 +143,7 @@ public class FetchReportServlet extends HttpServlet {
         // This method should parse the jsonStr into a Map (e.g., using Gson or Jackson)
         return new HashMap<>(); // Placeholder
     }
-    
+
     private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
         response.setContentType("application/json");
         response.getWriter().write("{\"error\": \"" + errorMessage + "\"}");
