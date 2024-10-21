@@ -1,51 +1,5 @@
-APLog.reportLog("Fetching PDF Report : " + json);
-String whereClause = " WHERE AGENCY_REF='" + (String) json.get("mnsIdentifier") + "' and  REPORT_DT= TO_DATE('" + (String) json.get("REPORT_DT") + "', 'DD-MM-YYYY')";//Where Condition
-CSSQLStatement aSGenSQLTool = new CSSQLStatement(4, "EXIMTRX.OPINION_REPORT_TABLE", "EXIMT");//Table
-aSGenSQLTool.addField("REPORT_FILE", null, null);//Column where base64 string is inserted as BLOB content
-
-CSSQLClause SQLwhereClause = new CSSQLClause();
-SQLwhereClause.setClause(whereClause, null, null);
-aSGenSQLTool.setClause(SQLwhereClause);
-Document rtnDoc = CSEEDAOHelper.commExecuteQuery(aSGenSQLTool);
-
-Element eroot = rtnDoc.getDocumentElement();
-
-String err = eroot.getAttribute("domType");
-
-if ((err != null) && (err.equalsIgnoreCase("sysFail")))
-      throw new Exception(err);
-err = eroot.getAttribute("errMsg");
-if ((err != null) && (err.length() > 0))
-      throw new Exception(err);
-NodeList nl = eroot.getElementsByTagName("record");
-
-Node n = nl.item(0);
-String base64 = XMLManager.getChildNodeValue(n, "REPORT_FILE", true);
-
-if (base64 != "" && base64 != null && base64 != "null") {
-      APLog.reportLog("Opinion Report View PDF Received Response" + base64);
-      APLog.reportLog("base64 string is=====\n" + base64);
-
-      try {
-            byte[] decoder = Base64.getDecoder().decode(base64);
-            response.setContentType("application/pdf");
-            response.setHeader("Pragma", "No-cache");
-            response.setHeader("Cache-Control", "no-cache");
-            response.setDateHeader("Expires", 2002L); // Saving BASE64 PDF Content in pdffile---S
-            OutputStream out = response.getOutputStream();
-            out.write(decoder);
-            out.close();
-      } catch (Exception e) { // TODOAuto-generated catch block
-            APLog.reportLog(WSTools.getErrorStackTrace(e));
-            e.printStackTrace();
-      }
-} else {
-      APLog.reportLog("No Report data found in DB ~~~~" + base64);
-      response.setContentType("text/html");
-      PrintWriter out = response.getWriter();
-      out.println("<html><body>");
-      out.println(
-                  "<div style=\"display: flex;justify-content: center;align-items: center;min-height: 100vh;font-size: xx-large;color: red;\">Report file not found...</div>");
-      out.println("</body></html>");
-      out.flush();
-}
+String contractId = request.getParameter("contractId");
+        	 String query = "SELECT * FROM STORE_FILES WHERE FID = ?";
+        	 PreparedStatement pstmt = conn.prepareStatement(query);
+        	 pstmt.setString(1, contractId);
+        	 Document rs = pstmt.executeQuery();
