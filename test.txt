@@ -1,151 +1,39 @@
-package com.cs.ceweb.servlets;
+var c_img_indx = imageIndex;
+		var imageDocDesc = imageDocDesc;
+            var c_main_ref = c_MainRef;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import com.cs.base.xml.XMLManager;
-import com.cs.core.dao.DSManager;
-import com.cs.eximap.utility.APLog;
-
-@WebServlet("/FetchReportServlet")
-public class FetchReportServlet extends HttpServlet {
-    private static final long serialVersionUID = 1L;
-
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String requestType = request.getParameter("reqType");
-        String contractId = request.getParameter("contractId");
-
-        if (contractId == null || contractId.isEmpty() || requestType == null || requestType.isEmpty()) {
-            sendErrorResponse(response, "Invalid request");
-            return;
-        }
-
-        try (Connection conn = DSManager.getConnection("CET")) {
-            response.setContentType("application/json");
-
-            if ("getContractDetails".equals(requestType)) {
-                // Implement logic for getting contract details
-            } else if ("validateContractID".equals(requestType)) {
-                // Implement logic for validating contract ID
-            } else {
-                sendErrorResponse(response, "Invalid request");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            sendErrorResponse(response, "An error occurred");
-        }
-    }
-
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        // Log the start of the process
-        APLog.reportLog("Fetching Report: " + request.getParameter("json"));
-
-        try (Connection conn = DSManager.getConnection("CET")) {
-
-            String contractId = request.getParameter("contractId");
-            if (contractId == null || contractId.isEmpty()) {
-                sendErrorResponse(response, "Contract ID is missing");
+            if (!c_img_indx || !c_main_ref) {
+                alert('Please enter both Image Index and Main Reference');
                 return;
             }
 
-            // Prepare the SQL query
-            String query = "SELECT REPORT_FILE, C_IMG_FILE_TYPE FROM STORE_FILES WHERE FID = ?";
-            PreparedStatement pstmt = conn.prepareStatement(query);
-            pstmt.setString(1, contractId);
+            // Create the request URL with query parameters
+            var url = `../servlets/ImageDownloadServlet?c_img_indx=${encodeURIComponent(c_img_indx)}&c_main_ref=${encodeURIComponent(c_main_ref)}`;
 
-            // Execute the query
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                String base64 = rs.getString("REPORT_FILE");
-                String fileType = rs.getString("C_IMG_FILE_TYPE");
-
-                // Check if the report data exists
-                if (base64 != null && !base64.isEmpty() && !"null".equalsIgnoreCase(base64)) {
-                    APLog.reportLog("Report Received Response: " + base64);
-                    processFileResponse(base64, fileType, response);
+            // Use fetch to send the request to the servlet
+            fetch(url, {
+                method: 'GET'
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();  // Get the response as a Blob (binary data)
                 } else {
-                    handleNoDataFound(response);
+                    throw new Error('Image not found');
                 }
-            } else {
-                handleNoDataFound(response);
-            }
-
-        } catch (Exception e) {
-            // Log and handle any errors
-            e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while fetching the report.");
-        }
-    }
-
-    // Function to handle and process the base64 file response
-    private void processFileResponse(String base64, String fileType, HttpServletResponse response) throws IOException {
-        try {
-            // Decode the base64 content
-            byte[] decodedBytes = Base64.getDecoder().decode(base64);
-
-            // Set the appropriate content type based on file type
-            if ("PDF".equalsIgnoreCase(fileType)) {
-                response.setContentType("application/pdf");
-            } else if ("TXT".equalsIgnoreCase(fileType)) {
-                response.setContentType("text/plain");
-            } else if ("XLS".equalsIgnoreCase(fileType) || "XLSX".equalsIgnoreCase(fileType)) {
-                response.setContentType("application/vnd.ms-excel");
-            } else if ("JPG".equalsIgnoreCase(fileType) || "JPEG".equalsIgnoreCase(fileType)) {
-                response.setContentType("image/jpeg");
-            } else {
-                response.setContentType("application/octet-stream"); // Generic binary stream for unknown types
-            }
-
-            // Set headers for file download and no caching
-            response.setHeader("Pragma", "No-cache");
-            response.setHeader("Cache-Control", "no-cache");
-            response.setDateHeader("Expires", 2002L);
-
-            // Write the decoded byte content to the response output stream
-            OutputStream out = response.getOutputStream();
-            out.write(decodedBytes);
-            out.close();
-        } catch (Exception e) {
-            // Log the exception and its stack trace
-            e.printStackTrace();
-        }
-    }
-
-    // Function to handle the case where no report data was found
-    private void handleNoDataFound(HttpServletResponse response) throws IOException {
-        APLog.reportLog("No Report data found in DB.");
-        response.setContentType("text/html");
-        PrintWriter out = response.getWriter();
-        out.println("<html><body>");
-        out.println("<div style=\"display: flex;justify-content: center;align-items: center;min-height: 100vh;font-size: xx-large;color: red;\">Report file not found...</div>");
-        out.println("</body></html>");
-        out.flush();
-    }
-
-    // Mock parseJson function for converting JSON string to map
-    private Map<String, Object> parseJson(String jsonStr) {
-        // This method should parse the jsonStr into a Map (e.g., using Gson or Jackson)
-        return new HashMap<>(); // Placeholder
-    }
-
-    private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
-        response.setContentType("application/json");
-        response.getWriter().write("{\"error\": \"" + errorMessage + "\"}");
-    }
-}
+            })
+            .then(blob => {
+				// Create a download link for the file
+				const url = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				const contentType = response.headers.get("Content-Type");
+				const extension = contentType.split('/')[1]; // Extract extension from content type
+				a.href = url;
+				a.download = `file_${c_img_indx}.${extension}`;  // Set the file name with appropriate extension
+				document.body.appendChild(a);
+				a.click();
+				a.remove();
+				window.URL.revokeObjectURL(url);  // Clean up
+			})
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
