@@ -1,39 +1,44 @@
 var c_img_indx = imageIndex;
-		var imageDocDesc = imageDocDesc;
-            var c_main_ref = c_MainRef;
+var imageDocDesc = imageDocDesc;
+var c_main_ref = c_MainRef;
 
-            if (!c_img_indx || !c_main_ref) {
-                alert('Please enter both Image Index and Main Reference');
-                return;
-            }
+if (!c_img_indx || !c_main_ref) {
+    alert('Please enter both Image Index and Main Reference');
+    return;
+}
 
-            // Create the request URL with query parameters
-            var url = `../servlets/ImageDownloadServlet?c_img_indx=${encodeURIComponent(c_img_indx)}&c_main_ref=${encodeURIComponent(c_main_ref)}`;
+// Create the request URL with query parameters
+var url = `../servlets/ImageDownloadServlet?c_img_indx=${encodeURIComponent(c_img_indx)}&c_main_ref=${encodeURIComponent(c_main_ref)}`;
 
-            // Use fetch to send the request to the servlet
-            fetch(url, {
-                method: 'GET'
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.blob();  // Get the response as a Blob (binary data)
-                } else {
-                    throw new Error('Image not found');
-                }
-            })
-            .then(blob => {
-				// Create a download link for the file
-				const url = window.URL.createObjectURL(blob);
-				const a = document.createElement('a');
-				const contentType = response.headers.get("Content-Type");
-				const extension = contentType.split('/')[1]; // Extract extension from content type
-				a.href = url;
-				a.download = `file_${c_img_indx}.${extension}`;  // Set the file name with appropriate extension
-				document.body.appendChild(a);
-				a.click();
-				a.remove();
-				window.URL.revokeObjectURL(url);  // Clean up
-			})
-            .catch(error => {
-                alert('Error: ' + error.message);
-            });
+// Use fetch to send the request to the servlet
+fetch(url, {
+    method: 'GET'
+})
+.then(response => {
+    if (response.ok) {
+        return response.blob();  // Get the response as a Blob (binary data)
+    } else {
+        throw new Error('Image not found');
+    }
+})
+.then(blob => {
+    // Create a download link for the file
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    
+    // Get the content type from the response headers
+    const contentType = blob.type;
+    const extension = contentType.split('/')[1]; // Extract extension from content type (e.g., "image/jpeg" -> "jpeg")
+    
+    a.href = downloadUrl;
+    a.download = `file_${c_img_indx}.${extension}`;  // Set the file name with the appropriate extension
+    document.body.appendChild(a);
+    a.click();  // Trigger the download
+    a.remove();  // Remove the temporary anchor element
+    
+    // Clean up the created object URL
+    window.URL.revokeObjectURL(downloadUrl);
+})
+.catch(error => {
+    alert('Error: ' + error.message);
+});
