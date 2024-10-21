@@ -1,15 +1,213 @@
-function disableAllFields(divId) {
-    // Get the div by its ID
-    var div = document.getElementById(divId);
-    
-    // Find all input, textarea, select, and button elements inside the div
-    var fields = div.querySelectorAll('input, textarea, select, button');
-    
-    // Loop through all the elements and disable them
-    fields.forEach(function(field) {
-        field.disabled = true;
-    });
-}
+create or replace 
+TRIGGER "CETRX"."IADV_AMENDED_FIELDS" 
+AFTER INSERT OR UPDATE ON IADV_MASTER 
+FOR EACH ROW 
 
-// Call the function and pass the 'outwardMainDiv' id
-disableAllFields('outwardMainDiv');
+BEGIN
+
+    IF INSERTING THEN
+       IF(:NEW.C_TRX_STATUS IN ('M')) THEN
+       INSERT INTO iadv_amend_master
+          (
+          BENE_ADD,
+          BENE_NM,
+          C_MAIN_REF,
+          DEC_AMT_BY,
+          FORM_OF_LC,
+          INC_AMT_BY,
+          INCOTERMS,
+          LTST_SHIP_DT,
+          NEW_LC_AMT,
+          OTH_BK_ADD,
+          OTHR_BK_NM,
+          PLACE_OF_EXPIRY,
+          REIM_BK_ADD1,
+          REIM_BK_NM,
+          SHIP_PRD,
+          SHIP_TO,
+          PARTIAL_SHIP,
+          TNSHIP, 
+          TOL_PER_MINUS,
+          NO_OF_AMD,
+          C_FUNC_SHORT_NAME,
+          C_TRX_STATUS,
+          C_UNIT_CODE,
+          STATUS,
+          LC_NO,
+          NEW_EXPIRY_DT,
+          EXPIRY_DT,
+          TOL_PER_PLUS,
+          REVISE_TENOR_DAYS,
+          TENOR_TYPE,
+          TENOR_DAYS,
+          USANCE_FROM,
+          OUR_ROLE,
+          NARRATIVE,
+          NOTES,
+          LC_AMT,
+          SHIP_FROM,
+          CONF_INSTR,
+          CONF_INSTR_AMD,
+          LC_BALA,
+          NEW_LC_BALA,
+          LOCAL_CCY_EQU_AMT,
+          CCY_EQVNT_AMT,
+          IADV_CHG_OPT
+          )
+          
+          VALUES
+          (
+          :NEW.BENE_ADD,
+          :NEW.BENE_NM,
+          :NEW.C_MAIN_REF,
+          :NEW.DEC_AMT_BY,
+          :NEW.FORM_OF_LC,
+          :NEW.INC_AMT_BY,
+          :NEW.INCOTERMS,
+          :NEW.LTST_SHIP_DT,
+          :NEW.NEW_LC_AMT,
+          :NEW.OTH_BK_ADD,
+          :NEW.OTHR_BK_NM,
+          :NEW.PLACE_OF_EXPIRY,
+          :NEW.REIM_BK_ADD1,
+          :NEW.REIM_BK_NM,
+          :NEW.SHIP_PRD,
+          :NEW.SHIP_TO,
+          :NEW.PARTIAL_SHIP,
+          :NEW.TNSHIP, 
+          :NEW.TOL_PER_MINUS,
+          :NEW.NO_OF_AMD,
+          :NEW.C_FUNC_SHORT_NAME,
+          :NEW.C_TRX_STATUS,
+          :NEW.C_UNIT_CODE,
+          :NEW.STATUS,
+          :NEW.LC_NO,
+          :NEW.NEW_EXPIRY_DT,
+          :NEW.EXPIRY_DT,
+          :NEW.TOL_PER_PLUS,
+          :NEW.REVISE_TENOR_DAYS,
+          :NEW.TENOR_TYPE,
+          :NEW.TENOR_DAYS,
+          :NEW.USANCE_FROM,
+          :NEW.OUR_ROLE,
+          :NEW.NARRATIVE,
+          :NEW.NOTES,
+          :NEW.LC_AMT,
+          :NEW.SHIP_FROM,
+          :NEW.CONF_INSTR,
+          :NEW.CONF_INSTR_AMD,
+          :NEW.LC_BALA,
+          :NEW.NEW_LC_BALA,
+          :NEW.LOCAL_CCY_EQU_AMT,
+          :NEW.CCY_EQVNT_AMT,
+          :NEW.IADV_CHG_OPT
+          
+          );
+          
+       END IF;
+    END IF;
+    
+    
+     If Updating('NO_OF_AMD') Then 
+      IF(:NEW.C_TRX_STATUS IN ('M') AND :NEW.NO_OF_AMD NOT IN ('0') AND :NEW.STATUS IN ('2','11','12') ) THEN
+     INSERT INTO IADV_AMEND_MASTER  
+     (
+          BENE_ADD,
+          BENE_NM,
+          C_MAIN_REF,
+          DEC_AMT_BY,
+          FORM_OF_LC,
+          INC_AMT_BY,
+          INCOTERMS,
+          LTST_SHIP_DT,
+          NEW_LC_AMT,
+          OTH_BK_ADD,
+          OTHR_BK_NM,
+          PLACE_OF_EXPIRY,
+          REIM_BK_ADD1,
+          REIM_BK_NM,
+          SHIP_PRD,
+          SHIP_TO,
+          PARTIAL_SHIP,
+          TNSHIP, 
+          TOL_PER_MINUS,
+          NO_OF_AMD,
+          C_FUNC_SHORT_NAME,
+          C_TRX_STATUS,
+          C_UNIT_CODE,
+          STATUS,
+          LC_NO,
+          NEW_EXPIRY_DT,
+          EXPIRY_DT,
+          TOL_PER_PLUS,
+          REVISE_TENOR_DAYS,
+          TENOR_TYPE,
+          TENOR_DAYS,
+          USANCE_FROM,
+          OUR_ROLE,
+          NARRATIVE,
+          NOTES,
+          LC_AMT,
+          SHIP_FROM,
+          CONF_INSTR,
+          CONF_INSTR_AMD,
+          LC_BALA,
+          NEW_LC_BALA,
+          LOCAL_CCY_EQU_AMT,
+          CCY_EQVNT_AMT,
+          IADV_CHG_OPT
+          )
+          
+          VALUES
+          (
+          :NEW.BENE_ADD,
+          :NEW.BENE_NM,
+          :NEW.C_MAIN_REF,
+          :NEW.DEC_AMT_BY,
+          :NEW.FORM_OF_LC,
+          :NEW.INC_AMT_BY,
+          :NEW.INCOTERMS,
+          :NEW.LTST_SHIP_DT,
+          :NEW.NEW_LC_AMT,
+          :NEW.OTH_BK_ADD,
+          :NEW.OTHR_BK_NM,
+          :NEW.PLACE_OF_EXPIRY,
+          :NEW.REIM_BK_ADD1,
+          :NEW.REIM_BK_NM,
+          :NEW.SHIP_PRD,
+          :NEW.SHIP_TO,
+          :NEW.PARTIAL_SHIP,
+          :NEW.TNSHIP, 
+          :NEW.TOL_PER_MINUS,
+          :NEW.NO_OF_AMD,
+          :NEW.C_FUNC_SHORT_NAME,
+          :NEW.C_TRX_STATUS,
+          :NEW.C_UNIT_CODE,
+          :NEW.STATUS,
+          :NEW.LC_NO,
+          :NEW.NEW_EXPIRY_DT,
+          :NEW.EXPIRY_DT,
+          :NEW.TOL_PER_PLUS,
+          :NEW.REVISE_TENOR_DAYS,
+          :NEW.TENOR_TYPE,
+          :NEW.TENOR_DAYS,
+          :NEW.USANCE_FROM,
+          :NEW.OUR_ROLE,
+          :NEW.NARRATIVE,
+          :NEW.NOTES,
+          :NEW.LC_AMT,
+          :NEW.SHIP_FROM,
+          :NEW.CONF_INSTR,
+          :NEW.CONF_INSTR_AMD,
+          :NEW.LC_BALA,
+          :NEW.NEW_LC_BALA,
+          :NEW.LOCAL_CCY_EQU_AMT,
+          :NEW.CCY_EQVNT_AMT,
+          :NEW.IADV_CHG_OPT
+          
+          );
+          
+       END IF;
+  END IF;   
+  
+END;
