@@ -1,19 +1,41 @@
-try {
-      data = StringUtil.replace(" ", "\r\n", data);
-      byte[] dataByte = data.getBytes("ISO-8859-1");
-      bais = new ByteArrayInputStream(dataByte);
-      type = ("word".equals(type)) ? "doc" : type;
-      String strType = CEImgTypeSingle.getInstance().getName(type);
-      response.setContentType(strType);
-      is = MimeUtility.decode(bais, "base64");
-      os = response.getOutputStream();
-      byte[] ba = new byte[1024];
-      int iLen = 0;
-      while ((iLen = is.read(ba)) > 0) {
-        os.write(ba, 0, iLen);
-      }
-      os.flush();
-      os.close();
-      is.close();
-      bais.close();
+package com.cs.ceweb.servlets;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Base64;
+
+import com.cs.core.utility.StringUtil;
+import com.sun.xml.internal.messaging.saaj.packaging.mime.internet.MimeUtility;
+
+public class Base64ToPdf {
+    private static ByteArrayInputStream bais;
+	private static InputStream is;
+	private static Object os;
+	public static void main(String[] args) throws Exception {
+        String encodedString = new String(Files.readAllBytes(Paths.get("C:\\Users\\v1013325\\Desktop\\TODAY\\output.txt")));
+        encodedString =StringUtil.replace(" ", "\r\n", encodedString);
+        
+        byte[] dataByte = encodedString.getBytes("ISO-8859-1");
+        bais = new ByteArrayInputStream(dataByte);
+        is = MimeUtility.decode(bais, "base64");
+        
+        os = response.getOutputStream();
+        byte[] buffer = new byte[1024];
+        int bytesRead;
+        
+        while ((bytesRead = is.read(buffer)) != -1) {
+        	os.write(buffer,0,bytesRead);
+        }
+        
+        os.flush();
+        System.out.println("encodedString is "+encodedString);
+        encodedString = encodedString.replaceAll("[^A-Za-z0-9+/=]", "");
+        
+        
+        System.out.println("encodedString is "+encodedString);
+        byte[] decodedBytes = Base64.getDecoder().decode(encodedString);
+        Files.write(Paths.get("C:\\Users\\v1013325\\Desktop\\TODAY\\Document.pdf"), decodedBytes);
     }
+}
