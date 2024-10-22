@@ -1,1 +1,35 @@
-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
+import java.util.Base64;
+import java.io.*;
+import java.util.zip.GZIPInputStream;
+
+public class Base64GzipDecoder {
+    public static void main(String[] args) {
+        try {
+            // Step 1: Decode the Base64 string
+            String base64String = "H4sIAAAAAAAA....";  // Your long string here
+            byte[] compressedData = Base64.getDecoder().decode(base64String);
+
+            // Step 2: Decompress the GZIP content
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(compressedData);
+            GZIPInputStream gzipInputStream = new GZIPInputStream(byteArrayInputStream);
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = gzipInputStream.read(buffer)) > 0) {
+                byteArrayOutputStream.write(buffer, 0, len);
+            }
+
+            // Step 3: Write decompressed data to a PDF file
+            byte[] pdfData = byteArrayOutputStream.toByteArray();
+            FileOutputStream fos = new FileOutputStream("output.pdf");
+            fos.write(pdfData);
+            fos.close();
+
+            System.out.println("PDF successfully created.");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
