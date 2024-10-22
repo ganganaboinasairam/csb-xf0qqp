@@ -1,51 +1,11 @@
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Base64;
 
-private void processFileResponse(String base64, String fileType, HttpServletResponse response) throws IOException {
-    try {
-        System.out.println("--------------inside processFileResponse-----------------");
-        
-        // Remove any non-base64 characters (if any)
-        base64 = base64.replaceAll("[^A-Za-z0-9+/=]", "");
-        
-        // Fix padding if necessary
-        base64 = fixBase64Padding(base64);
-
-        // Set the appropriate content type
-        if ("PDF".equalsIgnoreCase(fileType)) {
-            response.setContentType("application/pdf");
-        } else if ("TXT".equalsIgnoreCase(fileType)) {
-            response.setContentType("text/plain");
-        } else if ("XLS".equalsIgnoreCase(fileType) || "XLSX".equalsIgnoreCase(fileType)) {
-            response.setContentType("application/vnd.ms-excel");
-        } else if ("JPG".equalsIgnoreCase(fileType) || "JPEG".equalsIgnoreCase(fileType)) {
-            response.setContentType("image/jpeg");
-        } else {
-            response.setContentType("application/octet-stream");
-        }
-
-        response.setHeader("Pragma", "No-cache");
-        response.setHeader("Cache-Control", "no-cache");
-        response.setDateHeader("Expires", 2002L);
-
-        // Decode the base64 content into a byte array
-        byte[] fileBytes = Base64.getDecoder().decode(base64);
-
-        // Write the decoded bytes to the output stream
-        try (OutputStream out = response.getOutputStream()) {
-            out.write(fileBytes);
-        }
-    } catch (IllegalArgumentException e) {
-        e.printStackTrace();
-        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid base64 content.");
-    } catch (Exception e) {
-        e.printStackTrace();
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing the file.");
+public class Base64ToPdf {
+    public static void main(String[] args) throws Exception {
+        String encodedString = new String(Files.readAllBytes(Paths.get("output.txt")));
+        byte[] decodedBytes = Base64.getDecoder().decode(encodedString);
+        Files.write(Paths.get("decoded_file.pdf"), decodedBytes);
     }
-}
-
-private String fixBase64Padding(String base64) {
-    while (base64.length() % 4 != 0) {
-        base64 += "=";
-    }
-    return base64;
 }
