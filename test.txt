@@ -1,37 +1,19 @@
-import java.util.Base64;
-import java.io.FileOutputStream;
-import java.io.IOException;
-
-public class PdfDecoder {
-    public static void main(String[] args) {
-        String encodedPdf = "H4sIAAAAAAAAAH1WiVZTWRbtAsU..."; // Truncated for clarity
-        
-        // Step 1: Base64 decode
-        byte[] decodedBytes = Base64.getDecoder().decode(encodedPdf);
-        
-        try {
-            // Step 2: Optionally, decompress using GZIP if needed (check if it is compressed).
-            byte[] decompressedBytes = decompress(decodedBytes);
-            
-            // Step 3: Write to file
-            try (FileOutputStream fos = new FileOutputStream("output.pdf")) {
-                fos.write(decompressedBytes);
-            }
-            System.out.println("PDF saved successfully!");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+try {
+      data = StringUtil.replace(" ", "\r\n", data);
+      byte[] dataByte = data.getBytes("ISO-8859-1");
+      bais = new ByteArrayInputStream(dataByte);
+      type = ("word".equals(type)) ? "doc" : type;
+      String strType = CEImgTypeSingle.getInstance().getName(type);
+      response.setContentType(strType);
+      is = MimeUtility.decode(bais, "base64");
+      os = response.getOutputStream();
+      byte[] ba = new byte[1024];
+      int iLen = 0;
+      while ((iLen = is.read(ba)) > 0) {
+        os.write(ba, 0, iLen);
+      }
+      os.flush();
+      os.close();
+      is.close();
+      bais.close();
     }
-
-    public static byte[] decompress(byte[] compressedData) throws IOException {
-        // Assuming GZIP compression
-        java.util.zip.GZIPInputStream gzipInputStream = new java.util.zip.GZIPInputStream(new java.io.ByteArrayInputStream(compressedData));
-        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = gzipInputStream.read(buffer)) != -1) {
-            out.write(buffer, 0, len);
-        }
-        return out.toByteArray();
-    }
-}
