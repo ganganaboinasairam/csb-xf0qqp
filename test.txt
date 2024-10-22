@@ -1,101 +1,51 @@
-package com.cs.ceweb.servlets;
+import java.util.Base64;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import com.cs.core.dao.DSManager;
-import com.cs.eximap.utility.APLog;
+private void processFileResponse(String base64, String fileType, HttpServletResponse response) throws IOException {
+    try {
+        System.out.println("--------------inside processFileResponse-----------------");
+        
+        // Remove any non-base64 characters (if any)
+        base64 = base64.replaceAll("[^A-Za-z0-9+/=]", "");
+        
+        // Fix padding if necessary
+        base64 = fixBase64Padding(base64);
 
-public class ImageDownloadServlet extends HttpServlet {
-    private static final long serialVersionUID = 1L;
-
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        try (Connection conn = DSManager.getConnection("CET")) {
-
-        	String c_img_indx = request.getParameter("c_img_indx");
-            String c_main_ref = request.getParameter("c_main_ref");
-            if (c_img_indx == null || c_img_indx.isEmpty()) {
-                sendErrorResponse(response, "Contract ID is missing");
-                return;
-            }
-            String query = "SELECT B_IMG_CONTENT, C_IMG_FILE_TYPE FROM TRX_IMAGES_DTAL WHERE C_IMG_INDX = ? AND C_MAIN_REF = ?";
-            PreparedStatement pstmt = conn.prepareStatement(query);
-            pstmt.setString(1, c_img_indx);
-            pstmt.setString(2, c_main_ref);
-
-            ResultSet rs = pstmt.executeQuery(); 
-
-            if (rs.next()) {
-                String base64 = rs.getString("B_IMG_CONTENT");
-                String fileType = rs.getString("C_IMG_FILE_TYPE");
-
-                if (base64 != null && !base64.isEmpty() && !"null".equalsIgnoreCase(base64)) {
-                	System.out.println("Report Received Response: " + base64);
-                    processFileResponse(base64, fileType, response);
-                } else {
-                    handleNoDataFound(response);
-                }
-            } else {
-                handleNoDataFound(response);
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while fetching the report.");
+        // Set the appropriate content type
+        if ("PDF".equalsIgnoreCase(fileType)) {
+            response.setContentType("application/pdf");
+        } else if ("TXT".equalsIgnoreCase(fileType)) {
+            response.setContentType("text/plain");
+        } else if ("XLS".equalsIgnoreCase(fileType) || "XLSX".equalsIgnoreCase(fileType)) {
+            response.setContentType("application/vnd.ms-excel");
+        } else if ("JPG".equalsIgnoreCase(fileType) || "JPEG".equalsIgnoreCase(fileType)) {
+            response.setContentType("image/jpeg");
+        } else {
+            response.setContentType("application/octet-stream");
         }
-    }
 
-    private void processFileResponse(String base64, String fileType, HttpServletResponse response) throws IOException {
-        try {
-            System.out.println("--------------inside processFileResponse-----------------");
-            if ("PDF".equalsIgnoreCase(fileType)) {
-            	System.out.println("fileType PDF");
-                response.setContentType("application/pdf");
-            } else if ("TXT".equalsIgnoreCase(fileType)) {
-            	System.out.println("fileType TXT");
-                response.setContentType("text/plain");
-            } else if ("XLS".equalsIgnoreCase(fileType) || "XLSX".equalsIgnoreCase(fileType)) {
-            	System.out.println("fileType XLS");
-                response.setContentType("application/vnd.ms-excel");
-            } else if ("JPG".equalsIgnoreCase(fileType) || "JPEG".equalsIgnoreCase(fileType)) {
-                response.setContentType("image/jpeg");
-            } else {
-                response.setContentType("application/octet-stream"); 
-            }
+        response.setHeader("Pragma", "No-cache");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setDateHeader("Expires", 2002L);
 
-            response.setHeader("Pragma", "No-cache");
-            response.setHeader("Cache-Control", "no-cache");
-            response.setDateHeader("Expires", 2002L);
+        // Decode the base64 content into a byte array
+        byte[] fileBytes = Base64.getDecoder().decode(base64);
 
-            OutputStream out = response.getOutputStream();
-            out.write(base64.getBytes());
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+        // Write the decoded bytes to the output stream
+        try (OutputStream out = response.getOutputStream()) {
+            out.write(fileBytes);
         }
+    } catch (IllegalArgumentException e) {
+        e.printStackTrace();
+        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid base64 content.");
+    } catch (Exception e) {
+        e.printStackTrace();
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing the file.");
     }
+}
 
-    private void handleNoDataFound(HttpServletResponse response) throws IOException {
-        APLog.reportLog("No Report data found in DB.");
-        response.setContentType("text/html");
-        PrintWriter out = response.getWriter();
-        out.println("<html><body>");
-        out.println("<div style=\"display: flex;justify-content: center;align-items: center;min-height: 100vh;font-size: xx-large;color: red;\">Report file not found...</div>");
-        out.println("</body></html>");
-        out.flush();
+private String fixBase64Padding(String base64) {
+    while (base64.length() % 4 != 0) {
+        base64 += "=";
     }
-
-    private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
-        response.setContentType("application/json");
-        response.getWriter().write("{\"error\": \"" + errorMessage + "\"}");
-    }
+    return base64;
 }
