@@ -1,35 +1,37 @@
 import java.util.Base64;
-import java.io.*;
-import java.util.zip.GZIPInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
-public class Base64GzipDecoder {
+public class PdfDecoder {
     public static void main(String[] args) {
+        String encodedPdf = "H4sIAAAAAAAAAH1WiVZTWRbtAsU..."; // Truncated for clarity
+        
+        // Step 1: Base64 decode
+        byte[] decodedBytes = Base64.getDecoder().decode(encodedPdf);
+        
         try {
-            // Step 1: Decode the Base64 string
-            String base64String = "H4sIAAAAAAAA....";  // Your long string here
-            byte[] compressedData = Base64.getDecoder().decode(base64String);
-
-            // Step 2: Decompress the GZIP content
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(compressedData);
-            GZIPInputStream gzipInputStream = new GZIPInputStream(byteArrayInputStream);
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = gzipInputStream.read(buffer)) > 0) {
-                byteArrayOutputStream.write(buffer, 0, len);
+            // Step 2: Optionally, decompress using GZIP if needed (check if it is compressed).
+            byte[] decompressedBytes = decompress(decodedBytes);
+            
+            // Step 3: Write to file
+            try (FileOutputStream fos = new FileOutputStream("output.pdf")) {
+                fos.write(decompressedBytes);
             }
-
-            // Step 3: Write decompressed data to a PDF file
-            byte[] pdfData = byteArrayOutputStream.toByteArray();
-            FileOutputStream fos = new FileOutputStream("output.pdf");
-            fos.write(pdfData);
-            fos.close();
-
-            System.out.println("PDF successfully created.");
-
-        } catch (Exception e) {
+            System.out.println("PDF saved successfully!");
+        } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static byte[] decompress(byte[] compressedData) throws IOException {
+        // Assuming GZIP compression
+        java.util.zip.GZIPInputStream gzipInputStream = new java.util.zip.GZIPInputStream(new java.io.ByteArrayInputStream(compressedData));
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = gzipInputStream.read(buffer)) != -1) {
+            out.write(buffer, 0, len);
+        }
+        return out.toByteArray();
     }
 }
