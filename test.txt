@@ -1,51 +1,35 @@
 package com.cs.ceweb.servlets;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.ObjectInputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Base64;
+import java.util.zip.GZIPInputStream;
 
-import com.cs.core.utility.StringUtil;
-import com.sun.xml.internal.messaging.saaj.packaging.mime.internet.MimeUtility;
+import com.cs.core.utility.CompressUtil;
+import com.cs.eximap.utility.Base64;
 
 public class Base64ToPdf {
-    
     public static void main(String[] args) throws Exception {
-        // Read the encoded Base64 string from the text file
         String encodedString = new String(Files.readAllBytes(Paths.get("C:\\Users\\v1013325\\Desktop\\TODAY\\output.txt")));
         
-        // Replace spaces with line breaks as needed
-        encodedString = StringUtil.replace(" ", "\r\n", encodedString);
-
-        // Convert the string to a byte array using ISO-8859-1 charset
-        byte[] dataByte = encodedString.getBytes("ISO-8859-1");
-
-        // Create a ByteArrayInputStream from the byte array
-        ByteArrayInputStream bais = new ByteArrayInputStream(dataByte);
-
-        // Decode the Base64 input stream
-        InputStream is = MimeUtility.decode(bais, "base64");
-
-        // Prepare to write the decoded data into a PDF file
-        OutputStream os = Files.newOutputStream(Paths.get("C:\\Users\\v1013325\\Desktop\\TODAY\\Document.pdf"));
-
-        // Buffer for reading the decoded data
-        byte[] buffer = new byte[1024];
-        int bytesRead;
-
-        // Write the decoded data to the output file
-        while ((bytesRead = is.read(buffer)) != -1) {
-            os.write(buffer, 0, bytesRead);
-        }
-
-        // Ensure that all data is written and flush the output stream
-        os.flush();
-        os.close();
-        is.close();
-        bais.close();
-
-        System.out.println("Decoded PDF file saved to C:\\Users\\v1013325\\Desktop\\TODAY\\Document.pdf");
+        System.out.println("encodedString is "+encodedString);
+        encodedString = (String) decompressByBase64(encodedString);
+        //encodedString = encodedString.replaceAll("[^A-Za-z0-9+/=]", "");
+        
+        //encodedString = fixBase64Padding(encodedString);
+        System.out.println("encodedString is "+encodedString);
+        Files.write(Paths.get("C:\\Users\\v1013325\\Desktop\\TODAY\\Document.pdf"), encodedString);
+    }
+    
+    public static Object decompressByBase64(String str) throws Exception
+    {
+    
+      if (str == null) return str;
+      byte[] tempByte = Base64.decode(str);
+      ByteArrayInputStream bos = new ByteArrayInputStream(tempByte);
+      ObjectInputStream objIn = new ObjectInputStream(new GZIPInputStream(bos));
+      Object obj = objIn.readObject();
+      return obj;
     }
 }
