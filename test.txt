@@ -1,40 +1,43 @@
 package com.cs.ceweb.servlets;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.zip.GZIPInputStream;
-
 import com.cs.eximap.utility.Base64;
 
 public class Base64ToPdf {
     public static void main(String[] args) throws Exception {
         String encodedString = new String(Files.readAllBytes(Paths.get("C:\\Users\\v1013325\\Desktop\\TODAY\\output.txt")));
-
-        System.out.println("Encoded string is " + encodedString);
-
-        // Decode and decompress the Base64 string
-        byte[] decodedBytes = decompressByBase64(encodedString);
-
-        // Write the decompressed bytes to a PDF file
-        Files.write(Paths.get("C:\\Users\\v1013325\\Desktop\\TODAY\\Document.pdf"), decodedBytes);
-
-        System.out.println("PDF file created successfully.");
+        encodedString = encodedString.replaceAll("[^A-Za-z0-9+/=]", "");
+        encodedString = fixBase64Padding(encodedString);
+        System.out.println("encodedString is "+encodedString);
+        encodedString = (String) decompressByBase64(encodedString);
+        System.out.println("encodedString is "+encodedString);
     }
-
-    public static byte[] decompressByBase64(String encodedString) throws IOException {
-        if (encodedString == null || encodedString.isEmpty()) return null;
-
-        // Decode the Base64 string to get compressed bytes
-        byte[] compressedBytes = Base64.decode(encodedString);
-
-        // Decompress the GZIP compressed byte array
-        try (ByteArrayInputStream byteStream = new ByteArrayInputStream(compressedBytes);
-             GZIPInputStream gzipStream = new GZIPInputStream(byteStream)) {
-
-            // Read decompressed data into a byte array
-            return gzipStream.readAllBytes();
+    private static String fixBase64Padding(String base64) {
+        while (base64.length() % 4 != 0) {
+            base64 += "=";
         }
+        return base64;
+    }
+    
+    public static Object decompressByBase64(String str) throws Exception
+    {
+    
+      if (str == null) return str;
+      byte[] tempByte = Base64.decode(str);
+      ByteArrayInputStream bos = new ByteArrayInputStream(tempByte);
+      ObjectInputStream objIn = new ObjectInputStream(new GZIPInputStream(bos));
+      Object obj = objIn.readObject();
+      return obj;
     }
 }
+
+
+
+
+
+ERROR:: Exception in thread "main" java.lang.ClassCastException: [B cannot be cast to java.lang.String
+	at com.cs.ceweb.servlets.Base64ToPdf.main(Base64ToPdf.java:18)
