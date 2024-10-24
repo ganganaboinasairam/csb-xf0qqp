@@ -1,35 +1,3 @@
-package com.cs.ceweb.servlets;
+Dear Sir,
 
-import java.io.ByteArrayInputStream;
-import java.io.ObjectInputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.zip.GZIPInputStream;
-
-import com.cs.core.utility.CompressUtil;
-import com.cs.eximap.utility.Base64;
-
-public class Base64ToPdf {
-    public static void main(String[] args) throws Exception {
-        String encodedString = new String(Files.readAllBytes(Paths.get("C:\\Users\\v1013325\\Desktop\\TODAY\\output.txt")));
-        
-        System.out.println("encodedString is "+encodedString);
-        encodedString = (String) decompressByBase64(encodedString);
-        //encodedString = encodedString.replaceAll("[^A-Za-z0-9+/=]", "");
-        
-        //encodedString = fixBase64Padding(encodedString);
-        System.out.println("encodedString is "+encodedString);
-        Files.write(Paths.get("C:\\Users\\v1013325\\Desktop\\TODAY\\Document.pdf"), encodedString);
-    }
-    
-    public static Object decompressByBase64(String str) throws Exception
-    {
-    
-      if (str == null) return str;
-      byte[] tempByte = Base64.decode(str);
-      ByteArrayInputStream bos = new ByteArrayInputStream(tempByte);
-      ObjectInputStream objIn = new ObjectInputStream(new GZIPInputStream(bos));
-      Object obj = objIn.readObject();
-      return obj;
-    }
-}
+We have Created a user to get Access for multiple users simultaneously, but the user is unable to edit the files in the system. That is why we have deleted the user in shot time span.
