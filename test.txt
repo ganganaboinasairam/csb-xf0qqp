@@ -1,5 +1,9 @@
-Dear team,
+Dear Team,
 
-we are facing MQ issues in CE DEV, IDE , ST regions , due to which we are anable to release the transaction , kindly Help us to reslove the issue ASAP.
+We are currently experiencing MQ issues in the CE DEV, IDE, and ST regions, which is preventing us from releasing transactions. We would appreciate your assistance in resolving this issue as soon as possible.
 
-Also find the attached trail mail with the IBM team team regarding the same issue .
+Please find attached the previous communication with the IBM team regarding this issue for your reference.
+
+Kind regards,
+[Your Name]
+
