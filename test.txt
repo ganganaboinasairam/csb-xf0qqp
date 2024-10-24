@@ -1,21 +1,40 @@
-Here's a more polished version of your email:
+package com.cs.ceweb.servlets;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.zip.GZIPInputStream;
 
----
+import com.cs.eximap.utility.Base64;
 
-Subject: Clarification Regarding Remote Desktop User Creation
+public class Base64ToPdf {
+    public static void main(String[] args) throws Exception {
+        String encodedString = new String(Files.readAllBytes(Paths.get("C:\\Users\\v1013325\\Desktop\\TODAY\\output.txt")));
 
-Dear Sir,
+        System.out.println("Encoded string is " + encodedString);
 
-I would like to clarify the recent incident regarding the creation of a user account on the Windows server. Since the server allows only one person to access the system at a time, we created an additional user account to enable multiple users to work simultaneously. However, the user account we created did not have the necessary permissions to edit files, and therefore, we deleted the account shortly after it was created.
+        // Decode and decompress the Base64 string
+        byte[] decodedBytes = decompressByBase64(encodedString);
 
-I hope this explanation addresses the concern, and I apologize for any confusion caused. Please let me know if you require further details.
+        // Write the decompressed bytes to a PDF file
+        Files.write(Paths.get("C:\\Users\\v1013325\\Desktop\\TODAY\\Document.pdf"), decodedBytes);
 
-Best regards,
-[Your Name]
+        System.out.println("PDF file created successfully.");
+    }
 
+    public static byte[] decompressByBase64(String encodedString) throws IOException {
+        if (encodedString == null || encodedString.isEmpty()) return null;
 
----
+        // Decode the Base64 string to get compressed bytes
+        byte[] compressedBytes = Base64.decode(encodedString);
 
-This version is clearer and more formal for professional communication.
+        // Decompress the GZIP compressed byte array
+        try (ByteArrayInputStream byteStream = new ByteArrayInputStream(compressedBytes);
+             GZIPInputStream gzipStream = new GZIPInputStream(byteStream)) {
 
+            // Read decompressed data into a byte array
+            return gzipStream.readAllBytes();
+        }
+    }
+}
