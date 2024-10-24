@@ -1,3 +1,21 @@
+Here's a more polished version of your email:
+
+
+---
+
+Subject: Clarification Regarding Remote Desktop User Creation
+
 Dear Sir,
 
-We have Created a user to get Access for multiple users simultaneously, but the user is unable to edit the files in the system. That is why we have deleted the user in shot time span.
+I would like to clarify the recent incident regarding the creation of a user account on the Windows server. Since the server allows only one person to access the system at a time, we created an additional user account to enable multiple users to work simultaneously. However, the user account we created did not have the necessary permissions to edit files, and therefore, we deleted the account shortly after it was created.
+
+I hope this explanation addresses the concern, and I apologize for any confusion caused. Please let me know if you require further details.
+
+Best regards,
+[Your Name]
+
+
+---
+
+This version is clearer and more formal for professional communication.
+
