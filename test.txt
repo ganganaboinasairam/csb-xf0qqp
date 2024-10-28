@@ -1,7 +1,134 @@
-It is working fine, but.
+function convertAmountToWords(currencyCode, amountId) {
+    // Comprehensive currency configuration with international standards
+    const currencyConfig = {
+        "USD": { major: "Dollar", minor: "Cent", system: "western" },
+        "INR": { major: "Rupee", minor: "Paise", system: "indian" },
+        "EUR": { major: "Euro", minor: "Cent", system: "western" },
+        "GBP": { major: "Pound", minor: "Pence", system: "western" },
+        "JPY": { major: "Yen", minor: "Sen", system: "western" },
+        "CNY": { major: "Yuan", minor: "Fen", system: "western" },
+        "AUD": { major: "Australian Dollar", minor: "Cent", system: "western" },
+        "CAD": { major: "Canadian Dollar", minor: "Cent", system: "western" },
+        "SGD": { major: "Singapore Dollar", minor: "Cent", system: "western" },
+        "ZAR": { major: "Rand", minor: "Cent", system: "western" },
+        "BRL": { major: "Real", minor: "Centavo", system: "western" },
+        // Add more currencies here if needed
+    };
 
-1. if ammount include comma first it should be removed and convert
-2. include all the currency in the world.
-3. the function should accept two fields like, convertAmountToWords("LC_CCY","LC_AMT")
+    // Validate if currency is supported
+    if (!currencyConfig[currencyCode]) {
+        return "Currency not supported";
+    }
 
-improve as per the above points
+    // Get currency settings
+    const { major, minor, system } = currencyConfig[currencyCode];
+
+    // Remove commas from amount input and convert to float
+    let amountString = document.getElementById(amountId).value.replace(/,/g, '');
+    let amount = parseFloat(amountString);
+
+    // Validate the amount
+    if (isNaN(amount) || amount < 0) {
+        return "Please enter a valid amount";
+    }
+
+    // Convert numbers to words (Western number system)
+    function numberToWordsWestern(num) {
+        const belowTwenty = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+        const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+        const aboveThousand = ["", "Thousand", "Million", "Billion", "Trillion"];
+
+        if (num === 0) return "Zero";
+
+        let words = "";
+
+        function convertHundred(num) {
+            let result = "";
+            if (num > 99) {
+                result += belowTwenty[Math.floor(num / 100)] + " Hundred ";
+                num %= 100;
+            }
+            if (num > 19) {
+                result += tens[Math.floor(num / 10)] + " ";
+                num %= 10;
+            }
+            if (num > 0) {
+                result += belowTwenty[num] + " ";
+            }
+            return result.trim();
+        }
+
+        let index = 0;
+        while (num > 0) {
+            if (num % 1000 !== 0) {
+                words = convertHundred(num % 1000) + " " + aboveThousand[index] + " " + words;
+            }
+            num = Math.floor(num / 1000);
+            index++;
+        }
+
+        return words.trim();
+    }
+
+    // Convert numbers to words (Indian number system)
+    function numberToWordsIndian(num) {
+        const belowTwenty = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+        const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+        const aboveThousand = ["", "Thousand", "Lakh", "Crore"];
+
+        if (num === 0) return "Zero";
+
+        let words = "";
+
+        function convertHundred(num) {
+            let result = "";
+            if (num > 99) {
+                result += belowTwenty[Math.floor(num / 100)] + " Hundred ";
+                num %= 100;
+            }
+            if (num > 19) {
+                result += tens[Math.floor(num / 10)] + " ";
+                num %= 10;
+            }
+            if (num > 0) {
+                result += belowTwenty[num] + " ";
+            }
+            return result.trim();
+        }
+
+        let index = 0;
+        while (num > 0) {
+            let part = num % (index === 1 ? 100 : 1000);  // Switch to Lakh and Crore after thousands
+            if (part !== 0) {
+                words = convertHundred(part) + " " + aboveThousand[index] + " " + words;
+            }
+            num = Math.floor(num / (index === 1 ? 100 : 1000));
+            index++;
+        }
+
+        return words.trim();
+    }
+
+    // Get integer and decimal parts of the amount
+    const integerPart = Math.floor(amount);
+    const decimalPart = Math.round((amount - integerPart) * 100);
+
+    // Convert integer and decimal parts to words based on numbering system
+    let integerWords = system === "indian" ? numberToWordsIndian(integerPart) : numberToWordsWestern(integerPart);
+    let decimalWords = decimalPart > 0 ? (system === "indian" ? numberToWordsIndian(decimalPart) : numberToWordsWestern(decimalPart)) : "";
+
+    // Construct the full amount in words
+    let words = `${integerWords} ${major}`;
+    if (decimalPart > 0) {
+        words += ` and ${decimalWords} ${minor}`;
+    }
+
+    return words;
+}
+
+// Example usage:
+// Assuming you have input fields with IDs 'LC_CCY' and 'LC_AMT'
+function displayAmountInWords() {
+    const result = convertAmountToWords("LC_CCY", "LC_AMT");
+    document.getElementById("amountInWords").innerText = result;
+}
