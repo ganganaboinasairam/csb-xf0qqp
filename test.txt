@@ -1,9 +1,8 @@
-Dear Team,
+Dear Uddhav,
 
-We are currently experiencing MQ issues in the CE DEV, IDE, and ST regions, which is preventing us from releasing transactions. We would appreciate your assistance in resolving this issue as soon as possible.
+As per the Solution Document we received for Forward contract.
 
-Please find attached the previous communication with the IBM team regarding this issue for your reference.
+There is no screen fields and validation Sheet attached and we need more clarity on the functionality.
 
-Kind regards,
-[Your Name]
+Please do the needful ASAP.
 
