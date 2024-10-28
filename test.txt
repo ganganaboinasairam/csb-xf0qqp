@@ -1,10 +1,23 @@
-Dear team,
+Here's a refined version of your email:
 
-We are facing MQ related issues in CE_ST region(10.191.153.213 , 4489).
 
-On the same IBM team has suggested to update the MQ Software to resolve the issue.
+---
 
-Current version of MQ is 9.1.0.5, which is Outdated as per now.
+Subject: Assistance Required for MQ Software Update in CE_ST Region
 
-Kindly help us on the same .
+Dear Team,
+
+We are currently experiencing MQ-related issues in the CE_ST region (10.191.153.213, port 4489). The IBM team has recommended updating the MQ software to resolve these issues.
+
+The current MQ version is 9.1.0.5, which is now outdated. Could you please assist us in updating the software at the earliest?
+
+Thank you for your support.
+
+Best regards,
+[Your Name]
+
+
+---
+
+This version is clear and professional, emphasizing the request for assistance.
 
