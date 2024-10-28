@@ -1,23 +1,10 @@
-Here's a refined version of your email:
+Dear team,
 
+We are facing MQ related issues in CE_ST region(10.191.153.213 , 4489).
 
----
+On the same IBM team has suggested to update the MQ Software to resolve the issue.
 
-Subject: Request for Additional Information on Forward Contract Solution Document
+Current version of MQ is 9.1.0.5, which is Outdated as per now.
 
-Dear Uddhav,
-
-We have reviewed the Solution Document received for the Forward Contract. However, it appears that the document does not include screen fields or a validation sheet, and we require further clarity on the functionality.
-
-Could you please provide the necessary details at your earliest convenience?
-
-Thank you for your assistance.
-
-Best regards,
-[Your Name]
-
-
----
-
-This revision is concise and professional, while clearly outlining your request.
+Kindly help us on the same .
 
