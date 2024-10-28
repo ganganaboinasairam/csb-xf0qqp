@@ -1,16 +1,34 @@
 function convertAmountToWords() {
+    // Define currency-specific labels and number formatting
+    const currencyConfig = {
+        "USD": { major: "Dollar", minor: "Cent", system: "western" },
+        "INR": { major: "Rupee", minor: "Paise", system: "indian" },
+        // Add more currencies here as needed
+        "EUR": { major: "Euro", minor: "Cent", system: "western" },
+        "GBP": { major: "Pound", minor: "Pence", system: "western" }
+    };
+
     // Input fields for currency and amount
     let currency = document.getElementById("LC_CCY").value.trim().toUpperCase();
     let amount = parseFloat(document.getElementById("LC_AMT").value);
 
-    // Basic validation
+    // Validate input
     if (isNaN(amount) || amount < 0) {
         alert("Please enter a valid amount");
         return;
     }
 
-    // Function to convert numbers to words
-    function numberToWords(num) {
+    // Check if currency is supported
+    if (!currencyConfig[currency]) {
+        alert("Currency not supported");
+        return;
+    }
+
+    // Get currency settings
+    const { major, minor, system } = currencyConfig[currency];
+
+    // Function to convert numbers to words (Western format)
+    function numberToWordsWestern(num) {
         const belowTwenty = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
         const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
         const aboveThousand = ["", "Thousand", "Million", "Billion", "Trillion"];
@@ -19,7 +37,6 @@ function convertAmountToWords() {
         
         let words = "";
 
-        // Helper function to handle chunks of 3 digits
         function convertHundred(num) {
             let result = "";
             if (num > 99) {
@@ -48,14 +65,57 @@ function convertAmountToWords() {
         return words.trim();
     }
 
+    // Function to convert numbers to words (Indian format)
+    function numberToWordsIndian(num) {
+        const belowTwenty = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+        const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+        const aboveThousand = ["", "Thousand", "Lakh", "Crore"];
+
+        if (num === 0) return "Zero";
+        
+        let words = "";
+
+        function convertHundred(num) {
+            let result = "";
+            if (num > 99) {
+                result += belowTwenty[Math.floor(num / 100)] + " Hundred ";
+                num %= 100;
+            }
+            if (num > 19) {
+                result += tens[Math.floor(num / 10)] + " ";
+                num %= 10;
+            }
+            if (num > 0) {
+                result += belowTwenty[num] + " ";
+            }
+            return result.trim();
+        }
+
+        let index = 0;
+        while (num > 0) {
+            let part = num % (index === 1 ? 100 : 1000);  // Thousands, then switch to Lakh and Crore
+            if (part !== 0) {
+                words = convertHundred(part) + " " + aboveThousand[index] + " " + words;
+            }
+            num = Math.floor(num / (index === 1 ? 100 : 1000));
+            index++;
+        }
+
+        return words.trim();
+    }
+
     // Get integer and decimal parts of the amount
     const integerPart = Math.floor(amount);
     const decimalPart = Math.round((amount - integerPart) * 100);
 
-    // Convert integer part and decimal part to words
-    let words = `${numberToWords(integerPart)} ${currency}`;
+    // Convert integer part and decimal part to words based on number system
+    let integerWords = system === "indian" ? numberToWordsIndian(integerPart) : numberToWordsWestern(integerPart);
+    let decimalWords = decimalPart > 0 ? (system === "indian" ? numberToWordsIndian(decimalPart) : numberToWordsWestern(decimalPart)) : "";
+
+    // Construct the amount in words
+    let words = `${integerWords} ${major}`;
     if (decimalPart > 0) {
-        words += ` and ${numberToWords(decimalPart)} Cents`;
+        words += ` and ${decimalWords} ${minor}`;
     }
 
     // Display the result
@@ -64,8 +124,3 @@ function convertAmountToWords() {
 
 // Example usage:
 // Add an HTML button to trigger this function and a span to display the result
-
-<input type="text" id="LC_CCY" placeholder="Enter Currency (e.g., USD)">
-<input type="number" id="LC_AMT" placeholder="Enter Amount">
-<button onclick="convertAmountToWords()">Convert to Words</button>
-<p id="amountInWords"></p>
