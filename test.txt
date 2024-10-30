@@ -1,5 +1,9 @@
-Dear team,
+Dear Team,
 
-The MQ is running fine on the old version i.e., 9.1.0.5, we have not installed the latest version.
+The MQ is functioning well on the previous version, 9.1.0.5, as we have not yet installed the latest update.
 
-Thank you for your quick response and support, we will connect with you in case of any issue .
+Thank you for your prompt response and support. We will reach out if any issues arise.
+
+Best regards,
+[Your Name]
+
