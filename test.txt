@@ -1,13 +1,22 @@
-Nov 04, 2024 7:11:49 PM com.tcs.lc.DBCON getConnection
-INFO: ORA-28040: No matching authentication protocol
+i want to wite a js tool for forming a sql select query, i will pass table name and xml in input fields. The middle field is the table field and the tag name is the alias of that field.
 
-Exception in thread "main" java.lang.reflect.InvocationTargetException
-        at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-        at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
-        at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-        at java.lang.reflect.Method.invoke(Method.java:498)
-        at org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader.main(JarRsrcLoader.java:58)
-Caused by: java.lang.NullPointerException
-        at com.tcs.lc.XmlGen.main(XmlGen.java:73)
-        ... 5 more
-[weblogic@TFNEWEEUATAPP Java]$
+for example :
+
+table name : INLC_MASTER
+
+XML TEXT: 
+
+<PROC_BR_CODE ec-tag="N" fv-type="F" op-tag="N" order="66">ORGI_BR_CODE</PROC_BR_CODE>
+        <NEW_APPL_ADD ec-tag="N" fv-type="F" op-tag="N" order="68">NEW_APPL_NM_ADD</NEW_APPL_ADD>
+        <PORT_OF_SHIP_CODE ec-tag="N" fv-type="F" op-tag="N" order="69">PORT_OF_CODE</PORT_OF_SHIP_CODE>
+        <SHIP_TO ec-tag="N" fv-type="F" op-tag="N" order="70">PORT_OF_DELV</SHIP_TO>
+        <BENE_ID ec-tag="N" fv-type="F" op-tag="N" order="74">BENE_ID</BENE_ID>
+        <NEW_BENE_NM_ADD ec-tag="N" fv-type="F" op-tag="N" order="75">NEW_BENE_NM_AND_ADD</NEW_BENE_NM_ADD>
+        <TEMP1 ec-tag="N" fv-type="F" op-tag="N" order="76">TEMP1</TEMP1>
+        <LC_BALA ec-tag="N" fv-type="F" op-tag="N" order="77">NEW_LC_BAL</LC_BALA>
+        <TENOR_FROM ec-tag="N" fv-type="F" op-tag="N" order="78">USANCE_FROM</TENOR_FROM>
+		
+		
+REQUIRED OUTPUT:
+
+SELECT ORGI_BR_CODE PROC_BR_CODE,NEW_APPL_NM_ADD NEW_APPL_ADD,PORT_OF_CODE PORT_OF_SHIP_CODE,PORT_OF_DELV SHIP_TO,BENE_ID BENE_ID,NEW_BENE_NM_AND_ADD NEW_BENE_NM_ADD,TEMP1 TEMP1 NEW_LC_BAL LC_BALA, USANCE_FROM TENOR_FROM FROM INLC_MASTER;
