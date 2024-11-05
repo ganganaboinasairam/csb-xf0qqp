@@ -1,5 +1,65 @@
-input: SELECT NEW_AVAIL_CONTCT NEW_AVAIL_CONTCT, NEW_BENE_BK_NM NEW_BENE_BK_NM, NEW_BENE_BK_ADD NEW_BENE_BK_ADD, NEW_ORIG_CONTRACT_VAL NEW_ORIG_CONTRACT_VAL FROM INLC_MASTER;
+DECLARE
+    input_query    VARCHAR2(4000) := 'SELECT FORM_OF_LC FORM_OF_LC, APPL_ID APPL_ID, APPL_NM APPL_NM, APPL_ADD APPL_ADD, BENE_NM_ADD BENE_NM_ADD, NEW_LC_AMT LC_AMT FROM INLC_MASTER';
+    table_name     VARCHAR2(100) := 'INLC_MASTER';
+    valid_query    VARCHAR2(4000);
+    col_name       VARCHAR2(100);
+    alias_name     VARCHAR2(100);
+    col_list       VARCHAR2(4000);
+    token          VARCHAR2(1000);
+    pos            NUMBER;
+    column_count   NUMBER;
 
-output: SELECT NEW_AVAIL_CONTCT, NEW_BENE_BK_NM, NEW_BENE_BK_ADD, NEW_ORIG_CONTRACT_VAL FROM INLC_MASTER;
+BEGIN
+    -- Initialize valid_query with the starting portion of the select
+    valid_query := 'SELECT ';
 
-but NEW_AVAIL_CONTCT, NEW_BENE_BK_NM, NEW_BENE_BK_ADD, NEW_ORIG_CONTRACT_VAL are not present in the table and alies need to be untouched and to be avaiable in output
+    -- Extract each column in the select statement from the input query
+    input_query := REGEXP_REPLACE(input_query, '.*SELECT\s+', '', 1, 1, 'i');
+    input_query := REGEXP_REPLACE(input_query, 'FROM.*', '');
+
+    -- Loop through each column in the input_query
+    LOOP
+        -- Find the next comma
+        pos := INSTR(input_query, ',');
+
+        -- If no more commas, get the remaining part
+        IF pos = 0 THEN
+            token := TRIM(input_query);
+        ELSE
+            token := TRIM(SUBSTR(input_query, 1, pos - 1));
+            input_query := SUBSTR(input_query, pos + 1);
+        END IF;
+
+        -- Extract column name and alias, if any
+        col_name := REGEXP_SUBSTR(token, '^[^ ]+');
+        alias_name := REGEXP_SUBSTR(token, '[^ ]+$');
+        IF alias_name = col_name THEN
+            alias_name := NULL; -- No alias
+        END IF;
+
+        -- Check if column exists in the table, convert col_name to uppercase
+        SELECT COUNT(*) INTO column_count
+        FROM ALL_TAB_COLUMNS
+        WHERE TABLE_NAME = UPPER(table_name)
+        AND COLUMN_NAME = UPPER(col_name);
+
+        -- If column exists, add it to the valid_query
+        IF column_count > 0 THEN
+            IF alias_name IS NOT NULL THEN
+                col_list := col_list || ', ' || col_name || ' ' || alias_name;
+            ELSE
+                col_list := col_list || ', ' || col_name;
+            END IF;
+        END IF;
+
+        -- Exit the loop if we processed the last column
+        EXIT WHEN pos = 0;
+    END LOOP;
+
+    -- Remove the leading comma and add the FROM clause
+    valid_query := valid_query || SUBSTR(col_list, 3) || ' FROM ' || table_name;
+
+    -- Output the valid query
+    DBMS_OUTPUT.PUT_LINE(valid_query);
+END;
+/
