@@ -1,19 +1,21 @@
 DECLARE
-    input_query    VARCHAR2(4000) := 'SELECT FORM_OF_LC FORM_OF_LC, APPL_ID APPL_ID, APPL_NM APPL_NM, APPL_ADD APPL_ADD, BENE_NM_ADD BENE_NM_ADD, NEW_LC_AMT LC_AMT FROM INLC_MASTER';
+    TYPE ColumnArray IS TABLE OF VARCHAR2(100);
+    column_names ColumnArray;
+    input_query    VARCHAR2(4000) := 'SELECT FORM_OF_LC FORM_OF_LC, APPL_ID APPL_ID7, APPL_NM APPL_NM3, APPL_ADD APPL_ADD2, BENE_NM_ADD BENE_NM_ADD2, NEW_LC_AMT LC_AMT FROM INLC_MASTER';
     table_name     VARCHAR2(100) := 'INLC_MASTER';
-    valid_query    VARCHAR2(4000);
-    col_name       VARCHAR2(100);
-    alias_name     VARCHAR2(100);
-    col_list       VARCHAR2(4000);
+    valid_query    VARCHAR2(4000) := 'SELECT ';
+    col_list       VARCHAR2(4000) := '';
     token          VARCHAR2(1000);
     pos            NUMBER;
-    column_count   NUMBER;
 
 BEGIN
-    -- Initialize valid_query with the starting portion of the select
-    valid_query := 'SELECT ';
+    -- Retrieve column names into the array
+    SELECT COLUMN_NAME
+    BULK COLLECT INTO column_names
+    FROM ALL_TAB_COLUMNS
+    WHERE TABLE_NAME = UPPER(table_name);
 
-    -- Extract each column in the select statement from the input query
+    -- Extract the column list from the input query
     input_query := REGEXP_REPLACE(input_query, '.*SELECT\s+', '', 1, 1, 'i');
     input_query := REGEXP_REPLACE(input_query, 'FROM.*', '');
 
@@ -30,34 +32,52 @@ BEGIN
             input_query := SUBSTR(input_query, pos + 1);
         END IF;
 
-        -- Extract column name and alias, if any
-        col_name := REGEXP_SUBSTR(token, '^[^ ]+');
-        alias_name := REGEXP_SUBSTR(token, '[^ ]+$');
-        IF alias_name = col_name THEN
-            alias_name := NULL; -- No alias
-        END IF;
+        DECLARE
+            col_name      VARCHAR2(100);
+            alias_name    VARCHAR2(100);
+            column_exists  BOOLEAN := FALSE;
 
-        -- Check if column exists in the table, convert col_name to uppercase
-        SELECT COUNT(*) INTO column_count
-        FROM ALL_TAB_COLUMNS
-        WHERE TABLE_NAME = UPPER(table_name)
-        AND COLUMN_NAME = UPPER(col_name);
+        BEGIN
+            -- Extract column name and alias, if any
+            col_name := TRIM(REGEXP_SUBSTR(token, '^[^ ]+'));
+            alias_name := TRIM(REGEXP_SUBSTR(token, '\s+(\S+)$'));
 
-        -- If column exists, add it to the valid_query
-        IF column_count > 0 THEN
-            IF alias_name IS NOT NULL THEN
-                col_list := col_list || ', ' || col_name || ' ' || alias_name;
+            -- If no alias found, set alias_name to NULL
+            IF alias_name = col_name THEN
+                alias_name := NULL; -- No alias
             ELSE
-                col_list := col_list || ', ' || col_name;
+                alias_name := TRIM(REPLACE(alias_name, ' ', ''));
             END IF;
-        END IF;
+
+            -- Check if column exists in the column_names array
+            FOR i IN 1 .. column_names.COUNT LOOP
+                IF UPPER(column_names(i)) = UPPER(col_name) THEN
+                    column_exists := TRUE;
+                    EXIT;
+                END IF;
+            END LOOP;
+
+            -- If column exists, add it to the valid_query
+            IF column_exists THEN
+                IF col_list IS NOT NULL THEN
+                    col_list := col_list || ', ';
+                END IF;
+                col_list := col_list || col_name;
+
+                -- If there's an alias, include it
+                IF alias_name IS NOT NULL THEN
+                    col_list := col_list || ' ' || alias_name;
+                END IF;
+            END IF;
+
+        END;
 
         -- Exit the loop if we processed the last column
         EXIT WHEN pos = 0;
     END LOOP;
 
-    -- Remove the leading comma and add the FROM clause
-    valid_query := valid_query || SUBSTR(col_list, 3) || ' FROM ' || table_name;
+    -- Construct the final valid query
+    valid_query := valid_query || col_list || ' FROM ' || table_name;
 
     -- Output the valid query
     DBMS_OUTPUT.PUT_LINE(valid_query);
