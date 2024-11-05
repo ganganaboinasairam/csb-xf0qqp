@@ -2,4 +2,4 @@ input: SELECT NEW_AVAIL_CONTCT NEW_AVAIL_CONTCT, NEW_BENE_BK_NM NEW_BENE_BK_NM, 
 
 output: SELECT NEW_AVAIL_CONTCT, NEW_BENE_BK_NM, NEW_BENE_BK_ADD, NEW_ORIG_CONTRACT_VAL FROM INLC_MASTER;
 
-but non of the select fields in the output query are present in the table and alies need to be untouched and to be avaiable in output
+but NEW_AVAIL_CONTCT, NEW_BENE_BK_NM, NEW_BENE_BK_ADD, NEW_ORIG_CONTRACT_VAL are not present in the table and alies need to be untouched and to be avaiable in output
