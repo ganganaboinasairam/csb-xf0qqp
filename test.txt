@@ -1,19 +1,65 @@
-I NEED A SQL FUNCTION , IN WHICH I WILL PASS THE SQL SELECT QUERY AND THE FUNCTION SHOULD CHECK ALL THE SELECT FIELDS IN THE TABLE AND REMOVE THE SELECT FIELDS FROM THE QUERY WHICH ARE NOT THEIR IN THE TABLE .
+DECLARE
+    input_query    VARCHAR2(1000) := 'SELECT FORM_OF_LC FORM_OF_LC, APPL_ID APPL_ID7, APPL_NM APPL_NM3, APPL_ADD APPL_ADD2, BENE_NM_ADD BENE_NM_ADD2, NEW_LC_AMT LC_AMT FROM INIS_MASTER';
+    table_name     VARCHAR2(100) := 'INIS_MASTER';
+    valid_query    VARCHAR2(1000);
+    col_name       VARCHAR2(100);
+    alias_name     VARCHAR2(100);
+    col_list       VARCHAR2(1000);
+    token          VARCHAR2(1000);
+    pos            NUMBER;
+    column_exists  BOOLEAN;
 
-EXAMPLE:
+BEGIN
+    -- Initialize valid_query with the starting portion of the select
+    valid_query := 'SELECT ';
 
-SELECT FORM_OF_LC FORM_OF_LC,
-  APPL_ID APPL_ID7,
-  APPL_NM APPL_NM3,
-  APPL_ADD APPL_ADD2,
-  BENE_NM_ADD BENE_NM_ADD2,
-  NEW_LC_AMT LC_AMT
-  FROM INIS_MASTER;
-  
-  IN THE QUERY THE NEW_LC_AMT, APPL_NM IS NOT THEIR IN THE TABLE THE EXPECTED OUTPUT IS :
-  
- SELECT FORM_OF_LC FORM_OF_LC,
-  APPL_ID APPL_ID7,
-  APPL_ADD APPL_ADD2,
-  BENE_NM_ADD BENE_NM_ADD2
-  FROM INIS_MASTER;
+    -- Extract each column in the select statement from the input query
+    input_query := REGEXP_REPLACE(input_query, '.*SELECT\s+', '', 1, 1, 'i');
+    input_query := REGEXP_REPLACE(input_query, 'FROM.*', '');
+
+    -- Loop through each column in the input_query
+    LOOP
+        -- Find the next comma
+        pos := INSTR(input_query, ',');
+
+        -- If no more commas, get the remaining part
+        IF pos = 0 THEN
+            token := TRIM(input_query);
+        ELSE
+            token := TRIM(SUBSTR(input_query, 1, pos - 1));
+            input_query := SUBSTR(input_query, pos + 1);
+        END IF;
+
+        -- Extract column name and alias, if any
+        col_name := REGEXP_SUBSTR(token, '^[^ ]+');
+        alias_name := REGEXP_SUBSTR(token, '[^ ]+$');
+        IF alias_name = col_name THEN
+            alias_name := NULL; -- No alias
+        END IF;
+
+        -- Check if column exists in the table
+        SELECT COUNT(*) INTO column_exists
+        FROM ALL_TAB_COLUMNS
+        WHERE TABLE_NAME = table_name
+        AND COLUMN_NAME = col_name;
+
+        -- If column exists, add it to the valid_query
+        IF column_exists THEN
+            IF alias_name IS NOT NULL THEN
+                col_list := col_list || ', ' || col_name || ' ' || alias_name;
+            ELSE
+                col_list := col_list || ', ' || col_name;
+            END IF;
+        END IF;
+
+        -- Exit the loop if we processed the last column
+        EXIT WHEN pos = 0;
+    END LOOP;
+
+    -- Remove the leading comma and add the FROM clause
+    valid_query := valid_query || SUBSTR(col_list, 3) || ' FROM ' || table_name;
+
+    -- Output the valid query
+    DBMS_OUTPUT.PUT_LINE(valid_query);
+END;
+/
