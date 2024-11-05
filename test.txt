@@ -1,22 +1,53 @@
-i want to wite a js tool for forming a sql select query, i will pass table name and xml in input fields. The middle field is the table field and the tag name is the alias of that field.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SQL Query Generator</title>
+</head>
+<body>
+    <h3>SQL Select Query Generator</h3>
+    <label for="tableName">Table Name:</label>
+    <input type="text" id="tableName" placeholder="Enter table name"><br><br>
 
-for example :
+    <label for="xmlInput">XML Input:</label><br>
+    <textarea id="xmlInput" rows="10" cols="50" placeholder="Enter XML content"></textarea><br><br>
 
-table name : INLC_MASTER
+    <button onclick="generateSQL()">Generate SQL Query</button>
 
-XML TEXT: 
+    <h4>Generated SQL Query:</h4>
+    <pre id="sqlOutput"></pre>
 
-<PROC_BR_CODE ec-tag="N" fv-type="F" op-tag="N" order="66">ORGI_BR_CODE</PROC_BR_CODE>
-        <NEW_APPL_ADD ec-tag="N" fv-type="F" op-tag="N" order="68">NEW_APPL_NM_ADD</NEW_APPL_ADD>
-        <PORT_OF_SHIP_CODE ec-tag="N" fv-type="F" op-tag="N" order="69">PORT_OF_CODE</PORT_OF_SHIP_CODE>
-        <SHIP_TO ec-tag="N" fv-type="F" op-tag="N" order="70">PORT_OF_DELV</SHIP_TO>
-        <BENE_ID ec-tag="N" fv-type="F" op-tag="N" order="74">BENE_ID</BENE_ID>
-        <NEW_BENE_NM_ADD ec-tag="N" fv-type="F" op-tag="N" order="75">NEW_BENE_NM_AND_ADD</NEW_BENE_NM_ADD>
-        <TEMP1 ec-tag="N" fv-type="F" op-tag="N" order="76">TEMP1</TEMP1>
-        <LC_BALA ec-tag="N" fv-type="F" op-tag="N" order="77">NEW_LC_BAL</LC_BALA>
-        <TENOR_FROM ec-tag="N" fv-type="F" op-tag="N" order="78">USANCE_FROM</TENOR_FROM>
-		
-		
-REQUIRED OUTPUT:
+    <script>
+        function generateSQL() {
+            // Get table name and XML input
+            const tableName = document.getElementById('tableName').value.trim();
+            const xmlInput = document.getElementById('xmlInput').value.trim();
 
-SELECT ORGI_BR_CODE PROC_BR_CODE,NEW_APPL_NM_ADD NEW_APPL_ADD,PORT_OF_CODE PORT_OF_SHIP_CODE,PORT_OF_DELV SHIP_TO,BENE_ID BENE_ID,NEW_BENE_NM_AND_ADD NEW_BENE_NM_ADD,TEMP1 TEMP1 NEW_LC_BAL LC_BALA, USANCE_FROM TENOR_FROM FROM INLC_MASTER;
+            // Parse XML string to DOM
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(`<root>${xmlInput}</root>`, 'text/xml');
+
+            // Prepare the select query parts
+            let selectFields = [];
+
+            // Get each child element of the XML
+            const fields = xmlDoc.documentElement.children;
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+                const alias = field.tagName;
+                const column = field.textContent.trim();
+
+                // Format as "column alias"
+                selectFields.push(`${column} ${alias}`);
+            }
+
+            // Join the fields to form the select part of the SQL query
+            const selectPart = selectFields.join(", ");
+            const sqlQuery = `SELECT ${selectPart} FROM ${tableName};`;
+
+            // Display the generated SQL query
+            document.getElementById('sqlOutput').textContent = sqlQuery;
+        }
+    </script>
+</body>
+</html>
