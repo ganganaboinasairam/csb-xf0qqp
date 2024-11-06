@@ -1,11 +1,17 @@
-Ma'am,
+Subject: Data Fix for 2nd and 3rd Issues
 
-As per the trial mail, necessary Data fix is provided for the 2nd and 3rd issues.
+Dear Ma'am,
 
-For 2nd issue:
-We made the contract available for the new issuance.
+Following up on the trial mail, we have provided the necessary data fixes for the 2nd and 3rd issues.
 
-For 3rd issue:
+For the 2nd Issue:
+The contract has been made available for the new issuance.
 
-The LC's LCs (LC no 0069122LC0000178 LC Ref No 00691220W0600006 and LC no 0069122LC0000123 LC Ref No 00691220W0600003) are available in new menu.
-The LC request with eTrade reference number 00691240S0100150 is requested from the regular LC portal(Not rail LC), please arrange to issue new request for the same contract through railways portal.
+For the 3rd Issue:
+The LCs (LC No. 0069122LC0000178, LC Ref No. 00691220W0600006, and LC No. 0069122LC0000123, LC Ref No. 00691220W0600003) are now accessible in the new menu.
+
+Please note, the LC request with eTrade reference number 00691240S0100150 was initiated through the regular LC portal rather than the rail LC portal. To proceed, please arrange for a new request for the same contract through the railways portal.
+
+Best regards,
+[Your Name]
+
