@@ -1,17 +1,89 @@
-name: ganganaboina sairam
-contact:ganganaboinasairam@gmail.com|9542290214
-linkedin: ganganaboinasairam
+Here's a sample CV based on the details you provided:
 
-I needa CV for applying job, at present iam working as a software developer at TCS and my clint is SBI.
 
-1.working in the Sbi project which is based on the trade Finance, in TF iam working on the Customer enterprise and the develipement is mostly on the HTML,javaScript,oracle SQL and java. we use tools like "utility" to develop.
+---
 
-2. i have grip on java,HTML,CSS,java,python,node js ,sql, plsql.
+Ganganaboina Sairam
+Contact: ganganaboinasairam@gmail.com | +91 9542290214
+LinkedIn: linkedin.com/in/ganganaboinasairam
 
-3. My strengths are , i will try to do any work with at most perfection and understanding completely and i try to achieve the output in the easy way and try to avoide the repeted work.
 
-4. completed my graduation from "Aurora's technolycal and research instuite" in Electrical and electronics engg. in 2022 with 67.7 CGPA.
+---
 
-5. completed Diploma in "TRR college of polytechnic" in Electrical and electronics engg. in 2018 with 77 percentage.
+Professional Summary
 
-5. worked as NSS (National Service Scheme) head in college , conducted many programs as part of it.
+Software Developer with experience at Tata Consultancy Services (TCS) and a proven track record of working in the Trade Finance domain, specifically in a project for State Bank of India. Skilled in front-end and back-end development with expertise in Java, JavaScript, Oracle SQL, and associated web technologies. Known for a detail-oriented approach to problem-solving, with a focus on delivering efficient, reusable code and avoiding redundant tasks.
+
+
+---
+
+Technical Skills
+
+Languages: Java, Python, JavaScript, Node.js, SQL, PL/SQL
+
+Web Technologies: HTML, CSS, JavaScript
+
+Database: Oracle SQL
+
+Tools: Utility (SBI project-specific tool)
+
+
+
+---
+
+Professional Experience
+
+Tata Consultancy Services (TCS)
+Software Developer
+Client: State Bank of India (SBI)
+Duration: [Insert Date - Present]
+
+Working on a Trade Finance project with a focus on the Customer Enterprise component.
+
+Developing and maintaining web applications using HTML, JavaScript, Oracle SQL, and Java.
+
+Utilizing the “Utility” tool for development within the SBI project framework.
+
+Collaborating with cross-functional teams to enhance system functionality and ensure high-quality delivery.
+
+
+
+---
+
+Education
+
+Bachelor of Technology (B.Tech), Electrical and Electronics Engineering
+Aurora's Technological and Research Institute
+Graduated: 2022 | CGPA: 67.7
+
+Diploma, Electrical and Electronics Engineering
+TRR College of Polytechnic
+Graduated: 2018 | Percentage: 77%
+
+
+
+---
+
+Strengths
+
+Commitment to excellence and thorough understanding of assigned tasks.
+
+Ability to simplify complex problems and optimize workflows.
+
+Strong emphasis on avoiding repetitive tasks by creating efficient, reusable code.
+
+
+
+---
+
+Extracurricular Activities
+
+National Service Scheme (NSS) Head
+Organized and led various community service programs, enhancing teamwork, leadership, and organizational skills.
+
+
+
+---
+
+This CV format highlights your professional background, skills, and educational achievements in a clear, professional manner for prospective employers. Let me know if you'd like any changes!
+
