@@ -25,6 +25,11 @@
             font-size: 20px;
             margin: 10px;
         }
+
+        #board {
+            display: none; /* Hide the board initially */
+            border: 2px solid black; /* Add a border to the board */
+        }
     </style>
 </head>
 
@@ -69,10 +74,6 @@
 
             let highScore = sessionStorage.getItem("Hscore") || 0;
             document.getElementById("Hscore").innerText = "High Score: " + highScore;
-
-            placeFood();
-            document.addEventListener("keyup", changeDirection);
-            setInterval(update, 1000 / speed);
 
             // Event listeners for Easy and Hard buttons
             document.getElementById("easyBtn").addEventListener("click", function () {
@@ -193,6 +194,7 @@
         function setEasyMode() {
             isEasyMode = true;
             speed = 8;  // Slower speed in easy mode
+            document.getElementById("board").style.display = "block"; // Show the board
             setInterval(update, 1000 / speed);
         }
 
@@ -200,6 +202,7 @@
         function setHardMode() {
             isEasyMode = false;
             speed = 15;  // Faster speed in hard mode
+            document.getElementById("board").style.display = "block"; // Show the board
             setInterval(update, 1000 / speed);
         }
     </script>
