@@ -1,70 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQL Insert Query Parser</title>
-    <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 8px;
-            border: 1px solid #ddd;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQL to Key-Value Converter</title>
 </head>
 <body>
-    <h2>SQL Insert Query Parser</h2>
-    <textarea id="sqlQuery" rows="10" cols="80" placeholder="Enter your INSERT query here"></textarea>
-    <br><br>
-    <button onclick="parseInsertQuery()">Parse Query</button>
-    <br><br>
-    <table id="resultTable">
-        <thead>
-            <tr>
-                <th>Field</th>
-                <th>Value</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+  <h2>SQL to Key-Value Pair Converter</h2>
+  <textarea id="sqlInput" rows="10" cols="100" placeholder="Paste your INSERT SQL statement here"></textarea>
+  <br><br>
+  <button onclick="convertSQL()">Convert to Key-Value Pair</button>
+  <br><br>
+  <pre id="output"></pre>
 
-    <script>
-        function parseInsertQuery() {
-            const query = document.getElementById("sqlQuery").value;
-            const resultTable = document.getElementById("resultTable").getElementsByTagName('tbody')[0];
-            resultTable.innerHTML = ""; // Clear previous results
+  <script>
+    function convertSQL() {
+      const sqlInput = document.getElementById('sqlInput').value;
 
-            // Regular expression to capture fields and values in the INSERT query
-            const insertPattern = /INSERT INTO [\w.]+\s*([^)]+)\s*VALUES\s*([^)]+)/i;
-            const matches = query.match(insertPattern);
+      // Extract table name, columns, and values
+      const tableNameMatch = sqlInput.match(/INSERT INTO\s+([^\s]+)\s+/i);
+      const columnsMatch = sqlInput.match(/([^)]+)\s+VALUES/i);
+      const valuesMatch = sqlInput.match(/VALUES\s+([^)]+)/i);
 
-            if (!matches || matches.length < 3) {
-                alert("Invalid INSERT query format. Please check your query.");
-                return;
-            }
+      if (!tableNameMatch || !columnsMatch || !valuesMatch) {
+        document.getElementById('output').textContent = 'Invalid SQL format';
+        return;
+      }
 
-            // Extract fields and values, then split them by commas
-            const fields = matches[1].split(',').map(field => field.trim());
-            const values = matches[2].split(/,(?![^()]*)/).map(value => value.trim());
+      const tableName = tableNameMatch[1];
+      const columns = columnsMatch[1].split(',').map(col => col.trim());
+      const values = valuesMatch[1].split(/,(?![^']*'|[^"]*")/).map(val => val.trim());
 
-            if (fields.length !== values.length) {
-                alert("Mismatch between number of fields and values. Please check your query.");
-                return;
-            }
+      if (columns.length !== values.length) {
+        document.getElementById('output').textContent = 'Column and value counts do not match';
+        return;
+      }
 
-            // Populate the table with fields and their corresponding values
-            fields.forEach((field, index) => {
-                const row = resultTable.insertRow();
-                const cellField = row.insertCell(0);
-                const cellValue = row.insertCell(1);
+      // Create key-value pairs
+      const result = {};
+      for (let i = 0; i < columns.length; i++) {
+        result[columns[i]] = values[i];
+      }
 
-                cellField.textContent = field;
-                cellValue.textContent = values[index];
-            });
-        }
-    </script>
+      document.getElementById('output').textContent = `Table: ${tableName}\n` + JSON.stringify(result, null, 2);
+    }
+  </script>
 </body>
 </html>
