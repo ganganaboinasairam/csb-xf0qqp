@@ -1,1 +1,57 @@
-I WANT A JS TOOL TO WHICH WILL TAKE A INSERT QUERY AS AINPUT AND PROVIDE A TABLE WITH TWO COLUMNS FIELD AND CORRESPODING VALUE 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Insert Query Parser</title>
+</head>
+<body>
+    <h2>SQL Insert Query Parser</h2>
+    <textarea id="sqlQuery" rows="4" cols="50" placeholder="Enter your INSERT query here"></textarea>
+    <br><br>
+    <button onclick="parseInsertQuery()">Parse Query</button>
+    <br><br>
+    <table border="1" id="resultTable">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        function parseInsertQuery() {
+            const query = document.getElementById("sqlQuery").value;
+            const resultTable = document.getElementById("resultTable").getElementsByTagName('tbody')[0];
+            resultTable.innerHTML = ""; // Clear previous results
+
+            const insertPattern = /INSERT INTO \w+\s*([^)]+)\s*VALUES\s*([^)]+)/i;
+            const matches = query.match(insertPattern);
+
+            if (!matches || matches.length < 3) {
+                alert("Invalid INSERT query format. Please check your query.");
+                return;
+            }
+
+            const fields = matches[1].split(',').map(field => field.trim());
+            const values = matches[2].split(',').map(value => value.trim());
+
+            if (fields.length !== values.length) {
+                alert("Mismatch between number of fields and values. Please check your query.");
+                return;
+            }
+
+            fields.forEach((field, index) => {
+                const row = resultTable.insertRow();
+                const cellField = row.insertCell(0);
+                const cellValue = row.insertCell(1);
+
+                cellField.textContent = field;
+                cellValue.textContent = values[index];
+            });
+        }
+    </script>
+</body>
+</html>
