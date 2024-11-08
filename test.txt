@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SQL to Key-Value Converter</title>
+  <title>SQL to Key-Value Pair Converter</title>
 </head>
 <body>
   <h2>SQL to Key-Value Pair Converter</h2>
-  <textarea id="sqlInput" rows="10" cols="100" placeholder="Paste your INSERT SQL statement here"></textarea>
+  <textarea id="sqlInput" rows="20" cols="100" placeholder="Paste your INSERT SQL statement here"></textarea>
   <br><br>
   <button onclick="convertSQL()">Convert to Key-Value Pair</button>
   <br><br>
@@ -17,20 +17,44 @@
     function convertSQL() {
       const sqlInput = document.getElementById('sqlInput').value;
 
-      // Extract table name, columns, and values
-      const tableNameMatch = sqlInput.match(/INSERT INTO\s+([^\s]+)\s+/i);
-      const columnsMatch = sqlInput.match(/([^)]+)\s+VALUES/i);
-      const valuesMatch = sqlInput.match(/VALUES\s+([^)]+)/i);
+      // Clean up the input SQL: remove extra whitespace and line breaks
+      const sanitizedInput = sqlInput.replace(/\s+/g, ' ').trim();
 
-      if (!tableNameMatch || !columnsMatch || !valuesMatch) {
+      // Extract table name, columns, and values using regex
+      const tableNameMatch = sanitizedInput.match(/INSERT INTO\s+([^\s]+)\s+([^)]+)\s+VALUES\s+(.+)/i);
+      
+      if (!tableNameMatch) {
         document.getElementById('output').textContent = 'Invalid SQL format';
         return;
       }
 
-      const tableName = tableNameMatch[1];
-      const columns = columnsMatch[1].split(',').map(col => col.trim());
-      const values = valuesMatch[1].split(/,(?![^']*'|[^"]*")/).map(val => val.trim());
+      const tableName = tableNameMatch[1].trim();
+      const columns = tableNameMatch[2].split(',').map(col => col.trim());
+      const valuesString = tableNameMatch[3].trim();
 
+      // Split values, accounting for commas inside quotes
+      const values = [];
+      let currentVal = '';
+      let insideQuotes = false;
+
+      for (let i = 0; i < valuesString.length; i++) {
+        const char = valuesString[i];
+
+        if (char === "'" || char === '"') {
+          insideQuotes = !insideQuotes;
+        }
+
+        if (char === ',' && !insideQuotes) {
+          values.push(currentVal.trim());
+          currentVal = '';
+        } else {
+          currentVal += char;
+        }
+      }
+      // Push the last value
+      values.push(currentVal.trim());
+
+      // Check if columns and values lengths match
       if (columns.length !== values.length) {
         document.getElementById('output').textContent = 'Column and value counts do not match';
         return;
