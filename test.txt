@@ -1,57 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQL Insert Query Parser</title>
-</head>
-<body>
-    <h2>SQL Insert Query Parser</h2>
-    <textarea id="sqlQuery" rows="4" cols="50" placeholder="Enter your INSERT query here"></textarea>
-    <br><br>
-    <button onclick="parseInsertQuery()">Parse Query</button>
-    <br><br>
-    <table border="1" id="resultTable">
-        <thead>
-            <tr>
-                <th>Field</th>
-                <th>Value</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+INSERT INTO EXIMTRX.INLC_MASTER (T_SVR_GMT,NXT_STATUS,ONLINE_APPROV,ORGI_BR_CODE,PERC_ACCEPT_DEF1,PERC_SIGHT_AMT1,PIN_CODE,PORT_OF_DELV,PRES_DAYS,DRAFT_REQ,DRAWEE,DRAWEE_ID,DRFT_FR_INT_REQ,D_SVR_GMT,ETRADE_REF_NO,EXCEPTION_AMT,EXPIRY_DT,EXPIRY_PLC,FORM_OF_LC,FREIGHT,LC_BAL,LC_BAL_PRSNT,LC_CCY,LC_FLG,LIEN_AMT,LIEN_AMT1,LIEN_AMT2,LIEN_AMT3,LIEN_AMT4,LIEN_CCY,LIEN_CCY1,LIEN_CCY2,LIEN_CCY3,LIEN_CCY4,LTST_SHIP_DT,MARGIN_AMT,MARGIN_PERC,PRES_PRD_EVENT,PROCESSING_FLAG,RAIL_PROC_FLAG,REINSTMNT_ADVICE_REQ,REINSTMNT_TYPE,REVOLVING_FLAG,REV_EVENT,REV_TYPE,RISK_FLAG,SHIP_FROM,STATUS,CUST_BK_NM,CUST_BR_CODE,CUST_REFE,C_FUNC_SHORT_NAME,C_MAIN_REF,C_NOW_EVENT,C_TRX_REF,CHG_FLD_ALL_BAL_CCY,CHG_FLD_COLLECT_CCY,CHG_FLD_LOCAL_CUST_CCY,CHG_VALUE_DATE,CLOSE_FLG,COMITMENT,COMM_SHARING_FLG,CONF_INSTR_FLG,COUNTR_ASSIGN_AMT,COUNTR_GTEE_AMT,COUNTR_HNDLNG_SHARE,COUNTR_SBI_RISK_SHARE,COUNTR_SHARBL_COMM,COUNTR_SHARED_COMM,CTA_ACC_NUMBER,CUMULATIVE,CURRNT_STATUS,MARGIN_RT,MARGIN_STATUS,NEW_LC_BAL,TENOR_MON,TENOR_TYPE,TOLERANCE_MINUS,TOLERANCE_PLUS,TRX_DT,TRX_REF_ETI,TYPE_OF_DOC,GOODS_CODE,GOODS_DESC,GST_AMT,GST_CONV_AMT,HOLD_REF2,IFSC_CODE,INCOTERMS,ISSUE_DT,I_EVENT_TIMES,LC_AMT,APPL_ADD,APPL_ID,APPL_MRGN_AC4,APPL_NM,AVAL_BY,AVAL_LIEN_BAL,AVAL_LIEN_BAL1,AVAL_LIEN_BAL2,AVAL_LIEN_BAL3,AVAL_LIEN_BAL4,AVAL_WT_BK_ID,BENE_ID,BENE_NM_ADD,BIC_CODE,ACTUAL_MARGIN_AMT,ADIT_MRGN_REQ,ADV_BK_ADD,ADV_BK_CORR_MED,ADV_BK_ID,ADV_BK_NM,ADV_CPC_CODE,ADV_THU_BK_NM,ADV_THU_BK_NM_AND_ADD,C_UNIT_CODE,C_TRX_STATUS,D_CREA_DATE,C_LOCKED_FLAG,C_LOCKED_OP,C_LOCK_FUNC_ID,I_CANCEL_ETIMES,C_EVENT_NAME,C_BK_GROUP_ID,D_SYS_OP_DATE,T_SYS_OP_TIME,C_USER_ID,C_MODULE,CONTRACT_DTL,AVAL_WT_BK_NM_AND_ADD,DOC_REQ,GAPI_SEND,ADDIT_CONDITION,CONSIGNEE_NM_ADD,DRAFTS_AT,CONSGN_NM) VALUES (TO_DATE('2024-07-01 10:36:35','YYYY-MM-DD HH24:MI:SS'),'Decision','3','00691',0,0,'110001','JODHPUR',21,'2','STATE BANK OF INDIA
+FOREX DIVISION, 6TH FLOOR
+11 PARLIAMENT STREET
+NEW DELHI','00691','4',TO_DATE('2024-07-01','YYYY-MM-DD'),'00691243N1300011',0,TO_DATE('2025-04-18','YYYY-MM-DD'),'1','1','2',26880440.00,26880440.00,'INR','1','0','0','0','0','0','INR','INR','INR','INR','INR',TO_DATE('2025-04-18','YYYY-MM-DD'),0.00,'0','2','2','N','1','1','2','1','2','4','JODHPUR','4','STATE BANK OF INDIA','00691','10500020101363','eTradeSBIIssueLC','0069124LC0000084','eTradeSBI','0069124LC0000084','INR','INR','INR',TO_DATE('2024-07-01','YYYY-MM-DD'),'1',0,'3','2',0,0,'0','100',0,0,'38139834201','2','Issue LC','0','3',26880440.00,10,'1',0,0,TO_DATE('2024-07-01','YYYY-MM-DD'),'IS3','8','Works','Augmentation of flooring of wheel shop, Lifting
+Shop, Bogie Shop, SBHT Shop, Roller Bearing Shop and
+other allied civil works and Construction of one room for
+IT Center in connection with Computerization of Workshop
+and section in Carriage Workshop Jodhpur',5152,0,'SBIN0004913','SBIN0000691','4',TO_DATE('2024-07-01','YYYY-MM-DD'),1,26880440.00,'NORTH WESTERN RAILWAY JODHPUR, ,JODHPUR,INDIA.','8006592419200001','CNI','NWR JODHPUR WORKSHOP-3307 NORTH WES','1',0,0,0,0,0,'SBIN0004913','1050002','P.S.SAINI INFRATECH AND CONSTRUCT 
+ SIKAR','SBININBB104',0.00,'2','RAILWAY STATION ROAD JODHPUR
 
-    <script>
-        function parseInsertQuery() {
-            const query = document.getElementById("sqlQuery").value;
-            const resultTable = document.getElementById("resultTable").getElementsByTagName('tbody')[0];
-            resultTable.innerHTML = ""; // Clear previous results
+JODHPUR','1','04913','STATE BANK OF INDIA','04913','SBI0004913','SBI, STATION ROAD BRANCH, JODHPUR','00691','W',TO_DATE('2024-07-01','YYYY-MM-DD'),'F','','',1,'eTradeSBI','SBI',TO_DATE('2024-07-01','YYYY-MM-DD'),TO_DATE('2024-07-01 16:08:36','YYYY-MM-DD HH24:MI:SS'),'7598114','INLC','10500020101363','STATE BANK OF INDIA
+RAILWAY SATATION, JODHPUR','LCDA,INVOICE,BOE','~FIN~CNAEA0;00691;0;8006592419200001;N;3;~ECCTDS0;38139834201;26880440.000;INR;00691 INLC: 0069124LC0000084 01203000111001 E002~ECICLO0;38139415258;927.000;INR;4691267006914;927.000;INR;00691 INLC: 0069124LC0000084 01203306000001 E002~ECICLO0;38139415258;5152.000;INR;4691265006916;5152.000;INR;00691 INLC: 0069124LC0000084 01203306000001 E002~E~FIE~','1)NEGOTIATING BANK TO OBTAIN CONFIRMATION OF LCDA GENUINENESS FROM THE ADVISING / REIMBURSING BRANCH OF SBI BEFORE NEGOTIATING DOCUMENTS UNDER LC OR SEND THE DOCUMENTS ON COLLECTION BASIS TO THE ADVISING/ REIMBURSING BRANCH OF SBI. 
+2)PAYMENT OF LC IS TO BE MADE UNLESS LCDA GENUINENESS IS CONFIRMED BY THE ADVISING / REIMBURSING BRANCH OF SBI.','NWR JODHPUR WORKSHOP-3307
+JODHPUR
 
-            const insertPattern = /INSERT INTO \w+\s*([^)]+)\s*VALUES\s*([^)]+)/i;
-            const matches = query.match(insertPattern);
+JODHPUR','AT SIGHT','NWR JODHPUR WORKSHOP-3307
+JODHPUR
 
-            if (!matches || matches.length < 3) {
-                alert("Invalid INSERT query format. Please check your query.");
-                return;
-            }
+JODHPUR') ; 
 
-            const fields = matches[1].split(',').map(field => field.trim());
-            const values = matches[2].split(',').map(value => value.trim());
 
-            if (fields.length !== values.length) {
-                alert("Mismatch between number of fields and values. Please check your query.");
-                return;
-            }
+take this as example query
 
-            fields.forEach((field, index) => {
-                const row = resultTable.insertRow();
-                const cellField = row.insertCell(0);
-                const cellValue = row.insertCell(1);
-
-                cellField.textContent = field;
-                cellValue.textContent = values[index];
-            });
-        }
-    </script>
-</body>
-</html>
