@@ -1,73 +1,1012 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SQL to Key-Value Pair Converter</title>
-</head>
-<body>
-  <h2>SQL to Key-Value Pair Converter</h2>
-  <textarea id="sqlInput" rows="20" cols="100" placeholder="Paste your INSERT SQL statement here"></textarea>
-  <br><br>
-  <button onclick="convertSQL()">Convert to Key-Value Pair</button>
-  <br><br>
-  <pre id="output"></pre>
+function checkCustomValidations(){
+//start of ir 23110101
+	//if ((!exp_date()) || (!appl_date()) || (!appl_date1()) || (!appl_date2()) || (!tenor_days()) || (!amt_insu_cvr()) || (!insu_policy_no()) || (!nm_of_insu()) || (!invoice_date()) || (!issue_date1()) || (!issue_date2()) || (!issue_date3()) || (!updateTenorMatDate())) {
+	if ((!exp_date()) || (!appl_date()) || (!appl_date1()) || (!appl_date2()) || (!amt_insu_cvr()) || (!insu_policy_no()) || (!nm_of_insu()) || (!invoice_date()) || (!issue_date1()) || (!issue_date2()) || (!issue_date3())) {
+	//end of ir 23110101
+		return false;
+	}
+	setEmailSubject();
+	return true;
+}
 
-  <script>
-    function convertSQL() {
-      const sqlInput = document.getElementById('sqlInput').value;
 
-      // Clean up the input SQL: remove extra whitespace and line breaks
-      const sanitizedInput = sqlInput.replace(/\s+/g, ' ').trim();
+function GetRef(){
+    try {
+		SYS_GetCECustRefNo("SetRef");
 
-      // Extract table name, columns, and values using regex
-      const tableNameMatch = sanitizedInput.match(/INSERT INTO\s+([^\s]+)\s+([^)]+)\s+VALUES\s+(.+)/i);
-      
-      if (!tableNameMatch) {
-        document.getElementById('output').textContent = 'Invalid SQL format';
-        return;
-      }
-
-      const tableName = tableNameMatch[1].trim();
-      const columns = tableNameMatch[2].split(',').map(col => col.trim());
-      const valuesString = tableNameMatch[3].trim();
-
-      // Split values, accounting for commas inside quotes
-      const values = [];
-      let currentVal = '';
-      let insideQuotes = false;
-
-      for (let i = 0; i < valuesString.length; i++) {
-        const char = valuesString[i];
-
-        if (char === "'" || char === '"') {
-          insideQuotes = !insideQuotes;
-        }
-
-        if (char === ',' && !insideQuotes) {
-          values.push(currentVal.trim());
-          currentVal = '';
-        } else {
-          currentVal += char;
-        }
-      }
-      // Push the last value
-      values.push(currentVal.trim());
-
-      // Check if columns and values lengths match
-      if (columns.length !== values.length) {
-        document.getElementById('output').textContent = 'Column and value counts do not match';
-        return;
-      }
-
-      // Create key-value pairs
-      const result = {};
-      for (let i = 0; i < columns.length; i++) {
-        result[columns[i]] = values[i];
-      }
-
-      document.getElementById('output').textContent = `Table: ${tableName}\n` + JSON.stringify(result, null, 2);
+    } catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
     }
-  </script>
-</body>
-</html>
+}
+
+function SetRef(Ref){
+    try {
+		var BranchCode = getFldValue("HOME_BRANCH_CODE");
+		setFldValue("ORGN_BR_CODE",BranchCode);
+		if (BranchCode != "" && getFldValue("C_MAIN_REF") == "")
+		{
+			var TodayDate = new Date();
+			var strDate = convDtObjToStr(TodayDate);
+			var Year = strDate.substr(8,4);
+			Ref = BranchCode + Year + SYS_CHILD_UNIT + Ref;
+			setFldValue("C_MAIN_REF",Ref);
+		}
+		modifyConsignor();
+		
+    } catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+
+
+
+function modifyConsignor(){
+		var beneAdd = getFldValue("BENE_ADD");
+		setFldValue("CONSIGNER_NM_ADD",getFldValue("BENE_NM")+ "\n" + beneAdd);
+}
+
+
+function calculateRegDT()
+{
+	var TodayDate1 = new Date();
+	setFldValue("DT_OF_PRES1",TodayDate1);
+}
+
+
+function appl_date(){
+	try{
+			var appldt = getFldValue("DT_OF_PRES1");
+			var todaydate = new Date();
+			
+			var nob = getFldValue("NATURE_OF_BILLS");
+			var tenorType = getFldValue("TENOR_TYPE");
+			if(nob == "2" && tenorType == 3){
+			updateTenorMatDate();
+		}
+
+        if(todaydate < appldt)
+		{		showMsg("Date of Presentation can not be greater than Current Date");
+		return false;
+	}
+	return true;
+
+	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+function appl_date1(){
+	try{
+			var appldt = getFldValue("DRAFT_DT");
+			var todaydate = new Date();
+			
+			var nob = getFldValue("NATURE_OF_BILLS");
+			var tenorType = getFldValue("TENOR_TYPE");
+			if(nob == "2" && tenorType == 4){
+			updateTenorMatDate();
+		
+		
+		}
+
+		if(todaydate < appldt)
+		{	showMsg("Draft Date can not be greater than Current Date");
+		
+			return false;
+		}
+		return true;
+
+	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+function appl_date2(){
+	try{
+			var appldt = getFldValue("DT_OF_SHIP_ON_BRD");
+			var todaydate = new Date();
+			
+			var nob = getFldValue("NATURE_OF_BILLS");
+			var tenorType = getFldValue("TENOR_TYPE");
+			if(nob == "2" && tenorType == 1){
+			updateTenorMatDate();
+		}
+
+        if(todaydate < appldt)
+		{		showMsg("Draft of Shipment on Board can not be greater than Current Date");
+		return false;
+	}
+	return true;
+
+	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+
+function exp_date(){
+    try {
+		var td = getFldValue("NATURE_OF_INVC_INCO");
+		var appldt = getFldValue("EXP_DT_OF_INSUR_PLCY");
+		var todaydate = new Date();
+		
+        if( (td == "6" || td == "8") && (todaydate > appldt)){
+			showMsg("Expiry date of insurance should be greater than current date");
+			return false;
+		}
+		return true;
+      	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+
+function invoice_date(){
+	try{
+			var appldt = getFldValue("INVC_DT");
+			var todaydate = new Date();
+			
+			var nob = getFldValue("NATURE_OF_BILLS");
+			var tenorType = getFldValue("TENOR_TYPE");
+			if(nob == "2" && tenorType == 2){
+			updateTenorMatDate();
+		}
+
+        if(todaydate < appldt)
+		{		showMsg("Invoice date should not be later than current date");
+		return false;
+	}
+	return true;
+
+	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+function issue_date1(){
+	try{
+			var appldt = getFldValue("ISSUE_DT_TRANS_DOCS_1");
+			var todaydate = new Date();
+			
+
+        if(todaydate < appldt)
+		{		showMsg("Issue Date - Transporter document 1 can not be Future Date");
+		return false;
+	}
+	return true;
+
+	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+function issue_date2(){
+	try{
+			var appldt = getFldValue("ISSUE_DT_TRANS_DOCS_2");
+			var todaydate = new Date();
+			
+
+        if(todaydate < appldt)
+		{		showMsg("Issue Date - Transporter document 2 can not be Future Date");
+		return false;
+	}
+	return true;
+
+	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+function issue_date3(){
+	try{
+			var appldt = getFldValue("ISSUE_DT_TRANS_DOCS_3");
+			var todaydate = new Date();
+			
+
+        if(todaydate < appldt)
+		{		showMsg("Issue Date - Transporter document 3 can not be Future Date");
+		return false;
+	}
+	return true;
+
+	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+
+
+
+
+
+
+
+
+function tenor_days(){
+    try {
+		var td = getFldValue("TENOR_DAYS");
+		var tt = getFldValue("NATURE_OF_BILLS");
+			
+		if(tt == "2"){
+			updateTenorMatDate();
+		}
+		if(tt == "1" && td!=0){
+			showMsg("Tenor Days should be zero for Sight Bills");
+			return false;
+		}else if(tt == "2" && td == "0"){
+			showMsg("Tenor Days cannot be zero for Usance Bills");	
+			return false;
+		}
+		else if(tt=="2" && td > 1095){
+			showMsg("Tenor Days should not be greater than 1095 days");
+			return false;
+		
+		}
+		return true;
+      	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+
+function amt_insu_cvr(){
+    try {
+		var td = getFldValue("NATURE_OF_INVC_INCO");
+		var tt = getFldValue("AMT_INSU_CVR");
+		if( (td == "6" || td == "8") && (tt == 0 )){
+			showMsg("Amount of Insurance Cover is mandatory since Incoterms is CIF or CIP");
+			return false;
+		}
+		return true;
+      	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+function insu_policy_no(){
+    try {
+		var td = getFldValue("NATURE_OF_INVC_INCO");
+		var tt = getFldValue("INSUR_POLICY_NO");
+		if( (td == "6" || td == "8") && (tt == null )){
+			showMsg("Insurance Policy Number is mandatory since Incoterms is CIF or CIP");
+			return false;
+		}
+		return true;
+      	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+function nm_of_insu(){
+    try {
+		var td = getFldValue("NATURE_OF_INVC_INCO");
+		var tt = getFldValue("NM_OF_INSUR");
+		if( (td == "6" || td == "8") && (tt == null )){
+			showMsg("Name of Insured is mandatory since Incoterms is CIF or CIP");
+			return false;
+		}
+		return true;
+      	} catch (e) {
+        showExcpt("IIND_Reg_NonLC_Function", e);
+    }
+}
+
+
+
+
+
+function invc_amt(){
+		var invc = getFldValue("INVC_AMT1_LC_CCY");
+	
+		var adv = 0;
+		var bill = invc - adv;
+		setFldValue("BILL_AMT",bill);
+}
+
+
+
+function modifyBank_NM_ADD(){
+		var beneAdd = getFldValue("BENE_BK_ADD");
+		var newString = beneAdd.split("  ");  
+		newString = newString.join("\n"); 
+		beneAdd = newString;
+		//start of ir 23110101
+		//var nmAdd = getFldValue("BENE_BK_NM") +"\n"+ beneAdd;
+		//end of ir 23110101
+		setFldValue("ISSUE_BK_ID",getFldValue("BENE_BK_ID"));
+		//start of ir 23110101
+		setFldValue("ISSUE_BK_NM",getFldValue("BENE_BK_NM"));
+		//end of ir 23110101
+		setFldValue("BENE_BK_ADD","");
+		setFldValue("BENE_BK_NM","");
+		//start of ir 23110101
+		//setFldValue("ISSUE_BK_NM_ADD",nmAdd);
+		setFldValue("ISSUE_BK_ADD",beneAdd);
+		//end of ir 23110101
+}
+
+
+function modifyBene_NM_ADD(){
+		var beneAdd = getFldValue("APPL_ADD");
+		var newString = beneAdd.split("  ");  
+		newString = newString.join("\n"); 
+		beneAdd = newString;
+		var nmAdd = getFldValue("APPL_NM");
+		setFldValue("APPL_NM",nmAdd);
+		setFldValue("CERT_ORGN_DETL",beneAdd);
+		var i = nmAdd + "\n" + beneAdd;
+		setFldValue("CONSIGNEE_NM_ADD",i);
+		
+}
+function updateTenorMatDate()
+{
+	try
+	{
+		var natureOfBills = getFldValue("NATURE_OF_BILLS");
+		if(natureOfBills!="")
+		{
+			if(natureOfBills == 1)
+			{
+				var date =new Date();
+				var Matdate = date.getDate();
+				var Matmon = date.getMonth();
+				Matmon = Matmon+1;
+				var Matyear =  date.getFullYear();
+				TodayDate = Matmon +"/"+ Matdate +"/"+Matyear;
+				MatDate = __incDateByDay(TodayDate,25);
+				setFldValue("TENOR_MAT_DT",MatDate);
+				return true;
+			}
+			else
+			{
+				var tenorType = getFldValue("TENOR_TYPE");
+				var TenorDays = getFldValue("TENOR_DAYS");
+				if(tenorType != "")
+				{
+					if(tenorType==1)
+					{
+						if(getFldValue("DT_OF_SHIP_ON_BRD") !="" && getFldValue("DT_OF_SHIP_ON_BRD") != null)
+						{
+							var DtOfShip =new Date(getFldValue("DT_OF_SHIP_ON_BRD"));
+							var Matdate = DtOfShip.getDate();
+							var Matmon = DtOfShip.getMonth();
+							Matmon = Matmon + 1;
+							var Matyear =  DtOfShip.getFullYear();
+							TodayDate = Matmon +"/"+ Matdate +"/"+Matyear;
+							MatDate = __incDateByDay(TodayDate,TenorDays);
+							setFldValue("TENOR_MAT_DT",MatDate);
+							return true;
+						}
+						else
+						{
+							alert("Please select Date of Shipment(on Board) in Transport Tab.");
+							setFldValue("TENOR_TYPE","");
+							return false;
+						}
+					}
+					else if(tenorType==2)
+					{
+						if(getFldValue("INVC_DT") !="" && getFldValue("INVC_DT") != null)
+						{
+							var invcDt =new Date(getFldValue("INVC_DT"));
+							var Matdate = invcDt.getDate();
+							var Matmon = invcDt.getMonth();
+							Matmon = Matmon + 1;
+							var Matyear =  invcDt.getFullYear();
+							TodayDate = Matmon +"/"+ Matdate +"/"+Matyear;
+							MatDate = __incDateByDay(TodayDate,TenorDays);
+							setFldValue("TENOR_MAT_DT",MatDate);
+							return true;
+						}
+					}
+					else if (tenorType == 3)
+					{
+						  var date =new Date();
+						  var Matdate = date.getDate();
+						  var Matmon = date.getMonth();
+						  Matmon = Matmon+1;
+						  var Matyear =  date.getFullYear();
+						  TodayDate = Matmon +"/"+ Matdate +"/"+Matyear;
+						  MatDate = __incDateByDay(TodayDate,25);
+						  setFldValue("TENOR_MAT_DT",MatDate);
+						  return true;
+					}
+					else if(tenorType == 4)
+					{
+						if(getFldValue("DRAFT_DT") !="" && getFldValue("DRAFT_DT") != null)
+						{
+							var draftDt =new Date(getFldValue("DRAFT_DT"));
+							var Matdate = draftDt.getDate();
+							var Matmon = draftDt.getMonth();
+							Matmon = Matmon + 1;
+							var Matyear =  draftDt.getFullYear();
+							TodayDate = Matmon +"/"+ Matdate +"/"+Matyear;
+							MatDate = __incDateByDay(TodayDate,TenorDays);
+							setFldValue("TENOR_MAT_DT",MatDate);
+							return true;
+						}
+						else
+						{
+							alert("Please select Draft Date in Draft Tab.");
+							setFldValue("TENOR_TYPE","");
+							return false;
+						}
+					}
+					else if (tenorType == 5)
+					{
+						var date =new Date();
+						var Matdate = date.getDate();
+						var Matmon = date.getMonth();
+						Matmon = Matmon+1;
+						var Matyear =  date.getFullYear();
+						TodayDate = Matmon +"/"+ Matdate +"/"+Matyear;
+						TenorDay = TenorDays +25;
+						MatDate = __incDateByDay(TodayDate,TenorDay);
+						setFldValue("TENOR_MAT_DT",MatDate);
+						return true;
+					}
+					else if (tenorType == 6)
+					{
+						if(getFldValue("DT_OF_SHIP_ON_BRD") !="" && getFldValue("DT_OF_SHIP_ON_BRD") != null)
+						{
+							var DtOfShip =new Date(getFldValue("DT_OF_SHIP_ON_BRD"));
+							var Matdate = DtOfShip.getDate();
+							var Matmon = DtOfShip.getMonth();
+							Matmon = Matmon + 1;
+							var Matyear =  DtOfShip.getFullYear();
+							TodayDate = Matmon +"/"+ Matdate +"/"+Matyear;
+							TenorDays =TenorDays+1;
+							MatDate = __incDateByDay(TodayDate,TenorDays);
+							setFldValue("TENOR_MAT_DT",MatDate);
+							return true;
+						}
+					}
+					else if(tenorType == 7)
+					{
+						if(getFldValue("INVC_DT") !="" && getFldValue("INVC_DT") != null)
+						{
+							var invcDt =new Date(getFldValue("INVC_DT"));
+							var Matdate = invcDt.getDate();
+							var Matmon = invcDt.getMonth();
+							Matmon = Matmon + 1;
+							var Matyear =  invcDt.getFullYear();
+							TodayDate = Matmon +"/"+ Matdate +"/"+Matyear;
+							TenorDays =TenorDays+1;
+							MatDate = __incDateByDay(TodayDate,TenorDays);
+							setFldValue("TENOR_MAT_DT",MatDate);
+							return true;
+						}
+					}
+					else if (tenorType == 8)
+					{
+						var date =new Date();
+						var Matdate = date.getDate();
+						var Matmon = date.getMonth();
+						Matmon = Matmon+1;
+						var Matyear =  date.getFullYear();
+						TodayDate = Matmon +"/"+ Matdate +"/"+Matyear;
+						TenorDay = TenorDays +1;
+						MatDate = __incDateByDay(TodayDate,TenorDay);
+						setFldValue("TENOR_MAT_DT",MatDate);
+						return true;
+					}
+					else if (tenorType == 9)
+					{
+						if(getFldValue("DRAFT_DT") !="" && getFldValue("DRAFT_DT") != null)
+						{
+							var draftDt =new Date(getFldValue("DRAFT_DT"));
+							var Matdate = draftDt.getDate();
+							var Matmon = draftDt.getMonth();
+							Matmon = Matmon + 1;
+							var Matyear =  draftDt.getFullYear();
+							TodayDate = Matmon +"/"+ Matdate +"/"+Matyear;
+							TenorDay = TenorDays +1;
+							MatDate = __incDateByDay(TodayDate,TenorDays);
+							setFldValue("TENOR_MAT_DT",MatDate);
+							return true;
+						}
+					}
+					else if (tenorType == 10)
+					{
+						var date =new Date();
+						var Matdate = date.getDate();
+						var Matmon = date.getMonth();
+						Matmon = Matmon+1;
+						var Matyear =  date.getFullYear();
+						TodayDate = Matmon +"/"+ Matdate +"/"+Matyear;
+						TenorDay = TenorDays +25;
+						MatDate = __incDateByDay(TodayDate,TenorDay);
+						setFldValue("TENOR_MAT_DT",MatDate);
+						return true;
+					}
+				}
+			}
+		}
+		return true;
+	}
+	catch (e)
+	{
+		showExcpt("inland_updateTenorMatDate_Function", e);
+	}
+}
+
+
+function nature_of_bills()
+{
+	try {
+		var td = getFldValue("NATURE_OF_BILLS");
+		if (td == "1"){
+			setFldValue("TENOR_DAYS","0");
+			disableFld("TENOR_DAYS");
+		}else if (td == "2"){
+			enableFld("TENOR_DAYS","O");
+		}else if (td == "3"){
+			alert("Customer cannot select Mixed Payment option.");
+			setFldValue("NATURE_OF_BILLS",1);
+		
+		}
+	
+      	} catch (e) {
+        showExcpt("IIND_Reg_LC_Function", e);
+    }
+
+}
+
+function aval_by()
+{
+	try {
+		var td = getFldValue("AVAL_BY");
+		if (td == "5"){
+			alert("Customer cannot select Mixed Payment option.");
+			setFldValue("AVAL_BY",6);
+		}
+		
+      	} catch (e) {
+        showExcpt("IIND_Reg_LC_Function", e);
+    }
+
+}
+
+
+
+function getCPCEmail()
+{
+	try{	
+		setFldValue("EMAIL_TEMP",getFldValue("EMAIL_SUBJECT"));
+		SYS_GetCUBK("EmailTo","CPC_CODE");
+		setTimeout("setEmail()",575);
+	}
+	catch(e){
+		showExcpt("BGIS_getCPCEmail_Function", e);
+	}
+}
+
+function setEmail()
+{
+	try{
+		var email = getFldValue("EMAIL_TEMP")+";"+getFldValue("EMAIL_SUBJECT");
+
+		setFldValue("EMAIL_SUBJECT",email);
+		setFldValue("EMAIL_TEMP",email);
+
+	}
+	catch(e){
+		showExcpt("BGIS_forceCorrectGteeTypeSelection_Function", e);
+	}
+}
+
+function setEmailSubject()
+{
+	try{
+		var email = getFldValue("EMAIL_TEMP");
+		var BranchCode = getFldValue("HOME_BRANCH_CODE");
+		var cpcCode=getFldValue("CPC_CODE");
+		if(BranchCode!=cpcCode)
+		{
+		setFldValue("EMAIL_SUBJECT",email);
+		}
+	}
+	catch(e){
+		showExcpt("BGIS_setEmailSubject_Function", e);
+	}
+}
+//start of ir 23110101
+function doPageInit(){
+		arrangeButtons();
+		if(sessionStorage.getItem('role')=='C'){
+			document.getElementById("checkBox2").checked = true
+			greenTickAll(['div1','div2','div3','div4','div5'])
+			//start of ir 24060022
+			if (document.getElementById("TEMP_ROW_COUNT").value > 0){
+			document.getElementById("tick5").style.display="inline";
+			}
+			else {
+			document.getElementById("tick5").style.display="none";
+			}
+			//end of ir 24060022
+		}
+		
+		if(sessionStorage.getItem('role')=='M'){
+		if(SYS_FUNCTION_TYPE == 'EC'){
+			$('#viewLCButton').css('background-color','white');
+			$('#viewLCButton').css('color','#5b1d8d');
+			$('#viewLCButton').css('border-right','1px solid white');
+		}else{
+			$('#regNegoDiscButton').css('background-color','white');
+			$('#regNegoDiscButton').css('color','#5b1d8d');
+			$('#regNegoDiscButton').css('border-right','1px solid white');
+			}
+			//start of ir 24060022
+			if (document.getElementById("TEMP_ROW_COUNT").value > 0){
+			document.getElementById("tick5").style.display="inline";
+			}
+			else {
+			document.getElementById("tick5").style.display="none";
+			}
+			//end of ir 24060022
+		}
+		
+		if(SYS_FUNCTION_TYPE == 'EC'){
+			$('#viewAndManageEdits').show();
+			document.getElementById("checkBox2").checked = true
+			greenTickAll(['div1','div2','div4','div5'])
+			greenTick('div3','checkBox2')
+			//start of ir 24060022
+		}
+		if(FUNC_ID != ''){
+
+		setFldValue("TEMP_ORG_FUNC_ID", FUNC_ID);
+		//end of ir 24060022
+		}
+		
+
+}
+
+//For Confirming Transaction		
+function submitTab() {    
+
+    var bill_amt = document.getElementById("BILL_AMT").value;
+	document.getElementById("TEMP_BILL_AMT").value = bill_amt;
+	
+	
+    if (!undertakingsTick()) {
+        if ($('#Undertakings').attr('class') != 'accordion active') {
+            $('#Undertakings').trigger("click");
+        }
+        alert("Please accept Terms & Conditions");
+		//start of ir 24060022
+        return false;
+    }
+	if(document.getElementById('tick5').style.display=="none"){ 
+		alert("Document Upload is mandatory to proceed further"); 
+		//end of ir 24060022
+        return false;
+    }
+    var allFieldsValid = true; 
+    $('input[class$="_M"], select[class$="_M"], textarea[class$="_M"]').each(function() {
+        var value = $(this).val().trim();
+        
+        if (value === '' || value === '0') {
+            allFieldsValid = false; 
+            return false; 
+        }
+    });
+    if (!allFieldsValid) {
+        alert("Fill Mandatory Fields!");
+        $('#prim_confirm').hide();
+        return false;
+    }
+    if (!isCancel) {
+        var myWindow = openWin("../Default/SCRN/IIND_RegisterBill_PreviewPage.jsp?", "width=100", "height=100", "fullscreen='yes'");
+        myWindow.resizeTo("2000", "2000");
+        myWindow.focus();
+        return true;
+    }
+    alert("Fill Mandatory Fields!");
+    $('#prim_confirm').hide();
+    return false;
+}
+
+function undertakingsTick()
+{
+if( document.getElementById('checkBox2').checked)
+{
+	return true;
+}
+else
+{
+    $('#Undertakings').trigger("click");
+    return false;
+}
+}
+
+function ReleasEConfirm()
+{
+    var oMainForm = document.forms["MAINFORM"];
+	var nEelement = oMainForm.elements.length;
+	var oField = null;
+	var sFldNm = "";
+	var sDataType = "";
+	var sFldType = "";
+	var sFldValue = "";
+	var sFldTitle = "";
+	var sErrMsg = "Comment";
+	var r=$('#C_MAIN_REF').val();
+	sessionStorage.setItem('MainRef',r);
+	sessionStorage.setItem('sucessmsg','IMPLCAuthA');
+	if($("#APPL_ID").val().indexOf("00000080875812998") !=-1){
+		if (document.getElementById("C_AUDIT_COMMENTR")){
+			if (document.getElementById("C_AUDIT_COMMENTR").value =="" && document.getElementById("C_AUDIT_COMMENTR").value.length!=4){
+				alert("Please Enter Authorizing Comments");
+                      for (var i = 0; i < nEelement; i++) {
+					    oField = oMainForm.elements[i];
+					    sFldNm = oField.id;
+						sDataType = getFldDataType(sFldNm);
+						sFldType = getFldType(sFldNm);
+						FldValue = getFldValue(sFldNm);
+						sFldTitle = getFldTitle(sFldNm);
+						sCharSet = oField.charset;
+					    if(sErrMsg.includes("Comment"))
+						{
+						$('#C_AUDIT_COMMENTR').css("border-color","#ff0000");
+						$('html,body').animate({scrollTop:$("#C_AUDIT_COMMENTR").position().top},'slow');
+						$('#C_AUDIT_COMMENTR').focus();
+						return false;
+						}
+					}
+				return false;
+			}
+		}
+		if(authLevelPCDA=='2'){
+			var caseid =  document.getElementById("CASE_ID").value;
+			if (document.getElementById("CASE_ID")){
+				if ((caseid =="" || caseid=='0') || ((caseid.length <4 || caseid.length >8))){
+					alert("Case ID length between Four to Eight digit. Please Enter Case ID");
+					return false;
+				}
+			}
+		}
+		if (document.getElementById("C_DROP_DOWN")){
+			var cDropDownPcda =  document.getElementById("C_DROP_DOWN").value; 		
+			if(cDropDownPcda=="" || cDropDownPcda=="undefined"){
+				alert("Please select Accept/Reject");
+			}
+		}
+	}
+	ReleaseCheckerConfirm();
+}
+
+function cancelRejectYes(){
+	$('#rejectAuthorise').hide();
+	$('.backdropReject').hide();
+	$("#makerrejreason").removeAttr("disabled");
+
+
+	checkerRejection();
+	var r=$('#C_MAIN_REF').val();
+	sessionStorage.setItem('MainRefRej',r);
+	sessionStorage.setItem('sucessmsg','IMPLCReject');
+}
+function cancelRejectNo(){
+	$('#rejectAuthorise').hide();
+	$('.backdropReject').hide();
+}
+
+function showRejectBox(){
+	$('#rejectAuthorise').show();
+	$("#C_REFUSE").attr("readonly",false);
+	$('.backdropReject').show();
+}
+
+function showConfirmBox(){
+	$('#confirmAuthorise').show();
+	$('.backdropAuthorise').show();
+}
+
+function cancelAuthoriseYes(){
+	$('#confirmAuthorise').hide();
+	$('.backdropAuthorise').hide();
+		if(insertCommentsOnAuth("u")){
+		checkerAuthorise();	
+	}else{
+		alert("Please retry");
+	}
+}
+
+function cancelAuthoriseNo(){
+	$('#confirmAuthorise').hide();
+	$('.backdropAuthorise').hide();
+}
+
+function RejectConfirm() 
+{
+var r=$('#C_MAIN_REF').val();
+	sessionStorage.setItem('MainRef',r);
+	sessionStorage.setItem('sucessmsg','IMPLCREJA');
+RejectCheckerConfirm();
+}
+
+
+
+
+var pcdsCom;
+function insertCommentsOnAuth(fetchType){
+   	var resultFlag = true;
+   	
+   	var u = encodeUrl("../servlets/insertCommentinChecker");
+   	
+   	if(fetchType=="u"){
+   		if($('#C_AUDIT_COMMENTR').val().indexOf(pcdsCom) == -1){
+   			var cac = $('#C_AUDIT_COMMENTR').val();
+   			var updatedComment = pcdsCom+" "+ cac;
+   			
+   			$('#C_AUDIT_COMMENTR').val(updatedComment);
+   		}
+   	}
+   	var csrfObj = csrfResolution('../servlets/insertCommentinChecker');
+   	$.ajax({
+   	url : csrfObj.url,
+   	type: 'post',
+   	async : false,
+   	data:{'C_AUDIT_COMMENTS':$("#C_AUDIT_COMMENTR").val(),'CASE_ID':$("#CASE_ID").val(),'C_MAIN_REF':$("#C_MAIN_REF").val(),'fetchType':fetchType,CSRFTOKEN : csrfObj.csrf,REFRESH_TOKEN : csrfObj.refreshToken},
+   	
+   	success: function(res){
+   	if(fetchType=="s"){
+   	pcdsCom=res;
+   	$('#C_AUDIT_COMMENTR').val(res);
+   	
+   	}	
+   	},
+   	error: function(err){
+   		
+   		resultFlag = false;
+   		
+   	}
+   	});
+   	return resultFlag;
+   }
+   
+   function GSTN_AVALIABLE(){
+	try{
+		var gstn_aval = document.getElementById("GSTN_AVAL").value;
+		var gstnInput = document.getElementById("GSTN");
+		var panInput = document.getElementById("PAN");
+		var star1 = document.getElementById("benegstn");
+		var star2 = document.getElementById("benepan");
+        if(gstn_aval === 'yes'){
+			gstnInput.setAttribute('class','CHAR_M')
+			panInput.setAttribute('autocomplete','off')
+			star1.innerHTML='Beneficiary GSTN<span class="FldLabel star" style="padding-left:0px"></span>';
+			gstnInput.setAttribute('autocomplete','on')
+            panInput.setAttribute('class','CHAR_P')
+			star2.innerHTML='Beneficiary PAN<span class="FldLabel"></span>';
+			setFldValue('PAN','')
+			gstnInput.removeAttribute('readonly');
+			
+        }else if(gstn_aval === 'no'){
+            gstnInput.setAttribute('class','CHAR_P')
+			gstnInput.setAttribute('autocomplete','off')
+			//start of ir 24060022
+			//star1.innerHTML='Beneficiary GSTN<span class="FldLabel"></span>';
+			star1.innerHTML='Drawee GSTN<span class="FldLabel"></span>';
+			//end of ir 24060022
+			panInput.setAttribute('autocomplete','on')
+			panInput.setAttribute('class','CHAR_M')
+			//start of ir 24060022
+			//star2.innerHTML='Beneficiary PAN<span class="FldLabel star" style="padding-left:0px"></span>';
+			star2.innerHTML='Drawee PAN<span class="FldLabel star" style="padding-left:0px"></span>';
+			//end of ir 24060022
+			setFldValue('GSTN','')
+			panInput.removeAttribute('readonly');
+        }else{
+			gstnInput.setAttribute('class','CHAR_P')
+			panInput.setAttribute('class','CHAR_P')
+			setFldValue('PAN','')
+			setFldValue('GSTN','')
+		}
+	}catch (e) {
+        showExcpt("INIS_LCApplication_Function", e);
+    }    
+}
+
+function PAN_VALIDATION(){
+	try{
+		var panValue = document.getElementById("PAN").value;
+	var PAN_validation = /^([A-Z]{5})(\d{4})([A-Z]{1})$/;
+	if(PAN_validation.test(panValue)){
+		console.log("valid pan number")
+	}else{
+		if (panValue != ''){
+		alert("please enter valid PAN number")
+		}
+        setFldValue('PAN','')
+	}
+	}catch (e) {
+        showExcpt("INIS_LCApplication_Function", e);
+    }
+}
+
+function GSTN_VALIDATION(){
+	try{
+		var gstnValue = document.getElementById("GSTN").value;
+	var GSTN_validation = /^(\d{2})([A-Z]{5})(\d{4})([A-Z]{1})(\w{1})(Z{1})(\w{1})$/;
+	if(GSTN_validation.test(gstnValue)){
+		console.log("valid gstn number")
+	}else{
+		if(gstnValue != ''){
+		alert("please enter valid GSTN number")
+		}
+        setFldValue('GSTN','')
+	}
+	}catch (e) {
+        showExcpt("INIS_LCApplication_Function", e);
+    }
+}
+
+function enablefields(){
+	
+    $("textarea").attr("disabled",false); 
+	$("input").attr("disabled",false);
+	$("select").attr("disabled",false); 
+	$(".search").attr("disabled",false); 	
+	$("#submitButtonid").attr("disabled",false);		
+		enabledFlag=true;
+	$("#makerrejstatus").prop("disabled",true);
+	$("#makerrejreason").prop("disabled",true);	
+	$("#LastAction").prop("disabled",true);
+	
+}
+
+function saveAsDraft(){
+$('#prim_save').attr('onclick','SaveTransaction()');
+	$('#prim_save').click();
+	}
+
+//end of ir 23110101
+//start of ir 24060022
+function EMAIL_ID_check(){
+    try {
+      var email = document.MAINFORM.DRWE_EMAIL.value;
+      var s = email.split(';');
+      var emailfilter = /^\w+[\+\.\w-]*@([\w-]+\.)*\w+[\w-]*\.([a-z]{2,4}|\d+)$/i;
+	  if(email != ''){
+		  for (var i = 0; i < s.length; i++) {
+			  var returnval = emailfilter.test(s[i]);
+			  if (returnval == false) {
+				  alert("Please enter a valid email address.");
+				  document.MAINFORM.DRWE_EMAIL.value = '';
+				  }
+				  }
+	  }
+	  }catch (e) {
+        DisExcpt("INIS_LCApplication_Rail_Function.js", e);
+    }
+}
+
+function ValidateMobileNumber() {
+        var mobileNumber = document.getElementById("DRWE_CONTACT").value;
+        var expr = /^(0|91)?[6-9][0-9]{9}$/;
+		if (mobileNumber!=''){
+        if (!expr.test(mobileNumber)) {
+            alert( "Invalid Mobile Number.");
+			document.getElementById("DRWE_CONTACT").value='';
+			return false;
+        }
+		}
+}
+
+function LCDAValidation(){
+	var bill_amt = document.getElementById("BILL_AMT").value;
+		var leiInput = document.getElementById("DRWE_LEI");
+		var star1 = document.getElementById("benelei");
+        if(bill_amt >= 500000000){
+			leiInput.setAttribute('class','CHAR_M')
+			star1.innerHTML='Drawee LEI<span class="FldLabel star" style="padding-left:0px"></span>';
+			leiInput.setAttribute('autocomplete','on')
+			leiInput.removeAttribute('readonly');
+        }else{
+			leiInput.setAttribute('class','CHAR_P')
+			setFldValue('DRWE_LEI','')
+			star1.innerHTML='Drawee LEI<span class="FldLabel" style="padding-left:0px"></span>';
+		}
+}
