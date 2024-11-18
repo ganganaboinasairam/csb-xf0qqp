@@ -1,9 +1,11 @@
-String identifier = pr.getProperty("filename");
-      this.list = sftpChannel.ls("*.xml");
-      logg.info("list Value : [" + this.list + "] sftpChannel : [" + sftpChannel + "]");
-	  
-	  
-	  
-	  
-in properties file the filename is "_signed" 
-the files ends with the identifier only to be taken into the list.
+String identifier = pr.getProperty("filename"); // "_signed" from properties file
+this.list = new ArrayList<>();
+Vector<ChannelSftp.LsEntry> fileList = sftpChannel.ls("*.xml");
+
+for (ChannelSftp.LsEntry entry : fileList) {
+    if (entry.getFilename().endsWith(identifier)) {
+        this.list.add(entry.getFilename());
+    }
+}
+
+logg.info("Filtered list Value : [" + this.list + "] sftpChannel : [" + sftpChannel + "]");
