@@ -1,21 +1,117 @@
-package com.cs.ceweb.servlets;
+login as: weblogic
+Pre-authentication banner message from server:
+| \S
+| Kernel \r on an \m
+End of banner message from server
+weblogic@10.177.139.91's password:
+Activate the web console with: systemctl enable --now cockpit.socket
 
-import java.util.HashMap;
-import java.util.Map;
-
-public class RailwayApiConsume {
-    public static Map<String, String> consumingRailwayAPI(String etradeRef, String amount) {
-        // Dummy implementation
-        Map<String, String> result = new HashMap<>();
-        result.put("C_CREA_BY", "Creator");
-        result.put("MAK_DESIGNATION", "MakerDesignation");
-        result.put("MAK_MOB_NO", "1234567890");
-        result.put("C_AUTH_USER", "Releaser");
-        result.put("CHK_DESIGNATION", "CheckerDesignation");
-        result.put("CHK_MOB_NO", "0987654321");
-        result.put("BENE_BANK_NAME", "BeneficiaryBank");
-        result.put("BENE_IFSC_CODE", "BENEIFSC1234");
-        result.put("BENE_ACC_NO", "123456789012");
-        return result;
-    }
-}
+Register this system with Red Hat Insights: insights-client --register
+Create an account or view all your systems at https://red.ht/insights-dashboard
+Last login: Mon Nov 18 15:00:02 2024
+[weblogic@TFNEWEEUATAPP ~]$ cd /TFEEAPP/base_domain/Migration/Executable/Java
+[weblogic@TFNEWEEUATAPP Java]$ /weblogic/jdk1.8/bin/java -jar XmlGen.jar
+Nov 18, 2024 4:01:18 PM com.tcs.lc.DBCON getConnection
+INFO: oracle.jdbc.OracleDriver
+jdbc:oracle:thin:@10.177.133.6:6084:eeuatdb
+EXIMTRX
+eximtrx
+Nov 18, 2024 4:01:19 PM com.tcs.lc.DBCON getConnection
+INFO: inside Class.forName
+Nov 18, 2024 4:01:20 PM com.tcs.lc.DBCON getConnection
+INFO: connection suuceess for EE Database
+Nov 18, 2024 4:01:22 PM com.tcs.lc.XmlGen main
+INFO: select CUST_REFE CUSTREF, LC_NO LCNUMBER, ETRADE_REF_NO ETRADEREF,GOODS_DESC GOODS, GOODS_CODE CONTRACT_TYPE,BENE_ID IREPSVENDORCODE,BENE_NM_ADD BENENAME,ADV_BK_NM ADVBKNM, ADV_BK_ADD ADVBKADD, CONTRACT_DTL CONTRACT_DETAIL, HOLD_REF2 IFSC,LC_AMT LCVAL,ISSUE_DT LCDATE,EXPIRY_DT LCVALDATE ,AMD_NO LCTYPE,I_EVENT_TIMES IEVENTTIMES,C_MAIN_REF C_MAIN_REF,OLD_REF_NUM OLDREFNUM  from eximtrx.inlc_master where (c_func_short_name = 'AmendmentofLC' OR c_func_short_name = 'eTradeSBIAmendLC' OR c_func_short_name = 'eTradeSBIIssueLC' OR c_func_short_name ='Railway_LC_DEO' OR c_func_short_name ='RailLCAmedDEO') AND RISK_FLAG IN ('4','5') AND RAIL_PROC_FLAG='N' AND C_TRX_STATUS='M' AND C_MAIN_REF NOT LIKE '%RJCTD%'
+Nov 18, 2024 4:01:22 PM com.tcs.lc.XmlGen buildIssueLCXML
+INFO: amd type1
+Nov 18, 2024 4:01:22 PM com.tcs.lc.XmlGen buildIssueLCXML
+INFO: Issue map:{MAK_DESIGNATION=MakerDesignation, CHK_DESIGNATION=CheckerDesignation, BENE_ACC_NO=123456789012, CHK_MOB_NO=0987654321, BENE_IFSC_CODE=BENEIFSC1234, MAK_MOB_NO=1234567890, C_AUTH_USER=Releaser, BENE_BANK_NAME=BeneficiaryBank, C_CREA_BY=Creator}
+Nov 18, 2024 4:01:22 PM com.tcs.lc.XmlGen buildIssueLCXML
+INFO: Amendment No:1 Filename:LC_Amend_010999524LC0001747.xml
+Nov 18, 2024 4:01:22 PM com.tcs.lc.XmlGen buildIssueLCXML
+INFO: C_MAIN_REF : 0999524LC0001747 OLD REF Number : null
+com.sun.org.apache.xml.internal.security.exceptions.Base64DecodingException: You must initialize the xml-security library correctly before you use it. Call the static method "com.sun.org.apache.xml.internal.security.Init.init();" to do that before you use any functionality from that library.
+        at com.sun.org.apache.xml.internal.security.utils.Base64.decodeInternal(Base64.java:507)
+        at com.sun.org.apache.xml.internal.security.utils.Base64.decode(Base64.java:483)
+        at com.tcs.password.decryption.Decryption.decrypt(Decryption.java:23)
+        at com.tcs.lc.SFTPFile.sftpPutFile(SFTPFile.java:38)
+        at com.tcs.lc.XmlGen.buildIssueLCXML(XmlGen.java:269)
+        at com.tcs.lc.XmlGen.main(XmlGen.java:93)
+        at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+        at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.lang.reflect.Method.invoke(Method.java:498)
+        at org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader.main(JarRsrcLoader.java:58)
+Nov 18, 2024 4:01:22 PM com.tcs.lc.SFTPFile sftpPutFile
+INFO: weblogic
+10.177.139.91
+2202
+com.jcraft.jsch.JSchException: Auth fail
+        at com.jcraft.jsch.Session.connect(Session.java:519)
+        at com.jcraft.jsch.Session.connect(Session.java:183)
+        at com.tcs.lc.SFTPFile.sftpPutFile(SFTPFile.java:52)
+        at com.tcs.lc.XmlGen.buildIssueLCXML(XmlGen.java:269)
+        at com.tcs.lc.XmlGen.main(XmlGen.java:93)
+        at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+        at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.lang.reflect.Method.invoke(Method.java:498)
+        at org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader.main(JarRsrcLoader.java:58)
+Nov 18, 2024 4:01:22 PM com.tcs.lc.DBCON getConnection
+INFO: oracle.jdbc.OracleDriver
+jdbc:oracle:thin:@10.177.133.6:6084:eeuatdb
+EXIMTRX
+eximtrx
+Nov 18, 2024 4:01:22 PM com.tcs.lc.DBCON getConnection
+INFO: inside Class.forName
+Nov 18, 2024 4:01:23 PM com.tcs.lc.DBCON getConnection
+INFO: connection suuceess for EE Database
+Nov 18, 2024 4:01:23 PM com.tcs.lc.XmlGen buildIssueLCXML
+INFO: connection success to pick issue pdfs
+Nov 18, 2024 4:01:23 PM com.tcs.lc.XmlGen buildIssueLCXML
+INFO: Amended pdfs:select C_DOC_INDEX from EXIMSYS.trx_docs_indx_mgr where c_doc_DESC in ('Amendment', 'Cas Amendment Debit Advice','Amendment Debit Advice','INLC_RailLC_MT707_Amed_DEO','INLC_Rail_LC_Amendment_Debit_Advice') AND C_MAIN_REF ='0999524LC0001747' AND I_EVENT_TIMES = '6'
+Nov 18, 2024 4:01:23 PM com.tcs.lc.XmlGen main
+INFO: Issue xml Generated
+Nov 18, 2024 4:01:24 PM com.tcs.lc.XmlGen buildBillNegotiationXML
+INFO: payment map:{MAK_DESIGNATION=MakerDesignation, CHK_DESIGNATION=CheckerDesignation, BENE_ACC_NO=123456789012, CHK_MOB_NO=0987654321, BENE_IFSC_CODE=BENEIFSC1234, MAK_MOB_NO=1234567890, C_AUTH_USER=Releaser, BENE_BANK_NAME=BeneficiaryBank, C_CREA_BY=Creator}
+com.sun.org.apache.xml.internal.security.exceptions.Base64DecodingException: You must initialize the xml-security library correctly before you use it. Call the static method "com.sun.org.apache.xml.internal.security.Init.init();" to do that before you use any functionality from that library.
+        at com.sun.org.apache.xml.internal.security.utils.Base64.decodeInternal(Base64.java:507)
+        at com.sun.org.apache.xml.internal.security.utils.Base64.decode(Base64.java:483)
+        at com.tcs.password.decryption.Decryption.decrypt(Decryption.java:23)
+        at com.tcs.lc.SFTPFile.sftpPutFile(SFTPFile.java:38)
+        at com.tcs.lc.XmlGen.buildBillNegotiationXML(XmlGen.java:416)
+        at com.tcs.lc.XmlGen.main(XmlGen.java:107)
+        at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+        at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.lang.reflect.Method.invoke(Method.java:498)
+        at org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader.main(JarRsrcLoader.java:58)
+Nov 18, 2024 4:01:25 PM com.tcs.lc.SFTPFile sftpPutFile
+INFO: weblogic
+10.177.139.91
+2202
+com.jcraft.jsch.JSchException: Auth fail
+        at com.jcraft.jsch.Session.connect(Session.java:519)
+        at com.jcraft.jsch.Session.connect(Session.java:183)
+        at com.tcs.lc.SFTPFile.sftpPutFile(SFTPFile.java:52)
+        at com.tcs.lc.XmlGen.buildBillNegotiationXML(XmlGen.java:416)
+        at com.tcs.lc.XmlGen.main(XmlGen.java:107)
+        at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+        at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.lang.reflect.Method.invoke(Method.java:498)
+        at org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader.main(JarRsrcLoader.java:58)
+Nov 18, 2024 4:01:25 PM com.tcs.lc.DBCON getConnection
+INFO: oracle.jdbc.OracleDriver
+jdbc:oracle:thin:@10.177.133.6:6084:eeuatdb
+EXIMTRX
+eximtrx
+Nov 18, 2024 4:01:25 PM com.tcs.lc.DBCON getConnection
+INFO: inside Class.forName
+Nov 18, 2024 4:01:25 PM com.tcs.lc.DBCON getConnection
+INFO: connection suuceess for EE Database
+Nov 18, 2024 4:01:25 PM com.tcs.lc.XmlGen buildBillNegotiationXML
+INFO: Negotiation PDFs : select C_DOC_INDEX from EXIMSYS.trx_docs_indx_mgr where c_doc_DESC in ('Register IINE Railways', 'Advice Of Negotiation Railways') AND C_MAIN_REF ='0999524SN0B01030'
+Nov 18, 2024 4:01:25 PM com.tcs.lc.XmlGen main
+INFO: payment xml Generated
+[weblogic@TFNEWEEUATAPP Java]$
