@@ -1,166 +1,113 @@
-package com.tcs.xml;
+public void sftpfile() {
+    try {
+        // Load properties
+        pr.load(new FileInputStream("properties/XmlReadPath.properties"));
+        remoteFile = pr.getProperty("path");
+        String identifier = pr.getProperty("filename").trim(); // Filter files ending with this
+        String user = pr.getProperty("user");
+        String host = pr.getProperty("host");
+        String password = pr.getProperty("password");
+        int port = Integer.parseInt(pr.getProperty("port"));
+        logg.info("Connecting to SFTP: user=" + user + ", host=" + host + ", port=" + port);
 
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.Properties;
-import java.util.Vector;
-import java.util.logging.Logger;
-
-public class SFTPFile {
-    private static final Logger logg = Logger.getLogger(SFTPFile.class.getName());
-    private static String lcda = null;
-    private static double lcdavalue = 0.0;
-    private static String br_code = null;
-    private static String outbox = "";
-    private static String remoteFile = "";
-    private static ChannelSftp sftpChannel = null;
-    private JSch jsch = new JSch();
-    private Session session = null;
-    private Properties pr = new Properties();
-
-    public void sftpfile() {
-        try {
-            // Load properties
-            pr.load(new FileInputStream("properties/XmlReadPath.properties"));
-            remoteFile = pr.getProperty("path");
-            String identifier = pr.getProperty("filename").trim(); // Filter files ending with this
-            String user = pr.getProperty("user");
-            String host = pr.getProperty("host");
-            String password = pr.getProperty("password");
-            int port = Integer.parseInt(pr.getProperty("port"));
-            logg.info("Connecting to SFTP: user=" + user + ", host=" + host + ", port=" + port);
-
-            // Establish session
-            session = jsch.getSession(user, host, port);
-            session.setPassword(password);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.connect();
-            logg.info("Connection established.");
-
-            // SFTP Channel setup
-            sftpChannel = (ChannelSftp) session.openChannel("sftp");
-            sftpChannel.connect();
-            sftpChannel.cd(remoteFile);
-
-            // Filter and process files
-            Vector<ChannelSftp.LsEntry> allFiles = sftpChannel.ls("*.xml");
-            for (ChannelSftp.LsEntry entry : allFiles) {
-                if (entry.getFilename().endsWith(identifier)) {
-                    processFile(entry.getFilename());
-                }
+        // Establish session
+        session = jsch.getSession(user, host, port);
+        session.setPassword(password);
+        session.setConfig("StrictHostKeyChecking", "no");
+        session.connect();
+        logg.info("Connection established.");
+        
+        // SFTP Channel setup
+        sftpChannel = (ChannelSftp) session.openChannel("sftp");
+        sftpChannel.connect();
+        sftpChannel.cd(remoteFile);
+        
+        // Filter and process files
+        Vector<ChannelSftp.LsEntry> allFiles = sftpChannel.ls("*.xml");
+        for (ChannelSftp.LsEntry entry : allFiles) {
+            if (entry.getFilename().endsWith(identifier)) {
+                processFile(entry.getFilename(), sftpChannel, pr);
             }
-        } catch (Exception e) {
-            logg.severe("Error in SFTP file processing: " + e.getMessage());
-            fail(e);
-        } finally {
-            if (session != null && session.isConnected()) session.disconnect();
-            if (sftpChannel != null && sftpChannel.isConnected()) sftpChannel.disconnect();
+        }
+    } catch (Exception e) {
+        logg.severe("Error in SFTP file processing: " + e.getMessage());
+        fail(e);
+    } finally {
+        if (session != null && session.isConnected()) {
+            session.disconnect();
+        }
+        if (sftpChannel != null && sftpChannel.isConnected()) {
+            sftpChannel.disconnect();
         }
     }
+}
 
-    private void processFile(String fileName) {
-        InputStream isXml = null;
-        InputStream isPdf = null;
+
+private void processFile(String fileName, ChannelSftp sftpChannel, Properties pr) {
+    InputStream isXml = null;
+    InputStream isPdf = null;
+    try {
+        // Parse XML file
+        isXml = sftpChannel.get(remoteFile + fileName);
+        DocumentBuilder docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        Document document = docBuilder.parse(isXml);
+        document.getDocumentElement().normalize();
+        
+        // Extract required data from the XML
+        extractDataFromXML(document);
+        
+        // Fetch and process files (XML and PDF)
+        String ftppath = pr.getProperty("ftppath");
+        String pdfFileName = fileName.replace(".xml", ".pdf");
+        sftpChannel.get(remoteFile + fileName, ftppath); // Download XML
+        sftpChannel.get(remoteFile + pdfFileName, ftppath); // Download PDF
+        
+        logg.info("Files downloaded successfully: " + fileName + " and " + pdfFileName);
+        
+        // Process XML and PDF files
+        isPdf = sftpChannel.get(remoteFile + pdfFileName);
+        str_xml = new StoreXML(isXml, isPdf, lcda, lcdavalue);
+        success();
+        logg.info("Record inserted into database successfully: " + lcda);
+        
+        // Delete files from remote server
+        sftpChannel.rm(remoteFile + fileName);
+        sftpChannel.rm(remoteFile + pdfFileName);
+    } catch (Exception e) {
+        fail(e);
+        logg.severe("Error processing file: " + fileName + ", Reason: " + e.getMessage());
+    } finally {
         try {
-            // Parse XML file
-            isXml = sftpChannel.get(remoteFile + fileName);
-            DocumentBuilder docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-            Document document = docBuilder.parse(isXml);
-            document.getDocumentElement().normalize();
+            if (isXml != null) isXml.close();
+            if (isPdf != null) isPdf.close();
+        } catch (IOException e) {
+            logg.warning("Error closing input streams: " + e.getMessage());
+        }
+    }
+}
 
-            // Extract required data from the XML
-            extractDataFromXML(document);
 
-            // Fetch and process files (XML and PDF)
-            String ftppath = pr.getProperty("ftppath");
-            String pdfFileName = fileName.replace(".xml", ".pdf");
-            sftpChannel.get(remoteFile + fileName, ftppath); // Download XML
-            sftpChannel.get(remoteFile + pdfFileName, ftppath); // Download PDF
-
-            logg.info("Files downloaded successfully: " + fileName + " and " + pdfFileName);
-
-            // Process XML and PDF files
-            isPdf = sftpChannel.get(remoteFile + pdfFileName);
-            success();
-            logg.info("Record processed successfully: " + lcda);
-
-            // Delete files from remote server
-            sftpChannel.rm(remoteFile + fileName);
-            sftpChannel.rm(remoteFile + pdfFileName);
-        } catch (Exception e) {
-            fail(e);
-            logg.severe("Error processing file: " + fileName + ", Reason: " + e.getMessage());
-        } finally {
-            try {
-                if (isXml != null) isXml.close();
-                if (isPdf != null) isPdf.close();
-            } catch (IOException e) {
-                logg.warning("Error closing input streams: " + e.getMessage());
+private void extractDataFromXML(Document document) {
+    NodeList lcdaList = document.getElementsByTagName("LCDA_DETAIL");
+    for (int i = 0; i < lcdaList.getLength(); i++) {
+        NodeList childNodes = lcdaList.item(i).getChildNodes();
+        for (int j = 0; j < childNodes.getLength(); j++) {
+            Node node = childNodes.item(j);
+            if ("LCDA_NUMBER".equalsIgnoreCase(node.getNodeName())) {
+                lcda = node.getTextContent();
+            } else if ("LCDA_VALUE".equalsIgnoreCase(node.getNodeName())) {
+                lcdavalue = Double.parseDouble(node.getTextContent());
             }
         }
     }
-
-    private void extractDataFromXML(Document document) {
-        NodeList lcdaList = document.getElementsByTagName("LCDA_DETAIL");
-        for (int i = 0; i < lcdaList.getLength(); i++) {
-            NodeList childNodes = lcdaList.item(i).getChildNodes();
-            for (int j = 0; j < childNodes.getLength(); j++) {
-                Node node = childNodes.item(j);
-                if ("LCDA_NUMBER".equalsIgnoreCase(node.getNodeName())) {
-                    lcda = node.getTextContent();
-                } else if ("LCDA_VALUE".equalsIgnoreCase(node.getNodeName())) {
-                    lcdavalue = Double.parseDouble(node.getTextContent());
-                }
+    NodeList branchList = document.getElementsByTagName("LC_DETAIL");
+    for (int i = 0; i < branchList.getLength(); i++) {
+        NodeList childNodes = branchList.item(i).getChildNodes();
+        for (int j = 0; j < childNodes.getLength(); j++) {
+            Node node = childNodes.item(j);
+            if ("LC_BANK_BRANCH".equalsIgnoreCase(node.getNodeName())) {
+                br_code = node.getTextContent();
             }
-        }
-        NodeList branchList = document.getElementsByTagName("LC_DETAIL");
-        for (int i = 0; i < branchList.getLength(); i++) {
-            NodeList childNodes = branchList.item(i).getChildNodes();
-            for (int j = 0; j < childNodes.getLength(); j++) {
-                Node node = childNodes.item(j);
-                if ("LC_BANK_BRANCH".equalsIgnoreCase(node.getNodeName())) {
-                    br_code = node.getTextContent();
-                }
-            }
-        }
-    }
-
-    public static void success() {
-        try {
-            String successFile = lcda + "_success.txt";
-            String ackPath = new Properties().load(new FileInputStream("properties/XmlReadPath.properties")).getProperty("ackPath");
-            sftpChannel.cd(ackPath);
-
-            String fileData = lcda + " successfully processed.";
-            Files.write(Paths.get(successFile), fileData.getBytes(), StandardOpenOption.CREATE);
-            logg.info("Success acknowledgment created for: " + lcda);
-        } catch (Exception e) {
-            logg.severe("Error creating success acknowledgment: " + e.getMessage());
-        }
-    }
-
-    public static void fail(Exception e) {
-        try {
-            String failFile = lcda + "_fail.txt";
-            String ackPath = new Properties().load(new FileInputStream("properties/XmlReadPath.properties")).getProperty("ackPath");
-            sftpChannel.cd(ackPath);
-
-            String fileData = lcda + " failed due to reason: " + e.getMessage();
-            Files.write(Paths.get(failFile), fileData.getBytes(), StandardOpenOption.CREATE);
-            logg.info("Failure acknowledgment created for: " + lcda);
-        } catch (Exception ex) {
-            logg.severe("Error creating failure acknowledgment: " + ex.getMessage());
         }
     }
 }
