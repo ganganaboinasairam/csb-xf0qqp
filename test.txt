@@ -1,11 +1,214 @@
-String identifier = pr.getProperty("filename"); // "_signed" from properties file
-this.list = new ArrayList<>();
-Vector<ChannelSftp.LsEntry> fileList = sftpChannel.ls("*.xml");
+package com.tcs.xml;
 
-for (ChannelSftp.LsEntry entry : fileList) {
-    if (entry.getFilename().endsWith(identifier)) {
-        this.list.add(entry.getFilename());
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.ChannelSftp.LsEntry;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Paths;
+import java.util.Properties;
+import java.util.Vector;
+import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import storexml.StoreXML;
+
+public class SFTPFile
+{
+  public static Logger logg = Logger.getLogger("Log1");
+  public static String lcda = null;
+  public static double lcdavalue = 0.0D;
+  public static String br_code = null;
+  Vector<ChannelSftp.LsEntry> list = null;
+  public static String outbox = "";
+  public static String remoteFile = "";
+  static String outputPath = "";
+  public static String remoteFile1 = "";
+  StoreXML str_xml;
+  public static ChannelSftp sftpChannel = null;
+  JSch jsch = new JSch();
+  Session session = null;
+  Properties pr = new Properties();
+
+  public void sftpfile()
+  {
+    Properties pr = new Properties();
+    try {
+      pr.load(new FileInputStream("properties/XmlReadPath.properties"));
+      remoteFile = pr.getProperty("path");
+      String user = pr.getProperty("user");
+      String host = pr.getProperty("host");
+      String password = pr.getProperty("password");
+      int port = Integer.parseInt(pr.getProperty("port"));
+      logg.info("user" + user + "\n" + "host" + host + "\n" + "port" + port);
+
+      this.session = this.jsch.getSession(user, host, port);
+      this.session.setPassword(password);
+      this.session.setConfig("StrictHostKeyChecking", "no");
+      this.session.connect();
+      logg.info("Connection established.");
+      sftpChannel = (ChannelSftp)this.session.openChannel("sftp");
+      sftpChannel.connect();
+      sftpChannel.cd(remoteFile);
+      String identifier = pr.getProperty("filename");
+      this.list = sftpChannel.ls("*.xml");
+      logg.info("list Value : [" + this.list + "] sftpChannel : [" + sftpChannel + "]");
+      String ftppath = pr.getProperty("ftppath");
+      for (ChannelSftp.LsEntry entry : this.list) {
+        DocumentBuilderFactory docbuildFactory = DocumentBuilderFactory.newInstance();
+
+        InputStream is = null;
+        try {
+          is = sftpChannel.get(remoteFile + entry.getFilename());
+        }
+        catch (SftpException e1) {
+          e1.printStackTrace();
+        }
+        InputStream is1 = null;
+
+        DocumentBuilder docBuilder = docbuildFactory.newDocumentBuilder();
+        Document document = docBuilder.parse(is);
+        document.getDocumentElement().normalize();
+        NodeList nList = document.getElementsByTagName("LCDA_DETAIL");
+
+        String str = "";
+          for (int i = 0; i < nList.getLength(); ++i) {
+            NodeList nsList = (NodeList)nList.item(i);
+            for (int j = 0; j < nsList.getLength(); ++j) {
+              Node node = nsList.item(j);
+              if (node.getNodeName().equalsIgnoreCase("LCDA_NUMBER")) {
+                lcda = node.getTextContent();
+              }
+              if (node.getNodeName().equalsIgnoreCase("LCDA_VALUE")) {
+                str = node.getTextContent();
+                lcdavalue = Double.parseDouble(str);
+              }
+            }
+          }
+
+          NodeList nList1 = document.getElementsByTagName("LC_DETAIL");
+          for (int i = 0; i < nList1.getLength(); ++i) {
+            NodeList nsList1 = (NodeList)nList1.item(i);
+            for (int j = 0; j < nsList1.getLength(); ++j) {
+              Node node1 = nsList1.item(j);
+              if (node1.getNodeName().equalsIgnoreCase("LC_BANK_BRANCH")) {
+                br_code = node1.getTextContent();
+              }
+
+            }
+
+          }
+
+          ftppath = pr.getProperty("ftppath");
+          String filename = pr.getProperty("filename");
+          String xml = remoteFile + lcda + filename + ".xml";
+          String pdf = remoteFile + lcda + filename + ".pdf";
+          sftpChannel.get(xml, ftppath);
+          sftpChannel.get(pdf, ftppath);
+          logg.info("xml and pdf copied successfully:" + lcda);
+          is = sftpChannel.get(xml);
+
+          is1 = sftpChannel.get(pdf);
+
+          if (remoteFile1 == null)
+            continue;
+          try
+          {
+            this.str_xml = new StoreXML(is, is1, lcda, lcdavalue);
+            success();
+            logg.info("Record inserted in database successfully:" + lcda);
+            is.close();
+            is1.close();
+
+            sftpChannel.rm(xml);
+            sftpChannel.rm(pdf);
+          }
+          catch (Exception e) {
+            fail(e);
+            e.printStackTrace();
+          }
+        }
+
+      this.session.disconnect();
+    } catch (Exception e) {
+      logg.info("xml and pdf are not copied" + lcda);
+      fail(e);
+      e.printStackTrace();
     }
-}
+  }
 
-logg.info("Filtered list Value : [" + this.list + "] sftpChannel : [" + sftpChannel + "]");
+  public static void success()
+  {
+    String sucess = lcda + "_success";
+    String absoluteFilePath = sucess + ".txt";
+    File file = new File(absoluteFilePath);
+
+    Properties pr2 = new Properties();
+    try {
+      pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
+      outbox = pr2.getProperty("ackPath");
+      sftpChannel.cd(outbox);
+      String fileData = lcda + " successfully recieved. ";
+      Files.write(Paths.get(absoluteFilePath, new String[0]), fileData.getBytes(), new OpenOption[0]);
+      if (file.isFile()) {
+        String put = outbox + file.getName();
+        InputStream ins = new FileInputStream(file);
+        sftpChannel.put(ins, put);
+        ins.close();
+        file.delete();
+      }
+    }
+    catch (SftpException e)
+    {
+      e.printStackTrace();
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    logg.info("Success Acknowledgement generated:" + lcda);
+  }
+
+  public static void fail(Exception e2)
+  {
+    String fail = lcda + "_fail";
+    String absoluteFilePath = fail + ".txt";
+    File file = new File(absoluteFilePath);
+
+    Properties pr2 = new Properties();
+    try {
+      pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
+      outbox = pr2.getProperty("ackPath");
+      sftpChannel.cd(outbox);
+      String fileData = lcda + " failed due to reason " + e2;
+      Files.write(Paths.get(absoluteFilePath, new String[0]), fileData.getBytes(), new OpenOption[0]);
+      if (file.isFile()) {
+        String put = outbox + file.getName();
+        InputStream ins = new FileInputStream(file);
+        sftpChannel.put(ins, put);
+        ins.close();
+        file.delete();
+      }
+    }
+    catch (SftpException e) {
+      e.printStackTrace();
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    logg.info("Failure Acknowledgement generated:" + lcda);
+  }
+}
