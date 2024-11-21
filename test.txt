@@ -1,11 +1,7 @@
 package com.tcs.lc;
 
-import com.cs.ceweb.servlets.RailwayApiConsume;
-import com.sun.org.apache.xml.internal.serialize.OutputFormat;
-import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -21,6 +17,10 @@ import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -65,7 +65,7 @@ public class XmlGen
 
     Properties pr = new Properties();
     try {
-      pr.load(new FileInputStream("./properties/XmlgenPath.properties"));
+      pr.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/XmlgenPath.properties"));
       String function = pr.getProperty("function");
       functions = function.split(",");
     } catch (IOException e) {
@@ -76,27 +76,37 @@ public class XmlGen
       ResultSet issueRS1 = null;
       if (functions[i].equalsIgnoreCase("IssueLC")) {
         Properties prQuery = new Properties();
-        prQuery.load(new FileInputStream("./properties/RailQueries.properties"));
+        prQuery.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/RailQueries.properties"));
         SQL_LC = prQuery.getProperty("sql1");
         issueRS = statement.executeQuery(SQL_LC);
         logg.info(SQL_LC);
         try {
+          logg.info("before builissuecxml");
+          System.out.println("before buil issuecxml");
           buildIssueLCXML(issueRS);
-          logg.info("Issue xml Generated");
+          logg.info("Issue xml Generation....");
+          System.out.println("Issue xml Generation....");
         } catch (Exception e) {
-          System.out.println("buildIssueLCXML" + e.getMessage());
+          logg.info("issue catch exception");
+
+          logg.info("buildIssueLCXML" + e.getMessage());
+          System.out.println("issue catch exception");
         }
+        logg.info("inside");
         issueRS.close();
+        logg.info("outside the issue xml");
+        System.out.println("function ISsueLC");
       }
 
       if (functions[i].equalsIgnoreCase("BillNegotiation")) {
         Properties prQuery = new Properties();
-        prQuery.load(new FileInputStream("./properties/RailQueries.properties"));
+        prQuery.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/RailQueries.properties"));
         SQL_PAY = prQuery.getProperty("sql2");
         issueRS1 = statement.executeQuery(SQL_PAY);
         try {
           buildBillNegotiationXML(issueRS1);
           logg.info("payment xml Generated");
+          System.out.println("payment xml Generated");
         } catch (Exception e) {
           System.out.println("buildBillNegotiationXML" + e.getMessage());
         }
@@ -108,16 +118,26 @@ public class XmlGen
   }
 
   private static void buildIssueLCXML(ResultSet rs1) throws Exception {
+    logg.info("working buildxml");
+
     while (rs1.next()) {
+      logg.info("working inside rs1");
       Document dataDoc = null;
       try
       {
+        logg.info("inside try buildxml rs1");
         DocumentBuilderFactory dbfactory = DocumentBuilderFactory.newInstance();
+        logg.info("inside try 2  buildxml rs1");
         DocumentBuilder docbuilder = dbfactory.newDocumentBuilder();
+        logg.info("inside try 3  buildxml rs1");
         dataDoc = docbuilder.newDocument();
+        logg.info("inside try 4 buildxml rs1" + dataDoc);
       } catch (Exception e) {
+        logg.info("inside catch buildxml rs1");
         logg.info(e.getMessage());
+        logg.info("inside catch 2 buildxml rs1");
       }
+      logg.info("outside catch try buildxml rs1");
       Element dataRoot = dataDoc.createElement("data");
       Element rowEl = dataDoc.createElement("row");
       for (int i = 1; i <= 12; ++i) {
@@ -182,6 +202,7 @@ public class XmlGen
       rowEl.appendChild(acunit);
 
       Map map = new HashMap();
+
       map = RailwayApiConsume.consumingRailwayAPI(etrade_ref, "0.0");
       logg.info("Issue map:" + map);
 
@@ -224,6 +245,8 @@ public class XmlGen
       dataRoot.appendChild(rowEl);
       dataDoc.appendChild(dataRoot);
 
+      System.out.println("ce XML ELEMENT generated............");
+
       String filename = "";
       if (amd_typ.equals("0")) {
         filename = "LC_Issue" + main_ref + ".xml";
@@ -243,21 +266,24 @@ public class XmlGen
       }
       logg.info("C_MAIN_REF : " + cmainref + " " + "OLD REF Number : " + oldref);
       Properties pr = new Properties();
-      pr.load(new FileInputStream("./properties/XmlgenPath.properties"));
+      pr.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/XmlgenPath.properties"));
       String remoteFile1 = pr.getProperty("putpath");
       File outputFile = new File(remoteFile1 + '/' + filename);
       printDOM(dataDoc, outputFile);
+      System.out.println("dataDoc" + dataDoc);
+      System.out.println("outputFile" + outputFile);
 
       InputStream targetfile = new FileInputStream(outputFile);
       File file = new File(filename);
       SFTPFile sftpput = new SFTPFile();
+      System.out.println("SFTPFile");
       sftpput.sftpPutFile(outputFile);
 
       conn = DBCON.getConnection();
       logg.info("connection success to pick issue pdfs");
       Statement statement = conn.createStatement();
       Properties prQuery = new Properties();
-      prQuery.load(new FileInputStream("./properties/RailQueries.properties"));
+      prQuery.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/RailQueries.properties"));
       String pdf_qry = "";
 
       if (amd_typ.equals("0"))
@@ -314,7 +340,7 @@ public class XmlGen
     Properties pr = new Properties();
     try {
       Statement statement1 = conn.createStatement();
-      pr.load(new FileInputStream("./properties/RailQueries.properties"));
+      pr.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/RailQueries.properties"));
       String query = pr.getProperty("sql_accunit") + "'" + acc_unit + "'";
       ResultSet res = statement1.executeQuery(query);
       while (res.next())
@@ -330,16 +356,17 @@ public class XmlGen
   private static void buildBillNegotiationXML(ResultSet rs2) throws Exception {
     Map map = new HashMap();
 
-    while (rs2.next()) {
-      map = RailwayApiConsume.consumingRailwayAPI(rs2.getString("ETRADEREF"), String.valueOf(rs2.getDouble("PAYAMT")));
-      logg.info("payment map:" + map);
+    while (rs2.next())
+    {
+      System.out.println("payment map:" + map);
       Document dataDoc = null;
       try {
         DocumentBuilderFactory dbfactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docbuilder = dbfactory.newDocumentBuilder();
         dataDoc = docbuilder.newDocument();
+        System.out.println("build negotiation xml funxtion : " + dataDoc);
       } catch (Exception e) {
-        logg.info("Problem creating document: " + e.getMessage());
+        System.out.println("Problem creating document: " + e.getMessage());
       }
 
       Element dataRoot = dataDoc.createElement("data");
@@ -363,7 +390,6 @@ public class XmlGen
       Element lcamt = dataDoc.createElement("LCDAAMT");
       lcamt.appendChild(dataDoc.createTextNode(lcda_amt));
       rowEl.appendChild(lcamt);
-
       if (cust_ref != null)
       {
         accunit = cust_ref.substring(0, 4);
@@ -379,43 +405,43 @@ public class XmlGen
       Element paydate = dataDoc.createElement("PAYDATE");
       paydate.appendChild(dataDoc.createTextNode(output1));
       rowEl.appendChild(paydate);
-
       dataRoot.appendChild(rowEl);
       dataDoc.appendChild(dataRoot);
-
       String filename = "Bill_Nego" + main_ref + ".xml";
 
       Properties pr = new Properties();
-      pr.load(new FileInputStream("./properties/XmlgenPath.properties"));
+      pr.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/XmlgenPath.properties"));
       String remoteFile1 = pr.getProperty("putpath");
       File outputFile = new File(remoteFile1 + '/' + filename);
-
+      System.out.println("outputFile" + outputFile);
       printDOM(dataDoc, outputFile);
-
       InputStream targetfile = new FileInputStream(outputFile);
       File file = new File(filename);
       SFTPFile sftpput = new SFTPFile();
       sftpput.sftpPutFile(outputFile);
-
       conn = DBCON.getConnection();
       Statement statement = conn.createStatement();
       Properties prQuery = new Properties();
-      prQuery.load(new FileInputStream("./properties/RailQueries.properties"));
+      prQuery.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/RailQueries.properties"));
       String pdf_qry = "";
       pdf_qry = prQuery.getProperty("pfdnego") + "'" + main_ref + "'";
-      logg.info("Negotiation PDFs : " + pdf_qry);
+      System.out.println("Negotiation PDFs : " + pdf_qry);
       ResultSet pdfRs = statement.executeQuery(pdf_qry);
+
       while (pdfRs.next()) {
         try
         {
           String doc_name = pdfRs.getString(1);
+
+          System.out.println("doc_name" + doc_name);
           SFTPFile sftpget = new SFTPFile();
           sftpget.sftpgetfile(doc_name);
           File f1 = new File(remoteFile1 + doc_name);
           File issuepdf = new File(remoteFile1 + '/' + doc_name + ".pdf");
+          System.out.println("issuepdf: " + issuepdf);
           sftpput.sftpPutFile(issuepdf);
           updateStatus(main_ref);
-          logg.info("PDF_GENERATION COMPLETE");
+          System.out.println("PDF_GENERATION COMPLETE");
         } catch (Exception e) {
           e.printStackTrace();
         }
@@ -430,7 +456,7 @@ public class XmlGen
     Properties pr = new Properties();
     try {
       Statement statement1 = conn.createStatement();
-      pr.load(new FileInputStream("./properties/RailQueries.properties"));
+      pr.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/RailQueries.properties"));
       String query = pr.getProperty("lcda_amt") + "'" + cust_ref + "'";
       ResultSet res = statement1.executeQuery(query);
       while (res.next())
@@ -450,7 +476,7 @@ public class XmlGen
     Properties pr = new Properties();
     try {
       Statement statement2 = conn2.createStatement();
-      pr.load(new FileInputStream("./properties/RailQueries.properties"));
+      pr.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/RailQueries.properties"));
       if (main_ref_status.contains("LC"))
         status = pr.getProperty("updateINLC");
       else {
@@ -463,161 +489,18 @@ public class XmlGen
     }
     conn2.commit();
   }
+
   private static void printDOM(Document _xmlDoc, File _outputFile) throws Exception {
-    OutputFormat outputFormat = new OutputFormat("XML", "UTF-8", true);
-    FileWriter fileWriter = new FileWriter(_outputFile);
+    TransformerFactory transformerfactory = TransformerFactory.newInstance();
 
-    XMLSerializer xmlSerializer = new XMLSerializer(fileWriter, outputFormat);
+    Transformer transformer = transformerfactory.newTransformer();
 
-    xmlSerializer.asDOMSerializer();
+    DOMSource source = new DOMSource(_xmlDoc);
 
-    xmlSerializer.serialize(_xmlDoc.getDocumentElement());
-  }
-}
+    StreamResult result = new StreamResult(_outputFile);
 
-package com.tcs.lc;
+    transformer.transform(source, result);
 
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.tcs.password.decryption.Decryption;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-import java.util.logging.Logger;
-
-public class SFTPFile
-{
-  private static String user;
-  private static String password;
-  private static String host;
-  int port;
-  int portget;
-  public static String remoteFile = "";
-  Properties pr = new Properties();
-  public static Logger logg = Logger.getLogger("Log1");
-
-  public void sftpPutFile(File file) throws FileNotFoundException, IOException
-  {
-    InputStream ins = new FileInputStream(file);
-    Properties pr = new Properties();
-    pr.load(new FileInputStream("./properties/XmlgenPath.properties"));
-    try {
-      user = pr.getProperty("user");
-      host = pr.getProperty("host");
-
-      password = Decryption.decrypt(pr.getProperty("password"));
-      this.port = Integer.parseInt(pr.getProperty("port"));
-      logg.info(user + "\n" + host + "\n" + this.port);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-
-    try
-    {
-      String putxml = pr.getProperty("putxml");
-      JSch jsch = new JSch();
-      Session session = jsch.getSession(user, host, this.port);
-      session.setPassword(password);
-      session.setConfig("StrictHostKeyChecking", "no");
-      session.connect();
-      ChannelSftp sftpChannel = (ChannelSftp)session.openChannel("sftp");
-      sftpChannel.connect();
-      logg.info("Connection established.");
-      sftpChannel.cd(putxml);
-      remoteFile = putxml + file.getName();
-      sftpChannel.put(ins, remoteFile);
-      sftpChannel.disconnect();
-      session.disconnect();
-    }
-    catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-
-  public InputStream sftpgetfile(String file)
-  {
-    String user1 = null; String password1 = null; String host1 = null; String user2 = null; String password2 = null; String host2 = null;
-    int port1 = 0; int port2 = 0;
-    InputStream is = null;
-    Properties pr = new Properties();
-    try {
-      pr.load(new FileInputStream("./properties/XmlgenPath.properties"));
-    } catch (FileNotFoundException e1) {
-      e1.printStackTrace();
-    } catch (IOException e1) {
-      e1.printStackTrace();
-    }
-    try {
-      user1 = pr.getProperty("user1");
-      host1 = pr.getProperty("host1");
-
-      password1 = Decryption.decrypt(pr.getProperty("password1"));
-      port1 = Integer.parseInt(pr.getProperty("port1"));
-      logg.info(user1 + "\n" + host1 + "\n" + port1);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    try {
-      user2 = pr.getProperty("user2");
-      host2 = pr.getProperty("host2");
-
-      password2 = Decryption.decrypt(pr.getProperty("password2"));
-      port2 = Integer.parseInt(pr.getProperty("port2"));
-      logg.info(user2 + "\n" + host2 + "\n" + port2);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    String remoteFile = pr.getProperty("getpath");
-    String remoteFile1 = pr.getProperty("putpath");
-    JSch jsch = new JSch();
-    try
-    {
-      Session session = jsch.getSession(user1, host1, port1);
-      session.setPassword(password1);
-      session.setConfig("StrictHostKeyChecking", "no");
-      session.connect();
-      ChannelSftp sftpChannel = (ChannelSftp)session.openChannel("sftp");
-      sftpChannel.connect();
-      logg.info("Connection established.");
-      sftpChannel.cd(remoteFile);
-      Session session1;
-      ChannelSftp sftpChannel1;
-      try {
-        sftpChannel.get(remoteFile + '/' + file + ".pdf", remoteFile1);
-        logg.info("PDF Name : " + file);
-      } catch (Exception e) {
-        logg.info(e.getMessage());
-      }
-      finally
-      {
-        Session session1;
-        ChannelSftp sftpChannel1;
-        session.disconnect();
-        Session session1 = jsch.getSession(user2, host2, port2);
-        session1.setPassword(password2);
-        session1.setConfig("StrictHostKeyChecking", "no");
-        session1.connect();
-        ChannelSftp sftpChannel1 = (ChannelSftp)session1.openChannel("sftp");
-        sftpChannel1.connect();
-        logg.info("Connection established.");
-        sftpChannel1.cd(remoteFile);
-        try
-        {
-          sftpChannel1.get(remoteFile + '/' + file + ".pdf", remoteFile1);
-          logg.info("PDF Name : " + file);
-        } catch (Exception e) {
-          logg.info(e.getMessage());
-        }
-        session1.disconnect();
-      }
-    }
-    catch (Exception e) {
-      e.printStackTrace();
-    }
-    return is;
+    System.out.println("XML Generated and Transfered.");
   }
 }
