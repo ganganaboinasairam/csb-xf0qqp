@@ -1,12 +1,135 @@
-SELECT 
-    IM.EXPIRY_DT, 
-    IA.NEW_EXP_DT
-FROM 
-    INIS_MASTER IM
-INNER JOIN 
-    INIS_AMD IA
-ON 
-    IM.EVENT_TIMES = IA.EVENT_TIMES -- Match EVENT_TIMES
-WHERE 
-    IM.C_MAIN_REF IN ('23124', '32324324', '344243') -- Filter C_MAIN_REF in INIS_MASTER
-    AND IA.C_MAIN_REF IN ('23124', '32324324', '344243'); -- Filter C_MAIN_REF in INIS_AMD
+<table cellspacing='0' ${tbClass01} id="id_Conversion" style="display:none;">
+	<tr ${trClass01}>
+		<td>
+			<table ${tbClass02} id="id_Conversion_table">
+	
+
+				<tr ${trClass01} id="showLineFlag">
+						<td bgcolor="#666666" colspan="100">
+								<img src="images/trans.gif" width=1 height=1 border=0>
+						</td>
+				</tr>
+
+				<tr ${trClass02}>
+				
+
+					<#list cataTitle.title as title>
+						<#list title as col>
+
+						<#if col.isLineFlag>
+
+					<td bgcolor="#FFFFFF" id="showLineFlag"></td>
+
+						<#else>
+ 						<#if col.isNoEventTitle>
+					<td ${tdClass01}>
+						<font>
+						<p>${col.titleValue}</p>
+						</font>
+					</td>
+
+ 						<#elseif cataTitle.isMulti || cataTitle.hasResult>
+ 					<td ${tdClass01}><p>${col.titleValue}</p></td>
+                        <#else>
+
+					<td ${tdClass01} onclick="searchAuto('${col.onclickParam}')" onmouseover="this.style.cursor='hand'" style="cursor:pointer;">
+						<font>
+							<p>${col.titleValue}&nbsp;&nbsp;<img src="/CEWeb/Images/icons/sort_both.png" id="${col.onclickParam}_imgSort" href="#" style="vertical-align: sub;"/></p>
+						</font>
+					</td>
+ 						</#if>
+					</#if>
+					</#list>
+					</#list>
+					<#if cataTitle.hasSelectCol && !cataTitle.isMulti && !cataTitle.hasResult>
+					
+						
+					</#if>
+					<#if cataTitle.hasSelectCol && !cataTitle.isMulti && !cataTitle.hasResult>
+						
+					</#if>
+					<#if cataTitle.hasResult>
+					<td ${tdClass01}>
+						<p>&nbsp;&nbsp;&nbsp;Result&nbsp;&nbsp;&nbsp;</p>
+					</td>
+					</#if>
+						
+				</tr>
+
+				<tr ${trClass01} id="showLineFlag">
+					<td bgcolor="#666666" colspan="100">
+						<img src="images/trans.gif" width=1 height=1 border=0>
+					</td>
+				</tr>
+
+				
+				
+			<#list recordList as record>
+			<tr ${trClass01}>
+						
+				<#list record.content as content>
+					<#list content as column>
+						
+						<#if column.notHideColumn>
+							
+							<td  <#if record.singleRow>	${tdClass02}	<#else> 		${tdClass03} </#if> >
+								<div id="${column.rowId}" <#assign colType = "${column.dataType}"/>
+							 
+							 <#if colType = INTEGER || colType = DECIMAL >
+								style="text-align: right; width: 80% !important;"
+								<#else>
+							 style="text-align: left;"
+							 </#if>
+							 
+							 
+							 ${divClass01} ${column.event} value="${column.divValue}">
+							 
+							<#if column.name  == "STATUS">
+								<#assign digiStat = "${column.divValue}"/> 
+							 </#if>
+							 
+							<a  onClick="EditselectedCrefNo('select'+${record.rowNum})">
+							<#assign deleteType = "${column.value}"/>
+							<#attempt>
+							<#if column.divValue = "M" && digiStat="1" > Sucessfull
+							<#elseif column.divValue = "A" && digiStat="2" >Sucessfull
+							
+							
+							<#elseif column.value = "Bill Registered" || column.value="Bill Discounted" > Bill Discounted
+							
+							<#else> ${column.value}						
+							</#if>
+							<#recover></#attempt>
+							</a></div>
+							</td>	
+							
+						<#else>
+						
+							<td  							
+							<#if record.singleRow> 
+								${tdClass04}
+							<#else> 
+								${tdClass05} 
+							</#if> >
+							<div id="${column.rowId}" value="${column.divValue}"/>
+							</td>
+						</#if>
+						
+					</#list>						
+				</#list>
+				<#if cataTitle.hasSelectCol && !cataTitle.isMulti && !cataTitle.hasResult>
+							
+				</#if>
+				<#if cataTitle.hasSelectCol && !cataTitle.isMulti && !cataTitle.hasResult>
+					<#if deleteType="Saved" || deleteType="Awaiting Corporate Approval">
+					
+					<#else>
+					
+					</#if>
+				</#if>
+			</tr>
+			</#list>	
+			</table>
+		</td>
+	</tr>
+</table>
