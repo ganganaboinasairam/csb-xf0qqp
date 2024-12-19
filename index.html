@@ -1,44 +1,115 @@
-[12/19/24 15:02:41:477 IST] 00000088 SystemErr     R java.lang.ClassCastException: [B incompatible with java.lang.String
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.cs.ceweb.servlets.ImageDownloadServlet.doPost(ImageDownloadServlet.java:52)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at javax.servlet.http.HttpServlet.service(HttpServlet.java:595)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at javax.servlet.http.HttpServlet.service(HttpServlet.java:668)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.servlet.ServletWrapper.service(ServletWrapper.java:1233)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.servlet.ServletWrapper.handleRequest(ServletWrapper.java:782)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.servlet.ServletWrapper.handleRequest(ServletWrapper.java:481)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.servlet.ServletWrapperImpl.handleRequest(ServletWrapperImpl.java:178)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.invokeTarget(WebAppFilterChain.java:136)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:97)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.cs.ceweb.secu.utility.CECommonSecurityWebFilter.doFilter(CECommonSecurityWebFilter.java:127)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.cs.ceweb.servlets.CEPenTestFilter.doFilter(CEPenTestFilter.java:43)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.FilterInstanceWrapper.doFilter(FilterInstanceWrapper.java:195)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:91)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.cs.ceweb.servlets.getPostFilter.doFilter(getPostFilter.java:50)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.FilterInstanceWrapper.doFilter(FilterInstanceWrapper.java:195)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:91)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.cs.ceweb.secu.utility.CECommonSecurityWebFilter.doFilter(CECommonSecurityWebFilter.java:127)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.cs.ceweb.servlets.CERequestFilter.doFilter(CERequestFilter.java:71)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.FilterInstanceWrapper.doFilter(FilterInstanceWrapper.java:195)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:91)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.cs.eximweb.servlets.CEDencrptURLFilter.doFilter(CEDencrptURLFilter.java:45)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.FilterInstanceWrapper.doFilter(FilterInstanceWrapper.java:195)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.WebAppFilterChain.doFilter(WebAppFilterChain.java:91)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.WebAppFilterManager.doFilter(WebAppFilterManager.java:967)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.filter.WebAppFilterManager.invokeFilters(WebAppFilterManager.java:1107)
-[12/19/24 15:02:41:478 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.webapp.WebApp.handleRequest(WebApp.java:4075)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.webapp.WebGroup.handleRequest(WebGroup.java:304)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.WebContainer.handleRequest(WebContainer.java:1019)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.WSWebContainer.handleRequest(WSWebContainer.java:1817)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.ws.webcontainer.channel.WCChannelLink.ready(WCChannelLink.java:213)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.ws.http.channel.inbound.impl.HttpInboundLink.handleDiscrimination(HttpInboundLink.java:463)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.ws.http.channel.inbound.impl.HttpInboundLink.handleNewRequest(HttpInboundLink.java:530)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.ws.http.channel.inbound.impl.HttpInboundLink.processRequest(HttpInboundLink.java:316)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.ws.http.channel.inbound.impl.HttpICLReadCallback.complete(HttpICLReadCallback.java:88)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.ws.ssl.channel.impl.SSLReadServiceContext$SSLReadCompletedCallback.complete(SSLReadServiceContext.java:1833)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.ws.tcp.channel.impl.AioReadCompletionListener.futureCompleted(AioReadCompletionListener.java:175)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.io.async.AbstractAsyncFuture.invokeCallback(AbstractAsyncFuture.java:217)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.io.async.AsyncChannelFuture.fireCompletionActions(AsyncChannelFuture.java:161)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.io.async.AsyncFuture.completed(AsyncFuture.java:138)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.io.async.ResultHandler.complete(ResultHandler.java:204)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.io.async.ResultHandler.runEventProcessingLoop(ResultHandler.java:775)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.io.async.ResultHandler$2.run(ResultHandler.java:905)
-[12/19/24 15:02:41:479 IST] 00000088 SystemErr     R 	at com.ibm.ws.util.ThreadPool$Worker.run(ThreadPool.java:1892)
+package com.cs.ceweb.servlets;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.Base64;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.cs.base.utility.ASPathConst;
+import com.cs.base.xml.XMLManager;
+import com.cs.ce.core.helper.CESecuFileHelper;
+import com.cs.core.dao.DSManager;
+import com.cs.core.utility.WSZipUtil;
+import org.w3c.dom.Node;
+
+public class ImageDownloadServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String indexList = request.getParameter("indexList");
+        String c_main_ref = request.getParameter("cMainRef");
+
+        if (indexList == null || indexList.isEmpty() || c_main_ref == null || c_main_ref.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing required parameters: indexList or cMainRef.");
+            return;
+        }
+
+        String[] array = indexList.split(";");
+
+        try (Connection conn = DSManager.getConnection("CET")) {
+            for (String value : array) {
+                System.out.println("Processing index: " + value);
+
+                String query = "SELECT B_IMG_CONTENT, C_IMG_FILE_TYPE FROM TRX_IMAGES_DTAL WHERE C_IMG_INDX = ? AND C_MAIN_REF = ?";
+                PreparedStatement pstmt = conn.prepareStatement(query);
+                pstmt.setString(1, value);
+                pstmt.setString(2, c_main_ref);
+
+                ResultSet rs = pstmt.executeQuery();
+
+                if (rs.next()) {
+                    byte[] binaryData = rs.getBytes("B_IMG_CONTENT");
+
+                    if (binaryData != null && binaryData.length > 0) {
+                        String base64 = Base64.getEncoder().encodeToString(binaryData);
+                        Object obj = WSZipUtil.decompressByBase64(base64);
+                        printContentInTheFile((String) obj, value);
+                    } else {
+                        System.out.println("No valid data found for index: " + value);
+                        handleNoDataFound(response);
+                    }
+                } else {
+                    System.out.println("No record found for index: " + value);
+                    handleNoDataFound(response);
+                }
+
+                pstmt.close();
+            }
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"Files saved successfully\"}");
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "An error occurred while fetching the report: " + e.getMessage());
+        }
+    }
+
+    private void printContentInTheFile(String obj, String c_img_indx) throws Exception {
+        System.out.println("Inside printContentInTheFile method");
+
+        String configFilePath = ASPathConst.getUserDirPath() + File.separator + "PARAM" + File.separator + "Default"
+                + File.separator + "SYST" + File.separator + "sysparam.xml";
+        System.out.println("Config file path: " + configFilePath);
+
+        Node sImagePathNode = XMLManager.findNode(XMLManager.xmlFileToDom(configFilePath).getDocumentElement(),
+                "WEB_IMAGE_ROOT_PATH");
+        String sImagePath = XMLManager.getNodeAttribute(sImagePathNode, "VALUE");
+        System.out.println("Image save path: " + sImagePath);
+
+        File file = new File(sImagePath, c_img_indx + ".pdf");
+        try (FileOutputStream out = CESecuFileHelper.newFileOutputStream(file.getAbsolutePath())) {
+            if (obj != null && obj instanceof String) {
+                byte[] contentBytes = ((String) obj).getBytes("ISO-8859-1");
+                out.write(contentBytes);
+            } else if (obj != null && obj instanceof byte[]) {
+                out.write((byte[]) obj);
+            } else {
+                throw new Exception("Invalid object type for file content");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new Exception("Error writing file for index: " + c_img_indx, e);
+        }
+    }
+
+    private void handleNoDataFound(HttpServletResponse response) throws IOException {
+        System.out.println("No report data found in the database.");
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+        out.println("<html><body>");
+        out.println(
+                "<div style=\"display: flex; justify-content: center; align-items: center; min-height: 100vh; font-size: xx-large; color: red;\">Report file not found...</div>");
+        out.println("</body></html>");
+        out.flush();
+    }
+}
