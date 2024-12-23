@@ -9,21 +9,22 @@
     <h1>XML File Generator</h1>
     <form id="xmlForm">
         <!-- Input fields -->
-        <label>CUSTREF: <input type="text" id="CUSTREF" required></label><br>
-        <label>LCNUMBER: <input type="text" id="LCNUMBER" required></label><br>
-        <label>ETRADEREF: <input type="text" id="ETRADEREF" required></label><br>
-        <label>GOODS: <input type="text" id="GOODS" required></label><br>
-        <label>CONTRACT_TYPE: <input type="text" id="CONTRACT_TYPE" required></label><br>
-        <label>IREPSVENDORCODE: <input type="text" id="IREPSVENDORCODE" required></label><br>
-        <label>BENENAME: <input type="text" id="BENENAME" required></label><br>
-        <label>ADVBKNM: <input type="text" id="ADVBKNM" required></label><br>
-        <label>ADVBKADD: <input type="text" id="ADVBKADD" required></label><br>
-        <label>CONTRACT_DETAIL: <input type="text" id="CONTRACT_DETAIL" required></label><br>
-        <label>IFSC: <input type="text" id="IFSC" required></label><br>
-        <label>LCVAL: <input type="text" id="LCVAL" required></label><br>
-        <label>LCDATE: <input type="date" id="LCDATE" required></label><br>
-        <label>LCVALDATE: <input type="date" id="LCVALDATE" required></label><br>
-        <label>LCTYPE: <input type="number" id="LCTYPE" required></label><br>
+        <label>CUST_REFE: <input type="text" id="CUSTREF" required></label><br>
+        <label>C_MAIN_REF: <input type="text" id="LCNUMBER" required></label><br>
+        <label>ETRADE_REF_NO: <input type="text" id="ETRADEREF" required></label><br>
+        <label>GOODS_DESC: <input type="text" id="GOODS" required></label><br>
+        <label>GOODS_CODE: <input type="text" id="CONTRACT_TYPE" required></label><br>
+        <label>BENE_ID: <input type="text" id="IREPSVENDORCODE" required></label><br>
+        <label>BENE_NM_ADD: <input type="text" id="BENENAME" required></label><br>
+        <label>ADV_BK_NM: <input type="text" id="ADVBKNM" required></label><br>
+        <label>ADV_BK_ADD: <input type="text" id="ADVBKADD" required></label>
+        <label><input type="text" id="CONTRACT_DETAIL" required style="display:none"></label><br>
+        <label>HOLD_REF2: <input type="text" id="IFSC" required></label><br>
+        <label>LC_AMT: <input type="text" id="LCVAL" required></label><br>
+        <label>ISSUE_DT: <input type="date" id="LCDATE" required></label><br>
+        <label>EXPIRY_DT: <input type="date" id="LCVALDATE" required></label><br>
+        <label>AMD_NO: <input type="number" id="LCTYPE" required></label>
+        <label><input type="text" id="ACCUNIT" required style="display:none"></label><br>
         <label>CREATEDBY: <input type="text" id="CREATEDBY" required></label><br>
         <label>MAKER-DESIGNATION: <input type="text" id="MAKER-DESIGNATION" required></label><br>
         <label>MAKER-MOBNO: <input type="text" id="MAKER-MOBNO" required></label><br>
@@ -37,6 +38,17 @@
     </form>
     <script>
         function generateXML() {
+		
+			// Validate ACCUNIT
+            if (document.getElementById("ETRADEREF").value.length >= 11) {
+                document.getElementById("ACCUNIT").value = document.getElementById("ETRADEREF").value.substring(7, 11);
+            } else {
+                alert("ETRADEREF must have at least 11 characters.");
+                return;
+            }
+			
+			document.getElementById("CONTRACT_DETAIL").value = document.getElementById("CUSTREF").value;
+			
             const formData = {};
             const form = document.getElementById("xmlForm");
             Array.from(form.elements).forEach(input => {
@@ -45,13 +57,7 @@
                 }
             });
 
-            // Validate ACCUNIT
-            if (formData.ETRADEREF.length >= 10) {
-                formData.ACCUNIT = formData.ETRADEREF.substring(7, 10);
-            } else {
-                alert("ETRADEREF must have at least 10 characters.");
-                return;
-            }
+            
 
             // Determine filename
             const LCTYPE = parseFloat(formData.LCTYPE);
@@ -60,7 +66,11 @@
             if (LCTYPE === 0) {
                 fileName = `LC_Issue${LCNUMBER}.xml`;
             } else {
-                fileName = `LC_Amend_${LCTYPE.toFixed(2)}${LCNUMBER}.xml`;
+			if (formData.LCTYPE.length == 1) {
+                fileName = `LC_Amend_0${LCTYPE}${LCNUMBER}.xml`;
+				}else{
+				fileName = `LC_Amend_${LCTYPE}${LCNUMBER}.xml`;
+				}
             }
 
             // Generate XML
