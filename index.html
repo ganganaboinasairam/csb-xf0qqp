@@ -1,3 +1,11 @@
+need a validation for start date field (OPT_START_DT), below are the conditions 
+
+Type of Delivery field id is TYPE_DEL_CHOICE
+system date is stored in SYS_BUSI_DATE
+Date of Expiry ----> DUE_DT_CONTRACT
+saturday and sunday is considered as holiday
+
+
 1. If the field 'Type of Delivery' has a value as 'Fixed', 'TOM', 'Spot' then value under this field will be same as in the field 'Date of Expiry' and field will be read only
 2. If the field 'Type of Delivery' has a value as 'Option' then, this field will become mandatory to input date by the user. user should not able to capture the value earlier than the system date. Start date should not be earlier than the system date.
 3. If the field 'Type of Delivery' has a value as 'Tom' then, value under this field will be 'System Date + Next Working Day'.In case next day is holiday then next working day to be considered. In this case this field will be read only..
