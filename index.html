@@ -1,63 +1,44 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const typeDeliveryField = document.getElementById("TYPE_DEL_CHOICE");
-    const startDateField = document.getElementById("OPT_START_DT");
-    const expiryDateField = document.getElementById("DUE_DT_CONTRACT");
-    const systemDate = new Date(document.getElementById("SYS_BUSI_DATE").value); // System date from backend or hidden field
+function start_date_val(){
+    var typeDeliveryField = document.getElementById("TYPE_DEL_CHOICE");
+    var startDateField = document.getElementById("OPT_START_DT");
+    var expiryDateField = document.getElementById("DUE_DT_CONTRACT");
+    var systemDate = new Date(SYS_BUSI_DATE); // System date from backend or hidden field
 
-    // Function to check if a date is a working day
-    function isWorkingDay(date) {
-        const day = date.getDay();
-        return day !== 0 && day !== 6; // 0 = Sunday, 6 = Saturday
-    }
-
-    // Function to calculate the next working day
-    function getNextWorkingDay(date, daysToAdd) {
-        let current = new Date(date);
-        while (daysToAdd > 0) {
-            current.setDate(current.getDate() + 1);
-            if (isWorkingDay(current)) daysToAdd--;
-        }
-        return current;
-    }
-
-    // Function to show error message
-    function showError(message) {
-        alert(message); // You can use custom UI for error display
-    }
+    
 
     // Validation based on type of delivery
-    typeDeliveryField.addEventListener("change", () => {
-        const typeOfDelivery = typeDeliveryField.value;
-        const expiryDate = new Date(expiryDateField.value);
+        var typeOfDelivery = typeDeliveryField.value;
+		var a = expiryDateField.value.split('/');
+        var expiryDate = new Date(a[2]+'-'+a[1]+'-'+a[0]);
 
         startDateField.readOnly = false;
 
-        if (typeOfDelivery === "Fixed" || typeOfDelivery === "TOM" || typeOfDelivery === "Spot") {
+        if (typeOfDelivery === "1" || typeOfDelivery === "3" || typeOfDelivery === "4") {
             startDateField.value = expiryDate.toISOString().split("T")[0];
             startDateField.readOnly = true;
-        } else if (typeOfDelivery === "Option") {
+        } else if (typeOfDelivery === "2") {
             startDateField.required = true;
             startDateField.readOnly = false;
-        } else if (typeOfDelivery === "Tom") {
-            const nextWorkingDay = getNextWorkingDay(systemDate, 1);
+        } else if (typeOfDelivery === "3") {
+            var nextWorkingDay = getNextWorkingDay(systemDate, 1);
             startDateField.value = nextWorkingDay.toISOString().split("T")[0];
             startDateField.readOnly = true;
-        } else if (typeOfDelivery === "Spot") {
-            const nextWorkingDay = getNextWorkingDay(systemDate, 2);
+        } else if (typeOfDelivery === "4") {
+            var nextWorkingDay = getNextWorkingDay(systemDate, 2);
             startDateField.value = nextWorkingDay.toISOString().split("T")[0];
             startDateField.readOnly = true;
         }
-    });
 
     // Validation when user inputs the start date
-    startDateField.addEventListener("change", () => {
-        const startDate = new Date(startDateField.value);
+        var startDate = new Date(startDateField.value);
 
         if (startDate < systemDate) {
             showError("Start Date cannot be less than today's date.");
             startDateField.value = ""; // Clear the invalid value
         }
-    });
 
     // Additional validation for Indian working days or currency business days can be integrated here
-});
+};
+
+
+this is the modified function , date formate for my application is dd/mm/yyyy
