@@ -1,46 +1,73 @@
-function start_date_val(){
+function start_date_val() {
     var typeDeliveryField = document.getElementById("TYPE_DEL_CHOICE");
     var startDateField = document.getElementById("OPT_START_DT");
     var expiryDateField = document.getElementById("DUE_DT_CONTRACT");
-    var systemDate = new Date(SYS_BUSI_DATE); // System date from backend or hidden field
+    var systemDate = new Date(SYS_BUSI_DATE); // System date in yyyy-mm-dd format
 
-    
+    // Utility function to parse dd/mm/yyyy to Date object
+    function parseDate(dateStr) {
+        var parts = dateStr.split('/');
+        return new Date(parts[2], parts[1] - 1, parts[0]); // year, month (0-indexed), day
+    }
+
+    // Utility function to format Date object to dd/mm/yyyy
+    function formatDate(date) {
+        var day = date.getDate().toString().padStart(2, '0');
+        var month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-indexed
+        var year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
+    // Function to check if a date is a working day
+    function isWorkingDay(date) {
+        var day = date.getDay();
+        return day !== 0 && day !== 6; // 0 = Sunday, 6 = Saturday
+    }
+
+    // Function to calculate the next working day
+    function getNextWorkingDay(date, daysToAdd) {
+        var current = new Date(date);
+        while (daysToAdd > 0) {
+            current.setDate(current.getDate() + 1);
+            if (isWorkingDay(current)) daysToAdd--;
+        }
+        return current;
+    }
+
+    // Function to show error message
+    function showError(message) {
+        alert(message); // You can replace this with custom error UI
+    }
 
     // Validation based on type of delivery
-        var typeOfDelivery = typeDeliveryField.value;
-		var a = expiryDateField.value.split('/');
-        var expiryDate = new Date(a[2]+'-'+a[1]+'-'+a[0]);
+    var typeOfDelivery = typeDeliveryField.value; // Assuming delivery type values are 1, 2, 3, or 4
+    var expiryDate = parseDate(expiryDateField.value); // Parse dd/mm/yyyy to Date object
 
+    startDateField.readOnly = false;
+
+    if (typeOfDelivery === "1" || typeOfDelivery === "3" || typeOfDelivery === "4") {
+        startDateField.value = formatDate(expiryDate); // Format Date object to dd/mm/yyyy
+        startDateField.readOnly = true;
+    } else if (typeOfDelivery === "2") {
+        startDateField.required = true;
         startDateField.readOnly = false;
-
-        if (typeOfDelivery === "1" || typeOfDelivery === "3" || typeOfDelivery === "4") {
-            startDateField.value = expiryDate.toISOString().split("T")[0];
-            startDateField.readOnly = true;
-        } else if (typeOfDelivery === "2") {
-            startDateField.required = true;
-            startDateField.readOnly = false;
-        } else if (typeOfDelivery === "3") {
-            var nextWorkingDay = getNextWorkingDay(systemDate, 1);
-            startDateField.value = nextWorkingDay.toISOString().split("T")[0];
-            startDateField.readOnly = true;
-        } else if (typeOfDelivery === "4") {
-            var nextWorkingDay = getNextWorkingDay(systemDate, 2);
-            startDateField.value = nextWorkingDay.toISOString().split("T")[0];
-            startDateField.readOnly = true;
-        }
+    } else if (typeOfDelivery === "3") {
+        var nextWorkingDay = getNextWorkingDay(systemDate, 1);
+        startDateField.value = formatDate(nextWorkingDay); // Format Date object to dd/mm/yyyy
+        startDateField.readOnly = true;
+    } else if (typeOfDelivery === "4") {
+        var nextWorkingDay = getNextWorkingDay(systemDate, 2);
+        startDateField.value = formatDate(nextWorkingDay); // Format Date object to dd/mm/yyyy
+        startDateField.readOnly = true;
+    }
 
     // Validation when user inputs the start date
-        var startDate = new Date(startDateField.value);
+    if (startDateField.value) {
+        var startDate = parseDate(startDateField.value); // Parse dd/mm/yyyy to Date object
 
         if (startDate < systemDate) {
             showError("Start Date cannot be less than today's date.");
             startDateField.value = ""; // Clear the invalid value
         }
-
-    // Additional validation for Indian working days or currency business days can be integrated here
-};
-
-i have some issues with date formats 
-SYS_BUSI_DATE is yyyy-mm-dd
-OPT_START_DT is dd/mm/yyyy
-DUE_DT_CONTRACT is dd/mm/yyyy
+    }
+}
