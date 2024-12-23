@@ -1,3 +1,131 @@
-i need another text area field in which i will pass insert query , in which all the details upto AMD_NO will present , eg: "Insert into EXPORT_TABLE (CUST_REFE,C_MAIN_REF,ETRADE_REF_NO,GOODS_DESC,GOODS_CODE,BENE_ID,BENE_NM_ADD,ADV_BK_NM,ADV_BK_ADD,CONTRACT_DTL,HOLD_REF2,LC_AMT,ISSUE_DT,EXPIRY_DT,AMD_NO) values ('2302211095100661','0069121LC0000100','00691211I0100122','Roof Side wall, End wall for Garib rath','Supply','80673','CHENNAI RADHA ENGINEERING WORKS PRI  VATE LIMITED CHENNAI 40 SAPTHAGIRI COLONY JAFFERKHANPET','STATE BANK OF INDIA','84 RAJAJI SALAI CHENNAI  CHENNAI (TAMILNADU) INDIA','H4sIAAAAAAAAAFvzloG1hEHAyNjAyMjQ0MDS1NDAwMzMEAA+wAnwFwAAAA==','SBIN0000800',44027035.5,to_date('13-OCT-21  00.00.00','DD-MON-RR  HH24.MI.SS'),to_date('30-SEP-24  00.00.00','DD-MON-RR  HH24.MI.SS'),'2');"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XML Generator</title>
+</head>
+<body>
+    <h1>XML File Generator</h1>
+    <form id="xmlForm">
+        <label>CUST_REFE: <input type="text" id="CUSTREF" required></label><br>
+        <label>C_MAIN_REF: <input type="text" id="LCNUMBER" required></label><br>
+        <label>ETRADE_REF_NO: <input type="text" id="ETRADEREF" required></label><br>
+        <label>GOODS_DESC: <input type="text" id="GOODS" required></label><br>
+        <label>GOODS_CODE: <input type="text" id="CONTRACT_TYPE" required></label><br>
+        <label>BENE_ID: <input type="text" id="IREPSVENDORCODE" required></label><br>
+        <label>BENE_NM_ADD: <input type="text" id="BENENAME" required></label><br>
+        <label>ADV_BK_NM: <input type="text" id="ADVBKNM" required></label><br>
+        <label>ADV_BK_ADD: <input type="text" id="ADVBKADD" required></label>
+        <input type="hidden" id="CONTRACT_DETAIL">
+        <label>HOLD_REF2: <input type="text" id="IFSC" required></label><br>
+        <label>LC_AMT: <input type="text" id="LCVAL" required></label><br>
+        <label>ISSUE_DT: <input type="date" id="LCDATE" required></label><br>
+        <label>EXPIRY_DT: <input type="date" id="LCVALDATE" required></label><br>
+        <label>AMD_NO: <input type="number" id="LCTYPE" required></label>
+        <input type="hidden" id="ACCUNIT">
+        <button type="button" onclick="generateXML()">Submit</button>
+    </form>
 
-identify the values from the insert queries and make the xml 
+    <h2>Or Parse Insert Query</h2>
+    <textarea id="insertQuery" rows="5" cols="80" placeholder="Paste your INSERT query here"></textarea><br>
+    <button type="button" onclick="generateXMLFromQuery()">Generate XML from Query</button>
+
+    <script>
+        function generateXML() {
+            // Validate ETRADEREF and populate ACCUNIT
+            const etradeRef = document.getElementById("ETRADEREF").value;
+            if (etradeRef.length >= 11) {
+                document.getElementById("ACCUNIT").value = etradeRef.substring(7, 10);
+            } else {
+                alert("ETRADE_REF_NO must have at least 11 characters.");
+                return;
+            }
+
+            // Populate CONTRACT_DETAIL
+            document.getElementById("CONTRACT_DETAIL").value = document.getElementById("CUSTREF").value;
+
+            // Collect form data
+            const formData = {};
+            const form = document.getElementById("xmlForm");
+            Array.from(form.elements).forEach(input => {
+                if (input.id) {
+                    formData[input.id] = input.value.trim();
+                }
+            });
+
+            // Determine filename
+            const LCTYPE = parseInt(formData.LCTYPE);
+            const LCNUMBER = formData.LCNUMBER;
+            let fileName = LCTYPE === 0
+                ? `LC_Issue${LCNUMBER}.xml`
+                : `LC_Amend_${LCTYPE < 10 ? `0${LCTYPE}` : LCTYPE}${LCNUMBER}.xml`;
+
+            // Generate XML
+            const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<data>
+    <row>
+        ${Object.keys(formData).map(key => `<${key}>${formData[key]}</${key}>`).join("\n        ")}
+    </row>
+</data>`;
+
+            // Download XML file
+            const blob = new Blob([xmlContent], { type: "application/xml" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+        }
+
+        function generateXMLFromQuery() {
+            const query = document.getElementById("insertQuery").value.trim();
+            if (!query) {
+                alert("Please paste a valid INSERT query.");
+                return;
+            }
+
+            // Extract column names and values
+            const columnNames = query.match(/(.*?)/)[1].split(",");
+            const values = query.match(/values\s*(.*?)/i)[1].split(",").map(value => value.trim().replace(/['"]/g, ""));
+
+            if (columnNames.length !== values.length) {
+                alert("Mismatch between columns and values in the query.");
+                return;
+            }
+
+            // Map column names to values
+            const formData = {};
+            columnNames.forEach((col, index) => {
+                formData[col.trim()] = values[index];
+            });
+
+            // Generate ACCUNIT if ETRADEREF exists
+            if (formData.ETRADE_REF_NO && formData.ETRADE_REF_NO.length >= 11) {
+                formData.ACCUNIT = formData.ETRADE_REF_NO.substring(7, 10);
+            }
+
+            // Determine filename
+            const LCTYPE = parseInt(formData.AMD_NO);
+            const LCNUMBER = formData.C_MAIN_REF;
+            let fileName = LCTYPE === 0
+                ? `LC_Issue${LCNUMBER}.xml`
+                : `LC_Amend_${LCTYPE < 10 ? `0${LCTYPE}` : LCTYPE}${LCNUMBER}.xml`;
+
+            // Generate XML
+            const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<data>
+    <row>
+        ${Object.keys(formData).map(key => `<${key}>${formData[key]}</${key}>`).join("\n        ")}
+    </row>
+</data>`;
+
+            // Download XML file
+            const blob = new Blob([xmlContent], { type: "application/xml" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+        }
+    </script>
+</body>
+</html>
