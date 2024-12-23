@@ -1,38 +1,83 @@
-i want a js tool to create xml file , i want a html page which will contatin input fields for CUSTREF,LCNUMBER,ETRADEREF,GOODS,CONTRACT_TYPE,IREPSVENDORCODE,BENENAME,ADVBKNM,ADVBKADD,CONTRACT_DETAIL,IFSC,LCVAL,LCDATE,LCVALDATE,LCTYPE,ACCUNIT,CREATEDBY,MAKER-DESIGNATION,MAKER-MOBNO,RELEASEDBY,CHECKER-DESIGNATION,CHECKER-MOBNO,BENEBKNAME,BENEBKIFSC,BENEBKACCOUNT.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XML Generator</title>
+</head>
+<body>
+    <h1>XML File Generator</h1>
+    <form id="xmlForm">
+        <!-- Input fields -->
+        <label>CUSTREF: <input type="text" id="CUSTREF" required></label><br>
+        <label>LCNUMBER: <input type="text" id="LCNUMBER" required></label><br>
+        <label>ETRADEREF: <input type="text" id="ETRADEREF" required></label><br>
+        <label>GOODS: <input type="text" id="GOODS" required></label><br>
+        <label>CONTRACT_TYPE: <input type="text" id="CONTRACT_TYPE" required></label><br>
+        <label>IREPSVENDORCODE: <input type="text" id="IREPSVENDORCODE" required></label><br>
+        <label>BENENAME: <input type="text" id="BENENAME" required></label><br>
+        <label>ADVBKNM: <input type="text" id="ADVBKNM" required></label><br>
+        <label>ADVBKADD: <input type="text" id="ADVBKADD" required></label><br>
+        <label>CONTRACT_DETAIL: <input type="text" id="CONTRACT_DETAIL" required></label><br>
+        <label>IFSC: <input type="text" id="IFSC" required></label><br>
+        <label>LCVAL: <input type="text" id="LCVAL" required></label><br>
+        <label>LCDATE: <input type="date" id="LCDATE" required></label><br>
+        <label>LCVALDATE: <input type="date" id="LCVALDATE" required></label><br>
+        <label>LCTYPE: <input type="number" id="LCTYPE" required></label><br>
+        <label>CREATEDBY: <input type="text" id="CREATEDBY" required></label><br>
+        <label>MAKER-DESIGNATION: <input type="text" id="MAKER-DESIGNATION" required></label><br>
+        <label>MAKER-MOBNO: <input type="text" id="MAKER-MOBNO" required></label><br>
+        <label>RELEASEDBY: <input type="text" id="RELEASEDBY" required></label><br>
+        <label>CHECKER-DESIGNATION: <input type="text" id="CHECKER-DESIGNATION" required></label><br>
+        <label>CHECKER-MOBNO: <input type="text" id="CHECKER-MOBNO" required></label><br>
+        <label>BENEBKNAME: <input type="text" id="BENEBKNAME" required></label><br>
+        <label>BENEBKIFSC: <input type="text" id="BENEBKIFSC" required></label><br>
+        <label>BENEBKACCOUNT: <input type="text" id="BENEBKACCOUNT" required></label><br>
+        <button type="button" onclick="generateXML()">Submit</button>
+    </form>
+    <script>
+        function generateXML() {
+            const formData = {};
+            const form = document.getElementById("xmlForm");
+            Array.from(form.elements).forEach(input => {
+                if (input.id) {
+                    formData[input.id] = input.value.trim();
+                }
+            });
 
-After giving all the details click on submit the tool should generate a xml like "<?xml version="1.0" encoding="UTF-8"?>
+            // Validate ACCUNIT
+            if (formData.ETRADEREF.length >= 10) {
+                formData.ACCUNIT = formData.ETRADEREF.substring(7, 10);
+            } else {
+                alert("ETRADEREF must have at least 10 characters.");
+                return;
+            }
+
+            // Determine filename
+            const LCTYPE = parseFloat(formData.LCTYPE);
+            const LCNUMBER = formData.LCNUMBER;
+            let fileName = "";
+            if (LCTYPE === 0) {
+                fileName = `LC_Issue${LCNUMBER}.xml`;
+            } else {
+                fileName = `LC_Amend_${LCTYPE.toFixed(2)}${LCNUMBER}.xml`;
+            }
+
+            // Generate XML
+            const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <data>
     <row>
-        <CUSTREF>00829620104856</CUSTREF>
-        <LCNUMBER>0999524LC0Y02888</LCNUMBER>
-        <ETRADEREF>0999524BR0401355</ETRADEREF>
-        <GOODS>Vijayawada Division : BZA - VSKP Section</GOODS>
-        <CONTRACT_TYPE>Works</CONTRACT_TYPE>
-        <IREPSVENDORCODE>82962</IREPSVENDORCODE>
-        <BENENAME>K ASHOK KUMAR-KRISHNA</BENENAME>
-        <ADVBKNM>STATE BANK OF INDIA</ADVBKNM>
-        <ADVBKADD>MUMBAI MAIN MUMBAI MUMBAI</ADVBKADD>
-        <CONTRACT_DETAIL>00829620104856</CONTRACT_DETAIL>
-        <IFSC>SBIN0000300</IFSC>
-        <LCVAL>10000</LCVAL>
-        <LCDATE>2024-12-12</LCDATE>
-        <LCVALDATE>2024-11-01</LCVALDATE>
-        <LCTYPE>0</LCTYPE>
-        <ACCUNIT>BR04</ACCUNIT>
-        <CREATEDBY>Creator</CREATEDBY>
-        <MAKER-DESIGNATION>MakerDesignation</MAKER-DESIGNATION>
-        <MAKER-MOBNO>1234567890</MAKER-MOBNO>
-        <RELEASEDBY>Releaser</RELEASEDBY>
-        <CHECKER-DESIGNATION>CheckerDesignation</CHECKER-DESIGNATION>
-        <CHECKER-MOBNO>0987654321</CHECKER-MOBNO>
-        <BENEBKNAME>BeneficiaryBank</BENEBKNAME>
-        <BENEBKIFSC>BENEIFSC1234</BENEBKIFSC>
-        <BENEBKACCOUNT>123456789012</BENEBKACCOUNT>
+        ${Object.keys(formData).map(key => `<${key}>${formData[key]}</${key}>`).join("\n        ")}
     </row>
-</data>"
+</data>`;
 
-
-validations :
-
-1: when the ETRADEREF is inputed the  ACCUNIT will be 8th to 10th digit of the ETRADEREF
-2: when the LCTYPE is 0 the xml file name is "LC_Issue<LCNUMBER>.xml" ,if the LCTYPE is more than 0 the file name will be "LC_Amend_<LCTYPE><LCNUMBER>.xml" ( LCTYPE will be rounded off to 2 digits)
+            // Download XML file
+            const blob = new Blob([xmlContent], { type: "application/xml" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+        }
+    </script>
+</body>
+</html>
