@@ -1,8 +1,38 @@
-Dear Sir,
+i want a js tool to create xml file , i want a html page which will contatin input fields for CUSTREF,LCNUMBER,ETRADEREF,GOODS,CONTRACT_TYPE,IREPSVENDORCODE,BENENAME,ADVBKNM,ADVBKADD,CONTRACT_DETAIL,IFSC,LCVAL,LCDATE,LCVALDATE,LCTYPE,ACCUNIT,CREATEDBY,MAKER-DESIGNATION,MAKER-MOBNO,RELEASEDBY,CHECKER-DESIGNATION,CHECKER-MOBNO,BENEBKNAME,BENEBKIFSC,BENEBKACCOUNT.
 
-As the issue with the revamp payment functionality is pending with the CBS team, in meanwhile the revamp transactions will be processed from the existing  functionality.
+After giving all the details click on submit the tool should generate a xml like "<?xml version="1.0" encoding="UTF-8"?>
+<data>
+    <row>
+        <CUSTREF>00829620104856</CUSTREF>
+        <LCNUMBER>0999524LC0Y02888</LCNUMBER>
+        <ETRADEREF>0999524BR0401355</ETRADEREF>
+        <GOODS>Vijayawada Division : BZA - VSKP Section</GOODS>
+        <CONTRACT_TYPE>Works</CONTRACT_TYPE>
+        <IREPSVENDORCODE>82962</IREPSVENDORCODE>
+        <BENENAME>K ASHOK KUMAR-KRISHNA</BENENAME>
+        <ADVBKNM>STATE BANK OF INDIA</ADVBKNM>
+        <ADVBKADD>MUMBAI MAIN MUMBAI MUMBAI</ADVBKADD>
+        <CONTRACT_DETAIL>00829620104856</CONTRACT_DETAIL>
+        <IFSC>SBIN0000300</IFSC>
+        <LCVAL>10000</LCVAL>
+        <LCDATE>2024-12-12</LCDATE>
+        <LCVALDATE>2024-11-01</LCVALDATE>
+        <LCTYPE>0</LCTYPE>
+        <ACCUNIT>BR04</ACCUNIT>
+        <CREATEDBY>Creator</CREATEDBY>
+        <MAKER-DESIGNATION>MakerDesignation</MAKER-DESIGNATION>
+        <MAKER-MOBNO>1234567890</MAKER-MOBNO>
+        <RELEASEDBY>Releaser</RELEASEDBY>
+        <CHECKER-DESIGNATION>CheckerDesignation</CHECKER-DESIGNATION>
+        <CHECKER-MOBNO>0987654321</CHECKER-MOBNO>
+        <BENEBKNAME>BeneficiaryBank</BENEBKNAME>
+        <BENEBKIFSC>BENEIFSC1234</BENEBKIFSC>
+        <BENEBKACCOUNT>123456789012</BENEBKACCOUNT>
+    </row>
+</data>"
 
-To Achieve this, the revamp transactions need some data points which are not available in revamp flow, please advice on the same.
 
-LC Liability type
-Tenor type
+validations :
+
+1: when the ETRADEREF is inputed the  ACCUNIT will be 8th to 10th digit of the ETRADEREF
+2: when the LCTYPE is 0 the xml file name is "LC_Issue<LCNUMBER>.xml" ,if the LCTYPE is more than 0 the file name will be "LC_Amend_<LCTYPE><LCNUMBER>.xml" ( LCTYPE will be rounded off to 2 digits)
