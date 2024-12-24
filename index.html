@@ -1,13 +1,40 @@
-I need a js function (changeFieldClass(a,b)) to change the class of the input field 
+function changeFieldClass(inputId, param) {
+    // Get the input field by ID
+    const inputField = document.getElementById(inputId);
+    
+    if (!inputField) {
+        console.error(`No input field found with ID: ${inputId}`);
+        return;
+    }
 
-eg: "<td class="FldLabel">Rebooking / Rollover Reference</td>
-                 <td>
-		<input type="text" name="REBOOK_REF" id="REBOOK_REF" title="Rebooking / Rollover Reference" class="CHAR_O" maxlength="16" readonly="" style="visibility: visible;">
-	  </td>"
-	  
-	  
-	  if i pass the id of the input field to the function and a parameter like changeFieldClass("REBOOK_REF","M"), then the class should change to "CHAR_M".
-	  
-	  1. if the 2nd parameter is "M", the class should change to "CHAR_M" and previous td (whose innertext is same as title of the input field) class changes to "FldLabel star"
-	  2. if the 2nd parameter is "O", the class should change to "CHAR_O" and previous td (whose innertext is same as title of the input field) class changes to "FldLabel"
-	  2. if the 2nd parameter is "P", the class should change to "CHAR_P" and previous td (whose innertext is same as title of the input field) class changes to "FldLabel" and the input field should be readonly
+    // Get the corresponding <td> element
+    const tdElements = document.querySelectorAll("td");
+    let relatedTd = null;
+    tdElements.forEach(td => {
+        if (td.innerText.trim() === inputField.title.trim()) {
+            relatedTd = td;
+        }
+    });
+
+    if (!relatedTd) {
+        console.error(`No matching <td> element found for input field with title: ${inputField.title}`);
+        return;
+    }
+
+    // Update the input field and related <td> based on the param
+    if (param === "M") {
+        inputField.className = "CHAR_M";
+        relatedTd.className = "FldLabel star";
+        inputField.readOnly = false; // Ensure it is not readonly
+    } else if (param === "O") {
+        inputField.className = "CHAR_O";
+        relatedTd.className = "FldLabel";
+        inputField.readOnly = false; // Ensure it is not readonly
+    } else if (param === "P") {
+        inputField.className = "CHAR_P";
+        relatedTd.className = "FldLabel";
+        inputField.readOnly = true; // Set readonly
+    } else {
+        console.error(`Invalid parameter value: ${param}`);
+    }
+}
