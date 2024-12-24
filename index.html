@@ -1,10 +1,44 @@
-Rate already  booked by Customer   ---   > RATES_BOOK_BY_CUST
+function RATES_BOOK_BY_CUST_onchange() {
+    // Get the field "Rates already booked by Customer" by its ID
+    const ratesBookedField = document.getElementById("RATES_BOOK_BY_CUST");
+    if (!ratesBookedField) {
+        console.error("Field 'Rates already booked by Customer' not found.");
+        return;
+    }
 
+    // Get the select field "BOOKING_SYSTEM" by its ID
+    const bookingSystemField = document.getElementById("BOOKING_SYSTEM");
+    if (!bookingSystemField) {
+        console.error("Select field 'BOOKING_SYSTEM' not found.");
+        return;
+    }
 
-select feild id is BOOKING_SYSTEM
+    // Clear existing options from the select field
+    bookingSystemField.innerHTML = "";
 
+    // Check the value of "Rates already booked by Customer" field
+    const ratesBookedValue = ratesBookedField.value;
 
-a. If field 'Rates already booked by Customer' has a value as 'No' then, option under this field will as 1. Online, 2. Dealer, 3. Card Rate 
-b. If field 'Rates already booked by Customer' has a value as 'Yes' then, option under this field will as 1. eForex, 2. Dealer, 3. FX Retail
+    // Populate options based on the value
+    if (ratesBookedValue === "No") {
+        // Add options for "No"
+        addOption(bookingSystemField, "Online", "1");
+        addOption(bookingSystemField, "Dealer", "2");
+        addOption(bookingSystemField, "Card Rate", "3");
+    } else if (ratesBookedValue === "Yes") {
+        // Add options for "Yes"
+        addOption(bookingSystemField, "eForex", "1");
+        addOption(bookingSystemField, "Dealer", "2");
+        addOption(bookingSystemField, "FX Retail", "3");
+    } else {
+        console.warn("Unexpected value for 'Rates already booked by Customer':", ratesBookedValue);
+    }
+}
 
-write a js function RATES_BOOK_BY_CUST_onchange() to get the functionality
+// Helper function to add options to the select field
+function addOption(selectField, text, value) {
+    const option = document.createElement("option");
+    option.text = text;
+    option.value = value;
+    selectField.add(option);
+}
