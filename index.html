@@ -1,42 +1,10 @@
-function changeFieldClass(inputId, param) {
-    // Get the input field by ID
-    const inputField = document.getElementById(inputId);
-    
-    if (!inputField) {
-        console.error(`No input field found with ID: ${inputId}`);
-        return;
-    }
+Rate already  booked by Customer   ---   > RATES_BOOK_BY_CUST
 
-    // Get the parent <td> of the input field
-    const parentTd = inputField.closest("td");
 
-    if (!parentTd) {
-        console.error(`No parent <td> found for input field with ID: ${inputId}`);
-        return;
-    }
+select feild id is BOOKING_SYSTEM
 
-    // Get the previous sibling <td>
-    const previousTd = parentTd.previousElementSibling;
 
-    if (!previousTd) {
-        console.error(`No previous <td> found for input field with ID: ${inputId}`);
-        return;
-    }
+a. If field 'Rates already booked by Customer' has a value as 'No' then, option under this field will as 1. Online, 2. Dealer, 3. Card Rate 
+b. If field 'Rates already booked by Customer' has a value as 'Yes' then, option under this field will as 1. eForex, 2. Dealer, 3. FX Retail
 
-    // Update the input field and related <td> based on the param
-    if (param === "M") {
-        inputField.className = "CHAR_M";
-        previousTd.className = "FldLabel star";
-        inputField.readOnly = false; // Ensure it is not readonly
-    } else if (param === "O") {
-        inputField.className = "CHAR_O";
-        previousTd.className = "FldLabel";
-        inputField.readOnly = false; // Ensure it is not readonly
-    } else if (param === "P") {
-        inputField.className = "CHAR_P";
-        previousTd.className = "FldLabel";
-        inputField.readOnly = true; // Set readonly
-    } else {
-        console.error(`Invalid parameter value: ${param}`);
-    }
-}
+write a js function RATES_BOOK_BY_CUST_onchange() to get the functionality
