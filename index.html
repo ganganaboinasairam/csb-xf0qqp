@@ -7,32 +7,34 @@ function changeFieldClass(inputId, param) {
         return;
     }
 
-    // Get the corresponding <td> element
-    const tdElements = document.querySelectorAll("td");
-    let relatedTd = null;
-    tdElements.forEach(td => {
-        if (td.innerText.trim() === inputField.title.trim()) {
-            relatedTd = td;
-        }
-    });
+    // Get the parent <td> of the input field
+    const parentTd = inputField.closest("td");
 
-    if (!relatedTd) {
-        console.error(`No matching <td> element found for input field with title: ${inputField.title}`);
+    if (!parentTd) {
+        console.error(`No parent <td> found for input field with ID: ${inputId}`);
+        return;
+    }
+
+    // Get the previous sibling <td>
+    const previousTd = parentTd.previousElementSibling;
+
+    if (!previousTd) {
+        console.error(`No previous <td> found for input field with ID: ${inputId}`);
         return;
     }
 
     // Update the input field and related <td> based on the param
     if (param === "M") {
         inputField.className = "CHAR_M";
-        relatedTd.className = "FldLabel star";
+        previousTd.className = "FldLabel star";
         inputField.readOnly = false; // Ensure it is not readonly
     } else if (param === "O") {
         inputField.className = "CHAR_O";
-        relatedTd.className = "FldLabel";
+        previousTd.className = "FldLabel";
         inputField.readOnly = false; // Ensure it is not readonly
     } else if (param === "P") {
         inputField.className = "CHAR_P";
-        relatedTd.className = "FldLabel";
+        previousTd.className = "FldLabel";
         inputField.readOnly = true; // Set readonly
     } else {
         console.error(`Invalid parameter value: ${param}`);
