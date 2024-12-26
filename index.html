@@ -1,44 +1,27 @@
-function RATES_BOOK_BY_CUST_onchange() {
-    // Get the field "Rates already booked by Customer" by its ID
-    const ratesBookedField = document.getElementById("RATES_BOOK_BY_CUST");
-    if (!ratesBookedField) {
-        console.error("Field 'Rates already booked by Customer' not found.");
-        return;
-    }
+i want a js tool to generate a insert query, make form with the following id's : LCDA_NUMBER,LCDA_DATE,LCDA_VALUE,INVOICE_NO,LCDA_DATE,INVOICE_AMOUNT,CO6NUMBER,CONTRACT_ID,CONTRACT_DATE,CONTRACT_VALUE,DESC_OF_CONTRACT,VENDER_CODE,NAME,LC_NUMBER,LC_DATE,LC_VALUE,LC_VALIDITY,LC_ALREADY_PAID,LC_BALANCE
 
-    // Get the select field "BOOKING_SYSTEM" by its ID
-    const bookingSystemField = document.getElementById("BOOKING_SYSTEM");
-    if (!bookingSystemField) {
-        console.error("Select field 'BOOKING_SYSTEM' not found.");
-        return;
-    }
-
-    // Clear existing options from the select field
-    bookingSystemField.innerHTML = "";
-
-    // Check the value of "Rates already booked by Customer" field
-    const ratesBookedValue = ratesBookedField.value;
-
-    // Populate options based on the value
-    if (ratesBookedValue === "No") {
-        // Add options for "No"
-        addOption(bookingSystemField, "Online", "1");
-        addOption(bookingSystemField, "Dealer", "2");
-        addOption(bookingSystemField, "Card Rate", "3");
-    } else if (ratesBookedValue === "Yes") {
-        // Add options for "Yes"
-        addOption(bookingSystemField, "eForex", "1");
-        addOption(bookingSystemField, "Dealer", "2");
-        addOption(bookingSystemField, "FX Retail", "3");
-    } else {
-        console.warn("Unexpected value for 'Rates already booked by Customer':", ratesBookedValue);
-    }
-}
-
-// Helper function to add options to the select field
-function addOption(selectField, text, value) {
-    const option = document.createElement("option");
-    option.text = text;
-    option.value = value;
-    selectField.add(option);
-}
+-the example insert query is "INSERT
+INTO STORE_FILES
+  (
+    FID,
+    XMLFILE,
+    PDFFILE,
+    LCDA_AMT,
+    UTIL_AMT,
+    UTIL_FLAG
+  )
+  VALUES
+  (
+    '24141900001DE0438',
+    '<?xml version="1.0" encoding="UTF-8" standalone="no"?><LCDADETAIL><LCDA_DETAIL><LCDA_NUMBER>24141900001DE0438</LCDA_NUMBER><LCDA_DATE>12/26/2024</LCDA_DATE><LCDA_VALUE>5000</LCDA_VALUE><LCDA_PAYMENT_STAGE/><INVOICE_NO>1819KLR1095</INVOICE_NO><INVOICE_DATE>17/09/2024</INVOICE_DATE><INVOICE_AMOUNT>5000</INVOICE_AMOUNT><CO6NUMBER>241403190067</CO6NUMBER></LCDA_DETAIL><CONTRACT_DETAIL><CONTRACT_ID>00829620104856</CONTRACT_ID><CONTRACT_DATE>07/06/2024</CONTRACT_DATE><CONTRACT_VALUE>64104623.37</CONTRACT_VALUE><DESC_OF_CONTRACT>Vijayawada Division : BZA - VSKP Section :- Proposed Safety Related Track maintenance works and other miscellaneous track works  in  ADEN/SLO Sub-division of DEN/North/BZA Jurisdiction.</DESC_OF_CONTRACT></CONTRACT_DETAIL><BENEFICIARY_DETAIL><VENDER_CODE>87121</VENDER_CODE><NAME>K ASHOK KUMAR-KRISHNA</NAME></BENEFICIARY_DETAIL><LC_DETAIL><LC_NUMBER>0999524LC0Y02888</LC_NUMBER><LC_DATE>12/12/2024</LC_DATE><LC_VALUE>10000</LC_VALUE><LC_VALIDITY>01/11/2025</LC_VALIDITY><LC_ALREADY_PAID>10000</LC_ALREADY_PAID><LC_BALANCE>5000</LC_BALANCE><LC_BANK_IFSC>STATE BANK OF INDIA</LC_BANK_IFSC><LC_BANK_BRANCH/></LC_DETAIL><LCDA_ISSUING_AUTH><ISSUE_NAME>HARISH KUMAR</ISSUE_NAME><DESIGNATION>Sr. SECTION OFFICER ACCTS</DESIGNATION><ISSUE_DATE>17/09/2024</ISSUE_DATE></LCDA_ISSUING_AUTH></LCDADETAIL>'
+    ,
+    '',
+    '5000',
+    NULL,
+    NULL
+  );"
+  
+  
+ -LCDA_NUMBER will be the 16 digit random number and the same value for FID also.
+ -INVOICE_NO,CO6NUMBER also random 10 dit number
+ -LCDA_AMT is equal to LCDA_VALUE
