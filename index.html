@@ -1,175 +1,41 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Insert Query Generator</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    form {
-      display: flex;
-      flex-direction: column;
-      max-width: 600px;
-    }
-    label {
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    input {
-      margin-bottom: 15px;
-      padding: 8px;
-      font-size: 14px;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #007BFF;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    textarea {
-      margin-top: 15px;
-      width: 100%;
-      height: 200px;
-      padding: 10px;
-      font-size: 14px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Insert Query Generator</h1>
-  <form id="queryForm">
-    <label for="LCDA_NUMBER">LCDA_NUMBER</label>
-    <input type="text" id="LCDA_NUMBER" maxlength="16" value="" required>
+function formatDate(dateValue, inputFormat, outputFormat) {
+  const monthMap = {
+    JAN: "01", FEB: "02", MAR: "03", APR: "04",
+    MAY: "05", JUN: "06", JUL: "07", AUG: "08",
+    SEP: "09", OCT: "10", NOV: "11", DEC: "12"
+  };
 
-    <label for="LCDA_DATE">LCDA_DATE</label>
-    <input type="date" id="LCDA_DATE" required>
+  // Helper to extract date parts based on the input format
+  function parseDate(value, format) {
+    const parts = {};
+    const formatParts = format.split(/[-/]/);
+    const valueParts = value.split(/[-/]/);
 
-    <label for="LCDA_VALUE">LCDA_VALUE</label>
-    <input type="number" id="LCDA_VALUE" required>
+    formatParts.forEach((part, index) => {
+      if (part === "DD") parts.day = valueParts[index];
+      if (part === "MMM") parts.month = monthMap[valueParts[index].toUpperCase()];
+      if (part === "MM") parts.month = valueParts[index];
+      if (part === "YYYY") parts.year = valueParts[index];
+      if (part === "YY") parts.year = "20" + valueParts[index]; // Assuming 21st century
+    });
 
-    <label for="INVOICE_NO">INVOICE_NO</label>
-    <input type="text" id="INVOICE_NO" maxlength="10" value="" required>
+    return parts;
+  }
 
-    <label for="INVOICE_AMOUNT">INVOICE_AMOUNT</label>
-    <input type="number" id="INVOICE_AMOUNT" required>
+  // Helper to format the date into the desired output
+  function formatOutput(parts, format) {
+    return format
+      .replace("DD", parts.day)
+      .replace("MM", parts.month)
+      .replace("YYYY", parts.year)
+      .replace("YY", parts.year.slice(-2));
+  }
 
-    <label for="CO6NUMBER">CO6NUMBER</label>
-    <input type="text" id="CO6NUMBER" maxlength="10" value="" required>
+  // Parse the input date and format it
+  const parsedDate = parseDate(dateValue, inputFormat);
+  return formatOutput(parsedDate, outputFormat);
+}
 
-    <label for="CONTRACT_ID">CONTRACT_ID</label>
-    <input type="text" id="CONTRACT_ID" required>
-
-    <label for="CONTRACT_DATE">CONTRACT_DATE</label>
-    <input type="date" id="CONTRACT_DATE" required>
-
-    <label for="CONTRACT_VALUE">CONTRACT_VALUE</label>
-    <input type="number" id="CONTRACT_VALUE" required>
-
-    <label for="DESC_OF_CONTRACT">DESC_OF_CONTRACT</label>
-    <input type="text" id="DESC_OF_CONTRACT" required>
-
-    <label for="VENDER_CODE">VENDER_CODE</label>
-    <input type="text" id="VENDER_CODE" required>
-
-    <label for="NAME">NAME</label>
-    <input type="text" id="NAME" required>
-
-    <label for="LC_NUMBER">LC_NUMBER</label>
-    <input type="text" id="LC_NUMBER" required>
-
-    <label for="LC_DATE">LC_DATE</label>
-    <input type="date" id="LC_DATE" required>
-
-    <label for="LC_VALUE">LC_VALUE</label>
-    <input type="number" id="LC_VALUE" required>
-
-    <label for="LC_VALIDITY">LC_VALIDITY</label>
-    <input type="date" id="LC_VALIDITY" required>
-
-    <label for="LC_ALREADY_PAID">LC_ALREADY_PAID</label>
-    <input type="number" id="LC_ALREADY_PAID" required>
-
-    <label for="LC_BALANCE">LC_BALANCE</label>
-    <input type="number" id="LC_BALANCE" required>
-
-    <button type="button" onclick="generateQuery()">Generate Query</button>
-  </form>
-
-  <textarea id="outputQuery" readonly></textarea>
-
-  <script>
-    function generateQuery() {
-      const form = document.getElementById('queryForm');
-      const output = document.getElementById('outputQuery');
-      const LCDA_NUMBER = document.getElementById('LCDA_NUMBER').value || Math.random().toString().slice(2, 18); // Generate random 16 digits
-      const INVOICE_NO = document.getElementById('INVOICE_NO').value || Math.random().toString().slice(2, 12); // Generate random 10 digits
-      const CO6NUMBER = document.getElementById('CO6NUMBER').value || Math.random().toString().slice(2, 12); // Generate random 10 digits
-
-      const LCDA_DATE = form.LCDA_DATE.value;
-      const LCDA_VALUE = form.LCDA_VALUE.value;
-      const INVOICE_AMOUNT = form.INVOICE_AMOUNT.value;
-      const CONTRACT_ID = form.CONTRACT_ID.value;
-      const CONTRACT_DATE = form.CONTRACT_DATE.value;
-      const CONTRACT_VALUE = form.CONTRACT_VALUE.value;
-      const DESC_OF_CONTRACT = form.DESC_OF_CONTRACT.value;
-      const VENDER_CODE = form.VENDER_CODE.value;
-      const NAME = form.NAME.value;
-      const LC_NUMBER = form.LC_NUMBER.value;
-      const LC_DATE = form.LC_DATE.value;
-      const LC_VALUE = form.LC_VALUE.value;
-      const LC_VALIDITY = form.LC_VALIDITY.value;
-      const LC_ALREADY_PAID = form.LC_ALREADY_PAID.value;
-      const LC_BALANCE = form.LC_BALANCE.value;
-
-      const query = `
-INSERT INTO STORE_FILES
-  (FID, XMLFILE, PDFFILE, LCDA_AMT, UTIL_AMT, UTIL_FLAG)
-VALUES
-  (
-    '${LCDA_NUMBER}',
-    '<?xml version="1.0" encoding="UTF-8"?><LCDADETAIL>
-      <LCDA_DETAIL>
-        <LCDA_NUMBER>${LCDA_NUMBER}</LCDA_NUMBER>
-        <LCDA_DATE>${LCDA_DATE}</LCDA_DATE>
-        <LCDA_VALUE>${LCDA_VALUE}</LCDA_VALUE>
-        <INVOICE_NO>${INVOICE_NO}</INVOICE_NO>
-        <INVOICE_AMOUNT>${INVOICE_AMOUNT}</INVOICE_AMOUNT>
-        <CO6NUMBER>${CO6NUMBER}</CO6NUMBER>
-      </LCDA_DETAIL>
-      <CONTRACT_DETAIL>
-        <CONTRACT_ID>${CONTRACT_ID}</CONTRACT_ID>
-        <CONTRACT_DATE>${CONTRACT_DATE}</CONTRACT_DATE>
-        <CONTRACT_VALUE>${CONTRACT_VALUE}</CONTRACT_VALUE>
-        <DESC_OF_CONTRACT>${DESC_OF_CONTRACT}</DESC_OF_CONTRACT>
-      </CONTRACT_DETAIL>
-      <BENEFICIARY_DETAIL>
-        <VENDER_CODE>${VENDER_CODE}</VENDER_CODE>
-        <NAME>${NAME}</NAME>
-      </BENEFICIARY_DETAIL>
-      <LC_DETAIL>
-        <LC_NUMBER>${LC_NUMBER}</LC_NUMBER>
-        <LC_DATE>${LC_DATE}</LC_DATE>
-        <LC_VALUE>${LC_VALUE}</LC_VALUE>
-        <LC_VALIDITY>${LC_VALIDITY}</LC_VALIDITY>
-        <LC_ALREADY_PAID>${LC_ALREADY_PAID}</LC_ALREADY_PAID>
-        <LC_BALANCE>${LC_BALANCE}</LC_BALANCE>
-      </LC_DETAIL>
-    </LCDADETAIL>',
-    '',
-    '${LCDA_VALUE}',
-    NULL,
-    NULL
-  );`;
-      output.value = query.trim();
-    }
-  </script>
-</body>
-</html>
+// Example usage
+const result = formatDate("04-OCT-19", "DD-MMM-YY", "DD/MM/YYYY");
+console.log(result); // Output: 04/10/2019
