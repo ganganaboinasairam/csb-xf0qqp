@@ -1,41 +1,23 @@
-function formatDate(dateValue, inputFormat, outputFormat) {
-  const monthMap = {
-    JAN: "01", FEB: "02", MAR: "03", APR: "04",
-    MAY: "05", JUN: "06", JUL: "07", AUG: "08",
-    SEP: "09", OCT: "10", NOV: "11", DEC: "12"
-  };
+import java.io.FileOutputStream;
+import java.util.Base64;
 
-  // Helper to extract date parts based on the input format
-  function parseDate(value, format) {
-    const parts = {};
-    const formatParts = format.split(/[-/]/);
-    const valueParts = value.split(/[-/]/);
+public class Base64ToPDF {
+    public static void main(String[] args) {
+        // Replace this with your Base64 string
+        String base64String = "H4sIAAAAAAAA...."; // Your actual Base64 content
 
-    formatParts.forEach((part, index) => {
-      if (part === "DD") parts.day = valueParts[index];
-      if (part === "MMM") parts.month = monthMap[valueParts[index].toUpperCase()];
-      if (part === "MM") parts.month = valueParts[index];
-      if (part === "YYYY") parts.year = valueParts[index];
-      if (part === "YY") parts.year = "20" + valueParts[index]; // Assuming 21st century
-    });
+        // Specify the output file path
+        String outputFilePath = "output.pdf";
 
-    return parts;
-  }
+        try (FileOutputStream fos = new FileOutputStream(outputFilePath)) {
+            // Decode the Base64 string
+            byte[] decodedBytes = Base64.getDecoder().decode(base64String);
 
-  // Helper to format the date into the desired output
-  function formatOutput(parts, format) {
-    return format
-      .replace("DD", parts.day)
-      .replace("MM", parts.month)
-      .replace("YYYY", parts.year)
-      .replace("YY", parts.year.slice(-2));
-  }
-
-  // Parse the input date and format it
-  const parsedDate = parseDate(dateValue, inputFormat);
-  return formatOutput(parsedDate, outputFormat);
+            // Write the decoded bytes to a file
+            fos.write(decodedBytes);
+            System.out.println("PDF file created successfully: " + outputFilePath);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
-
-// Example usage
-const result = formatDate("04-OCT-19", "DD-MMM-YY", "DD/MM/YYYY");
-console.log(result); // Output: 04/10/2019
