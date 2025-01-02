@@ -1,18 +1,34 @@
-Subject: Request for Access to CE-ST Region
+function checkAllKeysHaveValues(jsonObject) {
+    // Define custom alert messages for specific keys
+    const alertMessages = {
+        name: "Name is required.",
+        age: "Age is missing or invalid.",
+        city: "City cannot be empty."
+    };
 
-Dear Sir,
+    for (let key in jsonObject) {
+        if (jsonObject.hasOwnProperty(key)) {
+            // Check if the value is null, undefined, or an empty string
+            if (jsonObject[key] === null || jsonObject[key] === undefined || jsonObject[key] === "") {
+                // Use custom alert message if defined, otherwise use a default message
+                const message = alertMessages[key] || `The key "${key}" is missing a value.`;
+                alert(message);
+                return false; // Stop further checks if a missing value is found
+            }
+        }
+    }
+    return true; // All keys have valid values
+}
 
-We are currently unable to access the CE-ST region. Kindly arrange to make the ST region available at the earliest, as forward contract ST testing is yet to commence.
+// Example usage
+const exampleObject = {
+    name: "",
+    age: null,
+    city: "New York"
+};
 
-ST Region URLs:
-
-WEB: https://10.189.49.231/CEWeb/SYS_index.jsp
-
-APP: https://10.191.153.213/CEWeb/SYS_index.jsp
-
-
-Your prompt assistance in resolving this issue will be highly appreciated.
-
-Best regards,
-[Your Name]
-
+if (checkAllKeysHaveValues(exampleObject)) {
+    console.log("All keys have valid values.");
+} else {
+    console.log("Some keys are missing values.");
+}
