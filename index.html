@@ -1,23 +1,10 @@
+const jsonObject = '{"actionType": "CREATE_QUOTE","BRANCHCODE": "09995","C_MAIN_REF": ""}';
 function validateJsonObject(jsonObject) {
     // Custom alert messages for specific keys
     const alertMessages = {
         actionType: "Action type is required.",
         BRANCHCODE: "Branch code is missing.",
-        C_MAIN_REF: "Main reference is required.",
-        BRANCHNAME: "Branch name is required.",
-        PERIODTENORDAY: "Period tenure day is required.",
-        EXPDRAWDAWNDATE: "Expected draw dawn date is missing.",
-        COUNTRYORIGIN: "Country of origin is required.",
-        DESCRIPTIONOFGOODSIMP: "Description of goods is required.",
-        CREDITRATINGIMP: "Credit rating is required.",
-        NAMEOFAPPLICANTIMP: "Name of the applicant is missing.",
-        CURRENCY: "Currency is required.",
-        AMOUNT: "Amount is missing.",
-        EXPECTEDSPREAD: "Expected spread is required.",
-        SHIPPINGAIRLINENAME: "Shipping airline name is missing.",
-        VESSELNAMEIMONO: "Vessel name is required.",
-        ADDRESSOFEXPORTER: "Exporter address is missing.",
-        DOCHECKERUSERID: "Doc checker user ID is required."
+        C_MAIN_REF: "Main reference is required."
     };
 
     for (let key in jsonObject) {
@@ -32,31 +19,4 @@ function validateJsonObject(jsonObject) {
         }
     }
     return true; // All keys have valid values
-}
-
-// Example usage
-const jsonObject = {
-    actionType: "CREATE_QUOTE",
-    BRANCHCODE: "09995",
-    C_MAIN_REF: "",
-    BRANCHNAME: "BALLARD ESTATE,MUMBAI",
-    PERIODTENORDAY: "029",
-    EXPDRAWDAWNDATE: "02-01-2025",
-    COUNTRYORIGIN: "310",
-    DESCRIPTIONOFGOODSIMP: "As per inv",
-    CREDITRATINGIMP: "8",
-    NAMEOFAPPLICANTIMP: "ARJUN GUPTA",
-    CURRENCY: "13",
-    AMOUNT: "50,000.00",
-    EXPECTEDSPREAD: "8",
-    SHIPPINGAIRLINENAME: "",
-    VESSELNAMEIMONO: "hlkaBNDS",
-    ADDRESSOFEXPORTER: "",
-    DOCHECKERUSERID: ""
-};
-
-if (validateJsonObject(jsonObject)) {
-    console.log("All keys have valid values.");
-} else {
-    console.log("Some keys are missing values.");
 }
