@@ -1,5 +1,9 @@
 const jsonObject = '{"actionType": "CREATE_QUOTE","BRANCHCODE": "09995","C_MAIN_REF": ""}';
-function validateJsonObject(jsonObject) {
+
+function validateJsonObject(jsonStr) {
+    // Parse the JSON string into a JavaScript object
+    const jsonObject = JSON.parse(jsonStr);
+
     // Custom alert messages for specific keys
     const alertMessages = {
         actionType: "Action type is required.",
@@ -19,4 +23,11 @@ function validateJsonObject(jsonObject) {
         }
     }
     return true; // All keys have valid values
+}
+
+// Example usage
+if (validateJsonObject(jsonObject)) {
+    console.log("All keys have valid values.");
+} else {
+    console.log("Some keys are missing values.");
 }
