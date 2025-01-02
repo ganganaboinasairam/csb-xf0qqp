@@ -1,34 +1,40 @@
-function checkAllKeysHaveValues(jsonObject) {
-    // Define custom alert messages for specific keys
-    const alertMessages = {
-        name: "Name is required.",
-        age: "Age is missing or invalid.",
-        city: "City cannot be empty."
-    };
-
-    for (let key in jsonObject) {
-        if (jsonObject.hasOwnProperty(key)) {
-            // Check if the value is null, undefined, or an empty string
-            if (jsonObject[key] === null || jsonObject[key] === undefined || jsonObject[key] === "") {
-                // Use custom alert message if defined, otherwise use a default message
-                const message = alertMessages[key] || `The key "${key}" is missing a value.`;
-                alert(message);
-                return false; // Stop further checks if a missing value is found
-            }
-        }
-    }
-    return true; // All keys have valid values
-}
-
-// Example usage
-const exampleObject = {
-    name: "",
-    age: null,
-    city: "New York"
-};
-
-if (checkAllKeysHaveValues(exampleObject)) {
-    console.log("All keys have valid values.");
-} else {
-    console.log("Some keys are missing values.");
+{
+   "actionType":"CREATE_QUOTE",
+   "BRANCHCODE":"09995",
+   "C_MAIN_REF":"",
+   "BRANCHNAME":"BALLARD ESTATE,MUMBAI",
+   "PERIODTENORDAY":"029",
+   "EXPDRAWDAWNDATE":"02-01-2025",
+   "COUNTRYORIGIN":"310",
+   "DESCRIPTIONOFGOODSIMP":"As per inv",
+   "CREDITRATINGIMP":"8",
+   "RESTRUCTURED":"16",
+   "NAMEOFAPPLICANTIMP":"ARJUN GUPTA",
+   "CURRENCY":"13",
+   "AMOUNT":"50,000.00",
+   "EXPECTEDSPREAD":"8",
+   "SHIPMENTFROMCOUNTRY":"310",
+   "SHIPMENTTOCOUNTRY":"183",
+   "EXTCREDITRATINGIMP":"BB",
+   "EXTCREDITRATINGVALIDUPTO":"2025-01-02",
+   "EXTCREDITRATINGAGENCY":"07",
+   "CREDITRATINGAUDITEBALDATE":"03-10-2023",
+   "CIFNOAPPLICANTIMP":"00000095001484507",
+   "ADDRESSOFIMPORTER":"BelapurSector 11MUMB",
+   "IMPORTERPUBLICSECTOR":"17",
+   "ADDRESSOFEXPORTER":"",
+   "SHIPPINGAIRLINENAME":"exoressq",
+   "CHARTERPARTYBILL":"16",
+   "VESSELNAMEIMONO":"hlkaBNDS",
+   "BILLLADINGAIRWAYNO":"9866853622",
+   "SHIPMENTDATE":"06-12-2024",
+   "ROLLOVERTRANSACTION":"17",
+   "SHIPMENTFROMPORT":"asdas",
+   "SHIPMENTTOPORT":"Nhava Sheva Sea",
+   "IRACSTATUSIMP":"05",
+   "CAPITALGOODS":"16",
+   "LASTDATEFORQUOTE":"02-01-2025",
+   "DOMBRANCHCONTACTNO":"9866856666",
+   "CORPORATECONTACTNO":"8657290549",
+   "DOCHECKERUSERID":""
 }
