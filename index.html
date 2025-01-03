@@ -3,196 +3,150 @@ package com.cs.ceweb.servlets;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Base64;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.w3c.dom.Node;
+
 import com.cs.base.utility.ASPathConst;
 import com.cs.base.xml.XMLManager;
 import com.cs.ce.core.helper.CESecuFileHelper;
 import com.cs.core.dao.DSManager;
 import com.cs.core.utility.WSZipUtil;
-import org.w3c.dom.Node;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ImageDownloadServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ImageDownloadServlet.class);
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-    	String indexList = request.getParameter("indexList");
-    	String c_main_ref = request.getParameter("cMainRef");
-    	String reqType = request.getParameter("reqType");
-    	String imgIndex = request.getParameter("imgIndex");
-    	
-    	try (Connection conn = DSManager.getConnection("CET")) {
-    		
-    	if(reqType.equals("download")) {
-    	String[] array = indexList.split(";");
-    	
-    		for (String value : array) {
-    	    	System.out.println(value);
-    	    	}
-    	for (String value : array) {
-    		
-    		String query = "SELECT B_IMG_CONTENT, C_IMG_FILE_TYPE FROM TRX_IMAGES_DTAL WHERE C_IMG_INDX = ? AND C_MAIN_REF = ?";
-            PreparedStatement pstmt = conn.prepareStatement(query);
-            pstmt.setString(1, value);
-            pstmt.setString(2, c_main_ref);
+        String indexList = request.getParameter("indexList");
+        String c_main_ref = request.getParameter("cMainRef");
+        String reqType = request.getParameter("reqType");
+        String imgIndex = request.getParameter("imgIndex");
 
-            ResultSet rs = pstmt.executeQuery(); 
-                
-                
-                
+        if (indexList == null || c_main_ref == null || reqType == null) {
+            LOGGER.error("Invalid request parameters.");
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing required parameters.");
+            return;
+        }
 
-                if (rs.next()) {
-                	
-                	String C_IMG_DOC_TYPE = rs.getString("C_IMG_DOC_TYPE");
-                    String base64 = rs.getString("B_IMG_CONTENT");
-                    String fileType = rs.getString("C_IMG_FILE_TYPE");
-                    
-                    if (base64 != null && !base64.isEmpty() && !"null".equalsIgnoreCase(base64)) {
-                    	if(C_IMG_DOC_TYPE.equals("image")) {
-                    	System.out.println("Report Received Response: " + base64);
-                    	Object obj = WSZipUtil.decompressByBase64(base64);
-                        printContentInTheFile((String)obj,  value);
-                    	}else if(C_IMG_DOC_TYPE.equals("form")){
-                    		processFileResponse(base64, fileType, response);
-                    	}
+        try (Connection conn = DSManager.getConnection("CET")) {
+            if (reqType.equals("download")) {
+                processDownloadRequest(indexList, c_main_ref, conn, response);
+            } else if (reqType.equals("viewDoc")) {
+                processViewDocRequest(imgIndex, c_main_ref, conn, response);
+            } else {
+                LOGGER.warn("Invalid request type: {}", reqType);
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid request type.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error processing request", e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing the request.");
+        }
+    }
+
+    private void processDownloadRequest(String indexList, String c_main_ref, Connection conn, HttpServletResponse response) throws Exception {
+        String[] array = indexList.split(";");
+        for (String value : array) {
+            try (PreparedStatement pstmt = conn.prepareStatement(
+                    "SELECT B_IMG_CONTENT, C_IMG_DOC_TYPE, C_IMG_FILE_TYPE FROM TRX_IMAGES_DTAL WHERE C_IMG_INDX = ? AND C_MAIN_REF = ?")) {
+                pstmt.setString(1, value);
+                pstmt.setString(2, c_main_ref);
+
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        handleResultSet(rs, value, response);
                     } else {
                         handleNoDataFound(response);
                     }
+                }
+            }
+        }
+        response.setContentType("application/json");
+        response.getWriter().write("{\"message\":\"Files saved successfully\"}");
+    }
+
+    private void processViewDocRequest(String imgIndex, String c_main_ref, Connection conn, HttpServletResponse response) throws Exception {
+        try (PreparedStatement pstmt = conn.prepareStatement(
+                "SELECT B_IMG_CONTENT, C_IMG_DOC_TYPE, C_IMG_FILE_TYPE FROM TRX_IMAGES_DTAL WHERE C_IMG_INDX = ? AND C_MAIN_REF = ?")) {
+            pstmt.setString(1, imgIndex);
+            pstmt.setString(2, c_main_ref);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    handleResultSet(rs, imgIndex, response);
                 } else {
                     handleNoDataFound(response);
                 }
-
-            } 
-    	conn.close();
-    	response.setContentType("application/pdf");
-    	response.getWriter().write("{\"message\":\"Files Saved Sucessfully\"}");
-    	
-    	}
-    	else if(reqType.equals("viewDoc")) {
-    		 String query = "SELECT B_IMG_CONTENT, C_IMG_FILE_TYPE FROM TRX_IMAGES_DTAL WHERE C_IMG_INDX = ? AND C_MAIN_REF = ?";
-             PreparedStatement pstmt = conn.prepareStatement(query);
-             pstmt.setString(1, imgIndex);
-             pstmt.setString(2, c_main_ref);
-
-             ResultSet rs = pstmt.executeQuery(); 
-             
-             
-
-             if (rs.next()) {
-             	
-             	String C_IMG_DOC_TYPE = rs.getString("C_IMG_DOC_TYPE");
-                 String base64 = rs.getString("B_IMG_CONTENT");
-                 String fileType = rs.getString("C_IMG_FILE_TYPE");
-                 
-                 if (base64 != null && !base64.isEmpty() && !"null".equalsIgnoreCase(base64)) {
-                 	if(C_IMG_DOC_TYPE.equals("image")) {
-                 	System.out.println("Report Received Response: " + base64);
-                 	Object obj = WSZipUtil.decompressByBase64(base64);
-                     printContentInTheFile((String)obj,  imgIndex);
-                 	}else if(C_IMG_DOC_TYPE.equals("form")){
-                 		processFileResponse(base64, fileType, response);
-                 	}
-                 } else {
-                     handleNoDataFound(response);
-                 }
-             } else {
-                 handleNoDataFound(response);
-             }
-    	}}catch (Exception e) {
-            e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while fetching the report.");
+            }
         }
-    	
     }
-    
-    private void printContentInTheFile(String obj ,String c_img_indx) throws Exception {
-   	 
-    	System.out.println("inside printContentInTheFile method");
-    	
-    	String configFilePath= ASPathConst.getUserDirPath()+File.separator+"PARAM"+File.separator+"Default"+File.separator+"SYST"+File.separator+"sysparam.xml";
-    	Node sImagepathNode = XMLManager.findNode(XMLManager.xmlFileToDom(configFilePath).getDocumentElement(),"WEB_IMAGE_ROOT_PATH");
-    	String sIMagePath  = XMLManager.getNodeAttribute(sImagepathNode, "VALUE");
-    	FileOutputStream out = CESecuFileHelper.newFileOutputStream(sIMagePath+"/"+c_img_indx+".pdf");
-    	 
-    	 String encodedString;
-         try {
-           byte[] b;
-			if (obj != null && 
-             obj.getClass().toString().indexOf("String") != -1) {
-         	  encodedString = (String)obj;	
-             b = encodedString.getBytes("ISO-8859-1");
-             out.write(b);
-           } else if (obj != null) {	
-             b = (byte[])obj.getBytes();
-             out.write(b);
-           } 
-           out.close();
-         } catch (Exception e) {
-           out.close();
-           throw e;
-         }
- 
-}
-    
-    
+
+    private void handleResultSet(ResultSet rs, String index, HttpServletResponse response) throws Exception {
+        String docType = rs.getString("C_IMG_DOC_TYPE");
+        String base64Content = rs.getString("B_IMG_CONTENT");
+        String fileType = rs.getString("C_IMG_FILE_TYPE");
+
+        if (base64Content != null && !base64Content.isEmpty() && !"null".equalsIgnoreCase(base64Content)) {
+            if ("image".equalsIgnoreCase(docType)) {
+                LOGGER.info("Processing image with index: {}", index);
+                byte[] decompressedBytes = WSZipUtil.decompressByBase64(base64Content).toString().getBytes("ISO-8859-1");
+                saveFile(decompressedBytes, index);
+            } else if ("form".equalsIgnoreCase(docType)) {
+                processFileResponse(base64Content, fileType, response);
+            }
+        } else {
+            handleNoDataFound(response);
+        }
+    }
+
+    private void saveFile(byte[] content, String fileName) throws Exception {
+        String configFilePath = ASPathConst.getUserDirPath() + File.separator + "PARAM" + File.separator +
+                "Default" + File.separator + "SYST" + File.separator + "sysparam.xml";
+        Node sImagepathNode = XMLManager.findNode(XMLManager.xmlFileToDom(configFilePath).getDocumentElement(), "WEB_IMAGE_ROOT_PATH");
+        String imagePath = XMLManager.getNodeAttribute(sImagepathNode, "VALUE");
+
+        File file = new File(imagePath, fileName + ".pdf");
+        try (FileOutputStream out = CESecuFileHelper.newFileOutputStream(file.getAbsolutePath())) {
+            out.write(content);
+            LOGGER.info("File saved successfully at {}", file.getAbsolutePath());
+        }
+    }
+
     private void processFileResponse(String base64, String fileType, HttpServletResponse response) throws IOException {
         try {
-          System.out.println("--------------inside processFileResponse-----------------");
-
-          byte[] b = null;
-
-          Object obj = WSZipUtil.decompressByBase64(base64);
-
-          System.out.println("PDF is " + base64);
-
-          if ("PDF".equalsIgnoreCase(fileType))
-            response.setContentType("application/pdf");
-          else if ("TXT".equalsIgnoreCase(fileType))
-            response.setContentType("text/plain");
-          else if (("XLS".equalsIgnoreCase(fileType)) || ("XLSX".equalsIgnoreCase(fileType)))
-            response.setContentType("application/vnd.ms-excel");
-          else if (("JPG".equalsIgnoreCase(fileType)) || ("JPEG".equalsIgnoreCase(fileType)))
-            response.setContentType("image/jpeg");
-          else {
-            response.setContentType("application/octet-stream");
-          }
-
-          response.setHeader("Pragma", "No-cache");
-          response.setHeader("Cache-Control", "no-cache");
-          response.setDateHeader("Expires", 2002L);
-
-          ObjectOutputStream out = new ObjectOutputStream(response.getOutputStream());
-          out.writeObject(obj);
-          out.flush();
-          out.close();
+            byte[] content = Base64.getDecoder().decode(base64);
+            String contentType = switch (fileType.toUpperCase()) {
+                case "PDF" -> "application/pdf";
+                case "TXT" -> "text/plain";
+                case "XLS", "XLSX" -> "application/vnd.ms-excel";
+                case "JPG", "JPEG" -> "image/jpeg";
+                default -> "application/octet-stream";
+            };
+            response.setContentType(contentType);
+            response.getOutputStream().write(content);
         } catch (IllegalArgumentException e) {
-          e.printStackTrace();
-          response.sendError(400, "Invalid base64 content.");
-        } catch (Exception e) {
-          e.printStackTrace();
-          response.sendError(500, "An error occurred while processing the file.");
+            LOGGER.error("Invalid Base64 content", e);
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid Base64 content.");
         }
-      }
-    
-    private void handleNoDataFound(HttpServletResponse response) throws IOException {
-    	 System.out.println("No Report data found in DB.");
-        response.setContentType("text/html");
-        PrintWriter out = response.getWriter();
-        out.println("<html><body>");
-        out.println("<div style=\"display: flex;justify-content: center;align-items: center;min-height: 100vh;font-size: xx-large;color: red;\">Report file not found...</div>");
-        out.println("</body></html>");
-        out.flush();
     }
 
-    
-    
+    private void handleNoDataFound(HttpServletResponse response) throws IOException {
+        LOGGER.warn("No data found in the database.");
+        response.setContentType("text/html");
+        try (PrintWriter out = response.getWriter()) {
+            out.println("<html><body>");
+            out.println("<div style=\"display: flex;justify-content: center;align-items: center;min-height: 100vh;font-size: xx-large;color: red;\">Report file not found...</div>");
+            out.println("</body></html>");
+        }
+    }
 }
