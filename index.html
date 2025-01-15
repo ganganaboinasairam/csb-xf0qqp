@@ -1,7 +1,13 @@
-i need a sql query:
-
-i have 2 tables INAD_MASTER and IINE_MASTER,IIne_master will contains multiple records for one lc reference number, but in inad_master their will be only record.
-
-now, when the multiple payments done for LC number the records in iine master will store the payment amount in TTL_NEGO_AMT field in IINE_master with each the payment is happening the TTL_NEGO_AMT will be reduced from the PRES_LC_BAL from inad_master, but the total payment amount and pres_bal_lc is mismatching . 
-
-i need a select query to compare the total_nego_amt of all the payments and pres_bal_lc for same lc from both tables .
+SELECT 
+    iine.LC_REF_NO AS LC_Reference,
+    SUM(iine.TTL_NEGO_AMT) AS Total_Negotiated_Amount,
+    inad.PRES_LC_BAL AS Presented_LC_Balance,
+    (SUM(iine.TTL_NEGO_AMT) - inad.PRES_LC_BAL) AS Difference
+FROM 
+    INAD_MASTER inad
+JOIN 
+    IINE_MASTER iine
+ON 
+    inad.LC_REF_NO = iine.LC_REF_NO
+GROUP BY 
+    iine.LC_REF_NO, inad.PRES_LC_BAL;
