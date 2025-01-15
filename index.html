@@ -1,41 +1,7 @@
-----my folder structure
-E:\sairam\backup
-E:\sairam\E
-E:\sairam\fileList.txt
-E:\sairam\text.txt
-E:\sairam\backup\backup.bat
-E:\sairam\backup\com
-E:\sairam\backup\config.properties
-E:\sairam\backup\com\FileBackup.class
+i need a sql query:
 
+i have 2 tables INAD_MASTER and IINE_MASTER,IIne_master will contains multiple records for one lc reference number, but in inad_master their will be only record.
 
-----my batch file
-@echo off
-REM Set Java home if not already set
-SET JAVA_HOME=C:\Program Files\Java\jre-1.8
-SET PATH=%JAVA_HOME%\bin;%PATH%
+now, when the multiple payments done for LC number the records in iine master will store the payment amount in TTL_NEGO_AMT field in IINE_master with each the payment is happening the TTL_NEGO_AMT will be reduced from the PRES_LC_BAL from inad_master, but the total payment amount and pres_bal_lc is mismatching . 
 
-REM Verify Java installation
-java -version
-if %ERRORLEVEL% NEQ 0 (
-    echo Java is not installed or JAVA_HOME is incorrect.
-    pause
-    exit /b
-)
-
-REM Navigate to the directory containing the compiled Java class
-cd /d E:\sairam\backup\
-
-REM Run the Java program with the full package name (if applicable)
-java com.FileBackup
-
-REM Pause to view output
-pause
-
-
-----my console error
-java version "1.8.0_381"
-Java(TM) SE Runtime Environment (build 1.8.0_381-b09)
-Java HotSpot(TM) 64-Bit Server VM (build 25.381-b09, mixed mode)
-Error: Could not find or load main class com.FileBackup
-Press any key to continue . . .
+i need a select query to compare the total_nego_amt of all the payments and pres_bal_lc for same lc from both tables .
