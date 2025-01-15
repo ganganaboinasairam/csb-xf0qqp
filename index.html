@@ -1,13 +1,40 @@
-SELECT 
-    iine.LC_REF_NO AS LC_Reference,
-    SUM(iine.TTL_NEGO_AMT) AS Total_Negotiated_Amount,
-    inad.PRES_LC_BAL AS Presented_LC_Balance,
-    (SUM(iine.TTL_NEGO_AMT) - inad.PRES_LC_BAL) AS Difference
-FROM 
-    INAD_MASTER inad
-JOIN 
+Select
+    inlc.c_main_ref As Lc_Reference,
+    Inad.C_Main_Ref Advvising_Ref,
+    Inlc.Lc_Amt As Lc_Amount,
+    Sum(Inlc.Inc_Amt) As Inc_Lc_Amount,
+    Sum(Inlc.Dec_Amt) As dec_Lc_Amount,
+    Inlc.Amd_No   As amd_no,
+    inlc.Lc_Bal_Prsnt as Presentation_Balance_inlc,
+    Sum(Iine.Ttl_Nego_Amt) As Total_Negotiated_Amount,
+    Inad.Pres_Bal_Lc As Presentation_Balance_inad
+FROM
+    Inad_Master Inad
+full Join
+    Inlc_Master inlc
+On
+    Inad.Lc_No = inlc.C_MAIN_REF
+full JOIN
     IINE_MASTER iine
-ON 
-    inad.LC_REF_NO = iine.LC_REF_NO
-GROUP BY 
-    iine.LC_REF_NO, inad.PRES_LC_BAL;
+ON
+    Inad.Lc_No = Iine.Lc_No
+Full Join
+    Inlc_Em_Amendment Emand
+On
+    inlc.C_MAIN_REF = Emand.C_MAIN_REF
+
+Where
+    inad.lc_no IN ('0069121LC0000035',
+'0069120LC1000289',
+'0069121LC0000012',
+'0069120LC1000464',
+'0069123LC0000102',
+'0069123LC0000148',
+'0069123LC0000147',
+'0069123LC0000123')
+Group By
+    inlc.c_main_ref, inad.c_main_ref,inad.PRES_BAL_LC,Inlc.Lc_Amt,inlc.Lc_Bal_Prsnt,Inlc.Inc_Amt,Inlc.Dec_Amt,Inlc.Amd_No ;
+	
+
+	
+the records which are comming from the Inlc_Em_Amendment should be filtered by , c_func_short_name in ('RailLCAmedDEO','eTradeSBIAmendLC') and c_trx_status='M'
