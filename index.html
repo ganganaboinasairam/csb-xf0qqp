@@ -1,40 +1,51 @@
-Select
-    inlc.c_main_ref As Lc_Reference,
-    Inad.C_Main_Ref Advvising_Ref,
-    Inlc.Lc_Amt As Lc_Amount,
-    Sum(Inlc.Inc_Amt) As Inc_Lc_Amount,
-    Sum(Inlc.Dec_Amt) As dec_Lc_Amount,
-    Inlc.Amd_No   As amd_no,
-    inlc.Lc_Bal_Prsnt as Presentation_Balance_inlc,
-    Sum(Iine.Ttl_Nego_Amt) As Total_Negotiated_Amount,
-    Inad.Pres_Bal_Lc As Presentation_Balance_inad
+SELECT
+    inlc.C_MAIN_REF AS LC_Reference,
+    inad.C_MAIN_REF AS Advising_Ref,
+    inlc.LC_AMT AS LC_Amount,
+    SUM(CASE 
+            WHEN emamd.C_FUNC_SHORT_NAME IN ('RailLCAmedDEO', 'eTradeSBIAmendLC') 
+                 AND emamd.C_TRX_STATUS = 'M' 
+            THEN emamd.INC_AMT 
+            ELSE 0 
+        END) AS Increment_LC_Amount,
+    SUM(CASE 
+            WHEN emamd.C_FUNC_SHORT_NAME IN ('RailLCAmedDEO', 'eTradeSBIAmendLC') 
+                 AND emamd.C_TRX_STATUS = 'M' 
+            THEN emamd.DEC_AMT 
+            ELSE 0 
+        END) AS Decrement_LC_Amount,
+    inlc.AMD_NO AS Amendment_Number,
+    inlc.LC_BAL_PRSNT AS Presentation_Balance_INLC,
+    SUM(iine.TTL_NEGO_AMT) AS Total_Negotiated_Amount,
+    inad.PRES_BAL_LC AS Presentation_Balance_INAD
 FROM
-    Inad_Master Inad
-full Join
-    Inlc_Master inlc
-On
-    Inad.Lc_No = inlc.C_MAIN_REF
-full JOIN
+    INAD_MASTER inad
+FULL JOIN
+    INLC_MASTER inlc
+    ON inad.LC_NO = inlc.C_MAIN_REF
+FULL JOIN
     IINE_MASTER iine
-ON
-    Inad.Lc_No = Iine.Lc_No
-Full Join
-    Inlc_Em_Amendment Emand
-On
-    inlc.C_MAIN_REF = Emand.C_MAIN_REF
-
-Where
-    inad.lc_no IN ('0069121LC0000035',
-'0069120LC1000289',
-'0069121LC0000012',
-'0069120LC1000464',
-'0069123LC0000102',
-'0069123LC0000148',
-'0069123LC0000147',
-'0069123LC0000123')
-Group By
-    inlc.c_main_ref, inad.c_main_ref,inad.PRES_BAL_LC,Inlc.Lc_Amt,inlc.Lc_Bal_Prsnt,Inlc.Inc_Amt,Inlc.Dec_Amt,Inlc.Amd_No ;
-	
-
-	
-the records which are comming from the Inlc_Em_Amendment should be filtered by , c_func_short_name in ('RailLCAmedDEO','eTradeSBIAmendLC') and c_trx_status='M'
+    ON inad.LC_NO = iine.LC_NO
+FULL JOIN
+    INLC_EM_AMENDMENT emamd
+    ON inlc.C_MAIN_REF = emamd.C_MAIN_REF
+WHERE
+    inad.LC_NO IN (
+        '0069121LC0000035',
+        '0069120LC1000289',
+        '0069121LC0000012',
+        '0069120LC1000464',
+        '0069123LC0000102',
+        '0069123LC0000148',
+        '0069123LC0000147',
+        '0069123LC0000123'
+    )
+GROUP BY
+    inlc.C_MAIN_REF,
+    inad.C_MAIN_REF,
+    inad.PRES_BAL_LC,
+    inlc.LC_AMT,
+    inlc.LC_BAL_PRSNT,
+    inlc.INC_AMT,
+    inlc.DEC_AMT,
+    inlc.AMD_NO;
