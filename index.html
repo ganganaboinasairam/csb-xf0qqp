@@ -1,13 +1,13 @@
 SELECT
     inlc.C_MAIN_REF AS LC_Reference,
-    Inad.C_Main_Ref As Advising_Ref,
-    Inlc.Lc_Amt As Lc_Amount_INLC_MASTER,
-    Emiss.Lc_Amt AS Lc_Amount_EVENT,
-    SUM(emamd.INC_AMT) AS Increment_LC_Amount,
-    SUM(emamd.DEC_AMT) AS Decrement_LC_Amount,
+    inad.C_MAIN_REF AS Advising_Ref,
+    inlc.LC_AMT AS LC_Amount_INLC_MASTER,
+    emiss.LC_AMT AS LC_Amount_EVENT,
+    SUM(DISTINCT emamd.INC_AMT) AS Increment_LC_Amount,
+    SUM(DISTINCT emamd.DEC_AMT) AS Decrement_LC_Amount,
     inlc.AMD_NO AS Amendment_Number,
     inlc.LC_BAL_PRSNT AS Presentation_Balance_INLC,
-    SUM(iine.TTL_NEGO_AMT) AS Total_Negotiated_Amount,
+    SUM(DISTINCT iine.TTL_NEGO_AMT) AS Total_Negotiated_Amount,
     inad.PRES_BAL_LC AS Presentation_Balance_INAD
 FROM
     INAD_MASTER inad
@@ -18,25 +18,21 @@ FULL JOIN
     IINE_MASTER iine
     ON inad.LC_NO = iine.LC_NO
 FULL JOIN
-    Inlc_Em_Amendment Emamd
-    On Inlc.C_Main_Ref = Emamd.C_Main_Ref AND emamd.C_FUNC_SHORT_NAME IN ('RailLCAmedDEO', 'eTradeSBIAmendLC') 
-                 AND emamd.C_TRX_STATUS = 'M' 
-Full Join
-    Inlc_Em_Issuance Emiss
-    ON inlc.C_MAIN_REF = Emiss.C_MAIN_REF AND Emiss.I_EVENT_TIMES ='1'
-Where
+    INLC_EM_AMENDMENT emamd
+    ON inlc.C_MAIN_REF = emamd.C_MAIN_REF
+    AND emamd.C_FUNC_SHORT_NAME IN ('RailLCAmedDEO', 'eTradeSBIAmendLC') 
+    AND emamd.C_TRX_STATUS = 'M'
+FULL JOIN
+    INLC_EM_ISSUANCE emiss
+    ON inlc.C_MAIN_REF = emiss.C_MAIN_REF
+    AND emiss.I_EVENT_TIMES = '1'
+WHERE
     inad.LC_NO IN ('0069121LC0000035')
 GROUP BY
     inlc.C_MAIN_REF,
     inad.C_MAIN_REF,
     inad.PRES_BAL_LC,
-    Inlc.Lc_Amt,
-    Emiss.Lc_Amt,
+    inlc.LC_AMT,
+    emiss.LC_AMT,
     inlc.LC_BAL_PRSNT,
-    inlc.INC_AMT,
-    Inlc.Dec_Amt,
-    Emiss.I_Event_Times,
     inlc.AMD_NO;
-
-
-when iam using the above query the Total_Negotiated_Amount and Increment_LC_Amount and Decrement_LC_Amount are comming double the original value 
