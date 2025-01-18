@@ -1,38 +1,1693 @@
-SELECT
-    inlc.C_MAIN_REF AS LC_Reference,
-    inad.C_MAIN_REF AS Advising_Ref,
-    inlc.LC_AMT AS LC_Amount_INLC_MASTER,
-    emiss.LC_AMT AS LC_Amount_EVENT,
-    SUM(DISTINCT emamd.INC_AMT) AS Increment_LC_Amount,
-    SUM(DISTINCT emamd.DEC_AMT) AS Decrement_LC_Amount,
-    inlc.AMD_NO AS Amendment_Number,
-    inlc.LC_BAL_PRSNT AS Presentation_Balance_INLC,
-    SUM(DISTINCT iine.TTL_NEGO_AMT) AS Total_Negotiated_Amount,
-    inad.PRES_BAL_LC AS Presentation_Balance_INAD
-FROM
-    INAD_MASTER inad
-FULL JOIN
-    INLC_MASTER inlc
-    ON inad.LC_NO = inlc.C_MAIN_REF
-FULL JOIN
-    IINE_MASTER iine
-    ON inad.LC_NO = iine.LC_NO
-FULL JOIN
-    INLC_EM_AMENDMENT emamd
-    ON inlc.C_MAIN_REF = emamd.C_MAIN_REF
-    AND emamd.C_FUNC_SHORT_NAME IN ('RailLCAmedDEO', 'eTradeSBIAmendLC') 
-    AND emamd.C_TRX_STATUS = 'M'
-FULL JOIN
-    INLC_EM_ISSUANCE emiss
-    ON inlc.C_MAIN_REF = emiss.C_MAIN_REF
-    AND emiss.I_EVENT_TIMES = '1'
-WHERE
-    inad.LC_NO IN ('0069121LC0000035')
-GROUP BY
-    inlc.C_MAIN_REF,
-    inad.C_MAIN_REF,
-    inad.PRES_BAL_LC,
-    inlc.LC_AMT,
-    emiss.LC_AMT,
-    inlc.LC_BAL_PRSNT,
-    inlc.AMD_NO;
+
+package com.cs.ceweb.servlets;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.cs.core.dao.DSManager;
+import com.cs.eximap.log.CELogSTDExec;
+
+public class TemplateDao {
+	public List<TemplateBean> getData(String createdBu, String createdBy, String unitCode, String tempCodeName) {
+		Connection conn = null;
+		ResultSet rs = null;
+		PreparedStatement pst = null;
+		ArrayList amendlist = new ArrayList();
+		String query = "";
+		if (tempCodeName == "INIS") {
+			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'F05030701043'  AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
+		} else if (tempCodeName == "BGIS") {
+			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'F05030701028'  AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
+		} else if (tempCodeName == "IMCP") {
+			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'F05030701187' OR T_FUNC_ID='F05030701328' AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
+		} else if (tempCodeName == "FWCO") {
+			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'F05030701664'  AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
+		} else if ("BGIF".equalsIgnoreCase(tempCodeName)) {
+			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'SDpSXbrM1HEM'  AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
+		} else if ("IWGT".equalsIgnoreCase(tempCodeName)) {
+			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'kWJWHi9kqEOV'  AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
+
+		} else {
+			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU        = ?  AND( C_CREATED_BY         = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID             = 'F05030700984'  AND C_UNIT_CODE           = ?  ORDER BY T_CONTENT_ID DESC";
+		}
+
+		CELogSTDExec.info("FetchTemplate tempCodeName.............." + tempCodeName);
+		CELogSTDExec.info("Fetch Template Query" + query);
+
+		try {
+			if (conn == null || conn.isClosed()) {
+				conn = DSManager.getConnection("CET");
+			}
+
+			pst = conn.prepareStatement(query);
+			pst.setString(1, createdBu);
+			pst.setString(2, createdBy);
+			pst.setString(3, unitCode);
+
+			TemplateBean amdBean;
+			for (rs = pst.executeQuery(); rs.next(); amendlist.add(amdBean)) {
+				amdBean = new TemplateBean();
+				amdBean.setT_CONTENT_ID(rs.getString("T_CONTENT_ID"));
+				amdBean.setT_CONTENT_NAME(rs.getString("T_CONTENT_NAME"));
+				String templateType = capitalFirstLetter(rs.getString("T_TEMPLATE_TYPE"));
+				amdBean.setT_TEMPLATE_TYPE(templateType);
+				amdBean.setT_CREA_TIME(rs.getString("T_CREA_TIME"));
+				amdBean.setT_FUNC_ID(rs.getString("T_FUNC_ID"));
+				amdBean.setC_CREATED_BY(rs.getString("C_CREATED_BY"));
+				amdBean.setC_CREATED_BU(rs.getString("C_CREATED_BU"));
+				amdBean.setC_UNIT_CODE(rs.getString("C_UNIT_CODE"));
+				amdBean.setT_CONTENT(rs.getString("T_CONTENT"));
+				CELogSTDExec.info("beneficiaryName .tempCodeName..........." + tempCodeName);
+				System.out.println("-------------------imis--------------------------------");
+				String beneficiaryName;
+				if (!"BGIF".equals(tempCodeName) && !"BGIS".equals(tempCodeName)) {
+					if ("IMCP".equals(tempCodeName)) {
+						beneficiaryName = getBeneficiaryName1(rs.getString("T_CONTENT"));
+						amdBean.setBENE_NM(beneficiaryName);
+					} else if ("IMIS".equals(tempCodeName)) {
+						System.out.println("----------------mODULE .imis........START------------------------------");
+						CELogSTDExec.info("mODULE .imis........START..." + rs.getString("T_CONTENT"));
+						amdBean.setLC_AMT_WORD(" ");
+						amdBean.setLC_AMT(" ");
+					} else {
+						beneficiaryName = getBeneficiaryName(rs.getString("T_CONTENT"));
+						amdBean.setBENE_NM(beneficiaryName);
+					}
+				} else {
+					beneficiaryName = getBGBeneficiaryName(rs.getString("T_CONTENT"));
+					amdBean.setBENE_NM(beneficiaryName);
+				}
+			}
+		} catch (Exception var21) {
+			var21.printStackTrace();
+		} finally {
+			try {
+				if (conn != null) {
+					conn.close();
+				}
+
+				if (rs != null) {
+					rs.close();
+				}
+
+				if (pst != null) {
+					pst.close();
+				}
+			} catch (Exception var20) {
+				var20.printStackTrace();
+			}
+
+		}
+
+		CELogSTDExec.info("----------------at LAST------------amendlist------------------   " + amendlist.toString());
+		return amendlist;
+	}
+
+	private static String capitalFirstLetter(String customText) {
+		try {
+			if (customText != null) {
+				int count = customText.length();
+				if (count == 0) {
+					return customText;
+				}
+
+				if (count == 1) {
+					return customText.toUpperCase();
+				}
+
+				customText = String.valueOf(customText.substring(0, 1).toUpperCase())
+						+ customText.substring(1).toLowerCase();
+			}
+		} catch (Exception var2) {
+			var2.printStackTrace();
+		}
+
+		return customText;
+	}
+
+	private static String getBeneficiaryName(String t_Content) {
+		String beneNM = "";
+
+		try {
+			if (t_Content != null && t_Content != "") {
+				String[] tempArray = t_Content.split("<BENE_NM_ADD>");
+				if (tempArray.length > 0) {
+					String[] splittedArray = tempArray[1].split("</BENE_NM_ADD>");
+					if (splittedArray.length > 0) {
+						beneNM = splittedArray[0];
+					}
+				}
+			}
+		} catch (Exception var4) {
+			var4.printStackTrace();
+		}
+
+		return beneNM;
+	}
+
+	private static String getBeneficiaryName1(String t_Content) {
+		String beneNM = "";
+
+		try {
+			if (t_Content != null && t_Content != "") {
+				String[] tempArray = t_Content.split("<DRWR_NM>");
+				if (tempArray.length > 0) {
+					String[] splittedArray = tempArray[1].split("</DRWR_NM>");
+					if (splittedArray.length > 0) {
+						beneNM = splittedArray[0];
+					}
+				}
+			}
+		} catch (Exception var4) {
+			var4.printStackTrace();
+		}
+
+		return beneNM;
+	}
+
+	private static String getBGBeneficiaryName(String t_Content) {
+		String beneNM = "";
+
+		try {
+			if (t_Content != null && t_Content != "") {
+				String[] tempArray = t_Content.split("<BENE_NM>");
+				if (tempArray.length > 0) {
+					String[] splittedArray = tempArray[1].split("</BENE_NM>");
+					if (splittedArray.length > 0) {
+						beneNM = splittedArray[0];
+					}
+				}
+			}
+		} catch (Exception var4) {
+			var4.printStackTrace();
+		}
+
+		return beneNM;
+	}
+
+	public int deleteTemplate(String templateId, String C_BK_GROUP_ID, String C_UNIT_CODE, String C_USER_ID,
+			String trimIp, String tempCodeName) {
+		Connection conn = null;
+		PreparedStatement pst = null;
+		PreparedStatement pst1 = null;
+		String query = "";
+		String query1 = "";
+		CELogSTDExec.info("templateId  " + templateId);
+		if (tempCodeName == "INIS") {
+			query = "delete  FROM CETRX.ECD_TEMPLATE  WHERE T_CONTENT_ID = '" + templateId + "'";
+			query1 = "INSERT INTO CETRX.TRX_SYS_ACESS_LOG (C_BK_GROUP_ID,C_UNIT_CODE,C_OP_IP,C_USER_ID,C_MODULE,C_EVENT_NAME,C_FUNC_ID,C_FUNC_NAME,D_SYS_LOG_DATE,T_SYS_LOG_TIME,C_LOG_TYPE,C_LOG_INFO,I_PROC_TIME)VALUES (?,?,?,?,'INIS','Transaction','F05030701043','Inland LC Issue',TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'HH24:MI:SS'),'TXTM',?,0)";
+		} else if (tempCodeName == "BGIS") {
+			query = "delete  FROM CETRX.ECD_TEMPLATE  WHERE T_CONTENT_ID = '" + templateId + "'";
+			query1 = "INSERT INTO CETRX.TRX_SYS_ACESS_LOG (C_BK_GROUP_ID,C_UNIT_CODE,C_OP_IP,C_USER_ID,C_MODULE,C_EVENT_NAME,C_FUNC_ID,C_FUNC_NAME,D_SYS_LOG_DATE,T_SYS_LOG_TIME,C_LOG_TYPE,C_LOG_INFO,I_PROC_TIME)VALUES (?,?,?,?,'BGIS','Transaction','F05030701028','Application for Bank Guarantee',TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'HH24:MI:SS'),'TXTM',?,0)";
+		} else if ("BGIF".equalsIgnoreCase(tempCodeName)) {
+			query = "delete  FROM CETRX.ECD_TEMPLATE  WHERE T_CONTENT_ID = '" + templateId + "'";
+			query1 = "INSERT INTO CETRX.TRX_SYS_ACESS_LOG (C_BK_GROUP_ID,C_UNIT_CODE,C_OP_IP,C_USER_ID,C_MODULE,C_EVENT_NAME,C_FUNC_ID,C_FUNC_NAME,D_SYS_LOG_DATE,T_SYS_LOG_TIME,C_LOG_TYPE,C_LOG_INFO,I_PROC_TIME)VALUES (?,?,?,?,'BGIS','Transaction','SDpSXbrM1HEM','Application for Bank Guarantee',TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'HH24:MI:SS'),'TXTM',?,0)";
+		} else if ("FWCO".equalsIgnoreCase(tempCodeName)) {
+			query = "delete  FROM CETRX.ECD_TEMPLATE  WHERE T_CONTENT_ID = '" + templateId + "'";
+			query1 = "INSERT INTO CETRX.TRX_SYS_ACESS_LOG (C_BK_GROUP_ID,C_UNIT_CODE,C_OP_IP,C_USER_ID,C_MODULE,C_EVENT_NAME,C_FUNC_ID,C_FUNC_NAME,D_SYS_LOG_DATE,T_SYS_LOG_TIME,C_LOG_TYPE,C_LOG_INFO,I_PROC_TIME)VALUES (?,?,?,?,'FWCO','Transaction','F05030701664','Forward Contract,TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'HH24:MI:SS'),'TXTM',?,0)";
+		} else if (tempCodeName == "IMCP") {
+			query = "delete  FROM CETRX.ECD_TEMPLATE  WHERE T_CONTENT_ID = '" + templateId + "'";
+			query1 = "INSERT INTO CETRX.TRX_SYS_ACESS_LOG (C_BK_GROUP_ID,C_UNIT_CODE,C_OP_IP,C_USER_ID,C_MODULE,C_EVENT_NAME,C_FUNC_ID,C_FUNC_NAME,D_SYS_LOG_DATE,T_SYS_LOG_TIME,C_LOG_TYPE,C_LOG_INFO,I_PROC_TIME)VALUES (?,?,?,?,'IMCP','Transaction','F05030701187','Register Advance Payment',TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'HH24:MI:SS'),'TXTM',?,0)";
+		} else {
+			query = "delete  FROM CETRX.ECD_TEMPLATE  WHERE T_CONTENT_ID = '" + templateId + "'";
+			query1 = " INSERT INTO CETRX.TRX_SYS_ACESS_LOG (C_BK_GROUP_ID,C_UNIT_CODE,C_OP_IP,C_USER_ID,C_MODULE,C_EVENT_NAME,C_FUNC_ID,C_FUNC_NAME,D_SYS_LOG_DATE,T_SYS_LOG_TIME,C_LOG_TYPE,C_LOG_INFO,I_PROC_TIME)VALUES (?,?,?,?,'IMIS','Transaction','F05030700984','Import LC Issue',TO_DATE(?,'YYYY-MM-DD'),TO_DATE(?,'HH24:MI:SS'),'TXTM',?,0)";
+		}
+
+		CELogSTDExec.info("deleteTemplate tempCodeName.............." + tempCodeName);
+		CELogSTDExec.info("Delete Template Query1" + query);
+		CELogSTDExec.info("Delete Template Query2" + query1);
+		boolean isError = false;
+
+		int count;
+		try {
+			if (conn == null || conn.isClosed()) {
+				conn = DSManager.getConnection("CET");
+			}
+
+			pst = conn.prepareStatement(query);
+			count = pst.executeUpdate();
+			CELogSTDExec.info("Delete Template count" + count);
+			conn.setAutoCommit(true);
+			if (count > 0) {
+				isError = false;
+			} else {
+				isError = true;
+			}
+
+			CELogSTDExec.info("deleted from template");
+			Date currentDate = new Date();
+			SimpleDateFormat formatter = new SimpleDateFormat("YYYY-MM-dd");
+			Calendar calendar = Calendar.getInstance();
+			SimpleDateFormat formatter1 = new SimpleDateFormat("HH:mm:ss");
+			CELogSTDExec.info("date and time set");
+			pst1 = conn.prepareStatement(query1);
+			pst1.setString(1, C_BK_GROUP_ID);
+			pst1.setString(2, C_UNIT_CODE);
+			pst1.setString(3, trimIp);
+			pst1.setString(4, C_USER_ID);
+			pst1.setString(5, formatter.format(currentDate));
+			String timeTemp = formatter1.format(calendar.getTime());
+			CELogSTDExec.info("time" + timeTemp);
+			pst1.setString(6, timeTemp);
+			pst1.setString(7, "[100104]Template is deleted successfully. Please continue. ID is:" + templateId);
+			CELogSTDExec.info("going to insert ");
+			count = pst1.executeUpdate();
+			CELogSTDExec.info("inserted");
+			if (count > 0) {
+				isError = false;
+			}
+
+			isError = true;
+		} catch (Exception var27) {
+			var27.printStackTrace();
+			isError = true;
+			CELogSTDExec.info("in catch: " + var27);
+			count = 0;
+		} finally {
+			try {
+				if (isError) {
+					conn.rollback();
+				} else {
+					conn.commit();
+				}
+
+				if (conn != null) {
+					conn.close();
+				}
+
+				if (pst != null) {
+					pst.close();
+				}
+
+				if (pst1 != null) {
+					pst1.close();
+				}
+			} catch (Exception var26) {
+				var26.printStackTrace();
+			}
+
+		}
+
+		return count;
+	}
+
+	public List<DraftsBean> getDraftsData(String c_UNIT_CODE, String tempCodeName) {
+		Connection conn = null;
+		ResultSet rs = null;
+		PreparedStatement pst = null;
+		String query = "";
+		List draftsList = new ArrayList();
+		if (tempCodeName == "INIS") {
+			query = "select TI.C_PRODUCT_ID, TI.C_FUNC_ID, TI.C_MAIN_REF, TI.I_EVENT_TIMES, TI.C_UNIT_CODE, TI.BENE_NM_ADD, TI.STATUS, TI.TRX_DT, TI.LC_ISSUE_DT ,TI.C_TRX_STATUS from CETRX.TRX_INBOX TI where TI.C_BK_GROUP_ID = 'SBI'  AND  TI.C_PRODUCT_ID = 'P10091400000'   AND  TI.C_UNIT_CODE = ?  and TI.C_TRX_STATUS = 'Z' order by TI.TRX_DT desc";
+		} else if (tempCodeName == "BGIS") {
+			query = "select TI.C_PRODUCT_ID, TI.C_FUNC_ID, TI.C_MAIN_REF, TI.I_EVENT_TIMES, TI.C_UNIT_CODE, TI.BENE_NM_ADD, TI.STATUS, TI.TRX_DT, TI.LC_ISSUE_DT ,TI.C_TRX_STATUS from CETRX.TRX_INBOX TI where TI.C_BK_GROUP_ID = 'SBI'  AND  TI.C_PRODUCT_ID = 'P10092700000'   AND  TI.C_UNIT_CODE = ?  and TI.C_TRX_STATUS = 'Z' order by TI.TRX_DT desc";
+		} else if ("BGIF".equalsIgnoreCase(tempCodeName)) {
+			query = "select TI.C_PRODUCT_ID,TI.BENE_NM, TI.C_FUNC_ID, TI.C_MAIN_REF, TI.I_EVENT_TIMES, TI.C_UNIT_CODE, TI.BENE_NM_ADD, TI.STATUS, TI.TRX_DT, TI.LC_ISSUE_DT ,TI.C_TRX_STATUS from CETRX.TRX_INBOX TI where TI.C_BK_GROUP_ID = 'SBI'  AND  TI.C_PRODUCT_ID = 'o5tafMyTPxqd'   AND  TI.C_UNIT_CODE = ?  and TI.C_TRX_STATUS = 'Z' order by TI.TRX_DT desc";
+		} else if ("FWCO".equalsIgnoreCase(tempCodeName)) {
+			query = "select TI.C_PRODUCT_ID,TI.BENE_NM, TI.C_FUNC_ID, TI.C_MAIN_REF, TI.I_EVENT_TIMES, TI.C_UNIT_CODE, TI.BENE_NM_ADD, TI.STATUS, TI.TRX_DT, TI.LC_ISSUE_DT ,TI.C_TRX_STATUS from CETRX.TRX_INBOX TI where TI.C_BK_GROUP_ID = 'SBI'  AND  TI.C_PRODUCT_ID = 'P11080900000'   AND  TI.C_UNIT_CODE = ?  and TI.C_TRX_STATUS = 'Z' order by TI.TRX_DT desc";
+		} else if (tempCodeName == "IMCP") {
+			query = "select TI.C_PRODUCT_ID,TI.BENE_NM, TI.C_FUNC_ID, TI.C_MAIN_REF, TI.I_EVENT_TIMES, TI.C_UNIT_CODE, TI.BENE_NM_ADD, TI.STATUS, TI.TRX_DT, TI.LC_ISSUE_DT ,TI.C_TRX_STATUS from CETRX.TRX_INBOX TI where TI.C_BK_GROUP_ID = 'SBI'  AND  TI.C_PRODUCT_ID = 'P11070900000'   AND  TI.C_UNIT_CODE = ?  and TI.C_TRX_STATUS = 'Z' order by TI.TRX_DT desc";
+		} else {
+			query = "select TI.C_PRODUCT_ID, TI.C_FUNC_ID, TI.C_MAIN_REF, TI.I_EVENT_TIMES, TI.C_UNIT_CODE, TI.BENE_NM_ADD, TI.STATUS, TI.TRX_DT, TI.LC_ISSUE_DT ,TI.C_TRX_STATUS from CETRX.TRX_INBOX TI where TI.C_BK_GROUP_ID = 'SBI'  AND  TI.C_PRODUCT_ID = 'P10091400002'   AND  TI.C_UNIT_CODE = ?  and TI.C_TRX_STATUS = 'Z' order by TI.TRX_DT desc ";
+		}
+
+		CELogSTDExec.info("Fetch Draft Template tempCodeName.............." + tempCodeName);
+		CELogSTDExec.info("Fetch Draft Template Query" + query);
+
+		try {
+			if (conn == null || conn.isClosed()) {
+				conn = DSManager.getConnection("CET");
+			}
+
+			pst = conn.prepareStatement(query);
+			pst.setString(1, c_UNIT_CODE);
+			rs = pst.executeQuery();
+
+			while (rs.next()) {
+				DraftsBean draftBean = new DraftsBean();
+				draftBean.setC_PRODUCT_ID(rs.getString("C_PRODUCT_ID"));
+				draftBean.setC_FUNC_ID(rs.getString("C_FUNC_ID"));
+				draftBean.setC_MAIN_REF(rs.getString("C_MAIN_REF"));
+				draftBean.setI_EVENT_TIMES(rs.getString("I_EVENT_TIMES"));
+				draftBean.setC_UNIT_CODE(rs.getString("C_UNIT_CODE"));
+				String name = rs.getString("BENE_NM");
+				CELogSTDExec.info(" At TemplateDao ... In getDraftsData. Method ...........name is .." + name);
+				if (name != null && !name.trim().isEmpty()) {
+					draftBean.setBENE_NM(rs.getString("BENE_NM"));
+				} else {
+					draftBean.setBENE_NM(
+							rs.getString("BENE_NM_ADD") != null && !rs.getString("BENE_NM_ADD").equalsIgnoreCase("")
+									? rs.getString("BENE_NM_ADD")
+									: "-");
+				}
+
+				draftBean.setSTATUS(rs.getString("STATUS"));
+				draftBean.setTRX_DT(rs.getString("TRX_DT"));
+				draftBean.setLC_ISSUE_DT(rs.getString("LC_ISSUE_DT"));
+				draftBean.setC_TRX_STATUS(rs.getString("C_TRX_STATUS"));
+				draftsList.add(draftBean);
+			}
+		} catch (Exception var18) {
+			var18.printStackTrace();
+		} finally {
+			try {
+				if (conn != null) {
+					conn.close();
+				}
+
+				if (rs != null) {
+					rs.close();
+				}
+
+				if (pst != null) {
+					pst.close();
+				}
+			} catch (Exception var17) {
+				var17.printStackTrace();
+			}
+
+		}
+
+		return draftsList;
+	}
+
+	public String dateString(Date dateObj) {
+		String dateString = "";
+
+		try {
+			if (dateObj != null) {
+				DateFormat dateFormat = new SimpleDateFormat("dd-MM-YYYY");
+				dateFormat.format(dateObj);
+			}
+
+			dateString = "";
+		} catch (Exception var4) {
+			dateString = "";
+		}
+
+		return dateString;
+	}
+
+	public static String dateStringSQL(String dateObj) {
+		Object dateString = null;
+
+		try {
+			if (dateObj != null && dateObj != "") {
+				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+				Date date = formatter.parse(dateObj);
+				DateFormat dateFormat = new SimpleDateFormat("YYYY-MM-dd");
+				dateFormat.format(date);
+			}
+
+			dateString = null;
+		} catch (Exception var5) {
+			var5.printStackTrace();
+			dateString = null;
+		}
+
+		return (String) dateString;
+	}
+
+	public String deleteDraftsData(String c_UNIT_CODE, String c_MAIN_REF, String c_LOCKED_OP, String c_LOCKED_BU,
+			String tempCodeName) {
+		Connection conn = null;
+		PreparedStatement pst = null;
+		ResultSet rs = null;
+		int count = 0;
+		String message = "";
+		boolean isError = false;
+		String query = "";
+		new HashMap();
+
+		try {
+			if (tempCodeName == "INIS") {
+				query = "SELECT COUNT(*) AS ASCOUNT FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI' AND C_MAIN_REF = '"
+						+ c_MAIN_REF + "' AND C_MODULE = 'INIS' AND C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_TRX_STATUS = 'Z'";
+			} else if (tempCodeName == "BGIS") {
+				query = "SELECT COUNT(*) AS ASCOUNT FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI' AND C_MAIN_REF = '"
+						+ c_MAIN_REF + "' AND C_MODULE = 'BGIS' AND C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_TRX_STATUS = 'Z'";
+			} else if (tempCodeName == "FWCO") {
+				query = "SELECT COUNT(*) AS ASCOUNT FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI' AND C_MAIN_REF = '"
+						+ c_MAIN_REF + "' AND C_MODULE = 'BGIS' AND C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_TRX_STATUS = 'Z'";
+			} else if ("BGIF".equalsIgnoreCase(tempCodeName)) {
+				query = "SELECT COUNT(*) AS ASCOUNT FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI' AND C_MAIN_REF = '"
+						+ c_MAIN_REF + "' AND C_MODULE = 'BGIS' AND C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_TRX_STATUS = 'Z'";
+			} else if (tempCodeName == "IMCP") {
+				query = "SELECT COUNT(*) AS ASCOUNT FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI' AND C_MAIN_REF = '"
+						+ c_MAIN_REF + "' AND C_MODULE = 'IMCP' AND C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_TRX_STATUS = 'Z'";
+			} else {
+				query = "SELECT COUNT(*) AS ASCOUNT FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI' AND C_MAIN_REF = '"
+						+ c_MAIN_REF + "' AND C_MODULE = 'IMIS' AND C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_TRX_STATUS = 'Z' ";
+			}
+
+			CELogSTDExec.info("Fetch Draft Template tempCodeName.............." + tempCodeName);
+			CELogSTDExec.info("Fetch Draft Template Query" + query);
+			if (conn == null || conn.isClosed()) {
+				conn = DSManager.getConnection("CET");
+			}
+
+			pst = conn.prepareStatement(query);
+			rs = pst.executeQuery();
+			conn.setAutoCommit(true);
+
+			while (rs.next()) {
+				count = rs.getInt("ASCOUNT");
+			}
+
+			CELogSTDExec.info("Count Fetched" + count);
+			if (count > 0) {
+				CELogSTDExec.info("Calling updateLock_T");
+				this.updateLock_T(c_UNIT_CODE, c_MAIN_REF, conn, c_LOCKED_BU, c_LOCKED_OP, tempCodeName);
+				CELogSTDExec.info("Ended updateLock_T");
+				CELogSTDExec.info("Calling getLCValues");
+				Map lcValues = this.getLCValues(c_UNIT_CODE, c_MAIN_REF, conn, c_LOCKED_OP, c_LOCKED_BU, tempCodeName);
+				CELogSTDExec.info("Ended getLCValues" + lcValues);
+				if (lcValues.isEmpty()) {
+					CELogSTDExec.info("Calling deleteLCValues");
+				}
+
+				String I_EVENT_TIMES = (String) lcValues.get("I_EVENT_TIMES");
+				CELogSTDExec.info("I_EVENT_TIMES....." + I_EVENT_TIMES);
+				if (Integer.parseInt(I_EVENT_TIMES) > 1) {
+					String NEW_I_EVENT_TIMES = (String) lcValues.get("NEW_I_EVENT_TIMES");
+					CELogSTDExec.info("FOR AMEND NEW_I_EVENT_TIMES....." + NEW_I_EVENT_TIMES);
+					AmmendVersionBean amendVersionBean = new AmmendVersionBean();
+					ReadXMLFile readxmlbean = new ReadXMLFile();
+					String encryptData = this.getAmendData(NEW_I_EVENT_TIMES, c_MAIN_REF, conn, tempCodeName);
+					if (encryptData != null && encryptData != "") {
+						String decrypt = Decompress.decompress(encryptData);
+						amendVersionBean = readxmlbean.getXmldata(decrypt);
+					}
+
+					this.deleteLCValuesAmend(lcValues, c_UNIT_CODE, c_MAIN_REF, conn, c_LOCKED_OP, c_LOCKED_BU,
+							tempCodeName, amendVersionBean);
+				} else {
+					CELogSTDExec.info("FOR deleteLCValues.....");
+					this.deleteLCValuesIssue(lcValues, c_UNIT_CODE, c_MAIN_REF, conn, c_LOCKED_OP, c_LOCKED_BU,
+							tempCodeName);
+				}
+
+				CELogSTDExec.info("Ended deleteLCValues");
+			} else {
+				CELogSTDExec.info("deleteDraftsData Method Else Block");
+				message = "There was a problem submitting your request.<BR/> Please contact the product support team.";
+			}
+		} catch (Exception var28) {
+			var28.printStackTrace();
+			isError = true;
+			CELogSTDExec.info("deleteDraftsData Method Catch  Block_____  ");
+			message = "There was a problem submitting your request.<BR/> Please contact the product support team.";
+		} finally {
+			try {
+				if (isError) {
+					conn.rollback();
+				} else {
+					conn.commit();
+				}
+
+				if (conn != null) {
+					conn.close();
+				}
+
+				if (rs != null) {
+					rs.close();
+				}
+
+				if (pst != null) {
+					pst.close();
+				}
+			} catch (Exception var27) {
+				var27.printStackTrace();
+			}
+
+		}
+
+		return message;
+	}
+
+	private String deleteLCValuesAmend(Map<String, String> lcValues, String c_UNIT_CODE, String c_MAIN_REF,
+			Connection conn, String c_LOCKED_OP, String c_LOCKED_BU, String tempCodeName,
+			AmmendVersionBean amendVersionBean) throws Exception {
+		CELogSTDExec.info("Inside deleteLCValuesAmend tempCodeName>>>" + tempCodeName);
+		String message = "";
+		PreparedStatement pst = null;
+		String I_EVENT_TIMES = (String) lcValues.get("I_EVENT_TIMES");
+		String C_TRX_ID = (String) lcValues.get("C_TRX_ID");
+		String NEW_I_EVENT_TIMES = (String) lcValues.get("NEW_I_EVENT_TIMES");
+		String C_FUNC_SHORT_NAME = (String) lcValues.get("C_FUNC_SHORT_NAME");
+		String C_FUNC_ID = (String) lcValues.get("C_FUNC_ID");
+		String C_EVENT_STATUS = (String) lcValues.get("C_EVENT_STATUS");
+		String C_CREA_BY = (String) lcValues.get("C_CREA_BY");
+		String C_AUTH_BU = (String) lcValues.get("C_AUTH_BU");
+		String C_PRODUCT_ID = (String) lcValues.get("C_PRODUCT_ID");
+		String C_PRODUCT_NAME = (String) lcValues.get("C_PRODUCT_NAME");
+		String C_TRX_REF = (String) lcValues.get("C_TRX_REF");
+		String C_UNIT_CODE = (String) lcValues.get("C_UNIT_CODE");
+		CELogSTDExec.info("I_EVENT_TIMES : " + I_EVENT_TIMES);
+		CELogSTDExec.info("C_TRX_ID : " + C_TRX_ID);
+		CELogSTDExec.info("NEW_I_EVENT_TIMES : " + NEW_I_EVENT_TIMES);
+		CELogSTDExec.info("C_FUNC_SHORT_NAME : " + C_FUNC_SHORT_NAME);
+		CELogSTDExec.info("C_FUNC_ID : " + C_FUNC_ID);
+		CELogSTDExec.info("C_EVENT_STATUS : " + C_EVENT_STATUS);
+		CELogSTDExec.info("C_CREA_BY : " + C_CREA_BY);
+		CELogSTDExec.info("C_AUTH_BU : " + C_AUTH_BU);
+		CELogSTDExec.info("C_PRODUCT_ID : " + C_PRODUCT_ID);
+		CELogSTDExec.info("C_PRODUCT_NAME : " + C_PRODUCT_NAME);
+		CELogSTDExec.info("C_TRX_REF : " + C_TRX_REF);
+		CELogSTDExec.info("C_UNIT_CODE : " + C_UNIT_CODE);
+
+		try {
+			String query1 = "";
+			String query2 = "";
+			String query3 = "";
+			String query4 = "";
+			String query5 = "";
+			String query6 = "";
+			String query7 = "";
+			String query8 = "";
+			String query10 = "";
+			String query11 = "";
+			String query12 = "";
+			String query13 = "";
+			String query14 = "";
+			String query15 = "";
+			String query16 = "";
+			String query17 = "";
+			if (tempCodeName == "INIS") {
+				query1 = "UPDATE CETRX.INIS_MASTER SET I_EVENT_TIMES = ?, C_FUNC_SHORT_NAME = ?, C_TRX_STATUS = 'M', C_LOCKED_FLAG = 'F', C_LOCKED_OP = ' ', C_LOCK_FUNC_ID = ' ', C_CP_UNIT_CODE = ? WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query16 = "DELETE FROM CETRX.INIS_EVENT WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'INIS' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'INIS'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'INIS' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'INIS'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.INIS_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query17 = "UPDATE CETRX.TRX_INBOX SET ACPT_REJ = ?, AMD_DT = ?, APPL_NM = ?, BENE_NM =?, CURRNT_STATUS =?, EXPIRY_DT = TO_DATE(?,'YYYY-MM-DD'), LC_AMT = ?, LC_CCY = ?, LC_NO = ?, NO_OF_AMD = ?, STATUS = ?, LC_ISSUE_DT = ?, TRX_DT = TO_DATE(?,'YYYY-MM-DD'), C_AUTH_BU = ?, C_BK_GROUP_ID = 'SBI', C_CNTY_CODE = 'IN', C_CREATED_BU = ?, C_CREATED_BY = ?, C_CREA_BY = ?, C_EVENT_STATUS = ?, C_FUNC_ID = ?, C_FUNC_SHORT_NAME = ?, C_MAIN_REF = ?, C_MODULE = 'BGIS', C_NOW_EVENT = 'System Demerge', C_PRODUCT_ID = ?, C_PRODUCT_NAME = ?, C_REFUSE_REASON = ?, C_TRX_REF = ?, C_TRX_STATUS = ?, C_UNIT_CODE = ?, I_AUTH_TYPE = 1, I_EVENT_TIMES = ? WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'BGIS'  AND  C_UNIT_CODE = ? ";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.INIS_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+			} else if ("BGIF".equalsIgnoreCase(tempCodeName)) {
+				query1 = "UPDATE CETRX.BGIS_MASTER SET I_EVENT_TIMES = ?, C_FUNC_SHORT_NAME = ?, C_TRX_STATUS = 'M', C_LOCKED_FLAG = 'F', C_LOCKED_OP = ' ', C_LOCK_FUNC_ID = ' ', C_CP_UNIT_CODE = ? WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query16 = "DELETE FROM CETRX.BGIS_EVENT WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'BGIS' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'BGIS'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.BGIS_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query17 = "UPDATE CETRX.TRX_INBOX SET ACPT_REJ = ?, AMD_DT = ?, APPL_NM = ?, BENE_NM =?, CURRNT_STATUS =?, EXPIRY_DT = TO_DATE(?,'YYYY-MM-DD'), LC_AMT = ?, LC_CCY = ?, LC_NO = ?, NO_OF_AMD = ?, STATUS = ?, LC_ISSUE_DT = ?, TRX_DT = TO_DATE(?,'YYYY-MM-DD'), C_AUTH_BU = ?, C_BK_GROUP_ID = 'SBI', C_CNTY_CODE = 'IN', C_CREATED_BU = ?, C_CREATED_BY = ?, C_CREA_BY = ?, C_EVENT_STATUS = ?, C_FUNC_ID = ?, C_FUNC_SHORT_NAME = ?, C_MAIN_REF = ?, C_MODULE = 'BGIS', C_NOW_EVENT = 'System Demerge', C_PRODUCT_ID = ?, C_PRODUCT_NAME = ?, C_REFUSE_REASON = ?, C_TRX_REF = ?, C_TRX_STATUS = ?, C_UNIT_CODE = ?, I_AUTH_TYPE = 1, I_EVENT_TIMES = ? WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'B'  AND  C_UNIT_CODE = ? ";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.BGIS_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+			} else if ("IWGT".equalsIgnoreCase(tempCodeName)) {
+				query1 = "UPDATE CETRX.IWGT_MASTER SET I_EVENT_TIMES = ?, C_FUNC_SHORT_NAME = ?, C_TRX_STATUS = 'M', C_LOCKED_FLAG = 'F', C_LOCKED_OP = ' ', C_LOCK_FUNC_ID = ' ', C_CP_UNIT_CODE = ? WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query16 = "DELETE FROM CETRX.IWGT_EVENT WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'BGIS' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'IWGT'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IWGT' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IWGT'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.IWGT_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query17 = "UPDATE CETRX.TRX_INBOX SET ACPT_REJ = ?, AMD_DT = ?, APPL_NM = ?, BENE_NM =?, CURRNT_STATUS =?, EXPIRY_DT = TO_DATE(?,'YYYY-MM-DD'), LC_AMT = ?, LC_CCY = ?, LC_NO = ?, NO_OF_AMD = ?, STATUS = ?, LC_ISSUE_DT = ?, TRX_DT = TO_DATE(?,'YYYY-MM-DD'), C_AUTH_BU = ?, C_BK_GROUP_ID = 'SBI', C_CNTY_CODE = 'IN', C_CREATED_BU = ?, C_CREATED_BY = ?, C_CREA_BY = ?, C_EVENT_STATUS = ?, C_FUNC_ID = ?, C_FUNC_SHORT_NAME = ?, C_MAIN_REF = ?, C_MODULE = 'IWGT', C_NOW_EVENT = 'System Demerge', C_PRODUCT_ID = ?, C_PRODUCT_NAME = ?, C_REFUSE_REASON = ?, C_TRX_REF = ?, C_TRX_STATUS = ?, C_UNIT_CODE = ?, I_AUTH_TYPE = 1, I_EVENT_TIMES = ? WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'B'  AND  C_UNIT_CODE = ? ";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.IWGT_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+
+			} else if ("FWCO".equalsIgnoreCase(tempCodeName)) {
+				query1 = "UPDATE CETRX.FWCO_MASTER SET I_EVENT_TIMES = ?, C_FUNC_SHORT_NAME = ?, C_TRX_STATUS = 'M', C_LOCKED_FLAG = 'F', C_LOCKED_OP = ' ', C_LOCK_FUNC_ID = ' ', C_CP_UNIT_CODE = ? WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query16 = "DELETE FROM CETRX.FWCO_EVENT WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'BGIS' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'BGIS'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.FWCO_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query17 = "UPDATE CETRX.TRX_INBOX SET ACPT_REJ = ?, AMD_DT = ?, APPL_NM = ?, BENE_NM =?, CURRNT_STATUS =?, EXPIRY_DT = TO_DATE(?,'YYYY-MM-DD'), LC_AMT = ?, LC_CCY = ?, LC_NO = ?, NO_OF_AMD = ?, STATUS = ?, LC_ISSUE_DT = ?, TRX_DT = TO_DATE(?,'YYYY-MM-DD'), C_AUTH_BU = ?, C_BK_GROUP_ID = 'SBI', C_CNTY_CODE = 'IN', C_CREATED_BU = ?, C_CREATED_BY = ?, C_CREA_BY = ?, C_EVENT_STATUS = ?, C_FUNC_ID = ?, C_FUNC_SHORT_NAME = ?, C_MAIN_REF = ?, C_MODULE = 'BGIS', C_NOW_EVENT = 'System Demerge', C_PRODUCT_ID = ?, C_PRODUCT_NAME = ?, C_REFUSE_REASON = ?, C_TRX_REF = ?, C_TRX_STATUS = ?, C_UNIT_CODE = ?, I_AUTH_TYPE = 1, I_EVENT_TIMES = ? WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'B'  AND  C_UNIT_CODE = ? ";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.FWCO_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+			} else if (tempCodeName == "BGIS") {
+				query1 = "UPDATE CETRX.BGIS_MASTER SET I_EVENT_TIMES = ?, C_FUNC_SHORT_NAME = ?, C_TRX_STATUS = 'M', C_LOCKED_FLAG = 'F', C_LOCKED_OP = ' ', C_LOCK_FUNC_ID = ' ', C_CP_UNIT_CODE = ? WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query16 = "DELETE FROM CETRX.BGIS_EVENT WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'BGIS' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'BGIS'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.BGIS_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query17 = "UPDATE CETRX.TRX_INBOX SET ACPT_REJ = ?, AMD_DT = ?, APPL_NM = ?, BENE_NM =?, CURRNT_STATUS =?, EXPIRY_DT = TO_DATE(?,'YYYY-MM-DD'), LC_AMT = ?, LC_CCY = ?, LC_NO = ?, NO_OF_AMD = ?, STATUS = ?, LC_ISSUE_DT = ?, TRX_DT = TO_DATE(?,'YYYY-MM-DD'), C_AUTH_BU = ?, C_BK_GROUP_ID = 'SBI', C_CNTY_CODE = 'IN', C_CREATED_BU = ?, C_CREATED_BY = ?, C_CREA_BY = ?, C_EVENT_STATUS = ?, C_FUNC_ID = ?, C_FUNC_SHORT_NAME = ?, C_MAIN_REF = ?, C_MODULE = 'BGIS', C_NOW_EVENT = 'System Demerge', C_PRODUCT_ID = ?, C_PRODUCT_NAME = ?, C_REFUSE_REASON = ?, C_TRX_REF = ?, C_TRX_STATUS = ?, C_UNIT_CODE = ?, I_AUTH_TYPE = 1, I_EVENT_TIMES = ? WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'B'  AND  C_UNIT_CODE = ? ";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.BGIS_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+			} else if (tempCodeName == "IMCP") {
+				query1 = "UPDATE CETRX.IMCP_MASTER SET I_EVENT_TIMES = ?, C_FUNC_SHORT_NAME = ?, C_TRX_STATUS = 'M', C_LOCKED_FLAG = 'F', C_LOCKED_OP = ' ', C_LOCK_FUNC_ID = ' ', C_CP_UNIT_CODE = ? WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query16 = "DELETE FROM CETRX.IMCP_EVENT WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'IMCP' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'IMCP'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IMCP' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IMCP'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.IMCP_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query17 = "UPDATE CETRX.TRX_INBOX SET ACPT_REJ = ?, AMD_DT = ?, APPL_NM = ?, BENE_NM =?, CURRNT_STATUS =?, EXPIRY_DT = TO_DATE(?,'YYYY-MM-DD'), LC_AMT = ?, LC_CCY = ?, LC_NO = ?, NO_OF_AMD = ?, STATUS = ?, LC_ISSUE_DT = ?, TRX_DT = TO_DATE(?,'YYYY-MM-DD'), C_AUTH_BU = ?, C_BK_GROUP_ID = 'SBI', C_CNTY_CODE = 'IN', C_CREATED_BU = ?, C_CREATED_BY = ?, C_CREA_BY = ?, C_EVENT_STATUS = ?, C_FUNC_ID = ?, C_FUNC_SHORT_NAME = ?, C_MAIN_REF = ?, C_MODULE = 'IMCP', C_NOW_EVENT = 'System Demerge', C_PRODUCT_ID = ?, C_PRODUCT_NAME = ?, C_REFUSE_REASON = ?, C_TRX_REF = ?, C_TRX_STATUS = ?, C_UNIT_CODE = ?, I_AUTH_TYPE = 1, I_EVENT_TIMES = ? WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'B'  AND  C_UNIT_CODE = ? ";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.IMCP_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+			} else {
+				query1 = "UPDATE CETRX.IMIS_MASTER SET I_EVENT_TIMES = ?, C_FUNC_SHORT_NAME = ?, C_TRX_STATUS = 'M', C_LOCKED_FLAG = 'F', C_LOCKED_OP = ' ', C_LOCK_FUNC_ID = ' ', C_CP_UNIT_CODE = ? WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query16 = "DELETE FROM CETRX.IMIS_EVENT WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'IMIS' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'IMIS'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IMIS' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IMIS'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.IMIS_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query17 = "UPDATE CETRX.TRX_INBOX SET ACPT_REJ = ?, AMD_DT = ?, APPL_NM = ?, BENE_NM =?, CURRNT_STATUS =?, EXPIRY_DT = TO_DATE(?,'YYYY-MM-DD'), LC_AMT = ?, LC_CCY = ?, LC_NO = ?, NO_OF_AMD = ?, STATUS = ?, LC_ISSUE_DT = ?, TRX_DT = TO_DATE(?,'YYYY-MM-DD'), C_AUTH_BU = ?, C_BK_GROUP_ID = 'SBI', C_CNTY_CODE = 'IN', C_CREATED_BU = ?, C_CREATED_BY = ?, C_CREA_BY = ?, C_EVENT_STATUS = ?, C_FUNC_ID = ?, C_FUNC_SHORT_NAME = ?, C_MAIN_REF = ?, C_MODULE = 'IMIS', C_NOW_EVENT = 'System Demerge', C_PRODUCT_ID = ?, C_PRODUCT_NAME = ?, C_REFUSE_REASON = ?, C_TRX_REF = ?, C_TRX_STATUS = ?, C_UNIT_CODE = ?, I_AUTH_TYPE = 1, I_EVENT_TIMES = ? WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'IMIS'  AND  C_UNIT_CODE = ? ";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.IMIS_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+			}
+
+			CELogSTDExec.info("deleteLCValuesAmend starting ");
+			pst = conn.prepareStatement(query1);
+			pst.setString(1, NEW_I_EVENT_TIMES);
+			pst.setString(2, C_FUNC_SHORT_NAME);
+			pst.setString(3, c_LOCKED_BU);
+			pst.setString(4, c_UNIT_CODE);
+			pst.setString(5, c_MAIN_REF);
+			pst.setString(6, I_EVENT_TIMES);
+			int count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Update-1: " + count);
+			pst = conn.prepareStatement(query16);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-16: " + count);
+			pst = conn.prepareStatement(query2);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-2: " + count);
+			pst = conn.prepareStatement(query3);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-3: " + count);
+			pst = conn.prepareStatement(query4);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-4: " + count);
+			pst = conn.prepareStatement(query5);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-5: " + count);
+			pst = conn.prepareStatement(query6);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-6: " + count);
+			pst = conn.prepareStatement(query7);
+			pst.setString(1, c_MAIN_REF);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-7: " + count);
+			pst = conn.prepareStatement(query8);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-8: " + count);
+			pst = conn.prepareStatement(query17);
+			pst.setString(1, amendVersionBean.getACPT_REJ());
+			pst.setString(2, amendVersionBean.getAMD_DT());
+			pst.setString(3, amendVersionBean.getAPPL_NM());
+			pst.setString(4, amendVersionBean.getBENE_NM_ADD());
+			pst.setString(5, amendVersionBean.getCURRNT_STATUS());
+			pst.setString(6, dateStringSQL(amendVersionBean.getEXPIRY_DT()));
+			pst.setString(7, amendVersionBean.getLC_AMT());
+			pst.setString(8, amendVersionBean.getLC_CCY());
+			pst.setString(9, amendVersionBean.getLC_NO());
+			pst.setString(10, amendVersionBean.getNO_OF_AMD());
+			pst.setString(11, amendVersionBean.getSTATUS());
+			pst.setString(12, amendVersionBean.getLC_ISSUE_DT());
+			pst.setString(13, dateStringSQL(amendVersionBean.getTRX_DT()));
+			pst.setString(14, C_AUTH_BU);
+			pst.setString(15, C_CREA_BY);
+			pst.setString(16, c_UNIT_CODE);
+			pst.setString(17, C_CREA_BY);
+			pst.setString(18, C_EVENT_STATUS);
+			pst.setString(19, C_FUNC_ID);
+			pst.setString(20, C_FUNC_SHORT_NAME);
+			pst.setString(21, amendVersionBean.getC_MAIN_REF());
+			pst.setString(22, C_PRODUCT_ID);
+			pst.setString(23, C_PRODUCT_NAME);
+			pst.setString(24, amendVersionBean.getC_REFUSE_REASON());
+			pst.setString(25, C_TRX_REF);
+			pst.setString(26, amendVersionBean.getC_TRX_STATUS());
+			pst.setString(27, C_UNIT_CODE);
+			pst.setString(28, NEW_I_EVENT_TIMES);
+			pst.setString(29, c_MAIN_REF);
+			pst.setString(30, c_UNIT_CODE);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Updtae-17: " + count);
+			pst = conn.prepareStatement(query10);
+			pst.setString(1, C_TRX_ID);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-10: " + count);
+			pst = conn.prepareStatement(query11);
+			pst.setString(1, C_TRX_ID);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-11: " + count);
+			pst = conn.prepareStatement(query12);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-12: " + count);
+			pst = conn.prepareStatement(query13);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-13: " + count);
+			pst = conn.prepareStatement(query14);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-14: " + count);
+			pst = conn.prepareStatement(query15);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-15: " + count);
+			message = "Success";
+		} catch (Exception var48) {
+			var48.printStackTrace();
+			message = "There was a problem submitting your request.<BR/> Please contact the product support team.";
+			System.out.println(var48);
+		} finally {
+			try {
+				if (pst != null) {
+					pst.close();
+				}
+			} catch (Exception var47) {
+				var47.printStackTrace();
+			}
+
+		}
+
+		return message;
+	}
+
+	private String updateLock_T(String c_UNIT_CODE, String c_MAIN_REF, Connection conn, String c_LOCKED_OP,
+			String c_LOCKED_BU, String tempCodeName) throws Exception {
+		String query = "";
+		if (tempCodeName == "INIS") {
+			query = "UPDATE CETRX.INIS_MASTER SET C_LOCKED_FLAG = 'T',C_LOCKED_OP = '" + c_LOCKED_OP
+					+ "',T_LOCKED_TIME = TO_DATE(sysdate,'YYYY-MM-DD HH24:MI:SS'),C_LOCK_FUNC_ID = 'F05030701043',"
+					+ "C_LOCKED_BU = '" + c_LOCKED_BU + "' WHERE C_MAIN_REF = '" + c_MAIN_REF + "' AND C_UNIT_CODE = '"
+					+ c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'F'";
+		} else if (tempCodeName == "BGIS") {
+			query = "UPDATE CETRX.BGIS_MASTER SET C_LOCKED_FLAG = 'T',C_LOCKED_OP = '" + c_LOCKED_OP
+					+ "',T_LOCKED_TIME = TO_DATE(sysdate,'YYYY-MM-DD HH24:MI:SS'),C_LOCK_FUNC_ID = 'F05030701028',"
+					+ "C_LOCKED_BU = '" + c_LOCKED_BU + "' WHERE C_MAIN_REF = '" + c_MAIN_REF + "' AND C_UNIT_CODE = '"
+					+ c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'F'";
+		} else if ("BGIF".equalsIgnoreCase(tempCodeName)) {
+			query = "UPDATE CETRX.BGIS_MASTER SET C_LOCKED_FLAG = 'T',C_LOCKED_OP = '" + c_LOCKED_OP
+					+ "',T_LOCKED_TIME = TO_DATE(sysdate,'YYYY-MM-DD HH24:MI:SS'),C_LOCK_FUNC_ID = 'SDpSXbrM1HEM',"
+					+ "C_LOCKED_BU = '" + c_LOCKED_BU + "' WHERE C_MAIN_REF = '" + c_MAIN_REF + "' AND C_UNIT_CODE = '"
+					+ c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'F'";
+		} else if ("FWCO".equalsIgnoreCase(tempCodeName)) {
+			query = "UPDATE CETRX.FWCO_MASTER SET C_LOCKED_FLAG = 'T',C_LOCKED_OP = '" + c_LOCKED_OP
+					+ "',T_LOCKED_TIME = TO_DATE(sysdate,'YYYY-MM-DD HH24:MI:SS'),C_LOCK_FUNC_ID = 'SDpSXbrM1HEM',"
+					+ "C_LOCKED_BU = '" + c_LOCKED_BU + "' WHERE C_MAIN_REF = '" + c_MAIN_REF + "' AND C_UNIT_CODE = '"
+					+ c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'F'";
+		} else if ("IWGT".equalsIgnoreCase(tempCodeName)) {
+			query = "UPDATE CETRX.IWGT_MASTER SET C_LOCKED_FLAG = 'T',C_LOCKED_OP = '" + c_LOCKED_OP
+					+ "',T_LOCKED_TIME = TO_DATE(sysdate,'YYYY-MM-DD HH24:MI:SS'),C_LOCK_FUNC_ID = 'kWJWHi9kqEOV',"
+					+ "C_LOCKED_BU = '" + c_LOCKED_BU + "' WHERE C_MAIN_REF = '" + c_MAIN_REF + "' AND C_UNIT_CODE = '"
+					+ c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'F'";
+		} else if (tempCodeName == "IMCP") {
+			query = "UPDATE CETRX.IMCP_MASTER SET C_LOCKED_FLAG = 'T',C_LOCKED_OP = '" + c_LOCKED_OP
+					+ "',T_LOCKED_TIME = TO_DATE(sysdate,'YYYY-MM-DD HH24:MI:SS'),C_LOCK_FUNC_ID = 'F05030701187',"
+					+ "C_LOCKED_BU = '" + c_LOCKED_BU + "' WHERE C_MAIN_REF = '" + c_MAIN_REF + "' AND C_UNIT_CODE = '"
+					+ c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'F'";
+		} else {
+			query = "UPDATE CETRX.IMIS_MASTER SET C_LOCKED_FLAG = 'T',C_LOCKED_OP = '" + c_LOCKED_OP
+					+ "',T_LOCKED_TIME = TO_DATE(sysdate,'YYYY-MM-DD HH24:MI:SS'),C_LOCK_FUNC_ID = 'F05030700984',"
+					+ "C_LOCKED_BU = '" + c_LOCKED_BU + "' WHERE C_MAIN_REF = '" + c_MAIN_REF + "' AND C_UNIT_CODE = '"
+					+ c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'F'";
+		}
+
+		CELogSTDExec.info("query>>>" + query);
+		PreparedStatement pst = null;
+		int count1 = 0;
+		String message = "";
+
+		try {
+			pst = conn.prepareStatement(query);
+			int count = pst.executeUpdate();
+			CELogSTDExec.info("before updateLock_F count..." + count);
+			if (count > 0) {
+				count1 = this.updateLock_F(c_UNIT_CODE, c_MAIN_REF, conn, c_LOCKED_BU, c_LOCKED_OP, tempCodeName);
+			} else {
+				String userName = this.getUserName(c_UNIT_CODE, c_MAIN_REF, conn, c_LOCKED_OP, c_LOCKED_BU);
+				message = "There was a problem submitting your request.<BR/> [100094]The record with main reference:"
+						+ c_MAIN_REF + " is locked by user: [" + userName
+						+ "]. Please contact the product support team.";
+			}
+
+			CELogSTDExec.info("after updateLock_F count..." + count + "\n" + "count1......" + count1);
+			if (count <= 0 || count1 > 0) {
+				CELogSTDExec.info("inside count and count1..");
+			}
+
+			CELogSTDExec.info("Before------------------ a problem submitting your.");
+		} catch (Exception var21) {
+			CELogSTDExec.info("In exception block------------------ a problem submitting your.");
+			var21.printStackTrace();
+			message = "There was a problem submitting your request.<BR/> Please contact the product support team.";
+		} finally {
+			try {
+				if (pst != null) {
+					pst.close();
+				}
+			} catch (Exception var20) {
+				var20.printStackTrace();
+			}
+
+		}
+
+		CELogSTDExec.info("message.." + message);
+		return message;
+	}
+
+	private String deleteLCValuesIssue(Map<String, String> lcValues, String c_UNIT_CODE, String c_MAIN_REF,
+			Connection conn, String c_LOCKED_OP, String c_LOCKED_BU, String tempCodeName) throws Exception {
+		CELogSTDExec.info("Inside deleteLCValuesIssue ");
+		String message = "";
+		PreparedStatement pst = null;
+		String I_EVENT_TIMES = (String) lcValues.get("I_EVENT_TIMES");
+		String C_TRX_ID = (String) lcValues.get("C_TRX_ID");
+		CELogSTDExec.info("Inside deleteLCValuesIssue tempCodeName>>>" + tempCodeName);
+
+		try {
+			String query1 = "";
+			String query2 = "";
+			String query3 = "";
+			String query4 = "";
+			String query5 = "";
+			String query6 = "";
+			String query7 = "";
+			String query8 = "";
+			String query9 = "";
+			String query10 = "";
+			String query11 = "";
+			String query12 = "";
+			String query13 = "";
+			String query14 = "";
+			String query15 = "";
+			if (tempCodeName == "INIS") {
+				query1 = "DELETE FROM CETRX.INIS_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_MAIN_REF ='"
+						+ c_MAIN_REF + "' ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'INIS' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'INIS'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'INIS' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'INIS'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.INIS_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query9 = " DELETE FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'INIS'  AND  C_UNIT_CODE = ?";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.INIS_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+			} else if (tempCodeName == "BGIS") {
+				query1 = "DELETE FROM CETRX.BGIS_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_MAIN_REF ='"
+						+ c_MAIN_REF + "' ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'BGIS' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'BGIS'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.BGIS_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query9 = " DELETE FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'BGIS'  AND  C_UNIT_CODE = ?";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.BGIS_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+			} else if ("BGIF".equalsIgnoreCase(tempCodeName)) {
+				query1 = "DELETE FROM CETRX.BGIS_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_MAIN_REF ='"
+						+ c_MAIN_REF + "' ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'BGIS' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'BGIS'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.BGIS_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query9 = " DELETE FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'BGIS'  AND  C_UNIT_CODE = ?";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.BGIS_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+
+			} else if ("IWGT".equalsIgnoreCase(tempCodeName)) {
+				query1 = "DELETE FROM CETRX.IWGT_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_MAIN_REF ='"
+						+ c_MAIN_REF + "' ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'IWGT' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'IWGT'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IWGT' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IWGT'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.IWGT_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query9 = " DELETE FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'IWGT'  AND  C_UNIT_CODE = ?";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.IWGT_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+
+			} else if ("FWCO".equalsIgnoreCase(tempCodeName)) {
+				query1 = "DELETE FROM CETRX.FWCO_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_MAIN_REF ='"
+						+ c_MAIN_REF + "' ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'BGIS' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'BGIS'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.FWCO_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query9 = " DELETE FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'BGIS'  AND  C_UNIT_CODE = ?";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.FWCO_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+			} else if (tempCodeName == "IMCP") {
+				query1 = "DELETE FROM CETRX.IMCP_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_MAIN_REF ='"
+						+ c_MAIN_REF + "' ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'IMCP' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'IMCP'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IMCP' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IMCP'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.IMCP_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query9 = " DELETE FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'IMCP'  AND  C_UNIT_CODE = ?";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.IMCP_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+			} else {
+				query1 = "DELETE FROM CETRX.IMIS_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_MAIN_REF ='"
+						+ c_MAIN_REF + "' ";
+				query2 = "DELETE FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_UNIT_CODE = ? AND C_MODULE = 'IMIS' AND I_EVENT_TIMES = ? ";
+				query3 = "DELETE FROM CETRX.TRX_DOCS_INDX_MGR WHERE C_MAIN_REF = ?  AND C_BK_GROUP_ID ='SBI' AND C_CNTY_CODE ='IN' AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ? AND C_MODULE = 'IMIS'";
+				query4 = "DELETE FROM CETRX.TRX_DOCS_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IMIS' ";
+				query5 = "DELETE FROM CETRX.TRX_FORM_REPORT WHERE C_MAIN_REF =?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IMIS'";
+				query6 = "DELETE FROM CETRX.LC_NOTIFICATION WHERE C_UNIT_CODE = ? AND  C_MAIN_REF = ? AND  I_EVENT_TIMES = ?";
+				query7 = "DELETE FROM CETRX.STD_TRX_REFUSED WHERE C_REF_NO = ? ";
+				query8 = "DELETE FROM CETRX.IMIS_LEDGER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query9 = " DELETE FROM CETRX.TRX_INBOX WHERE C_BK_GROUP_ID = 'SBI'  AND  C_MAIN_REF = ?  AND  C_MODULE = 'IMIS'  AND  C_UNIT_CODE = ?";
+				query10 = " DELETE FROM CETRX.TRX_AUTH_LIST WHERE C_TRX_ID = ? ";
+				query11 = "DELETE FROM CETRX.TRX_MATRIX_LIST WHERE C_TRX_ID = ?";
+				query12 = " DELETE FROM CETRX.IMIS_AUTH WHERE C_MAIN_REF = ? AND C_UNIT_CODE = ? ";
+				query13 = " DELETE FROM CETRX.TRX_IMAGES_HEADER WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query14 = "DELETE FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? ";
+				query15 = " DELETE FROM CETRX.TRX_IMAGES_TEMP WHERE C_IMG_INDX IN(SELECT C_IMG_INDX FROM CETRX.TRX_IMAGES_DTAL WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ? )";
+			}
+
+			pst = conn.prepareStatement(query1);
+			int count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-1: " + count);
+			pst = conn.prepareStatement(query2);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-2: " + count);
+			pst = conn.prepareStatement(query3);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-3: " + count);
+			pst = conn.prepareStatement(query4);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-4: " + count);
+			pst = conn.prepareStatement(query5);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-5: " + count);
+			pst = conn.prepareStatement(query6);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-6: " + count);
+			pst = conn.prepareStatement(query7);
+			pst.setString(1, c_MAIN_REF);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-7: " + count);
+			pst = conn.prepareStatement(query8);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-8: " + count);
+			pst = conn.prepareStatement(query9);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-9: " + count);
+			pst = conn.prepareStatement(query10);
+			pst.setString(1, C_TRX_ID);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-10: " + count);
+			pst = conn.prepareStatement(query11);
+			pst.setString(1, C_TRX_ID);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-11: " + count);
+			pst = conn.prepareStatement(query12);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-12: " + count);
+			pst = conn.prepareStatement(query13);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-13: " + count);
+			pst = conn.prepareStatement(query14);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-14: " + count);
+			pst = conn.prepareStatement(query15);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+			count = pst.executeUpdate();
+			if (pst != null) {
+				pst.close();
+			}
+
+			CELogSTDExec.info("Delete-15: " + count);
+			message = "Success";
+		} catch (Exception var36) {
+			var36.printStackTrace();
+			message = "There was a problem submitting your request.<BR/> Please contact the product support team.";
+		} finally {
+			try {
+				if (pst != null) {
+					pst.close();
+				}
+			} catch (Exception var35) {
+				var35.printStackTrace();
+			}
+
+		}
+
+		return message;
+	}
+
+	private Map<String, String> getLCValues(String c_UNIT_CODE, String c_MAIN_REF, Connection conn, String c_LOCKED_OP,
+			String c_LOCKED_BU, String tempCodeName) throws Exception {
+		HashMap lcValues = new HashMap();
+		PreparedStatement pst = null;
+		ResultSet rs = null;
+		String I_EVENT_TIMES = "";
+		String NEW_I_EVENT_TIMES = "0";
+		String C_TRX_ID = "";
+		String C_GAPI_MAP_NAME = "";
+		String C_MAIL_ID = "";
+		String C_FUNC_SHORT_NAME = "";
+		String C_FUNC_ID = "";
+		String C_EVENT_STATUS = "";
+		String C_CREA_BY = "";
+		String C_AUTH_BU = "";
+		String C_PRODUCT_ID = "";
+		String C_PRODUCT_NAME = "";
+		String C_TRX_REF = "";
+		String C_UNIT_CODE = "";
+		CELogSTDExec.info("Inside getLCValues tempCodeName>>>" + tempCodeName);
+
+		try {
+			String query1 = "";
+			if (tempCodeName == "INIS") {
+				query1 = " SELECT I_EVENT_TIMES FROM CETRX.INIS_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "'";
+			} else if (tempCodeName == "BGIS") {
+				query1 = " SELECT I_EVENT_TIMES FROM CETRX.BGIS_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "'";
+			} else if (tempCodeName == "BGIF") {
+				query1 = " SELECT I_EVENT_TIMES FROM CETRX.BGIS_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "'";
+			} else if (tempCodeName == "IWGT") {
+				query1 = " SELECT I_EVENT_TIMES FROM CETRX.IWGT_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "'";
+			} else if (tempCodeName == "FWCO") {
+				query1 = " SELECT I_EVENT_TIMES FROM CETRX.FWCO_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "'";
+			} else if (tempCodeName == "IMCP") {
+				query1 = " SELECT I_EVENT_TIMES FROM CETRX.IMCP_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "'";
+			} else {
+				query1 = " SELECT I_EVENT_TIMES FROM CETRX.IMIS_MASTER WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "'";
+			}
+
+			pst = conn.prepareStatement(query1);
+			rs = pst.executeQuery();
+
+			while (rs.next()) {
+				I_EVENT_TIMES = rs.getString("I_EVENT_TIMES");
+				CELogSTDExec.info("Inside getLCValues I_EVENT_TIMES is........  " + I_EVENT_TIMES);
+				if (Integer.parseInt(I_EVENT_TIMES) > 1) {
+					NEW_I_EVENT_TIMES = String.valueOf(Integer.parseInt(I_EVENT_TIMES) - 1);
+				}
+			}
+
+			if (pst != null) {
+				pst.close();
+			}
+
+			if (rs != null) {
+				rs.close();
+			}
+
+			String query2 = "";
+			if (tempCodeName == "INIS") {
+				query2 = "SELECT C_TRX_ID FROM CETRX.TRX_INBOX WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "' AND C_BK_GROUP_ID = 'SBI' AND C_MODULE = 'INIS' ";
+			} else if (tempCodeName == "BGIS") {
+				query2 = "SELECT C_TRX_ID FROM CETRX.TRX_INBOX WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "' AND C_BK_GROUP_ID = 'SBI' AND C_MODULE = 'BGIS' ";
+			} else if (tempCodeName == "BGIF") {
+				query2 = "SELECT C_TRX_ID FROM CETRX.TRX_INBOX WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "' AND C_BK_GROUP_ID = 'SBI' AND C_MODULE = 'BGIS' ";
+			} else if (tempCodeName == "IWGT") {
+				query2 = "SELECT C_TRX_ID FROM CETRX.TRX_INBOX WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "' AND C_BK_GROUP_ID = 'SBI' AND C_MODULE = 'IWGT' ";
+			} else if (tempCodeName == "FWCO") {
+				query2 = "SELECT C_TRX_ID FROM CETRX.TRX_INBOX WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "' AND C_BK_GROUP_ID = 'SBI' AND C_MODULE = 'FWCO' ";
+			} else if (tempCodeName == "IMCP") {
+				query2 = "SELECT C_TRX_ID FROM CETRX.TRX_INBOX WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "' AND C_BK_GROUP_ID = 'SBI' AND C_MODULE = 'IMCP' ";
+			} else {
+				query2 = " SELECT C_TRX_ID FROM CETRX.TRX_INBOX WHERE C_UNIT_CODE = '" + c_UNIT_CODE
+						+ "' AND C_MAIN_REF = '" + c_MAIN_REF + "' AND C_BK_GROUP_ID = 'SBI' AND C_MODULE = 'IMIS' ";
+			}
+
+			pst = conn.prepareStatement(query2);
+
+			for (rs = pst.executeQuery(); rs.next(); C_TRX_ID = rs.getString("C_TRX_ID")) {
+			}
+
+			if (pst != null) {
+				pst.close();
+			}
+
+			if (rs != null) {
+				rs.close();
+			}
+
+			String query3 = "";
+			if (tempCodeName == "INIS") {
+				query3 = " SELECT C_GAPI_MAP_NAME FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  C_MODULE = 'INIS'  AND  I_EVENT_TIMES = ? AND C_TRX_TYPE = 'T' AND ( C_EC_SENT='N' OR C_EC_SENT IS NULL )";
+			} else if (tempCodeName == "BGIS") {
+				query3 = " SELECT C_GAPI_MAP_NAME FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  C_MODULE = 'BGIS'  AND  I_EVENT_TIMES = ? AND C_TRX_TYPE = 'T' AND ( C_EC_SENT='N' OR C_EC_SENT IS NULL )";
+			} else if (tempCodeName == "BGIF") {
+				query3 = " SELECT C_GAPI_MAP_NAME FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  C_MODULE = 'BGIS'  AND  I_EVENT_TIMES = ? AND C_TRX_TYPE = 'T' AND ( C_EC_SENT='N' OR C_EC_SENT IS NULL )";
+			} else if (tempCodeName == "IWGT") {
+				query3 = " SELECT C_GAPI_MAP_NAME FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  C_MODULE = 'IWGT'  AND  I_EVENT_TIMES = ? AND C_TRX_TYPE = 'T' AND ( C_EC_SENT='N' OR C_EC_SENT IS NULL )";
+
+			} else if (tempCodeName == "FWCO") {
+				query3 = " SELECT C_GAPI_MAP_NAME FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  C_MODULE = 'FWCO'  AND  I_EVENT_TIMES = ? AND C_TRX_TYPE = 'T' AND ( C_EC_SENT='N' OR C_EC_SENT IS NULL )";
+			} else if (tempCodeName == "IMCP") {
+				query3 = " SELECT C_GAPI_MAP_NAME FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  C_MODULE = 'IMCP'  AND  I_EVENT_TIMES = ? AND C_TRX_TYPE = 'T' AND ( C_EC_SENT='N' OR C_EC_SENT IS NULL )";
+			} else {
+				query3 = " SELECT C_GAPI_MAP_NAME FROM CETRX.TRX_GAPI_HEADER WHERE C_MAIN_REF = ?  AND  C_BK_GROUP_ID = 'SBI'  AND  C_CNTY_CODE = 'IN'  AND  C_UNIT_CODE = ?  AND  C_MODULE = 'IMIS'  AND  I_EVENT_TIMES = ? AND C_TRX_TYPE = 'T' AND ( C_EC_SENT='N' OR C_EC_SENT IS NULL )";
+			}
+
+			pst = conn.prepareStatement(query3);
+			pst.setString(1, c_MAIN_REF);
+			pst.setString(2, c_UNIT_CODE);
+			pst.setString(3, I_EVENT_TIMES);
+
+			for (rs = pst.executeQuery(); rs.next(); C_GAPI_MAP_NAME = rs.getString("C_GAPI_MAP_NAME")) {
+			}
+
+			if (pst != null) {
+				pst.close();
+			}
+
+			if (rs != null) {
+				rs.close();
+			}
+
+			String query4 = "";
+			if (tempCodeName == "INIS") {
+				query4 = "SELECT C_MAIL_ID FROM CETRX.TRX_NOTIFY_EMAIL_REF_TRX WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'INIS'";
+			} else if (tempCodeName == "BGIS") {
+				query4 = "SELECT C_MAIL_ID FROM CETRX.TRX_NOTIFY_EMAIL_REF_TRX WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS'";
+			} else if (tempCodeName == "BGIF") {
+				query4 = "SELECT C_MAIL_ID FROM CETRX.TRX_NOTIFY_EMAIL_REF_TRX WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'BGIS'";
+			} else if (tempCodeName == "IWGT") {
+				query4 = "SELECT C_MAIL_ID FROM CETRX.TRX_NOTIFY_EMAIL_REF_TRX WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IWGT'";
+
+			} else if (tempCodeName == "FWCO") {
+				query4 = "SELECT C_MAIL_ID FROM CETRX.TRX_NOTIFY_EMAIL_REF_TRX WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'FWCO'";
+			} else if (tempCodeName == "IMCP") {
+				query4 = "SELECT C_MAIL_ID FROM CETRX.TRX_NOTIFY_EMAIL_REF_TRX WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IMCP'";
+			} else {
+				query4 = "SELECT C_MAIL_ID FROM CETRX.TRX_NOTIFY_EMAIL_REF_TRX WHERE C_UNIT_CODE = ?  AND  C_MAIN_REF = ?  AND  I_EVENT_TIMES = ?  AND  C_MODULE = 'IMIS'";
+			}
+
+			pst = conn.prepareStatement(query4);
+			pst.setString(1, c_UNIT_CODE);
+			pst.setString(2, c_MAIN_REF);
+			pst.setString(3, I_EVENT_TIMES);
+
+			for (rs = pst.executeQuery(); rs.next(); C_MAIL_ID = rs.getString("C_MAIL_ID")) {
+			}
+
+			if (pst != null) {
+				pst.close();
+			}
+
+			if (rs != null) {
+				rs.close();
+			}
+
+			String query5 = "";
+			if (tempCodeName == "INIS") {
+				query5 = " SELECT C_FUNC_SHORT_NAME,C_FUNC_ID,C_EVENT_STATUS,C_CREA_BY,C_AUTH_BU,C_PRODUCT_ID,C_PRODUCT_NAME,C_TRX_REF,C_UNIT_CODE FROM CETRX.INIS_LEDGER WHERE I_EVENT_TIMES = ? AND C_UNIT_CODE = ?  AND  C_MAIN_REF = ? ";
+			} else if (tempCodeName == "BGIS") {
+				query5 = " SELECT C_FUNC_SHORT_NAME,C_FUNC_ID,C_EVENT_STATUS,C_CREA_BY,C_AUTH_BU,C_PRODUCT_ID,C_PRODUCT_NAME,C_TRX_REF,C_UNIT_CODE FROM CETRX.BGIS_LEDGER WHERE I_EVENT_TIMES = ? AND C_UNIT_CODE = ?  AND  C_MAIN_REF = ? ";
+			} else if (tempCodeName == "IWGT") {
+				query5 = " SELECT C_FUNC_SHORT_NAME,C_FUNC_ID,C_EVENT_STATUS,C_CREA_BY,C_AUTH_BU,C_PRODUCT_ID,C_PRODUCT_NAME,C_TRX_REF,C_UNIT_CODE FROM CETRX.IWGT_LEDGER WHERE I_EVENT_TIMES = ? AND C_UNIT_CODE = ?  AND  C_MAIN_REF = ? ";
+
+			} else if (tempCodeName == "BGIF") {
+				query5 = " SELECT C_FUNC_SHORT_NAME,C_FUNC_ID,C_EVENT_STATUS,C_CREA_BY,C_AUTH_BU,C_PRODUCT_ID,C_PRODUCT_NAME,C_TRX_REF,C_UNIT_CODE FROM CETRX.BGIS_LEDGER WHERE I_EVENT_TIMES = ? AND C_UNIT_CODE = ?  AND  C_MAIN_REF = ? ";
+			} else if (tempCodeName == "FWCO") {
+				query5 = " SELECT C_FUNC_SHORT_NAME,C_FUNC_ID,C_EVENT_STATUS,C_CREA_BY,C_AUTH_BU,C_PRODUCT_ID,C_PRODUCT_NAME,C_TRX_REF,C_UNIT_CODE FROM CETRX.FWCO_LEDGER WHERE I_EVENT_TIMES = ? AND C_UNIT_CODE = ?  AND  C_MAIN_REF = ? ";
+			} else if (tempCodeName == "IMCP") {
+				query5 = " SELECT C_FUNC_SHORT_NAME,C_FUNC_ID,C_EVENT_STATUS,C_CREA_BY,C_AUTH_BU,C_PRODUCT_ID,C_PRODUCT_NAME,C_TRX_REF,C_UNIT_CODE FROM CETRX.IMCP_LEDGER WHERE I_EVENT_TIMES = ? AND C_UNIT_CODE = ?  AND  C_MAIN_REF = ? ";
+			} else {
+				query5 = " SELECT C_FUNC_SHORT_NAME,C_FUNC_ID,C_EVENT_STATUS,C_CREA_BY,C_AUTH_BU,C_PRODUCT_ID,C_PRODUCT_NAME,C_TRX_REF,C_UNIT_CODE FROM CETRX.IMIS_LEDGER WHERE I_EVENT_TIMES = ? AND C_UNIT_CODE = ?  AND  C_MAIN_REF = ? ";
+			}
+
+			pst = conn.prepareStatement(query5);
+			pst.setString(1, NEW_I_EVENT_TIMES);
+			pst.setString(2, c_UNIT_CODE);
+			pst.setString(3, c_MAIN_REF);
+
+			for (rs = pst.executeQuery(); rs.next(); C_UNIT_CODE = rs.getString("C_UNIT_CODE")) {
+				C_FUNC_SHORT_NAME = rs.getString("C_FUNC_SHORT_NAME");
+				C_FUNC_ID = rs.getString("C_FUNC_ID");
+				C_EVENT_STATUS = rs.getString("C_EVENT_STATUS");
+				C_CREA_BY = rs.getString("C_CREA_BY");
+				C_AUTH_BU = rs.getString("C_AUTH_BU");
+				C_PRODUCT_ID = rs.getString("C_PRODUCT_ID");
+				C_PRODUCT_NAME = rs.getString("C_PRODUCT_NAME");
+				C_TRX_REF = rs.getString("C_TRX_REF");
+			}
+
+			if (pst != null) {
+				pst.close();
+			}
+
+			if (rs != null) {
+				rs.close();
+			}
+
+			lcValues.put("I_EVENT_TIMES", I_EVENT_TIMES);
+			lcValues.put("C_TRX_ID", C_TRX_ID);
+			lcValues.put("C_GAPI_MAP_NAME", C_GAPI_MAP_NAME);
+			lcValues.put("C_MAIL_ID", C_MAIL_ID);
+			lcValues.put("NEW_I_EVENT_TIMES", NEW_I_EVENT_TIMES);
+			lcValues.put("C_FUNC_SHORT_NAME", C_FUNC_SHORT_NAME);
+			lcValues.put("C_FUNC_ID", C_FUNC_ID);
+			lcValues.put("C_EVENT_STATUS", C_EVENT_STATUS);
+			lcValues.put("C_CREA_BY", C_CREA_BY);
+			lcValues.put("C_AUTH_BU", C_AUTH_BU);
+			lcValues.put("C_PRODUCT_ID", C_PRODUCT_ID);
+			lcValues.put("C_PRODUCT_NAME", C_PRODUCT_NAME);
+			lcValues.put("C_TRX_REF", C_TRX_REF);
+			lcValues.put("C_UNIT_CODE", C_UNIT_CODE);
+		} catch (Exception var37) {
+			var37.printStackTrace();
+		} finally {
+			try {
+				if (pst != null) {
+					pst.close();
+				}
+
+				if (rs != null) {
+					rs.close();
+				}
+			} catch (Exception var36) {
+				var36.printStackTrace();
+			}
+
+		}
+
+		CELogSTDExec.info("Inside getLCValues Final Result is........" + lcValues);
+		return lcValues;
+	}
+
+	public String getAmendData(String i_event, String refNumber, Connection conn, String tempCodeName) {
+		Statement pstmt = null;
+		ResultSet rs = null;
+		String EncryptValue = "";
+		CELogSTDExec.info("Inside getAmendData tempCodeName>>>" + tempCodeName);
+
+		try {
+			pstmt = conn.createStatement();
+			String query = "";
+			if (tempCodeName == "INIS") {
+				query = "select C_TEMP_DATA from inis_ledger where c_main_ref='" + refNumber + "' and i_event_times="
+						+ "'" + i_event + "'";
+			} else if (tempCodeName == "BGIS") {
+				query = "select C_TEMP_DATA from bgis_ledger where c_main_ref='" + refNumber + "' and i_event_times="
+						+ "'" + i_event + "'";
+			} else if (tempCodeName == "BGIF") {
+				query = "select C_TEMP_DATA from bgis_ledger where c_main_ref='" + refNumber + "' and i_event_times="
+						+ "'" + i_event + "'";
+			} else if (tempCodeName == "IWGT") {
+				query = "select C_TEMP_DATA from iwgt_ledger where c_main_ref='" + refNumber + "' and i_event_times="
+						+ "'" + i_event + "'";
+
+			} else if (tempCodeName == "FWCO") {
+				query = "select C_TEMP_DATA from bgis_ledger where c_main_ref='" + refNumber + "' and i_event_times="
+						+ "'" + i_event + "'";
+
+			} else if (tempCodeName == "IMCP") {
+				query = "select C_TEMP_DATA from imcp_ledger where c_main_ref='" + refNumber + "' and i_event_times="
+						+ "'" + i_event + "'";
+			} else {
+				query = "select C_TEMP_DATA from imis_ledger where c_main_ref='" + refNumber + "' and i_event_times="
+						+ "'" + i_event + "'";
+			}
+
+			for (rs = pstmt.executeQuery(query); rs.next(); EncryptValue = rs.getString("C_TEMP_DATA")) {
+			}
+		} catch (Exception var17) {
+			var17.printStackTrace();
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+
+				if (rs != null) {
+					rs.close();
+				}
+			} catch (Exception var16) {
+				var16.printStackTrace();
+			}
+
+		}
+
+		return EncryptValue;
+	}
+
+	private String getUserName(String c_UNIT_CODE, String c_MAIN_REF, Connection conn, String c_LOCKED_OP,
+			String c_LOCKED_BU) throws Exception {
+		PreparedStatement pst = null;
+		ResultSet rs = null;
+		String userName = "";
+
+		try {
+			String query = "SELECT C_USER_DESC from CEUSER.sec_user_info where C_BK_GROUP_ID = 'SBI' and C_UNIT_CODE=? and C_USER_ID=?";
+			pst = conn.prepareStatement(query);
+			pst.setString(1, c_LOCKED_BU);
+			pst.setString(2, c_LOCKED_OP);
+
+			for (rs = pst.executeQuery(); rs.next(); userName = rs.getString("C_USER_DESC")) {
+			}
+		} catch (Exception var18) {
+			var18.printStackTrace();
+		} finally {
+			try {
+				if (pst != null) {
+					pst.close();
+				}
+
+				if (rs != null) {
+					rs.close();
+				}
+			} catch (Exception var17) {
+				var17.printStackTrace();
+			}
+
+		}
+
+		CELogSTDExec.info("getUserName...." + userName);
+		return userName;
+	}
+
+	private int updateLock_F(String c_UNIT_CODE, String c_MAIN_REF, Connection conn, String c_LOCKED_BU,
+			String c_LOCKED_OP, String tempCodeName) throws Exception {
+		CELogSTDExec.info("Inside updateLock_F tempCodeName>>>" + tempCodeName);
+		String query = "";
+		if (tempCodeName == "INIS") {
+			query = "UPDATE CETRX.INIS_MASTER SET C_LOCKED_FLAG = 'F' WHERE C_MAIN_REF = '" + c_MAIN_REF
+					+ "' AND C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'T' ";
+		} else if (tempCodeName == "IMCP") {
+			query = "UPDATE CETRX.IMCP_MASTER SET C_LOCKED_FLAG = 'F' WHERE C_MAIN_REF = '" + c_MAIN_REF
+					+ "' AND C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'T' ";
+		} else if (tempCodeName == "BGIS") {
+			query = "UPDATE CETRX.BGIS_MASTER SET C_LOCKED_FLAG = 'F' WHERE C_MAIN_REF = '" + c_MAIN_REF
+					+ "' AND C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'T' ";
+		} else if (tempCodeName == "FWCO") {
+			query = "UPDATE CETRX.FWCO_MASTER SET C_LOCKED_FLAG = 'F' WHERE C_MAIN_REF = '" + c_MAIN_REF
+					+ "' AND C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'T' ";
+		} else if (tempCodeName == "BGIF") {
+			query = "UPDATE CETRX.BGIS_MASTER SET C_LOCKED_FLAG = 'F' WHERE C_MAIN_REF = '" + c_MAIN_REF
+					+ "' AND C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'T' ";
+		} else if (tempCodeName == "IWGT") {
+			query = "UPDATE CETRX.IWGT_MASTER SET C_LOCKED_FLAG = 'F' WHERE C_MAIN_REF = '" + c_MAIN_REF
+					+ "' AND C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'T' ";
+		} else {
+			query = "UPDATE CETRX.IMIS_MASTER SET C_LOCKED_FLAG = 'F' WHERE C_MAIN_REF = '" + c_MAIN_REF
+					+ "' AND C_UNIT_CODE = '" + c_UNIT_CODE + "' AND C_LOCKED_FLAG = 'T' ";
+		}
+
+		CELogSTDExec.info("Inside updateLock_F Query" + query);
+		PreparedStatement pst = null;
+		int count = 0;
+
+		try {
+			pst = conn.prepareStatement(query);
+			count = pst.executeUpdate();
+		} catch (Exception var19) {
+			var19.printStackTrace();
+		} finally {
+			try {
+				if (pst != null) {
+					pst.close();
+				}
+			} catch (Exception var18) {
+				var18.printStackTrace();
+			}
+
+		}
+
+		CELogSTDExec.info("Inside updateLock_F count>>>" + count);
+		return count;
+	}
+}
