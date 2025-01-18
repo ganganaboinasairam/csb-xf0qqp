@@ -1,94 +1,79 @@
+INIS=SELECT T_CONTENT_ID, T_CONTENT_NAME, T_FUNC_ID, T_TEMPLATE_TYPE, T_CREA_TIME, C_CREATED_BY, C_CREATED_BU, T_CONTENT, C_UNIT_CODE FROM CETRX.ECD_TEMPLATE WHERE C_CREATED_BU = ? AND (C_CREATED_BY = ? OR LOWER(T_TEMPLATE_TYPE) = 'public') AND T_FUNC_ID = 'F05030701043' AND C_UNIT_CODE = ? ORDER BY T_CONTENT_ID DESC
+BGIS=SELECT T_CONTENT_ID, T_CONTENT_NAME, T_FUNC_ID, T_TEMPLATE_TYPE, T_CREA_TIME, C_CREATED_BY, C_CREATED_BU, T_CONTENT, C_UNIT_CODE FROM CETRX.ECD_TEMPLATE WHERE C_CREATED_BU = ? AND (C_CREATED_BY = ? OR LOWER(T_TEMPLATE_TYPE) = 'public') AND T_FUNC_ID = 'F05030701028' AND C_UNIT_CODE = ? ORDER BY T_CONTENT_ID DESC
+IMCP=SELECT T_CONTENT_ID, T_CONTENT_NAME, T_FUNC_ID, T_TEMPLATE_TYPE, T_CREA_TIME, C_CREATED_BY, C_CREATED_BU, T_CONTENT, C_UNIT_CODE FROM CETRX.ECD_TEMPLATE WHERE C_CREATED_BU = ? AND (C_CREATED_BY = ? OR LOWER(T_TEMPLATE_TYPE) = 'public') AND (T_FUNC_ID = 'F05030701187' OR T_FUNC_ID = 'F05030701328') AND C_UNIT_CODE = ? ORDER BY T_CONTENT_ID DESC
+FWCO=SELECT T_CONTENT_ID, T_CONTENT_NAME, T_FUNC_ID, T_TEMPLATE_TYPE, T_CREA_TIME, C_CREATED_BY, C_CREATED_BU, T_CONTENT, C_UNIT_CODE FROM CETRX.ECD_TEMPLATE WHERE C_CREATED_BU = ? AND (C_CREATED_BY = ? OR LOWER(T_TEMPLATE_TYPE) = 'public') AND T_FUNC_ID = 'F05030701664' AND C_UNIT_CODE = ? ORDER BY T_CONTENT_ID DESC
+BGIF=SELECT T_CONTENT_ID, T_CONTENT_NAME, T_FUNC_ID, T_TEMPLATE_TYPE, T_CREA_TIME, C_CREATED_BY, C_CREATED_BU, T_CONTENT, C_UNIT_CODE FROM CETRX.ECD_TEMPLATE WHERE C_CREATED_BU = ? AND (C_CREATED_BY = ? OR LOWER(T_TEMPLATE_TYPE) = 'public') AND T_FUNC_ID = 'SDpSXbrM1HEM' AND C_UNIT_CODE = ? ORDER BY T_CONTENT_ID DESC
+IWGT=SELECT T_CONTENT_ID, T_CONTENT_NAME, T_FUNC_ID, T_TEMPLATE_TYPE, T_CREA_TIME, C_CREATED_BY, C_CREATED_BU, T_CONTENT, C_UNIT_CODE FROM CETRX.ECD_TEMPLATE WHERE C_CREATED_BU = ? AND (C_CREATED_BY = ? OR LOWER(T_TEMPLATE_TYPE) = 'public') AND T_FUNC_ID = 'kWJWHi9kqEOV' AND C_UNIT_CODE = ? ORDER BY T_CONTENT_ID DESC
+DEFAULT=SELECT T_CONTENT_ID, T_CONTENT_NAME, T_FUNC_ID, T_TEMPLATE_TYPE, T_CREA_TIME, C_CREATED_BY, C_CREATED_BU, T_CONTENT, C_UNIT_CODE FROM CETRX.ECD_TEMPLATE WHERE C_CREATED_BU = ? AND (C_CREATED_BY = ? OR LOWER(T_TEMPLATE_TYPE) = 'public') AND T_FUNC_ID = 'F05030700984' AND C_UNIT_CODE = ? ORDER BY T_CONTENT_ID DESC
+
+
+
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
+
+public class QueryLoader {
+    private static Properties queries;
+
+    static {
+        queries = new Properties();
+        try (FileInputStream fis = new FileInputStream("path/to/queries.properties")) {
+            queries.load(fis);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to load query properties file.");
+        }
+    }
+
+    public static String getQuery(String key) {
+        return queries.getProperty(key, queries.getProperty("DEFAULT"));
+    }
+}
+
+
+
+
 public List<TemplateBean> getData(String createdBu, String createdBy, String unitCode, String tempCodeName) {
-		Connection conn = null;
-		ResultSet rs = null;
-		PreparedStatement pst = null;
-		ArrayList amendlist = new ArrayList();
-		String query = "";
-		if (tempCodeName == "INIS") {
-			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'F05030701043'  AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
-		} else if (tempCodeName == "BGIS") {
-			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'F05030701028'  AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
-		} else if (tempCodeName == "IMCP") {
-			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'F05030701187' OR T_FUNC_ID='F05030701328' AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
-		} else if (tempCodeName == "FWCO") {
-			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'F05030701664'  AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
-		} else if ("BGIF".equalsIgnoreCase(tempCodeName)) {
-			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'SDpSXbrM1HEM'  AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
-		} else if ("IWGT".equalsIgnoreCase(tempCodeName)) {
-			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU = ?  AND( C_CREATED_BY = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID = 'kWJWHi9kqEOV'  AND C_UNIT_CODE = ?  ORDER BY T_CONTENT_ID DESC";
+    List<TemplateBean> amendlist = new ArrayList<>();
+    String query = QueryLoader.getQuery(tempCodeName);
 
-		} else {
-			query = "SELECT T_CONTENT_ID,   T_CONTENT_NAME,   T_FUNC_ID,   T_TEMPLATE_TYPE,   T_CREA_TIME,   C_CREATED_BY,   C_CREATED_BU,   T_CONTENT,   C_UNIT_CODE  FROM CETRX.ECD_TEMPLATE  WHERE C_CREATED_BU        = ?  AND( C_CREATED_BY         = ?  OR LOWER(T_TEMPLATE_TYPE) = 'public' )  AND T_FUNC_ID             = 'F05030700984'  AND C_UNIT_CODE           = ?  ORDER BY T_CONTENT_ID DESC";
-		}
+    try (Connection conn = DSManager.getConnection("CET");
+         PreparedStatement pst = conn.prepareStatement(query)) {
 
-		CELogSTDExec.info("FetchTemplate tempCodeName.............." + tempCodeName);
-		CELogSTDExec.info("Fetch Template Query" + query);
+        pst.setString(1, createdBu);
+        pst.setString(2, createdBy);
+        pst.setString(3, unitCode);
 
-		try {
-			if (conn == null || conn.isClosed()) {
-				conn = DSManager.getConnection("CET");
-			}
+        try (ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                TemplateBean amdBean = new TemplateBean();
+                amdBean.setT_CONTENT_ID(rs.getString("T_CONTENT_ID"));
+                amdBean.setT_CONTENT_NAME(rs.getString("T_CONTENT_NAME"));
+                amdBean.setT_TEMPLATE_TYPE(capitalFirstLetter(rs.getString("T_TEMPLATE_TYPE")));
+                amdBean.setT_CREA_TIME(rs.getString("T_CREA_TIME"));
+                amdBean.setT_FUNC_ID(rs.getString("T_FUNC_ID"));
+                amdBean.setC_CREATED_BY(rs.getString("C_CREATED_BY"));
+                amdBean.setC_CREATED_BU(rs.getString("C_CREATED_BU"));
+                amdBean.setC_UNIT_CODE(rs.getString("C_UNIT_CODE"));
+                amdBean.setT_CONTENT(rs.getString("T_CONTENT"));
 
-			pst = conn.prepareStatement(query);
-			pst.setString(1, createdBu);
-			pst.setString(2, createdBy);
-			pst.setString(3, unitCode);
+                if (!"BGIF".equalsIgnoreCase(tempCodeName) && !"BGIS".equalsIgnoreCase(tempCodeName)) {
+                    String beneficiaryName = "IMCP".equalsIgnoreCase(tempCodeName) ?
+                            getBeneficiaryName1(rs.getString("T_CONTENT")) :
+                            getBeneficiaryName(rs.getString("T_CONTENT"));
+                    amdBean.setBENE_NM(beneficiaryName);
+                } else {
+                    amdBean.setBENE_NM(getBGBeneficiaryName(rs.getString("T_CONTENT")));
+                }
 
-			TemplateBean amdBean;
-			for (rs = pst.executeQuery(); rs.next(); amendlist.add(amdBean)) {
-				amdBean = new TemplateBean();
-				amdBean.setT_CONTENT_ID(rs.getString("T_CONTENT_ID"));
-				amdBean.setT_CONTENT_NAME(rs.getString("T_CONTENT_NAME"));
-				String templateType = capitalFirstLetter(rs.getString("T_TEMPLATE_TYPE"));
-				amdBean.setT_TEMPLATE_TYPE(templateType);
-				amdBean.setT_CREA_TIME(rs.getString("T_CREA_TIME"));
-				amdBean.setT_FUNC_ID(rs.getString("T_FUNC_ID"));
-				amdBean.setC_CREATED_BY(rs.getString("C_CREATED_BY"));
-				amdBean.setC_CREATED_BU(rs.getString("C_CREATED_BU"));
-				amdBean.setC_UNIT_CODE(rs.getString("C_UNIT_CODE"));
-				amdBean.setT_CONTENT(rs.getString("T_CONTENT"));
-				CELogSTDExec.info("beneficiaryName .tempCodeName..........." + tempCodeName);
-				System.out.println("-------------------imis--------------------------------");
-				String beneficiaryName;
-				if (!"BGIF".equals(tempCodeName) && !"BGIS".equals(tempCodeName)) {
-					if ("IMCP".equals(tempCodeName)) {
-						beneficiaryName = getBeneficiaryName1(rs.getString("T_CONTENT"));
-						amdBean.setBENE_NM(beneficiaryName);
-					} else if ("IMIS".equals(tempCodeName)) {
-						System.out.println("----------------mODULE .imis........START------------------------------");
-						CELogSTDExec.info("mODULE .imis........START..." + rs.getString("T_CONTENT"));
-						amdBean.setLC_AMT_WORD(" ");
-						amdBean.setLC_AMT(" ");
-					} else {
-						beneficiaryName = getBeneficiaryName(rs.getString("T_CONTENT"));
-						amdBean.setBENE_NM(beneficiaryName);
-					}
-				} else {
-					beneficiaryName = getBGBeneficiaryName(rs.getString("T_CONTENT"));
-					amdBean.setBENE_NM(beneficiaryName);
-				}
-			}
-		} catch (Exception var21) {
-			var21.printStackTrace();
-		} finally {
-			try {
-				if (conn != null) {
-					conn.close();
-				}
+                amendlist.add(amdBean);
+            }
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
 
-				if (rs != null) {
-					rs.close();
-				}
-
-				if (pst != null) {
-					pst.close();
-				}
-			} catch (Exception var20) {
-				var20.printStackTrace();
-			}
-
-		}
-
-		CELogSTDExec.info("----------------at LAST------------amendlist------------------   " + amendlist.toString());
-		return amendlist;
-	}
+    CELogSTDExec.info("Amendlist: " + amendlist);
+    return amendlist;
+}
