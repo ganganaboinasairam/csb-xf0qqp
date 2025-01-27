@@ -1,14 +1,74 @@
-/TFEEAPP/base_domain/Default/FUNC/func_C7azLb2ug6XA.xml
-/TFEEAPP/base_domain/Default/FUNCATTR/fattr_C7azLb2ug6XAP.xml
-/TFEEAPP/base_domain/Default/FUNCATTR/fattr_C7azLb2ug6XAI.xml
-/TFEEAPP/base_domain/Default/GAPI/gapi_C7azLb2ug6XA.xml
-/TFEEAPP/base_domain/Default/GAPI/gapi_CE2EE_FWCO_FWCO_New_Forward_Contract_CE2EE_TX.xml
-/TFEEAPP/base_domain/Default/GAPI/gapi_FWCO_FWCO_New_Forward_Contract_CE2EE_TX.xml
-/TFEEAPP/base_domain/Default/GAPI/gapi_EE_CE_FWCO_Common_EE2CE_RE.xml
-/TFEEAPP/base_domain/Default/GAPI/gapi_FWCO_FWCO_Common_EE2CE_RE.xml
-/TFEEAPP/base_domain/Default/GAPI/gapi_SCYKug0n2r2Z.xml
-/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/FWCO_Register_Booking_BRU.jsp
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_FWCO_BRU_BOOK_FC_TF.js
-/TFEEAPP/base_domain/Default/FUNC/function_root.xml
-/TFEEAPP/base_domain/Default/SCRN/FWCO_Register_Booking_BRU.xml
-/TFEEAPP/base_domain/EE_SYS/LAYOUT/FWCO_MASTER.xml
+sftp.host=your.sftp.server.com
+sftp.port=22
+sftp.user=your_username
+sftp.password=your_password
+file.list.path=C:/path/to/filelist.txt
+local.backup.dir=C:/backup/
+
+
+import com.jcraft.jsch.*;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+
+public class SFTPBackupTool {
+
+    public static void main(String[] args) {
+        try {
+            // Load properties file
+            Properties properties = new Properties();
+            properties.load(new FileInputStream("config.properties"));
+
+            String sftpHost = properties.getProperty("sftp.host");
+            int sftpPort = Integer.parseInt(properties.getProperty("sftp.port"));
+            String sftpUser = properties.getProperty("sftp.user");
+            String sftpPassword = properties.getProperty("sftp.password");
+            String fileListPath = properties.getProperty("file.list.path");
+            String localBackupDir = properties.getProperty("local.backup.dir");
+
+            // Read file list from properties-specified text file
+            List<String> filePaths = Files.readAllLines(Paths.get(fileListPath));
+
+            // Connect to SFTP server
+            JSch jsch = new JSch();
+            Session session = jsch.getSession(sftpUser, sftpHost, sftpPort);
+            if (sftpPassword != null && !sftpPassword.isEmpty()) {
+                session.setPassword(sftpPassword);
+            }
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
+
+            // Open SFTP channel
+            Channel channel = session.openChannel("sftp");
+            channel.connect();
+            ChannelSftp sftpChannel = (ChannelSftp) channel;
+
+            // Back up files with folder structure
+            for (String remoteFilePath : filePaths) {
+                try {
+                    // Preserve folder structure by replicating directory paths
+                    String relativePath = remoteFilePath.replaceFirst("^/TFEEAPP/base_domain/", "");
+                    String localFilePath = Paths.get(localBackupDir, relativePath).toString();
+
+                    // Ensure local directories exist
+                    File localFile = new File(localFilePath);
+                    localFile.getParentFile().mkdirs();
+
+                    System.out.println("Backing up: " + remoteFilePath);
+                    sftpChannel.get(remoteFilePath, localFilePath);
+                    System.out.println("Backup completed: " + localFilePath);
+                } catch (SftpException e) {
+                    System.err.println("Failed to back up: " + remoteFilePath + " - " + e.getMessage());
+                }
+            }
+
+            // Disconnect
+            sftpChannel.disconnect();
+            session.disconnect();
+            System.out.println("All files backed up successfully!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
