@@ -1,10 +1,8 @@
-import java.util.regex.*;
-
 public class Main {
     public static void main(String[] args) {
         String testContent = "<root><FORN_AMT>1000.50</FORN_AMT><FRGN_CCY>USD</FRGN_CCY></root>";
         String[] result = getForeignAmountAndCurrency(testContent);
-        
+
         System.out.println("Foreign Amount: " + result[0]);  // Output: 1000.50
         System.out.println("Foreign Currency: " + result[1]); // Output: USD
     }
@@ -18,19 +16,22 @@ public class Main {
         }
 
         try {
-            // Regex patterns to extract content
-            Pattern amtPattern = Pattern.compile("<FORN_AMT>(.*?)</FORN_AMT>");
-            Pattern ccyPattern = Pattern.compile("<FRGN_CCY>(.*?)</FRGN_CCY>");
-
-            Matcher amtMatcher = amtPattern.matcher(t_Content);
-            Matcher ccyMatcher = ccyPattern.matcher(t_Content);
-
-            // Extract the values if found
-            if (amtMatcher.find()) {
-                foreignAmount = amtMatcher.group(1);
+            // Extract FORN_AMT value
+            String[] amtArray = t_Content.split("<FORN_AMT>");
+            if (amtArray.length > 1) {
+                String[] amtSplitted = amtArray[1].split("</FORN_AMT>");
+                if (amtSplitted.length > 0) {
+                    foreignAmount = amtSplitted[0];
+                }
             }
-            if (ccyMatcher.find()) {
-                foreignCurrency = ccyMatcher.group(1);
+
+            // Extract FRGN_CCY value
+            String[] ccyArray = t_Content.split("<FRGN_CCY>");
+            if (ccyArray.length > 1) {
+                String[] ccySplitted = ccyArray[1].split("</FRGN_CCY>");
+                if (ccySplitted.length > 0) {
+                    foreignCurrency = ccySplitted[0];
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
