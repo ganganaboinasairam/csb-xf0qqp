@@ -19,15 +19,15 @@ function isValidDate(dateStr) {
             }
         }
         
-        return (saturdayCount === 1 || saturdayCount === 3 || saturdayCount === 5);
+        return (saturdayCount === 2 || saturdayCount === 4);
     }
 
     return false;
 }
 
 // Example usage:
-console.log(isValidDate("03/02/2024")); // 1st Saturday - true
-console.log(isValidDate("17/02/2024")); // 3rd Saturday - true
-console.log(isValidDate("31/03/2024")); // Sunday - true
-console.log(isValidDate("10/02/2024")); // 2nd Saturday - false
-console.log(isValidDate("24/02/2024")); // 4th Saturday - false
+console.log(isValidDate("11/02/2024")); // 2nd Saturday - true
+console.log(isValidDate("25/02/2024")); // 4th Saturday - true
+console.log(isValidDate("04/02/2024")); // Sunday - true
+console.log(isValidDate("03/02/2024")); // 1st Saturday - false
+console.log(isValidDate("17/02/2024")); // 3rd Saturday - false
