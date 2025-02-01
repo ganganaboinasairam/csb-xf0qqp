@@ -1,33 +1,16 @@
-function isValidDate(dateStr) {
-    const [day, month, year] = dateStr.split('/').map(Number);
-    const date = new Date(year, month - 1, day);
-    
-    if (isNaN(date)) return false; // Invalid date
+function validateAmount(input) {
+    const regex = /^\d{1,12}(\.\d{0,2})?$/;
+    const value = input.value;
 
-    const dayOfWeek = date.getDay(); // 0 for Sunday, 6 for Saturday
-
-    if (dayOfWeek === 0) return true; // Sunday
-
-    if (dayOfWeek === 6) { // Saturday
-        const firstDay = new Date(year, month - 1, 1); // First day of the month
-        let saturdayCount = 0;
-        
-        for (let i = 1; i <= day; i++) {
-            const tempDate = new Date(year, month - 1, i);
-            if (tempDate.getDay() === 6) {
-                saturdayCount++;
-            }
-        }
-        
-        return (saturdayCount === 2 || saturdayCount === 4);
+    if (!regex.test(value)) {
+        input.setCustomValidity("Amount should be up to 12 digits before the decimal and 2 digits after.");
+    } else {
+        input.setCustomValidity("");
     }
-
-    return false;
 }
 
 // Example usage:
-console.log(isValidDate("11/02/2024")); // 2nd Saturday - true
-console.log(isValidDate("25/02/2024")); // 4th Saturday - true
-console.log(isValidDate("04/02/2024")); // Sunday - true
-console.log(isValidDate("03/02/2024")); // 1st Saturday - false
-console.log(isValidDate("17/02/2024")); // 3rd Saturday - false
+const amountField = document.getElementById("amount");
+amountField.addEventListener("input", function() {
+    validateAmount(amountField);
+});
