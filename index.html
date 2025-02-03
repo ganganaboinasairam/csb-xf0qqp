@@ -1,16 +1,14 @@
-function validateAmount(input) {
-    const regex = /^\d{1,12}(\.\d{0,2})?$/;
-    const value = input.value;
-
-    if (!regex.test(value)) {
-        input.setCustomValidity("Amount should be up to 12 digits before the decimal and 2 digits after.");
-    } else {
-        input.setCustomValidity("");
-    }
-}
-
-// Example usage:
-const amountField = document.getElementById("amount");
-amountField.addEventListener("input", function() {
-    validateAmount(amountField);
+$(document).on('keypress', function(event){	
+	if(event.target.className.includes('AMT')){
+		var regex = /^\d{1,11}(\.\d{0,2})?$/;
+		var value = event.target.value;
+		if(value != 0 && value !=''){
+		console.log(value)
+		console.log(regex.test(value))
+		if (!regex.test(value)) {
+			return false;
+		}
+		}
+	}
+	
 });
