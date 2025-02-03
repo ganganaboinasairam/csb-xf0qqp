@@ -1,13 +1,11 @@
-$(document).on('input', '.AMT', function (event) {        
-    var regex = /^\d{1,11}(\.\d{0,2})?$/;
-    var value = event.target.value;
-    
-    if (value !== "0" && value !== '') {
-        console.log("Current Value:", value);
-        console.log("Regex Match:", regex.test(value));
-        
-        if (!regex.test(value)) {
-            event.target.value = value.slice(0, -1); // Remove the last character if invalid
-        }
-    }
-});
+function checkMandatoryFields(){
+	var len = $('[class^="CHAR_M"]').length;
+	var allDetailsFilled = false;
+	for (var i = 0; i < len; i++) {
+	if($('[class^="CHAR_M"]')[i].value != ''){
+		allDetailsFilled = true;
+	}else{
+		allDetailsFilled = false;
+	}
+	}
+}
