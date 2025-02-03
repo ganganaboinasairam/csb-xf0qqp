@@ -1,14 +1,15 @@
 function checkMandatoryFields() {
     var fields = $('[class^="CHAR_M"]'); // Get all elements with class starting with "CHAR_M"
-    var allDetailsFilled = true; // Assume all fields are filled initially
+
+    var emptyFieldTitle = ""; // Variable to store the title of the first empty field
 
     fields.each(function() {
         if ($(this).val().trim() === '') {
             $(this).focus(); // Focus on the first empty field
-            allDetailsFilled = false; // Mark as not filled
+            emptyFieldTitle = this.title; // Store the title of the empty field
             return false; // Exit loop early
         }
     });
 
-    return allDetailsFilled; // Return true if all fields are filled, false otherwise
+    return emptyFieldTitle || true; // Return title if empty field is found, otherwise return true
 }
