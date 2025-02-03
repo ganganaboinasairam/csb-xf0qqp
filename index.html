@@ -1,11 +1,14 @@
-function checkMandatoryFields(){
-	var len = $('[class^="CHAR_M"]').length;
-	var allDetailsFilled = false;
-	for (var i = 0; i < len; i++) {
-	if($('[class^="CHAR_M"]')[i].value != ''){
-		allDetailsFilled = true;
-	}else{
-		allDetailsFilled = false;
-	}
-	}
+function checkMandatoryFields() {
+    var fields = $('[class^="CHAR_M"]'); // Get all elements with class starting with "CHAR_M"
+    var allDetailsFilled = true; // Assume all fields are filled initially
+
+    fields.each(function() {
+        if ($(this).val().trim() === '') {
+            $(this).focus(); // Focus on the first empty field
+            allDetailsFilled = false; // Mark as not filled
+            return false; // Exit loop early
+        }
+    });
+
+    return allDetailsFilled; // Return true if all fields are filled, false otherwise
 }
