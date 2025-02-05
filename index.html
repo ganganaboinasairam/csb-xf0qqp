@@ -1,22 +1,3 @@
-function SYF_FWCO_isValueInDropdown(selectId, valueToCheck) {
-    try {
-        var sel = document.getElementById(selectId);
-        
-        if (!sel) {
-            throw new Error("Element not found: " + selectId);
-        }
+Provide ccymapping for following ccy CHF, SGD, BDT, JPY, NOK, SAR, AED, NZD, DKK, CNY, AUD, ZAR, LKR, QAR, KWD, USD, XAU, RUB, IRR, XAF, EUR, GBP, SEK, CAD, HKD, ACD, BHD, OMR .
 
-        var options = sel.options;
-        for (var i = 0; i < options.length; i++) {
-            if (options[i].value == valueToCheck) {
-                return true; // Found the value
-            }
-        }
-
-        return false; // Value not found after checking all options
-
-    } catch (e) {
-        DisExcpt("SYF_FWCO_BRU_BOOK_FC_TF.js*SYF_FWCO_isValueInDropdown", e);
-        return false; // Ensure function does not break execution
-    }
-}
+and i will pass the filed id od ccy,amt and wordfld in funtin
