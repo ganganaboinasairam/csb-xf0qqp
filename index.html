@@ -1,14 +1,22 @@
-function SYF_FWCO_isValueInDropdown(selectId,valueToCheck) {
+function SYF_FWCO_isValueInDropdown(selectId, valueToCheck) {
     try {
         var sel = document.getElementById(selectId);
-		
-		for(var opt of sel.options){
-			if(opt.value == valueToCheck){
-				return true;
-			}
-			return false;
-		}
+        
+        if (!sel) {
+            throw new Error("Element not found: " + selectId);
+        }
+
+        var options = sel.options;
+        for (var i = 0; i < options.length; i++) {
+            if (options[i].value == valueToCheck) {
+                return true; // Found the value
+            }
+        }
+
+        return false; // Value not found after checking all options
+
     } catch (e) {
         DisExcpt("SYF_FWCO_BRU_BOOK_FC_TF.js*SYF_FWCO_isValueInDropdown", e);
+        return false; // Ensure function does not break execution
     }
 }
