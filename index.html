@@ -1,41 +1,11 @@
-<!-- Define select dropdowns without options -->
-<select id="currency1"></select>
-<select id="currency2"></select>
-<select id="currency3"></select>
-<select id="currency4"></select>
+function emailidcheck(email) {
+    let pattern = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/;
+    return pattern.test(email);
+}
 
-<script>
-    // List of currency options (ISO 4217 codes)
-    var currencyOptions = [
-        "USD", "INR", "EUR", "JPY", "AED", "CHF", "SGD", "BDT", "NOK", "SAR", "NZD", "DKK", 
-        "CNY", "AUD", "ZAR", "LKR", "QAR", "KWD", "XAU", "RUB", "IRR", "XAF", "GBP", "SEK", 
-        "CAD", "HKD", "ACD", "BHD", "OMR"
-    ];
-
-    // Function to populate dropdowns
-    function populateCurrencyDropdowns() {
-        var selects = ["currency1", "currency2", "currency3", "currency4"];
-
-        selects.forEach(function(selectId) {
-            var select = document.getElementById(selectId);
-            select.innerHTML = ""; // Clear previous options
-
-            // Add default option
-            var defaultOption = document.createElement("option");
-            defaultOption.value = "";
-            defaultOption.text = "Select Currency";
-            select.appendChild(defaultOption);
-
-            // Add currency options
-            currencyOptions.forEach(function(currency) {
-                var option = document.createElement("option");
-                option.value = currency;
-                option.text = currency;
-                select.appendChild(option);
-            });
-        });
-    }
-
-    // Call function to populate dropdowns on page load
-    window.onload = populateCurrencyDropdowns;
-</script>
+// Example usage:
+console.log(emailidcheck("test@example.com")); // true
+console.log(emailidcheck("user.name@domain.co.in")); // true
+console.log(emailidcheck("sddsf@gmail.gmail.com.com")); // false
+console.log(emailidcheck("invalid-email.com")); // false
+console.log(emailidcheck("test@domain")); // false
