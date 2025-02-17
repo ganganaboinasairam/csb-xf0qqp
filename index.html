@@ -1,15 +1,73 @@
-Subject: Leave Request for Medical Emergency (11th Feb – 14th Feb 2025)
+package com;
+import java.io.*;
+import java.nio.file.*;
+import java.util.Properties;
 
-Dear [Manager's Name],
+public class FileBackup {
 
-I hope you are doing well. I would like to inform you that my wife has undergone delivery, and I had to take leave on a medical emergency from 11th February 2025 to 14th February 2025 (4 days).
+    public static void main(String[] args) {
+        // Load configuration from properties file
+        Properties properties = new Properties();
+        try (InputStream input = new FileInputStream("config.properties")) {
+            properties.load(input);
+        } catch (IOException e) {
+            System.err.println("Error reading properties file: " + e.getMessage());
+            return;
+        }
 
-I apologize for the short notice and appreciate your understanding. Please let me know if any further information is required.
+        // Read paths from properties
+        String fileListPath = properties.getProperty("file.list.path");
+        String backupFolderPath = properties.getProperty("backup.folder.path");
 
-Thank you for your support.
+        if (fileListPath == null || backupFolderPath == null) {
+            System.err.println("Both 'file.list.path' and 'backup.folder.path' must be specified in the properties file.");
+            return;
+        }
 
-Best regards,
-[Your Name]
-[Your Designation]
-[Your Contact Information]
+        try {
+            // Perform the backup
+            backupFilesWithStructure(fileListPath, backupFolderPath);
+            System.out.println("Backup completed successfully!");
+        } catch (IOException e) {
+            System.err.println("Error during backup: " + e.getMessage());
+        }
+    }
 
+    /**
+     * Backs up files while maintaining the folder structure.
+     *
+     * @param fileListPath Path to the text file containing file paths
+     * @param backupFolderPath Path to the destination backup folder
+     * @throws IOException If an error occurs during the process
+     */
+    public static void backupFilesWithStructure(String fileListPath, String backupFolderPath) throws IOException {
+        // Ensure the backup folder exists
+        File backupFolder = new File(backupFolderPath);
+        if (!backupFolder.exists() && !backupFolder.mkdirs()) {
+            throw new IOException("Failed to create backup folder: " + backupFolderPath);
+        }
+
+        // Read the file paths from the text file
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileListPath))) {
+            String filePath;
+            while ((filePath = reader.readLine()) != null) {
+                File file = new File(filePath.trim());
+                if (file.exists() && file.isFile()) {
+                    // Calculate the relative path and target path
+                    Path sourcePath = file.toPath();
+                    Path relativePath = sourcePath.subpath(0, sourcePath.getNameCount());
+                    Path targetPath = Paths.get(backupFolderPath, relativePath.toString());
+
+                    // Create parent directories for the target file
+                    Files.createDirectories(targetPath.getParent());
+
+                    // Copy the file
+                    Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                    System.out.println("Backed up: " + filePath + " -> " + targetPath);
+                } else {
+                    System.err.println("File not found or invalid: " + filePath);
+                }
+            }
+        }
+    }
+}
