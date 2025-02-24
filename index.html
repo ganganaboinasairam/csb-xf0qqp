@@ -1,25 +1,8 @@
-public static void backupFilesWithStructure(String fileListPath, String backupFolderPath) throws IOException {  
-    File backupFolder = new File(backupFolderPath);  
-    if (!backupFolder.exists() && !backupFolder.mkdirs()) {  
-        throw new IOException("Failed to create backup folder: " + backupFolderPath);  
-    }  
+Dear Suresh,
 
-    try (BufferedReader reader = new BufferedReader(new FileReader(fileListPath))) {  
-        String filePath;  
-        while ((filePath = reader.readLine()) != null) {  
-            File file = new File(filePath.trim());  
-            if (file.exists() && file.isFile()) {  
-                Path sourcePath = file.toPath();  
-                Path relativePath = Paths.get(fileListPath).toAbsolutePath().getParent().relativize(sourcePath);  
-                Path targetPath = Paths.get(backupFolderPath, relativePath.toString());  
+We are facing Logs generating issue in CE UAT, We need CS team support to resolve the issue , necessary logs wear already provided to the CS team.
 
-                Files.createDirectories(targetPath.getParent());  
-                Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);  
+Kindly intervene and help us to resolve the issue ASAP.
 
-                System.out.println("Backed up: " + filePath + " -> " + targetPath);  
-            } else {  
-                System.err.println("File not found or invalid: " + filePath);  
-            }  
-        }  
-    }  
-}
+Thanks & Regards,
+Sai Ram
