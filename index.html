@@ -1,40 +1,19 @@
-if(data[i].hasOwnProperty('AWB_NO')){
-		var text2 = document.createTextNode(data[i].AWB_NO);
-		}else{
-		var text2 = document.createTextNode(empty);
-		}
-		if(data[i].hasOwnProperty('DELV_DATE')){
-		var text4 = document.createTextNode(data[i].DELV_DATE);
-		text4.textContent.slice(0,10);
-		}else{
-		var text4 = document.createTextNode(empty);
-		}
-		if(data[i].hasOwnProperty('DELV_MOBILE_NO')){
-		if(data[i].DELV_MOBILE_NO != 0){
-		var text5 = document.createTextNode(data[i].DELV_MOBILE_NO);
-		}else{
-		var text5 = document.createTextNode(empty);
-		}
-		}else{
-		var text5 = document.createTextNode(empty);
-		}
-		if(data[i].hasOwnProperty('DELV_TO')){
-		var text6 = document.createTextNode(data[i].DELV_TO);
-		}else{
-		var text6 = document.createTextNode(empty);
-		}
-		if(data[i].hasOwnProperty('COUR_AGNCY')){
-		var text7 = document.createTextNode(data[i].COUR_AGNCY);
-		}else{
-		var text7 = document.createTextNode(empty);
-		}
-		if(data[i].hasOwnProperty('OTHER_COUR_AGENCY')){
-		var text8 = document.createTextNode(data[i].OTHER_COUR_AGENCY);
-		}else{
-		var text8 = document.createTextNode(empty);
-		}
-		if(data[i].hasOwnProperty('TRACK')){
-		var text9 = document.createTextNode("TRACK");
-		}else{
-		var text9 = document.createTextNode(empty);
-		}
+var empty = ""; // Define empty variable
+var fields = ['AWB_NO', 'DELV_DATE', 'DELV_MOBILE_NO', 'DELV_TO', 'COUR_AGNCY', 'OTHER_COUR_AGENCY', 'TRACK'];
+var textNodes = {}; // Object to store generated text nodes
+
+fields.forEach(field => {
+    let value = data[i][field] || empty; // Use field value or empty string
+
+    if (field === 'DELV_DATE' && value) {
+        value = value.slice(0, 10); // Extract date part
+    } else if (field === 'DELV_MOBILE_NO' && value == 0) {
+        value = empty; // Replace '0' with empty string
+    } else if (field === 'TRACK' && data[i].hasOwnProperty(field)) {
+        value = "TRACK"; // Set "TRACK" if key exists
+    }
+
+    textNodes[field] = document.createTextNode(value);
+});
+
+// Access text nodes using textNodes['AWB_NO'], textNodes['DELV_DATE'], etc.
