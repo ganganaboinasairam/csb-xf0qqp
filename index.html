@@ -1,23 +1,40 @@
-Your email is clear and professional, but I have made a few minor refinements for better readability and formality:
-
-
----
-
-Subject: Urgent: Logs Generation Issue in CE UAT – Request for CS Team Support
-
-Dear Suresh,
-
-We are facing an issue with logs generation in CE UAT and require the CS team's support to resolve it. The necessary logs have already been provided to the CS team for analysis.
-
-Kindly intervene and assist in resolving the issue at the earliest.
-
-Looking forward to your prompt support.
-
-Thanks & Regards,
-Sai Ram
-
-
----
-
-This version improves clarity and flow while maintaining a professional tone. Let me know if you need further modifications!
-
+if(data[i].hasOwnProperty('AWB_NO')){
+		var text2 = document.createTextNode(data[i].AWB_NO);
+		}else{
+		var text2 = document.createTextNode(empty);
+		}
+		if(data[i].hasOwnProperty('DELV_DATE')){
+		var text4 = document.createTextNode(data[i].DELV_DATE);
+		text4.textContent.slice(0,10);
+		}else{
+		var text4 = document.createTextNode(empty);
+		}
+		if(data[i].hasOwnProperty('DELV_MOBILE_NO')){
+		if(data[i].DELV_MOBILE_NO != 0){
+		var text5 = document.createTextNode(data[i].DELV_MOBILE_NO);
+		}else{
+		var text5 = document.createTextNode(empty);
+		}
+		}else{
+		var text5 = document.createTextNode(empty);
+		}
+		if(data[i].hasOwnProperty('DELV_TO')){
+		var text6 = document.createTextNode(data[i].DELV_TO);
+		}else{
+		var text6 = document.createTextNode(empty);
+		}
+		if(data[i].hasOwnProperty('COUR_AGNCY')){
+		var text7 = document.createTextNode(data[i].COUR_AGNCY);
+		}else{
+		var text7 = document.createTextNode(empty);
+		}
+		if(data[i].hasOwnProperty('OTHER_COUR_AGENCY')){
+		var text8 = document.createTextNode(data[i].OTHER_COUR_AGENCY);
+		}else{
+		var text8 = document.createTextNode(empty);
+		}
+		if(data[i].hasOwnProperty('TRACK')){
+		var text9 = document.createTextNode("TRACK");
+		}else{
+		var text9 = document.createTextNode(empty);
+		}
