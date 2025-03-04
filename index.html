@@ -1,19 +1,27 @@
-var empty = ""; // Define empty variable
-var fields = ['AWB_NO', 'DELV_DATE', 'DELV_MOBILE_NO', 'DELV_TO', 'COUR_AGNCY', 'OTHER_COUR_AGENCY', 'TRACK'];
-var textNodes = {}; // Object to store generated text nodes
+Here’s a professional email you can send to your manager regarding the lighting issue:
 
-fields.forEach(field => {
-    let value = data[i][field] || empty; // Use field value or empty string
 
-    if (field === 'DELV_DATE' && value) {
-        value = value.slice(0, 10); // Extract date part
-    } else if (field === 'DELV_MOBILE_NO' && value == 0) {
-        value = empty; // Replace '0' with empty string
-    } else if (field === 'TRACK' && data[i].hasOwnProperty(field)) {
-        value = "TRACK"; // Set "TRACK" if key exists
-    }
+---
 
-    textNodes[field] = document.createTextNode(value);
-});
+Subject: Request for Separate Light Control in the Office
 
-// Access text nodes using textNodes['AWB_NO'], textNodes['DELV_DATE'], etc.
+Dear [Manager's Name],
+
+I hope you are doing well.
+
+I am writing to bring up an issue regarding the lighting setup in our office. Currently, multiple lights are controlled by a single switch. While I require sufficient lighting to work effectively, some of my colleagues prefer dimmer conditions. This situation is affecting my ability to work comfortably, as I find it challenging to focus in low-light conditions.
+
+I kindly request you to consider a solution, such as providing separate controls for the lights or any alternative arrangement that accommodates different preferences. I believe this change would improve productivity and comfort for everyone.
+
+I appreciate your time and consideration and look forward to your support in resolving this issue.
+
+Best regards,
+[Your Name]
+[Your Designation]
+[Your Company Name]
+
+
+---
+
+This email is polite, professional, and clearly states your issue while suggesting possible solutions. Let me know if you’d like any modifications!
+
