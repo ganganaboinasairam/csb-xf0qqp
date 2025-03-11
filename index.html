@@ -21,42 +21,53 @@ import com.cs.core.utility.WSZipUtil;
 
 public class ImageDownloadServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-    throws ServletException, IOException {
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String indexList = request.getParameter("indexList");
-        String c_main_ref = request.getParameter("cMainRef");
+        String cMainRef = request.getParameter("cMainRef");
         String reqType = request.getParameter("reqType");
         String imgIndex = request.getParameter("imgIndex");
 
         try (Connection conn = DSManager.getConnection("CET")) {
             if ("download".equals(reqType)) {
-                handleDownloadRequest(indexList, c_main_ref, conn, response);
+                handleDownloadRequest(indexList, cMainRef, conn, response);
             } else if ("viewDoc".equals(reqType)) {
-                handleViewDocRequest(imgIndex, c_main_ref, conn, response);
+                handleViewDocRequest(imgIndex, cMainRef, conn, response);
             }
         } catch (Exception e) {
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing the request.");
+            e.printStackTrace();
+            if (!response.isCommitted()) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing the request.");
+            }
         }
     }
 
     private void handleDownloadRequest(String indexList, String cMainRef, Connection conn, HttpServletResponse response) throws Exception {
         String[] array = indexList.split(";");
-        for (String value: array) {
+        boolean success = false;
+
+        for (String value : array) {
             try (PreparedStatement pstmt = conn.prepareStatement(
                 "SELECT B_IMG_CONTENT, C_IMG_FILE_TYPE, C_IMG_DOC_TYPE FROM TRX_IMAGES_DTAL WHERE C_IMG_INDX = ? AND C_MAIN_REF = ?")) {
                 pstmt.setString(1, value);
                 pstmt.setString(2, cMainRef);
+
                 try (ResultSet rs = pstmt.executeQuery()) {
                     if (rs.next()) {
                         processRecord(rs, value, response);
-                    } else {
-                        handleNoDataFound(response);
+                        success = true;
                     }
                 }
             }
         }
-        response.setContentType("application/json");
-        response.getWriter().write("{\"message\":\"Files Saved Successfully\"}");
+
+        if (!response.isCommitted() && success) {
+            response.setContentType("application/json");
+            response.getWriter().write("{\"message\":\"Files Saved Successfully\"}");
+        } else if (!success && !response.isCommitted()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "No matching records found.");
+        }
     }
 
     private void handleViewDocRequest(String imgIndex, String cMainRef, Connection conn, HttpServletResponse response) throws Exception {
@@ -64,22 +75,24 @@ public class ImageDownloadServlet extends HttpServlet {
             "SELECT B_IMG_CONTENT, C_IMG_FILE_TYPE, C_IMG_DOC_TYPE FROM TRX_IMAGES_DTAL WHERE C_IMG_INDX = ? AND C_MAIN_REF = ?")) {
             pstmt.setString(1, imgIndex);
             pstmt.setString(2, cMainRef);
+
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     processRecord(rs, imgIndex, response);
-                } else {
-                    handleNoDataFound(response);
+                } else if (!response.isCommitted()) {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "Document not found.");
                 }
-            } catch (Exception e) {}
+            }
         }
     }
 
     private void processRecord(ResultSet rs, String index, HttpServletResponse response) throws Exception {
-        String C_IMG_DOC_TYPE = rs.getString("C_IMG_DOC_TYPE");
+        String docType = rs.getString("C_IMG_DOC_TYPE");
         String base64 = rs.getString("B_IMG_CONTENT");
         String fileType = rs.getString("C_IMG_FILE_TYPE");
+
         try {
-            if ("form".equals(C_IMG_DOC_TYPE)) {
+            if ("form".equals(docType)) {
                 processFileResponse(base64, fileType, response);
             } else {
                 Object obj = WSZipUtil.decompressByBase64(base64);
@@ -87,56 +100,45 @@ public class ImageDownloadServlet extends HttpServlet {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            if (!response.isCommitted()) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error processing file.");
+            }
         }
-
     }
 
-    private void printContentInTheFile(String obj, String c_img_indx, String fileType) throws Exception {
-
+    private void printContentInTheFile(String obj, String imgIndex, String fileType) throws Exception {
         String configFilePath = ASPathConst.getUserDirPath() + File.separator + "PARAM" + File.separator + "Default" + File.separator + "SYST" + File.separator + "sysparam.xml";
-        Node sImagepathNode = XMLManager.findNode(XMLManager.xmlFileToDom(configFilePath).getDocumentElement(), "WEB_IMAGE_ROOT_PATH");
-        String sIMagePath = XMLManager.getNodeAttribute(sImagepathNode, "VALUE");
-        FileOutputStream out = CESecuFileHelper.newFileOutputStream(sIMagePath + "/" + c_img_indx + "." + fileType);
+        Node sImagePathNode = XMLManager.findNode(XMLManager.xmlFileToDom(configFilePath).getDocumentElement(), "WEB_IMAGE_ROOT_PATH");
+        String imagePath = XMLManager.getNodeAttribute(sImagePathNode, "VALUE");
 
-        String encodedString;
-        try {
-            byte[] b;
-            if (obj != null &&
-                obj.getClass().toString().indexOf("String") != -1) {
-                encodedString = (String) obj;
-                b = encodedString.getBytes("ISO-8859-1");
-                out.write(b);
-            } else if (obj != null) {
-                b = (byte[]) obj.getBytes();
-                out.write(b);
-            }
-            out.close();
-        } catch (Exception e) {
-            out.close();
-            throw e;
+        File file = new File(imagePath + "/" + imgIndex + "." + fileType);
+        try (FileOutputStream out = CESecuFileHelper.newFileOutputStream(file)) {
+            byte[] data = obj.getBytes("ISO-8859-1");
+            out.write(data);
         }
-
     }
 
     private void processFileResponse(String base64, String fileType, HttpServletResponse response) throws IOException {
         try {
             Object obj = WSZipUtil.decompressByBase64(base64);
             response.setContentType(getContentType(fileType));
-
             response.setHeader("Pragma", "No-cache");
             response.setHeader("Cache-Control", "no-cache");
             response.setDateHeader("Expires", 2002L);
 
-            ObjectOutputStream out = new ObjectOutputStream(response.getOutputStream());
-            out.writeObject(obj);
-            out.flush();
-            out.close();
+            try (ObjectOutputStream out = new ObjectOutputStream(response.getOutputStream())) {
+                out.writeObject(obj);
+            }
         } catch (IllegalArgumentException e) {
             e.printStackTrace();
-            response.sendError(400, "Invalid base64 content.");
+            if (!response.isCommitted()) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid base64 content.");
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            response.sendError(500, "An error occurred while processing the file.");
+            if (!response.isCommitted()) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing the file.");
+            }
         }
     }
 
@@ -156,15 +158,4 @@ public class ImageDownloadServlet extends HttpServlet {
                 return "application/octet-stream";
         }
     }
-
-    private void handleNoDataFound(HttpServletResponse response) throws IOException {
-        response.setContentType("text/html");
-        try (PrintWriter out = response.getWriter()) {
-            out.println("<html><body>");
-            out.println(
-                "<div style=\"display: flex;justify-content: center;align-items: center;min-height: 100vh;font-size: xx-large;color: red;\">Report file not found...</div>");
-            out.println("</body></html>");
-            out.close();
-        }
-    }  
 }
