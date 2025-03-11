@@ -1,3 +1,56 @@
-i want a js tool which will arrange a clob in to a particular format, i have a clob of above 4000 characters , i will input the clob in the text field and click on format button, then the tool should arrange the text in the below format:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLOB Formatter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
 
-to_clob(<4000 characters of the given clob>) || to_clob(<next 4000 characters of the clob>).....
+    <h2>CLOB Formatter</h2>
+    <label for="clobInput">Enter CLOB:</label>
+    <textarea id="clobInput" placeholder="Paste your CLOB here..."></textarea>
+    <button onclick="formatClob()">Format</button>
+
+    <h3>Formatted Output:</h3>
+    <pre id="formattedOutput"></pre>
+
+    <script>
+        function formatClob() {
+            const input = document.getElementById("clobInput").value;
+            const chunkSize = 4000;
+            let result = [];
+            
+            for (let i = 0; i < input.length; i += chunkSize) {
+                result.push(`to_clob('${input.substring(i, i + chunkSize)}')`);
+            }
+            
+            document.getElementById("formattedOutput").textContent = result.join(" || ");
+        }
+    </script>
+
+</body>
+</html>
