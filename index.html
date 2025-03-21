@@ -1,1 +1,37 @@
-="('" & TEXTJOIN("','", TRUE, A2:AS2) & "')"
+function formatDate(dateValue, inputFormat, outputFormat) {
+	  var monthMap = {
+		JAN: "01", FEB: "02", MAR: "03", APR: "04",
+		MAY: "05", JUN: "06", JUL: "07", AUG: "08",
+		SEP: "09", OCT: "10", NOV: "11", DEC: "12"
+	  };
+
+	  // Helper to extract date parts based on the input format
+	  function parseDate(value, format) {
+		var parts = {};
+		var formatParts = format.split(/[-/]/);
+		var valueParts = value.split(/[-/]/);
+
+		formatParts.forEach((part, index) => {
+		  if (part === "DD") parts.day = valueParts[index];
+		  if (part === "MMM") parts.month = monthMap[valueParts[index].toUpperCase()];
+		  if (part === "MM") parts.month = valueParts[index];
+		  if (part === "YYYY") parts.year = valueParts[index];
+		  if (part === "YY") parts.year = "20" + valueParts[index]; // Assuming 21st century
+		});
+
+		return parts;
+	  }
+
+	  // Helper to format the date into the desired output
+	  function formatOutput(parts, format) {
+		return format
+		  .replace("DD", parts.day)
+		  .replace("MM", parts.month)
+		  .replace("YYYY", parts.year)
+		  .replace("YY", parts.year.slice(-2));
+	  }
+
+	  // Parse the input date and format it
+	  var parsedDate = parseDate(dateValue, inputFormat);
+	  return formatOutput(parsedDate, outputFormat);
+	}
