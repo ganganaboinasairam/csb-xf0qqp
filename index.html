@@ -1,37 +1,41 @@
 function formatDate(dateValue, inputFormat, outputFormat) {
-	  var monthMap = {
-		JAN: "01", FEB: "02", MAR: "03", APR: "04",
-		MAY: "05", JUN: "06", JUL: "07", AUG: "08",
-		SEP: "09", OCT: "10", NOV: "11", DEC: "12"
-	  };
+    var monthMap = {
+        "01": "JAN", "02": "FEB", "03": "MAR", "04": "APR",
+        "05": "MAY", "06": "JUN", "07": "JUL", "08": "AUG",
+        "09": "SEP", "10": "OCT", "11": "NOV", "12": "DEC"
+    };
 
-	  // Helper to extract date parts based on the input format
-	  function parseDate(value, format) {
-		var parts = {};
-		var formatParts = format.split(/[-/]/);
-		var valueParts = value.split(/[-/]/);
+    // Helper to extract date parts based on the input format
+    function parseDate(value, format) {
+        var parts = {};
+        var formatParts = format.split(/[-/]/);
+        var valueParts = value.split(/[-/]/);
 
-		formatParts.forEach((part, index) => {
-		  if (part === "DD") parts.day = valueParts[index];
-		  if (part === "MMM") parts.month = monthMap[valueParts[index].toUpperCase()];
-		  if (part === "MM") parts.month = valueParts[index];
-		  if (part === "YYYY") parts.year = valueParts[index];
-		  if (part === "YY") parts.year = "20" + valueParts[index]; // Assuming 21st century
-		});
+        formatParts.forEach((part, index) => {
+            if (part === "DD") parts.day = valueParts[index];
+            if (part === "D") parts.day = valueParts[index].padStart(2, '0');
+            if (part === "MM") parts.month = valueParts[index];
+            if (part === "YYYY") parts.year = valueParts[index];
+            if (part === "YY") parts.year = "20" + valueParts[index]; // Assuming 21st century
+        });
 
-		return parts;
-	  }
+        return parts;
+    }
 
-	  // Helper to format the date into the desired output
-	  function formatOutput(parts, format) {
-		return format
-		  .replace("DD", parts.day)
-		  .replace("MM", parts.month)
-		  .replace("YYYY", parts.year)
-		  .replace("YY", parts.year.slice(-2));
-	  }
+    // Helper to format the date into the desired output
+    function formatOutput(parts, format) {
+        let monthStr = parts.month in monthMap ? monthMap[parts.month] : parts.month;
+        return format
+            .replace("DD", parts.day)
+            .replace("MMM", monthStr)
+            .replace("YYYY", parts.year)
+            .replace("YY", parts.year.slice(-2));
+    }
 
-	  // Parse the input date and format it
-	  var parsedDate = parseDate(dateValue, inputFormat);
-	  return formatOutput(parsedDate, outputFormat);
-	}
+    // Parse the input date and format it
+    var parsedDate = parseDate(dateValue, inputFormat);
+    return formatOutput(parsedDate, outputFormat);
+}
+
+// **Example Usage:**
+console.log(formatDate("2025-02-23", "YYYY-MM-DD", "DD-MMM-YYYY")); // Output: "23-FEB-2025"
