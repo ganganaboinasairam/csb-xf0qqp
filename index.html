@@ -1,17 +1,42 @@
-Subject: Approval Request to Run xmlReadCE.jar Manually in CE Production
+import java.io.*;
+import java.nio.file.*;
 
-Dear Sir,
+public class LargeFileSplitter {
+    public static void main(String[] args) {
+        String inputFilePath = "C:\\path\\to\\your\\largefile.txt";  // Input file path
+        String outputDirPath = "C:\\path\\to\\output\\directory\\"; // Directory to save split files
+        int linesPerFile = 1000;  // Number of lines per split file (you can change this)
 
-I kindly request your approval to run xmlReadCE.jar manually in the CE Production environment after every server restart. This step is crucial for ensuring proper Rail LC functionality.
+        try {
+            // Create output directory if it doesn't exist
+            Files.createDirectories(Paths.get(outputDirPath));
 
-Tool Path:
-E:\IBM\WebSphere\AppServer\profiles\AppSrv03\DataMigration\railways\XmlReadCE.jar
+            BufferedReader reader = new BufferedReader(new FileReader(inputFilePath));
+            String line;
+            int fileCount = 1;
+            int lineCount = 0;
+            BufferedWriter writer = new BufferedWriter(new FileWriter(outputDirPath + "part" + fileCount + ".txt"));
 
-Note: @TFPSOSUPPORT – Please include this tool in your checklist. It needs to be executed every time the server is restarted.
+            // Read lines from the input file and write to smaller files
+            while ((line = reader.readLine()) != null) {
+                if (lineCount == linesPerFile) {
+                    writer.close();
+                    fileCount++;
+                    lineCount = 0;
+                    writer = new BufferedWriter(new FileWriter(outputDirPath + "part" + fileCount + ".txt"));
+                }
+                writer.write(line);
+                writer.newLine();
+                lineCount++;
+            }
 
-Looking forward to your approval.
+            // Close the last writer
+            writer.close();
+            reader.close();
 
-Best regards,
-[Your Name]
-[Your Team/Department]
-
+            System.out.println("File split successfully into " + fileCount + " parts.");
+        } catch (IOException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+}
