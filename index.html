@@ -1,18 +1,40 @@
 import java.io.*;
 import java.nio.file.*;
+import javax.swing.*;
 
 public class LargeFileSplitter {
     public static void main(String[] args) {
-        String inputFilePath = "C:\\path\\to\\your\\largefile.txt";  // Input file path
-        String outputDirPath = "C:\\path\\to\\output\\directory\\"; // Output directory
-        int linesPerFile = 1000;  // Number of lines per split file
+        // Open a file chooser for the input file
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Select the large text file");
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+        int fileResult = fileChooser.showOpenDialog(null);
+        if (fileResult != JFileChooser.APPROVE_OPTION) {
+            System.out.println("No file selected. Exiting...");
+            return;
+        }
+
+        String inputFilePath = fileChooser.getSelectedFile().getAbsolutePath();
+        String fileName = fileChooser.getSelectedFile().getName();
+        String baseName = fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf(".")) : fileName;
+
+        // Open a folder chooser for the output directory
+        JFileChooser folderChooser = new JFileChooser();
+        folderChooser.setDialogTitle("Select output folder");
+        folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+        int folderResult = folderChooser.showOpenDialog(null);
+        if (folderResult != JFileChooser.APPROVE_OPTION) {
+            System.out.println("No output folder selected. Exiting...");
+            return;
+        }
+
+        String outputDirPath = folderChooser.getSelectedFile().getAbsolutePath() + File.separator;
+
+        int linesPerFile = 1000;  // You can modify this value
 
         try {
-            // Get the original file name without extension
-            File inputFile = new File(inputFilePath);
-            String fileName = inputFile.getName();
-            String baseName = fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf(".")) : fileName;
-
             // Create output directory if it doesn't exist
             Files.createDirectories(Paths.get(outputDirPath));
 
@@ -39,7 +61,7 @@ public class LargeFileSplitter {
             writer.close();
             reader.close();
 
-            System.out.println("File split successfully into " + fileCount + " parts.");
+            System.out.println("File split successfully into " + fileCount + " parts in: " + outputDirPath);
         } catch (IOException e) {
             System.out.println("Error: " + e.getMessage());
         }
