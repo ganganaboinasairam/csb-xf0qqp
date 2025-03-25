@@ -4,10 +4,15 @@ import java.nio.file.*;
 public class LargeFileSplitter {
     public static void main(String[] args) {
         String inputFilePath = "C:\\path\\to\\your\\largefile.txt";  // Input file path
-        String outputDirPath = "C:\\path\\to\\output\\directory\\"; // Directory to save split files
-        int linesPerFile = 1000;  // Number of lines per split file (you can change this)
+        String outputDirPath = "C:\\path\\to\\output\\directory\\"; // Output directory
+        int linesPerFile = 1000;  // Number of lines per split file
 
         try {
+            // Get the original file name without extension
+            File inputFile = new File(inputFilePath);
+            String fileName = inputFile.getName();
+            String baseName = fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf(".")) : fileName;
+
             // Create output directory if it doesn't exist
             Files.createDirectories(Paths.get(outputDirPath));
 
@@ -15,7 +20,7 @@ public class LargeFileSplitter {
             String line;
             int fileCount = 1;
             int lineCount = 0;
-            BufferedWriter writer = new BufferedWriter(new FileWriter(outputDirPath + "part" + fileCount + ".txt"));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(outputDirPath + baseName + "_" + fileCount + ".txt"));
 
             // Read lines from the input file and write to smaller files
             while ((line = reader.readLine()) != null) {
@@ -23,7 +28,7 @@ public class LargeFileSplitter {
                     writer.close();
                     fileCount++;
                     lineCount = 0;
-                    writer = new BufferedWriter(new FileWriter(outputDirPath + "part" + fileCount + ".txt"));
+                    writer = new BufferedWriter(new FileWriter(outputDirPath + baseName + "_" + fileCount + ".txt"));
                 }
                 writer.write(line);
                 writer.newLine();
