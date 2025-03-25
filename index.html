@@ -1,41 +1,16 @@
-function formatDate(dateValue, inputFormat, outputFormat) {
-    var monthMap = {
-        "01": "JAN", "02": "FEB", "03": "MAR", "04": "APR",
-        "05": "MAY", "06": "JUN", "07": "JUL", "08": "AUG",
-        "09": "SEP", "10": "OCT", "11": "NOV", "12": "DEC"
-    };
+Subject: Confirmation on Running xmlReadCE.jar After Server Restart
 
-    // Helper to extract date parts based on the input format
-    function parseDate(value, format) {
-        var parts = {};
-        var formatParts = format.split(/[-/]/);
-        var valueParts = value.split(/[-/]/);
+Dear [Production Support Team],
 
-        formatParts.forEach((part, index) => {
-            if (part === "DD") parts.day = valueParts[index];
-            if (part === "D") parts.day = valueParts[index].padStart(2, '0');
-            if (part === "MM") parts.month = valueParts[index];
-            if (part === "YYYY") parts.year = valueParts[index];
-            if (part === "YY") parts.year = "20" + valueParts[index]; // Assuming 21st century
-        });
+I hope you are doing well.
 
-        return parts;
-    }
+I wanted to check whether the xmlReadCE.jar tool is being executed manually after every server restart. Since this step is crucial for ensuring proper functionality, could you please confirm if the tool is being run as expected whenever the server is restarted?
 
-    // Helper to format the date into the desired output
-    function formatOutput(parts, format) {
-        let monthStr = parts.month in monthMap ? monthMap[parts.month] : parts.month;
-        return format
-            .replace("DD", parts.day)
-            .replace("MMM", monthStr)
-            .replace("YYYY", parts.year)
-            .replace("YY", parts.year.slice(-2));
-    }
+Your confirmation on this would be greatly appreciated. Please let us know if you are facing any issues or require any support in this process.
 
-    // Parse the input date and format it
-    var parsedDate = parseDate(dateValue, inputFormat);
-    return formatOutput(parsedDate, outputFormat);
-}
+Looking forward to your response.
 
-// **Example Usage:**
-console.log(formatDate("2025-02-23", "YYYY-MM-DD", "DD-MMM-YYYY")); // Output: "23-FEB-2025"
+Best regards,
+[Your Name]
+[Your Team/Department]
+
