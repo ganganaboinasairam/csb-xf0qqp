@@ -1,51 +1,29 @@
-import com.jcraft.jsch.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class SFTPWithKeyAuth {
     public static void main(String[] args) {
         String host = "10.177.139.87";
-        int port = 22; // Default SFTP port
         String user = "weblogic";
-        String privateKeyPath ="/.ssh/id_rsa"; // Path to your private key file
 
-        Session session = null;
-        ChannelSftp channelSftp = null;
+        String[] command = {
+		            "sftp","-oPort=2202", user + "@" + host
+		        };
 
-        try {
-            // Create a JSch instance
-            JSch jsch = new JSch();
-            
-            // Add private key for authentication
-            jsch.addIdentity(privateKeyPath);
-
-            // Create a session
-            session = jsch.getSession(user, host, port);
-            
-            // Disable host key checking (for testing; remove in production)
-            session.setConfig("StrictHostKeyChecking", "no");
-
-            // Connect to the server
-            session.connect();
-            System.out.println("Connected to SFTP server using private key");
-
-            // Open SFTP channel
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            channelSftp = (ChannelSftp) channel;
-
-            System.out.println("SFTP Channel opened");
-
-            // List files in the root directory
-            System.out.println("Listing files in home directory:");
-            for (Object entry : channelSftp.ls(".")) {
-                System.out.println(entry.toString());
-            }
-
-            // Close connections
-            channelSftp.exit();
-            session.disconnect();
-            System.out.println("Disconnected from SFTP server");
-        } catch (JSchException | SftpException e) {
-            e.printStackTrace();
-        }
+		        ProcessBuilder processBuilder = new ProcessBuilder(command);
+		        
+		        try {
+					Process process = processBuilder.start();
+					
+					System.out.println("Connected to SFTP server");
+					
+					BufferedReader inputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+		            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+		            
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
     }
 }
