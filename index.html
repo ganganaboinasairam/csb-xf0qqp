@@ -2,10 +2,10 @@ import com.jcraft.jsch.*;
 
 public class SFTPWithKeyAuth {
     public static void main(String[] args) {
-        String host = "your.sftp.server.com";
+        String host = "10.177.139.87";
         int port = 22; // Default SFTP port
-        String user = "yourUsername";
-        String privateKeyPath = "C:/Users/yourUser/.ssh/id_rsa"; // Path to your private key file
+        String user = "weblogic";
+        String privateKeyPath ="/.ssh/id_rsa"; // Path to your private key file
 
         Session session = null;
         ChannelSftp channelSftp = null;
