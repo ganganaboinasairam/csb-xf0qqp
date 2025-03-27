@@ -1,28 +1,22 @@
 const amountFields = [
-				{ ccy: 'LC_CCY', amt: 'LC_AMT1'}
-			];
+    { ccy: 'LC_CCY', amt: 'LC_AMT1' }
+];
 
-        // Function to remove empty <tr> and <td> elements
-        function removeEmptyRowsAndCells() {
-            // Loop through all <td> elements
-            targetDiv.find('td').each(function () {
-                var $td = $(this);
-				
-				const fldId = $td[0].children[0];
-                // Check if the content is empty, including <nobr> and <span> elements that contain only whitespace or &nbsp;
-                var isEmpty = $td.text().trim() === "" || $td.html().replace(/\s|&nbsp;/g, '') === "";
-                //var amtFld = $td.hasClass('amt-fld');
-				var amtFld;
-				amountFields.forEach((section, index) => {
-					if(section.amt == fldId.id){
-						amtFld = false;
-						return;
-					}else {
-						amtFld = true;
-						return;
-					}
-				});
-                if (isEmpty && !amtFld) {
-                    $td.remove(); // Remove the empty <td>
-                }
-            });
+function removeEmptyRowsAndCells(targetDiv) {
+    targetDiv.find('td').each(function () {
+        var $td = $(this);
+
+        // Get the first <input> element inside the <td>
+        var fldId = $td.find('input').first().attr('id'); 
+
+        var isEmpty = $td.text().trim() === "" || $td.html().replace(/\s|&nbsp;/g, '') === "";
+
+        // Check if the field ID exists in amountFields
+        var amtFld = amountFields.some(section => section.amt === fldId);
+
+        // Remove empty <td> if it's NOT in amountFields
+        if (isEmpty && !amtFld) {
+            $td.remove();
+        }
+    });
+}
