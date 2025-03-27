@@ -1,25 +1,5 @@
-function reArrangeAmtFields() {
-    $.each(amountFields, function(_, sec) {
-        var ccy = $('#' + sec.ccy);
-        var amt = $('#' + sec.amt);
+Dear Sairam,
 
-        if (ccy.length === 0 || amt.length === 0) {
-            console.warn(`Missing elements for: ${sec.ccy} or ${sec.amt}`);
-            return; // Skip this pair if elements are missing
-        }
+I wanted to check with you regarding the requirement for implementing the FAR mentioned in the trail mail.
 
-        var ccyDiv = ccy.parent();
-
-        // Apply flex styling
-        ccyDiv.css({
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-        });
-
-        // Move amount field inside currency div if not already inside
-        if (!amt.parent().is(ccyDiv)) {
-            ccyDiv.append(amt);
-        }
-    });
-}
+As per my knowledge, most of the connections between the two regions are established through IBM MQ, so could you please share the details on the specific use case and scope of the FAR.
