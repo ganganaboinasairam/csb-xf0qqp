@@ -1,8 +1,28 @@
-<div class="select-wrapper" style="display: flex; align-items: center; gap: 10px;">
-    <select name="LC_CCY" id="LC_CCY" class="CHAR_P select-field" title="LC CCY" readonly="readonly" style="width: 150px; height: 30px;" disabled="disabled">
-        <option value="ACD">ACD</option>
-        <option value="AED">AED</option>
-        <option value="" selected=""></option>
-    </select>
-    <input name="LC_AMT1" type="text" class="AMT_P input-field" id="LC_AMT1" title="LC Amount" size="20" maxlength="15" readonly="readonly" style="height: 30px;">
-</div>
+const amountFields = [
+				{ ccy: 'LC_CCY', amt: 'LC_AMT1'}
+			];
+
+        // Function to remove empty <tr> and <td> elements
+        function removeEmptyRowsAndCells() {
+            // Loop through all <td> elements
+            targetDiv.find('td').each(function () {
+                var $td = $(this);
+				
+				const fldId = $td[0].children[0];
+                // Check if the content is empty, including <nobr> and <span> elements that contain only whitespace or &nbsp;
+                var isEmpty = $td.text().trim() === "" || $td.html().replace(/\s|&nbsp;/g, '') === "";
+                //var amtFld = $td.hasClass('amt-fld');
+				var amtFld;
+				amountFields.forEach((section, index) => {
+					if(section.amt == fldId.id){
+						amtFld = false;
+						return;
+					}else {
+						amtFld = true;
+						return;
+					}
+				});
+                if (isEmpty && !amtFld) {
+                    $td.remove(); // Remove the empty <td>
+                }
+            });
