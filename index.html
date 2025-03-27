@@ -1,29 +1,3 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+Dear team,
 
-public class SFTPWithKeyAuth {
-    public static void main(String[] args) {
-        String host = "10.177.139.87";
-        String user = "weblogic";
-
-        String[] command = {
-		            "sftp","-oPort=2202", user + "@" + host
-		        };
-
-		        ProcessBuilder processBuilder = new ProcessBuilder(command);
-		        
-		        try {
-					Process process = processBuilder.start();
-					
-					System.out.println("Connected to SFTP server");
-					
-					BufferedReader inputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-		            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-		            
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-    }
-}
+Please arrange to implement FAR access between Below mentioned Source IP and Destination IP.
