@@ -7,34 +7,37 @@ function adjustFieldsOnTextChange() {
         var amtField = selectWrapper.find('input'); // Amount field
 
         // Get the height of the text inside the span
-        var textHeight = amountInWords[0].scrollHeight;
+        var textHeight = amountInWords.outerHeight();
 
-        // Calculate new height based on text size
-        var newHeight = Math.max(30, 60 - (textHeight - 20)); // Ensure it doesn't go below 30px
+        // Calculate new height for the fields based on text size
+        var baseHeight = 40; // Default field height
+        var newHeight = baseHeight - (textHeight / 5); // Reduce height dynamically
+        newHeight = Math.max(25, newHeight); // Ensure min height of 25px
 
-        // Apply the new height dynamically
-        ccyField.css('height', newHeight + 'px');
-        amtField.css('height', newHeight + 'px');
-        
-        // Ensure text wraps correctly within its parent
+        // Apply styles with higher priority
+        ccyField.attr('style', `height: ${newHeight}px !important;`);
+        amtField.attr('style', `height: ${newHeight}px !important;`);
+
+        // Ensure text wraps properly
         amountInWords.css({
             display: 'block',
             width: '100%',
             whiteSpace: 'normal',
-            wordWrap: 'break-word'
+            wordWrap: 'break-word',
+            overflowWrap: 'break-word'
         });
 
-        // Ensure select-wrapper handles text wrapping
+        // Allow select-wrapper to wrap elements when needed
         selectWrapper.css('flex-wrap', 'wrap');
     });
 }
 
-// Call function when the page loads
+// Run when the page loads
 $(document).ready(function () {
     adjustFieldsOnTextChange();
 });
 
-// If text inside the span changes dynamically (e.g., AJAX update), use MutationObserver
+// Detect changes dynamically
 var observer = new MutationObserver(function () {
     adjustFieldsOnTextChange();
 });
