@@ -1,31 +1,4 @@
-function reArrangeAmtFields() {
-				debugger;
-			$.each(amountFields, function(_, sec) {
-				var ccy = $('#' + sec.ccy);
-				var amt = $('#' + sec.amt);
-				var ccyDiv = ccy.parent();
-				// Apply flex styling
-				ccyDiv.css({
-					display: 'flex',alignItems: 'center',gap: '2%',width:'98%'
-				});
-				ccy.css({
-					flex: '0 0 24%',maxWidth:'24%',minWidth:'24%'
-				});
-				amt.css({
-					flex: '0 0 74%',maxWidth:'74%',minWidth:'74%'
-				});
-				// Move amount field inside currency div if not already inside
-				if (!amt.parent().is(ccyDiv)) {
-					ccyDiv.append(amt);
-				}
-				
-				//add amountinwords span
-				var amountInWordsDiv = $('<span>', {
-                            id: 'amountInWords',
-                            class: 'amount-in-words'
-                        });
-						
-				ccyDiv.parent().append(amountInWordsDiv);
-				
-			});
-		}
+<div class="field-wrapper"><td class="FldLabel star">Bill Amount &amp; CCY</td><div class="select-wrapper" style="display: flex; align-items: center; gap: 2%; width: 98%;"><select name="INSUR_CCY" id="INSUR_CCY" class="CHAR_M select-field" title="Bill CCY" style="width: 226px; flex: 0 0 24%; max-width: 24%; min-width: 24%;">
+                                                <option value="ACD">ACD</option>
+                                                <option value="" selected=""></option>
+                                             </select><input name="AMT_NEGO_LC_CCY" type="text" class="AMT_M" id="AMT_NEGO_LC_CCY" title="Bill Amount" size="20" maxlength="20" style="width: 180px; flex: 0 0 74%; max-width: 74%; min-width: 74%;"></div><div id="messageDisplay_INSUR_CCY" class="error-message"></div><span id="AMT_NEGO_LC_CCY_amountInWords" class="amount-in-words">One Thousand Two Hundred Fifty Four US Dollars Only</span></div>
