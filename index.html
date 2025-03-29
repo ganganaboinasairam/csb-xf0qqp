@@ -1,3 +1,31 @@
-$('#modeOfTransportTd')[0].style.paddingTop = '0px';
-		$('#modeOfTransportTd')[0].style.paddingBottom = '20px';
-		$('#modeOfTransportTd')[0].style.paddingLeft = '0px';
+function reArrangeAmtFields() {
+				debugger;
+			$.each(amountFields, function(_, sec) {
+				var ccy = $('#' + sec.ccy);
+				var amt = $('#' + sec.amt);
+				var ccyDiv = ccy.parent();
+				// Apply flex styling
+				ccyDiv.css({
+					display: 'flex',alignItems: 'center',gap: '2%',width:'98%'
+				});
+				ccy.css({
+					flex: '0 0 24%',maxWidth:'24%',minWidth:'24%'
+				});
+				amt.css({
+					flex: '0 0 74%',maxWidth:'74%',minWidth:'74%'
+				});
+				// Move amount field inside currency div if not already inside
+				if (!amt.parent().is(ccyDiv)) {
+					ccyDiv.append(amt);
+				}
+				
+				//add amountinwords span
+				var amountInWordsDiv = $('<span>', {
+                            id: 'amountInWords',
+                            class: 'amount-in-words'
+                        });
+						
+				ccyDiv.parent().append(amountInWordsDiv);
+				
+			});
+		}
