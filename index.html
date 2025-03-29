@@ -1,4 +1,29 @@
-<div class="field-wrapper"><td class="FldLabel star">Bill Amount &amp; CCY</td><div class="select-wrapper" style="display: flex; align-items: center; gap: 2%; width: 98%;"><select name="INSUR_CCY" id="INSUR_CCY" class="CHAR_M select-field" title="Bill CCY" style="width: 226px; flex: 0 0 24%; max-width: 24%; min-width: 24%;">
-                                                <option value="ACD">ACD</option>
-                                                <option value="" selected=""></option>
-                                             </select><input name="AMT_NEGO_LC_CCY" type="text" class="AMT_M" id="AMT_NEGO_LC_CCY" title="Bill Amount" size="20" maxlength="20" style="width: 180px; flex: 0 0 74%; max-width: 74%; min-width: 74%;"></div><div id="messageDisplay_INSUR_CCY" class="error-message"></div><span id="AMT_NEGO_LC_CCY_amountInWords" class="amount-in-words">One Thousand Two Hundred Fifty Four US Dollars Only</span></div>
+.select-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 2%;
+    width: 98%;
+    flex-wrap: wrap; /* Allows wrapping when content increases */
+}
+
+.select-wrapper select,
+.select-wrapper input {
+    flex: 0 0 24%;
+    max-width: 24%;
+    min-width: 24%;
+    transition: height 0.2s ease-in-out; /* Smooth height adjustment */
+}
+
+.select-wrapper input {
+    flex: 0 0 74%;
+    max-width: 74%;
+    min-width: 74%;
+}
+
+.amount-in-words {
+    width: 100%; /* Ensures it takes full width without overlapping */
+    white-space: normal; /* Allows text to wrap within the div */
+    word-wrap: break-word; /* Breaks long words */
+    margin-top: 5px; /* Adds spacing between fields and the span */
+    font-size: 0.85em; /* Makes the text smaller */
+}
