@@ -1,13 +1,56 @@
-@echo off
-setlocal
+import com.jcraft.jsch.; import javax.swing.; import javax.swing.tree.DefaultMutableTreeNode; import javax.swing.tree.DefaultTreeModel; import java.awt.*; import java.io.InputStream; import java.util.Vector;
 
-cd /d "F:\SAIRAM\UTILITIES\logs"
+public class SFTPFileManager { private JTree fileTree; private DefaultTreeModel treeModel; private JSch jsch; private Session session; private ChannelSftp sftpChannel;
 
-set LOG_FILE = SFTPBackupTool.log
+public SFTPFileManager() {
+    JFrame frame = new JFrame("SFTP File Manager");
+    frame.setSize(600, 400);
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-cd /d "E:\sairam\myJars"
-java -jar SFTPBackupTool.jar > "%LOG_FILE%" 2>&1
+    DefaultMutableTreeNode root = new DefaultMutableTreeNode("SFTP Root");
+    treeModel = new DefaultTreeModel(root);
+    fileTree = new JTree(treeModel);
+    JScrollPane treeScrollPane = new JScrollPane(fileTree);
+    frame.add(treeScrollPane, BorderLayout.CENTER);
 
-echo Backup process completed. Logs saved in 
-%LOG_FILE%
-pause
+    connectToSFTP("sftp.example.com", "username", "password");
+    listFiles("/", root);
+    treeModel.reload();
+
+    frame.setVisible(true);
+}
+
+private void connectToSFTP(String host, String user, String password) {
+    try {
+        jsch = new JSch();
+        session = jsch.getSession(user, host, 22);
+        session.setPassword(password);
+        session.setConfig("StrictHostKeyChecking", "no");
+        session.connect();
+
+        Channel channel = session.openChannel("sftp");
+        channel.connect();
+        sftpChannel = (ChannelSftp) channel;
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+
+private void listFiles(String path, DefaultMutableTreeNode parent) {
+    try {
+        Vector<ChannelSftp.LsEntry> files = sftpChannel.ls(path);
+        for (ChannelSftp.LsEntry entry : files) {
+            DefaultMutableTreeNode node = new DefaultMutableTreeNode(entry.getFilename());
+            parent.add(node);
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+
+public static void main(String[] args) {
+    SwingUtilities.invokeLater(SFTPFileManager::new);
+}
+
+}
+
