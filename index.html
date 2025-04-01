@@ -1,10 +1,88 @@
-Dear Branch,
+package sftpBackup;
+import com.jcraft.jsch.*;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
 
-For the mentioned transaction, the CTA was incorrectly hit in the CBS for the last two events: Rail LC Amendment and LC Closure.
+import javax.swing.JFileChooser;
 
-Rail LC Amendment: The decrease in amount exceeded the LC balance. In such cases, the transaction should not have been processed. However, it was still mastered, resulting in a debit of 62,436,920 to the CTA.
+public class SFTPBackupTool {
 
-LC Closure: The CTA was debited by 16,519,882.00 instead of 117,876,220.20.
+    public static void main(String[] args) {
+        try {
+            // Load properties file
+            Properties properties = new Properties();
+            properties.load(new FileInputStream("properties/config.properties"));
 
+            String sftpHost = properties.getProperty("sftp.host");
+            int sftpPort = Integer.parseInt(properties.getProperty("sftp.port"));
+            String sftpUser = properties.getProperty("sftp.user");
+            String sftpPassword = properties.getProperty("sftp.password");
+            //String fileListPath = properties.getProperty("file.list.path");
+            
+            Scanner scanner = new Scanner(System.in);
+            System.out.print("Input the file paths: ");
+            String fileListPath = scanner.nextLine();
+            scanner.close();
+            
+            
+            // Open a folder chooser for the output directory
+            JFileChooser folderChooser = new JFileChooser();
+            folderChooser.setDialogTitle("Select output folder");
+            folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
-Since the LC has already been closed in the trade finance application, this issue cannot be rectified from the application side. Kindly process the CTA entries manually.
+            int folderResult = folderChooser.showOpenDialog(null);
+            if (folderResult != JFileChooser.APPROVE_OPTION) {
+                System.out.println("No output folder selected. Exiting...");
+                return;
+            }
+            
+            
+            String localBackupDir = folderChooser.getSelectedFile().getAbsolutePath() + File.separator;
+
+            // Read file list from properties-specified text file
+            List<String> filePaths = Files.readAllLines(Paths.get(fileListPath));
+
+            // Connect to SFTP server
+            JSch jsch = new JSch();
+            Session session = jsch.getSession(sftpUser, sftpHost, sftpPort);
+            if (sftpPassword != null && !sftpPassword.isEmpty()) {
+                session.setPassword(sftpPassword);
+            }
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
+
+            // Open SFTP channel
+            Channel channel = session.openChannel("sftp");
+            channel.connect();
+            ChannelSftp sftpChannel = (ChannelSftp) channel;
+
+            // Back up files with folder structure
+            for (String remoteFilePath : filePaths) {
+                try {
+                    // Preserve folder structure by replicating directory paths
+                    String relativePath = remoteFilePath.replaceFirst("^/TFEEAPP/", "");
+                    String localFilePath = Paths.get(localBackupDir, relativePath).toString();
+
+                    // Ensure local directories exist
+                    File localFile = new File(localFilePath);
+                    localFile.getParentFile().mkdirs();
+
+                    System.out.println("Backing up: " + remoteFilePath);
+                    sftpChannel.get(remoteFilePath, localFilePath);
+                    System.out.println("Backup completed: " + localFilePath);
+                } catch (SftpException e) {
+                    System.err.println("Failed to back up: " + remoteFilePath + " - " + e.getMessage());
+                }
+            }
+
+            // Disconnect
+            sftpChannel.disconnect();
+            session.disconnect();
+            System.out.println("All files backed up successfully!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
