@@ -1,16 +1,88 @@
-my file list is like this
+package sftpBackup; import com.jcraft.jsch.; import java.io.; import java.nio.file.; import java.util.;
 
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/Default/CATA/EXND_EnqCriteria.jsp
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/Default/CATA/EXND_AuthCriteria.jsp
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/Default/CATA/EXND_ModifyCriteria.jsp
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/Default/CATA/EXND_UnlockCriteria.jsp
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/Default/SCRN/EXND_Buttons.jsp
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/Default/SCRN/EXND_ExpBillReg_LC_EBR_NON_EBR_TF.jsp
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/Default/SCRN/EXND_Nego_Disc_create.jsp
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/Default/SCRN/EXND_ExpBillReg_TF_PreviewPage.jsp
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/JS/EXND_ExportBillRegisterLC_Function.js
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/JS/EXND_ExportBillRegisterLC_Event.js
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/JS/EXND_Nego_Disc_bundle.js
-/TFCEAPP/base_domain/CE.ear/CEWeb.war/screen/SYS_ResultSuccess.jsp
+import javax.swing.JFileChooser;
 
-when i gave this in the console the ssytem is not responding
+public class SFTPBackupTool {
+
+public static void main(String[] args) {
+    try {
+        // Load properties file
+        Properties properties = new Properties();
+        properties.load(new FileInputStream("properties/config.properties"));
+
+        String sftpHost = properties.getProperty("sftp.host");
+        int sftpPort = Integer.parseInt(properties.getProperty("sftp.port"));
+        String sftpUser = properties.getProperty("sftp.user");
+        String sftpPassword = properties.getProperty("sftp.password");
+
+        Scanner scanner = new Scanner(System.in);
+        List<String> filePaths = new ArrayList<>();
+
+        System.out.println("Enter file paths (press Enter on an empty line to finish):");
+        while (true) {
+            String input = scanner.nextLine().trim();
+            if (input.isEmpty()) { // Stop when an empty line is entered
+                break;
+            }
+            filePaths.add(input);
+        }
+        scanner.close();
+
+        // Open a folder chooser for the output directory
+        JFileChooser folderChooser = new JFileChooser();
+        folderChooser.setDialogTitle("Select output folder");
+        folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+        int folderResult = folderChooser.showOpenDialog(null);
+        if (folderResult != JFileChooser.APPROVE_OPTION) {
+            System.out.println("No output folder selected. Exiting...");
+            return;
+        }
+
+        String localBackupDir = folderChooser.getSelectedFile().getAbsolutePath() + File.separator;
+
+        // Connect to SFTP server
+        JSch jsch = new JSch();
+        Session session = jsch.getSession(sftpUser, sftpHost, sftpPort);
+        if (sftpPassword != null && !sftpPassword.isEmpty()) {
+            session.setPassword(sftpPassword);
+        }
+        session.setConfig("StrictHostKeyChecking", "no");
+        session.connect();
+
+        // Open SFTP channel
+        Channel channel = session.openChannel("sftp");
+        channel.connect();
+        ChannelSftp sftpChannel = (ChannelSftp) channel;
+
+        // Back up files with folder structure
+        for (String remoteFilePath : filePaths) {
+            try {
+                // Preserve folder structure by replicating directory paths
+                String relativePath = remoteFilePath.replaceFirst("^/TFEEAPP/", "");
+                String localFilePath = Paths.get(localBackupDir, relativePath).toString();
+
+                // Ensure local directories exist
+                File localFile = new File(localFilePath);
+                localFile.getParentFile().mkdirs();
+
+                System.out.println("Backing up: " + remoteFilePath);
+                sftpChannel.get(remoteFilePath, localFilePath);
+                System.out.println("Backup completed: " + localFilePath);
+            } catch (SftpException e) {
+                System.err.println("Failed to back up: " + remoteFilePath + " - " + e.getMessage());
+            }
+        }
+
+        // Disconnect
+        sftpChannel.disconnect();
+        session.disconnect();
+        System.out.println("All files backed up successfully!");
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+
+}
+
