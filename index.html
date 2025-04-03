@@ -1,37 +1,31 @@
 function reArrangeAmtFields() {
-			$.each(amountFields, function(_, sec) {
-				var ccy = $('#' + sec.ccy);
-				var amt = $('#' + sec.amt);
-				var ccyDiv = ccy.parent();
-				// Apply flex styling
-				ccyDiv.css({
-					display: 'flex',alignItems: 'center',gap: '2%',width:'98%'
-				});
-				ccy.css({
-					flex: '0 0 24%',maxWidth:'24%',minWidth:'24%'
-				});
-				amt.css({
-					flex: '0 0 74%',maxWidth:'74%',minWidth:'74%'
-				});
-				ccyDiv.css({
-					flexWrap:'wrap'
-				});
-				
-				// Move amount field inside currency div if not already inside
-				if (!amt.parent().is(ccyDiv)) {
-					ccyDiv.append(amt);
-				}
-				
-				//add amountinwords span
-				if(ccyDiv.parent().find('#'+sec.amt+'_amountInWords').length === 0){
-				var amountInWordsDiv = $('<span>', {
-                            id: sec.amt+'_amountInWords',
-                            class: 'amount-in-words'
-                        });
-				
-						
-				ccyDiv.parent().append(amountInWordsDiv);
-				}
-				
-			});
-		}
+    $.each(amountFields, function(_, sec) {
+        var ccy = $('#' + sec.ccy);
+        var amt = $('#' + sec.amt);
+        var ccyDiv = ccy.parent();
+        
+        // Apply flex styling with high priority for height
+        ccyDiv.attr('style', 'display: flex !important; align-items: center !important; gap: 2% !important; width: 98% !important; height: 50% !important;');
+
+        ccy.attr('style', 'flex: 0 0 24% !important; max-width: 24% !important; min-width: 24% !important; height: 50% !important;');
+
+        amt.attr('style', 'flex: 0 0 74% !important; max-width: 74% !important; min-width: 74% !important; height: 50% !important;');
+
+        ccyDiv.css({ flexWrap: 'wrap' });
+
+        // Move amount field inside currency div if not already inside
+        if (!amt.parent().is(ccyDiv)) {
+            ccyDiv.append(amt);
+        }
+
+        // Add amount-in-words span if it doesn't exist
+        if (ccyDiv.parent().find('#' + sec.amt + '_amountInWords').length === 0) {
+            var amountInWordsDiv = $('<span>', {
+                id: sec.amt + '_amountInWords',
+                class: 'amount-in-words'
+            });
+
+            ccyDiv.parent().append(amountInWordsDiv);
+        }
+    });
+}
