@@ -1,95 +1,63 @@
-ACD
-AED
-AUD
-BDT
-BHD
-BRL
-BTN
-CAD
-CHF
-CNY
-CYP
-DKK
-DZD
-EGP
-ETB
-EUR
-GBP
-HKD
-IDR
-ILS
-INR
-IQD
-IRR
-JOD
-JPY
-KES
-KRW
-KWD
-LBP
-LKR
-LYD
-MAD
-MMK
-MTL
-MUR
-MVR
-MYR
-NGN
-NOK
-NPR
-NZD
-OMR
-PHP
-PKR
-QAR
-RUB
-SAR
-SEK
-SGD
-SYP
-THB
-TND
-TRL
-TZS
-UGX
-USD
-VND
-XAU
-YER
-ZAR
-ZWD
-
-
-
 var ccyMapping = {
-		"CHF": ["Swiss Franc", "Swiss Francs", "Rappen", "Rappen"],
-		"SGD": ["Singapore Dollar", "Singapore Dollars", "Cent", "Cents"],
-		"BDT": ["Bangladeshi Taka", "Bangladeshi Taka", "Paisa", "Paisa"],
-		"JPY": ["Japanese Yen", "Japanese Yen", "Sen", "Sen"],
-		"NOK": ["Norwegian Krone", "Norwegian Kroner", "Øre", "Øre"],
-		"SAR": ["Saudi Riyal", "Saudi Riyals", "Halala", "Halalas"],
-		"AED": ["UAE Dirham", "UAE Dirhams", "Fils", "Fils"],
-		"NZD": ["New Zealand Dollar", "New Zealand Dollars", "Cent", "Cents"],
-		"DKK": ["Danish Krone", "Danish Kroner", "Øre", "Øre"],
-		"CNY": ["Chinese Yuan", "Chinese Yuan", "Fen", "Fen"],
-		"AUD": ["Australian Dollar", "Australian Dollars", "Cent", "Cents"],
-		"ZAR": ["South African Rand", "South African Rands", "Cent", "Cents"],
-		"LKR": ["Sri Lankan Rupee", "Sri Lankan Rupees", "Cent", "Cents"],
-		"QAR": ["Qatari Riyal", "Qatari Riyals", "Dirham", "Dirhams"],
-		"KWD": ["Kuwaiti Dinar", "Kuwaiti Dinars", "Fils", "Fils"],
-		"USD": ["US Dollar", "US Dollars", "Cent", "Cents"],
-		"XAU": ["Gold Ounce", "Gold Ounces", "", ""], // No subunit for Gold Ounce
-		"RUB": ["Russian Ruble", "Russian Rubles", "Kopeck", "Kopecks"],
-		"IRR": ["Iranian Rial", "Iranian Rials", "Dinar", "Dinars"],
-		"XAF": ["Central African CFA Franc", "Central African CFA Francs", "", ""], // No subunit
-		"EUR": ["Euro", "Euros", "Cent", "Cents"],
-		"GBP": ["British Pound", "British Pounds", "Penny", "Pence"],
-		"SEK": ["Swedish Krona", "Swedish Kronor", "Öre", "Öre"],
-		"CAD": ["Canadian Dollar", "Canadian Dollars", "Cent", "Cents"],
-		"HKD": ["Hong Kong Dollar", "Hong Kong Dollars", "Cent", "Cents"],
-		"ACD": ["Acre Dollar", "Acre Dollars", "Cent", "Cents"], // Placeholder if used
-		"BHD": ["Bahraini Dinar", "Bahraini Dinars", "Fils", "Fils"],
-		"OMR": ["Omani Rial", "Omani Rials", "Baisa", "Baisa"],
-		"INR": ["Rupee","Rupees","Paisa",""]
-		};
+    "ACD": ["Acre Dollar", "Acre Dollars", "Cent", "Cents"],
+    "AED": ["UAE Dirham", "UAE Dirhams", "Fils", "Fils"],
+    "AUD": ["Australian Dollar", "Australian Dollars", "Cent", "Cents"],
+    "BDT": ["Bangladeshi Taka", "Bangladeshi Taka", "Paisa", "Paisa"],
+    "BHD": ["Bahraini Dinar", "Bahraini Dinars", "Fils", "Fils"],
+    "BRL": ["Brazilian Real", "Brazilian Reais", "Centavo", "Centavos"],
+    "BTN": ["Bhutanese Ngultrum", "Bhutanese Ngultrums", "Chetrum", "Chetrums"],
+    "CAD": ["Canadian Dollar", "Canadian Dollars", "Cent", "Cents"],
+    "CHF": ["Swiss Franc", "Swiss Francs", "Rappen", "Rappen"],
+    "CNY": ["Chinese Yuan", "Chinese Yuan", "Fen", "Fen"],
+    "CYP": ["Cypriot Pound", "Cypriot Pounds", "Cent", "Cents"],
+    "DKK": ["Danish Krone", "Danish Kroner", "Øre", "Øre"],
+    "DZD": ["Algerian Dinar", "Algerian Dinars", "Centime", "Centimes"],
+    "EGP": ["Egyptian Pound", "Egyptian Pounds", "Piastre", "Piastres"],
+    "ETB": ["Ethiopian Birr", "Ethiopian Birrs", "Santim", "Santims"],
+    "EUR": ["Euro", "Euros", "Cent", "Cents"],
+    "GBP": ["British Pound", "British Pounds", "Penny", "Pence"],
+    "HKD": ["Hong Kong Dollar", "Hong Kong Dollars", "Cent", "Cents"],
+    "IDR": ["Indonesian Rupiah", "Indonesian Rupiahs", "Sen", "Sen"],
+    "ILS": ["Israeli Shekel", "Israeli Shekels", "Agora", "Agorot"],
+    "INR": ["Indian Rupee", "Indian Rupees", "Paisa", "Paisa"],
+    "IQD": ["Iraqi Dinar", "Iraqi Dinars", "Fils", "Fils"],
+    "IRR": ["Iranian Rial", "Iranian Rials", "Dinar", "Dinars"],
+    "JOD": ["Jordanian Dinar", "Jordanian Dinars", "Piastre", "Piastres"],
+    "JPY": ["Japanese Yen", "Japanese Yen", "Sen", "Sen"],
+    "KES": ["Kenyan Shilling", "Kenyan Shillings", "Cent", "Cents"],
+    "KRW": ["South Korean Won", "South Korean Won", "Jeon", "Jeon"],
+    "KWD": ["Kuwaiti Dinar", "Kuwaiti Dinars", "Fils", "Fils"],
+    "LBP": ["Lebanese Pound", "Lebanese Pounds", "Piastre", "Piastres"],
+    "LKR": ["Sri Lankan Rupee", "Sri Lankan Rupees", "Cent", "Cents"],
+    "LYD": ["Libyan Dinar", "Libyan Dinars", "Dirham", "Dirhams"],
+    "MAD": ["Moroccan Dirham", "Moroccan Dirhams", "Centime", "Centimes"],
+    "MMK": ["Burmese Kyat", "Burmese Kyats", "Pya", "Pyas"],
+    "MTL": ["Maltese Lira", "Maltese Liri", "Cent", "Cents"],
+    "MUR": ["Mauritian Rupee", "Mauritian Rupees", "Cent", "Cents"],
+    "MVR": ["Maldivian Rufiyaa", "Maldivian Rufiyaas", "Laari", "Laaris"],
+    "MYR": ["Malaysian Ringgit", "Malaysian Ringgits", "Sen", "Sen"],
+    "NGN": ["Nigerian Naira", "Nigerian Nairas", "Kobo", "Kobo"],
+    "NOK": ["Norwegian Krone", "Norwegian Kroner", "Øre", "Øre"],
+    "NPR": ["Nepalese Rupee", "Nepalese Rupees", "Paisa", "Paisa"],
+    "NZD": ["New Zealand Dollar", "New Zealand Dollars", "Cent", "Cents"],
+    "OMR": ["Omani Rial", "Omani Rials", "Baisa", "Baisa"],
+    "PHP": ["Philippine Peso", "Philippine Pesos", "Centavo", "Centavos"],
+    "PKR": ["Pakistani Rupee", "Pakistani Rupees", "Paisa", "Paisa"],
+    "QAR": ["Qatari Riyal", "Qatari Riyals", "Dirham", "Dirhams"],
+    "RUB": ["Russian Ruble", "Russian Rubles", "Kopeck", "Kopecks"],
+    "SAR": ["Saudi Riyal", "Saudi Riyals", "Halala", "Halalas"],
+    "SEK": ["Swedish Krona", "Swedish Kronor", "Öre", "Öre"],
+    "SGD": ["Singapore Dollar", "Singapore Dollars", "Cent", "Cents"],
+    "SYP": ["Syrian Pound", "Syrian Pounds", "Piastre", "Piastres"],
+    "THB": ["Thai Baht", "Thai Bahts", "Satang", "Satangs"],
+    "TND": ["Tunisian Dinar", "Tunisian Dinars", "Millime", "Millimes"],
+    "TRL": ["Turkish Lira", "Turkish Liras", "Kurus", "Kurus"],
+    "TZS": ["Tanzanian Shilling", "Tanzanian Shillings", "Cent", "Cents"],
+    "UGX": ["Ugandan Shilling", "Ugandan Shillings", "Cent", "Cents"],
+    "USD": ["US Dollar", "US Dollars", "Cent", "Cents"],
+    "VND": ["Vietnamese Dong", "Vietnamese Dong", "Hao", "Hao"],
+    "XAU": ["Gold Ounce", "Gold Ounces", "", ""], // No subunit for Gold Ounce
+    "YER": ["Yemeni Rial", "Yemeni Rials", "Fils", "Fils"],
+    "ZAR": ["South African Rand", "South African Rands", "Cent", "Cents"],
+    "ZWD": ["Zimbabwean Dollar", "Zimbabwean Dollars", "Cent", "Cents"]
+};
