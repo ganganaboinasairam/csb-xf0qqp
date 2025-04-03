@@ -1,29 +1,29 @@
-const amountFields = [
-				{ ccy: 'LC_CCY', amt: 'LC_AMT1'},
-				{ ccy: 'ELGB_NEGO_CCY', amt: 'ELGB_NEGO_AMT'},
-				{ ccy: 'CCY_NEGO_OTHER_BK', amt: 'AMT_NEGO_OTHER_BK'},
-				{ ccy: 'REQ_NEGO_CCY', amt: 'REQ_NEGO_AMT'},
-				{ ccy: 'ADVN_PYMT_CCY', amt: 'AMT_OF_ADVN_PYMT'},
-				{ ccy: 'INSUR_CCY', amt: 'AMT_NEGO_LC_CCY'}
-			];
+// Event listener to update amount in words when the input changes
+$input.on('input', function () {
+    var amtFieldId = $input.attr('id');
 
-else if ($input.attr('name') === 'AMT_NEGO_LC_CCY') {
-                        // Event listener to update amount in words when the input changes
-                        $input.on('input', function () {
-							var amtFieldId = $input.attr('id');
-							var amountInWordsDiv = document.getElementById(amtFieldId+'_amountInWords');
-                            var amtFieldId = $input.attr('id')
-                            var ccyFieldId = 'INSUR_CCY';
-							var ccyDiv = $('#' + ccyFieldId).parent();
-							ccyDiv.attr('style', 'display: flex !important; align-items: top !important; gap: 2% !important; width: 100% !important; height: 60% !important;');
-							$('#' + ccyFieldId).attr('style', 'flex: 0 0 24% !important; max-width: 24% !important; min-width: 24% !important; height: 70% !important;');
-							$('#' + amtFieldId).attr('style', 'flex: 0 0 74% !important; max-width: 74% !important; min-width: 74% !important; height: 70% !important;');
-							ccyDiv.css({ flexWrap: 'wrap' });
-							if(amtFieldId == ""){
-								amountInWordsDiv.text("");
-							}else{
-								var amountInWords = amountInWordsNew(ccyFieldId, amtFieldId)// Call the conversion function
-								 amountInWordsDiv.innerText=amountInWords;// Update the text in the amountInWordsDiv
-							}
-                        }); 
-                    }
+    // Loop through all amount fields and check if the current input matches
+    for (var i = 0; i < amountFields.length; i++) {
+        if (amountFields[i].amt === amtFieldId) {
+            var ccyFieldId = amountFields[i].ccy;
+            var amountInWordsDiv = document.getElementById(amtFieldId + '_amountInWords');
+            var ccyDiv = $('#' + ccyFieldId).parent();
+
+            // Apply high-priority styles
+            ccyDiv.attr('style', 'display: flex !important; align-items: top !important; gap: 2% !important; width: 100% !important; height: 60% !important;');
+            $('#' + ccyFieldId).attr('style', 'flex: 0 0 24% !important; max-width: 24% !important; min-width: 24% !important; height: 70% !important;');
+            $('#' + amtFieldId).attr('style', 'flex: 0 0 74% !important; max-width: 74% !important; min-width: 74% !important; height: 70% !important;');
+
+            ccyDiv.css({ flexWrap: 'wrap' });
+
+            // Update the amount in words
+            if ($input.val().trim() === "") {
+                amountInWordsDiv.textContent = "";
+            } else {
+                var amountInWords = amountInWordsNew(ccyFieldId, amtFieldId); // Call the conversion function
+                amountInWordsDiv.textContent = amountInWords; // Update the text in the amountInWordsDiv
+            }
+            break; // Exit loop once a match is found
+        }
+    }
+});
