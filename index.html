@@ -1,56 +1,38 @@
-import com.jcraft.jsch.; import javax.swing.; import javax.swing.tree.DefaultMutableTreeNode; import javax.swing.tree.DefaultTreeModel; import java.awt.*; import java.io.InputStream; import java.util.Vector;
-
-public class SFTPFileManager { private JTree fileTree; private DefaultTreeModel treeModel; private JSch jsch; private Session session; private ChannelSftp sftpChannel;
-
-public SFTPFileManager() {
-    JFrame frame = new JFrame("SFTP File Manager");
-    frame.setSize(600, 400);
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-    DefaultMutableTreeNode root = new DefaultMutableTreeNode("SFTP Root");
-    treeModel = new DefaultTreeModel(root);
-    fileTree = new JTree(treeModel);
-    JScrollPane treeScrollPane = new JScrollPane(fileTree);
-    frame.add(treeScrollPane, BorderLayout.CENTER);
-
-    connectToSFTP("sftp.example.com", "username", "password");
-    listFiles("/", root);
-    treeModel.reload();
-
-    frame.setVisible(true);
-}
-
-private void connectToSFTP(String host, String user, String password) {
-    try {
-        jsch = new JSch();
-        session = jsch.getSession(user, host, 22);
-        session.setPassword(password);
-        session.setConfig("StrictHostKeyChecking", "no");
-        session.connect();
-
-        Channel channel = session.openChannel("sftp");
-        channel.connect();
-        sftpChannel = (ChannelSftp) channel;
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
-}
-
-private void listFiles(String path, DefaultMutableTreeNode parent) {
-    try {
-        Vector<ChannelSftp.LsEntry> files = sftpChannel.ls(path);
-        for (ChannelSftp.LsEntry entry : files) {
-            DefaultMutableTreeNode node = new DefaultMutableTreeNode(entry.getFilename());
-            parent.add(node);
-        }
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
-}
-
-public static void main(String[] args) {
-    SwingUtilities.invokeLater(SFTPFileManager::new);
-}
-
-}
-
+function reArrangeAmtFields() {
+			$.each(amountFields, function(_, sec) {
+				var ccy = $('#' + sec.ccy);
+				var amt = $('#' + sec.amt);
+				var ccyDiv = ccy.parent();
+				// Apply flex styling
+				ccyDiv.css({
+					display: 'flex',alignItems: 'center',gap: '2%',width:'98%', height:'100%'
+				});
+				ccy.css({
+					flex: '50% 0 24%',maxWidth:'24%',minWidth:'24%'
+				});
+				amt.css({
+					flex: '0 50% 74%',maxWidth:'74%',minWidth:'74%'
+				});
+				ccyDiv.css({
+					flexWrap:'wrap'
+				});
+				
+				// Move amount field inside currency div if not already inside
+				if (!amt.parent().is(ccyDiv)) {
+					ccyDiv.append(amt);
+				}
+				
+				//add amountinwords span
+				if(ccyDiv.parent().find('#'+sec.amt+'_amountInWords').length === 0){
+				var amountInWordsDiv = $('<span>', {
+                            id: sec.amt+'_amountInWords',
+                            class: 'amount-in-words'
+                        });
+				
+				amountInWordsDiv.innerText= 'jsdfhkhfdshfkjdhfkdshf dsfj sd f fjdfhkjhfkdshfs dfjhdsfjhdsfhdsjfhsd fsdfjhdsfjhdsfjhdsf skdjfhdskjfhksd fsdkf sdkjfhdskf dskfhdsf sdkfhsdkf hdskfk'
+						
+				ccyDiv.parent().append(amountInWordsDiv);
+				}
+				
+			});
+		}
