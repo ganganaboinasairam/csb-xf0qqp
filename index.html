@@ -5,13 +5,13 @@ function reArrangeAmtFields() {
 				var ccyDiv = ccy.parent();
 				// Apply flex styling
 				ccyDiv.css({
-					display: 'flex',alignItems: 'center',gap: '2%',width:'98%', height:'100%'
+					display: 'flex',alignItems: 'center',gap: '2%',width:'98%'
 				});
 				ccy.css({
-					flex: '50% 0 24%',maxWidth:'24%',minWidth:'24%'
+					flex: '0 0 24%',maxWidth:'24%',minWidth:'24%'
 				});
 				amt.css({
-					flex: '0 50% 74%',maxWidth:'74%',minWidth:'74%'
+					flex: '0 0 74%',maxWidth:'74%',minWidth:'74%'
 				});
 				ccyDiv.css({
 					flexWrap:'wrap'
@@ -29,7 +29,6 @@ function reArrangeAmtFields() {
                             class: 'amount-in-words'
                         });
 				
-				amountInWordsDiv.innerText= 'jsdfhkhfdshfkjdhfkdshf dsfj sd f fjdfhkjhfkdshfs dfjhdsfjhdsfhdsjfhsd fsdfjhdsfjhdsfjhdsf skdjfhdskjfhksd fsdkf sdkjfhdskf dskfhdsf sdkfhsdkf hdskfk'
 						
 				ccyDiv.parent().append(amountInWordsDiv);
 				}
