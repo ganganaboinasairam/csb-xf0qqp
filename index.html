@@ -1,63 +1,31 @@
-var ccyMapping = {
-    "ACD": ["Acre Dollar", "Acre Dollars", "Cent", "Cents"],
-    "AED": ["UAE Dirham", "UAE Dirhams", "Fils", "Fils"],
-    "AUD": ["Australian Dollar", "Australian Dollars", "Cent", "Cents"],
-    "BDT": ["Bangladeshi Taka", "Bangladeshi Taka", "Paisa", "Paisa"],
-    "BHD": ["Bahraini Dinar", "Bahraini Dinars", "Fils", "Fils"],
-    "BRL": ["Brazilian Real", "Brazilian Reais", "Centavo", "Centavos"],
-    "BTN": ["Bhutanese Ngultrum", "Bhutanese Ngultrums", "Chetrum", "Chetrums"],
-    "CAD": ["Canadian Dollar", "Canadian Dollars", "Cent", "Cents"],
-    "CHF": ["Swiss Franc", "Swiss Francs", "Rappen", "Rappen"],
-    "CNY": ["Chinese Yuan", "Chinese Yuan", "Fen", "Fen"],
-    "CYP": ["Cypriot Pound", "Cypriot Pounds", "Cent", "Cents"],
-    "DKK": ["Danish Krone", "Danish Kroner", "Øre", "Øre"],
-    "DZD": ["Algerian Dinar", "Algerian Dinars", "Centime", "Centimes"],
-    "EGP": ["Egyptian Pound", "Egyptian Pounds", "Piastre", "Piastres"],
-    "ETB": ["Ethiopian Birr", "Ethiopian Birrs", "Santim", "Santims"],
-    "EUR": ["Euro", "Euros", "Cent", "Cents"],
-    "GBP": ["British Pound", "British Pounds", "Penny", "Pence"],
-    "HKD": ["Hong Kong Dollar", "Hong Kong Dollars", "Cent", "Cents"],
-    "IDR": ["Indonesian Rupiah", "Indonesian Rupiahs", "Sen", "Sen"],
-    "ILS": ["Israeli Shekel", "Israeli Shekels", "Agora", "Agorot"],
-    "INR": ["Indian Rupee", "Indian Rupees", "Paisa", "Paisa"],
-    "IQD": ["Iraqi Dinar", "Iraqi Dinars", "Fils", "Fils"],
-    "IRR": ["Iranian Rial", "Iranian Rials", "Dinar", "Dinars"],
-    "JOD": ["Jordanian Dinar", "Jordanian Dinars", "Piastre", "Piastres"],
-    "JPY": ["Japanese Yen", "Japanese Yen", "Sen", "Sen"],
-    "KES": ["Kenyan Shilling", "Kenyan Shillings", "Cent", "Cents"],
-    "KRW": ["South Korean Won", "South Korean Won", "Jeon", "Jeon"],
-    "KWD": ["Kuwaiti Dinar", "Kuwaiti Dinars", "Fils", "Fils"],
-    "LBP": ["Lebanese Pound", "Lebanese Pounds", "Piastre", "Piastres"],
-    "LKR": ["Sri Lankan Rupee", "Sri Lankan Rupees", "Cent", "Cents"],
-    "LYD": ["Libyan Dinar", "Libyan Dinars", "Dirham", "Dirhams"],
-    "MAD": ["Moroccan Dirham", "Moroccan Dirhams", "Centime", "Centimes"],
-    "MMK": ["Burmese Kyat", "Burmese Kyats", "Pya", "Pyas"],
-    "MTL": ["Maltese Lira", "Maltese Liri", "Cent", "Cents"],
-    "MUR": ["Mauritian Rupee", "Mauritian Rupees", "Cent", "Cents"],
-    "MVR": ["Maldivian Rufiyaa", "Maldivian Rufiyaas", "Laari", "Laaris"],
-    "MYR": ["Malaysian Ringgit", "Malaysian Ringgits", "Sen", "Sen"],
-    "NGN": ["Nigerian Naira", "Nigerian Nairas", "Kobo", "Kobo"],
-    "NOK": ["Norwegian Krone", "Norwegian Kroner", "Øre", "Øre"],
-    "NPR": ["Nepalese Rupee", "Nepalese Rupees", "Paisa", "Paisa"],
-    "NZD": ["New Zealand Dollar", "New Zealand Dollars", "Cent", "Cents"],
-    "OMR": ["Omani Rial", "Omani Rials", "Baisa", "Baisa"],
-    "PHP": ["Philippine Peso", "Philippine Pesos", "Centavo", "Centavos"],
-    "PKR": ["Pakistani Rupee", "Pakistani Rupees", "Paisa", "Paisa"],
-    "QAR": ["Qatari Riyal", "Qatari Riyals", "Dirham", "Dirhams"],
-    "RUB": ["Russian Ruble", "Russian Rubles", "Kopeck", "Kopecks"],
-    "SAR": ["Saudi Riyal", "Saudi Riyals", "Halala", "Halalas"],
-    "SEK": ["Swedish Krona", "Swedish Kronor", "Öre", "Öre"],
-    "SGD": ["Singapore Dollar", "Singapore Dollars", "Cent", "Cents"],
-    "SYP": ["Syrian Pound", "Syrian Pounds", "Piastre", "Piastres"],
-    "THB": ["Thai Baht", "Thai Bahts", "Satang", "Satangs"],
-    "TND": ["Tunisian Dinar", "Tunisian Dinars", "Millime", "Millimes"],
-    "TRL": ["Turkish Lira", "Turkish Liras", "Kurus", "Kurus"],
-    "TZS": ["Tanzanian Shilling", "Tanzanian Shillings", "Cent", "Cents"],
-    "UGX": ["Ugandan Shilling", "Ugandan Shillings", "Cent", "Cents"],
-    "USD": ["US Dollar", "US Dollars", "Cent", "Cents"],
-    "VND": ["Vietnamese Dong", "Vietnamese Dong", "Hao", "Hao"],
-    "XAU": ["Gold Ounce", "Gold Ounces", "", ""], // No subunit for Gold Ounce
-    "YER": ["Yemeni Rial", "Yemeni Rials", "Fils", "Fils"],
-    "ZAR": ["South African Rand", "South African Rands", "Cent", "Cents"],
-    "ZWD": ["Zimbabwean Dollar", "Zimbabwean Dollars", "Cent", "Cents"]
-};
+// Check if the input field is currency field to add amount in words
+					else if (amountFields.map(field => field.ccy).includes($input.attr('name'))) {
+                        // Event listener to update amount in words when the input changes
+                        $input.on('change', function () {
+						var ccyFieldId = $input.attr('id');
+
+						// Find the corresponding currency field for the current amount field
+						var fieldMapping = amountFields.find(field => field.ccy === ccyFieldId);
+						
+						if (fieldMapping) {
+							var amtFieldId = fieldMapping.amt;
+							var amountInWordsDiv = document.getElementById(amtFieldId + '_amountInWords');
+							var ccyDiv = $('#' + ccyFieldId).parent();
+
+							// Apply high-priority styles
+							ccyDiv.attr('style', 'display: flex !important; align-items: top !important; gap: 2% !important; width: 100% !important; height: 60% !important;');
+							$('#' + ccyFieldId).attr('style', 'flex: 0 0 24% !important; max-width: 24% !important; min-width: 24% !important; height: 70% !important;');
+							$('#' + amtFieldId).attr('style', 'flex: 0 0 74% !important; max-width: 74% !important; min-width: 74% !important; height: 70% !important;');
+							ccyDiv.css({ flexWrap: 'wrap' });
+
+							// Update the amount in words
+							if ($('#' + amtFieldId).val().trim() === "") {
+								amountInWordsDiv.textContent = "";
+								reArrangeAmtFields();
+							} else {
+								var amountInWords = amountInWordsNew(ccyFieldId, amtFieldId); // Call the conversion function
+								amountInWordsDiv.textContent = amountInWords; // Update the text in the amountInWordsDiv
+							}
+						}
+					}); 
+                    }
