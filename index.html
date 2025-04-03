@@ -1,27 +1,95 @@
-$input.on('input', function () {
-    var amtFieldId = $input.attr('id');
+ACD
+AED
+AUD
+BDT
+BHD
+BRL
+BTN
+CAD
+CHF
+CNY
+CYP
+DKK
+DZD
+EGP
+ETB
+EUR
+GBP
+HKD
+IDR
+ILS
+INR
+IQD
+IRR
+JOD
+JPY
+KES
+KRW
+KWD
+LBP
+LKR
+LYD
+MAD
+MMK
+MTL
+MUR
+MVR
+MYR
+NGN
+NOK
+NPR
+NZD
+OMR
+PHP
+PKR
+QAR
+RUB
+SAR
+SEK
+SGD
+SYP
+THB
+TND
+TRL
+TZS
+UGX
+USD
+VND
+XAU
+YER
+ZAR
+ZWD
 
-    // Find the corresponding currency field for the current amount field
-    var fieldMapping = amountFields.find(field => field.amt === amtFieldId);
-    
-    if (fieldMapping) {
-        var ccyFieldId = fieldMapping.ccy;
-        var amountInWordsDiv = document.getElementById(amtFieldId + '_amountInWords');
-        var ccyDiv = $('#' + ccyFieldId).parent();
 
-        // Apply high-priority styles
-        ccyDiv.attr('style', 'display: flex !important; align-items: top !important; gap: 2% !important; width: 100% !important; height: 60% !important;');
-        $('#' + ccyFieldId).attr('style', 'flex: 0 0 24% !important; max-width: 24% !important; min-width: 24% !important; height: 70% !important;');
-        $('#' + amtFieldId).attr('style', 'flex: 0 0 74% !important; max-width: 74% !important; min-width: 74% !important; height: 70% !important;');
 
-        ccyDiv.css({ flexWrap: 'wrap' });
-
-        // Update the amount in words
-        if ($input.val().trim() === "") {
-            amountInWordsDiv.textContent = "";
-        } else {
-            var amountInWords = amountInWordsNew(ccyFieldId, amtFieldId); // Call the conversion function
-            amountInWordsDiv.textContent = amountInWords; // Update the text in the amountInWordsDiv
-        }
-    }
-});
+var ccyMapping = {
+		"CHF": ["Swiss Franc", "Swiss Francs", "Rappen", "Rappen"],
+		"SGD": ["Singapore Dollar", "Singapore Dollars", "Cent", "Cents"],
+		"BDT": ["Bangladeshi Taka", "Bangladeshi Taka", "Paisa", "Paisa"],
+		"JPY": ["Japanese Yen", "Japanese Yen", "Sen", "Sen"],
+		"NOK": ["Norwegian Krone", "Norwegian Kroner", "Øre", "Øre"],
+		"SAR": ["Saudi Riyal", "Saudi Riyals", "Halala", "Halalas"],
+		"AED": ["UAE Dirham", "UAE Dirhams", "Fils", "Fils"],
+		"NZD": ["New Zealand Dollar", "New Zealand Dollars", "Cent", "Cents"],
+		"DKK": ["Danish Krone", "Danish Kroner", "Øre", "Øre"],
+		"CNY": ["Chinese Yuan", "Chinese Yuan", "Fen", "Fen"],
+		"AUD": ["Australian Dollar", "Australian Dollars", "Cent", "Cents"],
+		"ZAR": ["South African Rand", "South African Rands", "Cent", "Cents"],
+		"LKR": ["Sri Lankan Rupee", "Sri Lankan Rupees", "Cent", "Cents"],
+		"QAR": ["Qatari Riyal", "Qatari Riyals", "Dirham", "Dirhams"],
+		"KWD": ["Kuwaiti Dinar", "Kuwaiti Dinars", "Fils", "Fils"],
+		"USD": ["US Dollar", "US Dollars", "Cent", "Cents"],
+		"XAU": ["Gold Ounce", "Gold Ounces", "", ""], // No subunit for Gold Ounce
+		"RUB": ["Russian Ruble", "Russian Rubles", "Kopeck", "Kopecks"],
+		"IRR": ["Iranian Rial", "Iranian Rials", "Dinar", "Dinars"],
+		"XAF": ["Central African CFA Franc", "Central African CFA Francs", "", ""], // No subunit
+		"EUR": ["Euro", "Euros", "Cent", "Cents"],
+		"GBP": ["British Pound", "British Pounds", "Penny", "Pence"],
+		"SEK": ["Swedish Krona", "Swedish Kronor", "Öre", "Öre"],
+		"CAD": ["Canadian Dollar", "Canadian Dollars", "Cent", "Cents"],
+		"HKD": ["Hong Kong Dollar", "Hong Kong Dollars", "Cent", "Cents"],
+		"ACD": ["Acre Dollar", "Acre Dollars", "Cent", "Cents"], // Placeholder if used
+		"BHD": ["Bahraini Dinar", "Bahraini Dinars", "Fils", "Fils"],
+		"OMR": ["Omani Rial", "Omani Rials", "Baisa", "Baisa"],
+		"INR": ["Rupee","Rupees","Paisa",""]
+		};
