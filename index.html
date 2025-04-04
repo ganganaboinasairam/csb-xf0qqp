@@ -1,191 +1,116 @@
 function doPageInit() { debugger;
 
-// Delayed initializations
-setTimeout(() => {
-    if (sessionStorage.getItem('SingleAuthLC') === "Y") {
-        sessionStorage.setItem('SingleAuthLC', 'N');
-        singleAuthorizeLC();
-    }
-}, 100);
+// Common initial operations setTimeout(() => { if (sessionStorage.getItem('SingleAuthLC') === "Y") { sessionStorage.setItem('SingleAuthLC', 'N'); singleAuthorizeLC(); } }, 100);
 
-setTimeout(() => {
-    amountToWordsAll();
-}, 500);
+setTimeout(() => { amountToWordsAll(); }, 500);
 
 console.log("doPageInit starts");
 
-// Check transaction mode and flags
-if (ITEM_ID !== "ModifyTrx" || sessionStorage.getItem('draftFlag') === 'P' || sessionStorage.getItem('draftFlagset') === 'P') {
-    sessionStorage.setItem('EditFlag', 'N');
-    $("#activepasttab").hide();
-    sessionStorage.setItem('draftFlagset', '');
-}
+if (ITEM_ID !== "ModifyTrx" || sessionStorage.getItem('draftFlag') === 'P' || sessionStorage.getItem('draftFlagset') === 'P') { sessionStorage.setItem('EditFlag', 'N'); $("#activepasttab").hide(); sessionStorage.setItem('draftFlagset', ''); }
 
 $("#confirmButtonid").hide();
 
-const role = sessionStorage.getItem('role');
+// Execute role-based blocks const role = sessionStorage.getItem('role'); if (role === 'C') { handleCheckerRole(); } else if (role === 'M') { handleMakerRole(); }
 
-if (role === 'C') {
-    // Checker role actions
-    document.getElementById("CHECKBOX2").checked = true;
-    $("#CHECKBOX2").attr("checked", "checked");
-    $("#CHECKBOX2").attr("disabled", "disabled");
-    $("#TrxSysBtnsDiv1").hide();
-    $("#TrxSysBtnsDivChecker").show();
-    $('.use-existing-template').hide();
-    $("#prim_release, #prim_release1").attr("disabled", false);
-    $("#releaseTab, #COMMENT_BTN, #sec_cancel, #btnMaker, #SavedActTrx, #save_tab").hide();
-    $("#btnChecker").show();
+if (sesFuncId === "F05030701095") { handlePastTransactions(); } }
 
-    $('#authLCButton1, #unlockLCButton, #viewLCButton1, .sec_cancel').removeAttr('disabled');
+function handleCheckerRole() { $("#CHECKBOX2").prop("checked", true).attr("disabled", true); $("#TrxSysBtnsDiv1").hide(); $("#TrxSysBtnsDivChecker").show(); $(".use-existing-template").hide(); $("#prim_release, #prim_release1").prop("disabled", false); $("#releaseTab, #COMMENT_BTN, #sec_cancel, #btnMaker, #SavedActTrx, #save_tab").hide(); $("#btnChecker").show();
 
-    EBR_FLAG_OnChange();
-    loadTempFields();
-    $("#BILL_FINANCE_CCY").attr("disabled", true);
+EBR_FLAG_OnChange(); loadTempFields(); $("#BILL_FINANCE_CCY").prop("disabled", true);
 
-    if (document.getElementById("TEMP_ROW_COUNT").value > 0) {
-        document.getElementById("tick5").style.display = "inline";
+toggleTick5(); handleAuthStatus(); handleSpecialApplication();
+
+if (sessionStorage.getItem('EditFlag') === 'Y' || SYS_FUNCTION_TYPE === 'EC') { disableAllFields('EXNDmainDiv1'); $("#tdconfirmChecker, #btnChecker, #btnMaker, #editid, #editspan, #backButtonid, #submitButtonid, #confirmButtonid").hide(); $("#save_tab, #expportAsid, #expportAsid1").show(); $(".sec_cancel").prop("disabled", false); $('#viewLCButton1').css({ 'background-color': 'white', 'color': '#5b1d8d', 'border-right': '1px solid white' }); $('#authLCButton').css({ 'background-color': '', 'color': '', 'border-right': '' }); checkMandatoryFieldsForSections(); } }
+
+function handleMakerRole() { $("#TrxSysBtnsDiv1").show(); $("#TrxSysBtnsDivChecker, #btnChecker, #SavedActTrx, #save_tab").hide(); $("#btnMaker").show();
+
+toggleTick5();
+
+if ((sessionStorage.getItem('EditFlag') === 'Y' && sessionStorage.getItem('draftFlag') !== 'P') || SYS_FUNCTION_TYPE === 'EC') { $("#SavedActTrx").show(); $("#TrxSysBtnsDiv1").hide();
+
+enabledFlag = false;
+$("#CHECKBOX2").prop("checked", true).prop("disabled", true);
+$(".sec_cancel, .use-existing-template").hide();
+
+EBR_FLAG_OnChange();
+disableAllFields('EXNDmainDiv1');
+$("#save_tab").show();
+$("#expportAsid, #backButtonid").prop("disabled", false);
+$("#submitButtonid").prop("disabled", true).show();
+$("#prim_next, #prim_save").hide();
+$("#btnMaker").show();
+$("#buttonContainer, #tabsForChecker").hide();
+$('#viewLCButton').css({
+  'background-color': 'white',
+  'color': '#5b1d8d',
+  'border-right': '1px solid white'
+});
+$('#exndNegoDiscButton').css({ 'background-color': '', 'color': '', 'border-right': '' });
+$('.editbtn').show();
+
+if ($('#LC_NONLC').val() == 2) {
+  $("#LC_CCY").val("");
+  $("#LC_AMT1, #PRES_BAL_LC").prop("disabled", true);
+}
+
+loadTempFields();
+checkMandatoryFieldsForSections();
+
+const C_MAIN_REF = getFldValue("C_MAIN_REF");
+const moduleProductCode = PRODUCT_ID;
+
+$.ajax({
+  url: '../servlets/ActiveStatus',
+  type: 'get',
+  async: false,
+  dataType: 'json',
+  data: { refNumber: C_MAIN_REF, moduleProductCode: moduleProductCode },
+  success: function(responseText) {
+    const [statusCode, lastAction] = responseText.split("$");
+    $("#C_TRX_STATUS").val(statusCode);
+    $("#LastAction").val(lastAction);
+
+    const statusMap = {
+      'A': "Rejected by Bank",
+      'B': "Pending Bank Authorisation",
+      'C': "Processed",
+      'D': "Incomplete",
+      'E': "Modification",
+      'J': "Rejected by Customer Checker",
+      'M': "Authorised",
+      'P': "Pending with Customer Checker",
+      'R': "Rejected by Customer Checker",
+      'S': "Pending with Bank",
+      'T': "Pending with Customer Checker",
+      'Z': "Saved as Draft"
+    };
+
+    const status = statusMap[statusCode] || "";
+    if (["A", "B", "C", "D", "E", "J", "M", "S"].includes(statusCode)) {
+      $("#editspan, #editid").hide();
+    }
+
+    if (statusCode === 'A') {
+      $("#makerrejreason").val(getFldValue("NOTES"));
     } else {
-        document.getElementById("tick5").style.display = "none";
+      $("#makerrejreason").val($("input[name='C_REFUSE_REASON']").val());
     }
 
-    if (sessionStorage.getItem('AuthStatus') === 'Auth') {
-        $("input[name=REJECT]").hide();
-    } else if (sessionStorage.getItem('AuthStatus') === 'Rej') {
-        $("input[name=AUTHORISE]").show();
-    }
+    $("#makerrejstatus").val(status);
+    $('#editspan, #editid').show();
+  },
+  error: function(err) {
+    console.log("Error STAUS", err);
+  }
+});
 
-    if ($("#APPL_ID").val().indexOf("00000080875812998") === 0) {
-        insertCommentsOnAuth("s");
-        $("#issueLcIdTd").addClass(' star');
-        $("#C_AUDIT_COMMENTR").removeAttr("readonly");
+} }
 
-        if (document.getElementById("CASE_ID")) {
-            $("#CASE_ID").removeAttr("readonly");
-        }
-        if (document.getElementById("C_DROP_DOWN")) {
-            $("#C_DROP_DOWN").removeAttr("disabled");
-        }
-    } else {
-        $("#issueLcId").css("display", "none");
-    }
+function handlePastTransactions() { $("#TrxSysBtnsDiv1, .cue-card, .step-by-step, .rejectdiv, #editid, #editspan, #submitButtonid").hide(); $("#expportAsid, #expportAsid1").show(); loadTempFields(); disableAllFields('EXNDmainDiv1'); checkMandatoryFieldsForSections(); $(".sec_cancel").prop("disabled", false); $("#backButtonid").prop("disabled", false); }
 
-    if (sessionStorage.getItem('EditFlag') === 'Y' || SYS_FUNCTION_TYPE === 'EC') {
-        disableAllFields('EXNDmainDiv1');
-        $("#tdconfirmChecker, #btnChecker, #btnMaker, #editid, #editspan, #backButtonid, #submitButtonid, #confirmButtonid").hide();
-        $("#save_tab, #expportAsid, #expportAsid1").show();
-        $('.sec_cancel').attr("disabled", false);
-        $('#viewLCButton1').css({ 'background-color': 'white', 'color': '#5b1d8d', 'border-right': '1px solid white' });
-        checkMandatoryFieldsForSections();
-    }
-}
+function toggleTick5() { if (+$("#TEMP_ROW_COUNT").val() > 0) { $("#tick5").show(); $("#number4").hide(); } else { $("#tick5").hide(); } }
 
-if (role === 'M') {
-    // Maker role actions
-    $("#TrxSysBtnsDiv1").show();
-    $("#TrxSysBtnsDivChecker, #btnChecker, #SavedActTrx, #save_tab").hide();
-    $("#btnMaker").show();
+function handleAuthStatus() { const authStatus = sessionStorage.getItem('AuthStatus'); if (authStatus === 'Auth') { $("input[name=REJECT]").hide(); } else if (authStatus === 'Rej') { $("input[name=AUTHORISE]").show(); } }
 
-    if (document.getElementById("TEMP_ROW_COUNT").value > 0) {
-        document.getElementById("tick5").style.display = "inline";
-        document.getElementById("number4").style.display = "none";
-    } else {
-        document.getElementById("tick5").style.display = "none";
-    }
-
-    if ((sessionStorage.getItem('EditFlag') === 'Y' && sessionStorage.getItem('draftFlag') !== 'P') || SYS_FUNCTION_TYPE === 'EC') {
-        $('#SavedActTrx').show();
-        $("#TrxSysBtnsDiv1").hide();
-        enabledFlag = false;
-        $("#CHECKBOX2").attr("checked", "checked").attr("disabled", "disabled");
-        $('.sec_cancel, .use-existing-template').hide();
-
-        EBR_FLAG_OnChange();
-        disableAllFields('EXNDmainDiv1');
-
-        $('#save_tab').show();
-        $("#expportAsid, #backButtonid").attr("disabled", false);
-        $("#submitButtonid").attr("disabled", true).show();
-        $("#prim_next, #prim_save, #buttonContainer, #tabsForChecker").hide();
-        $("#btnMaker").show();
-
-        $('#viewLCButton').css({ 'background-color': 'white', 'color': '#5b1d8d', 'border-right': '1px solid white' });
-        $('#exndNegoDiscButton').css({ 'background-color': '', 'color': '', 'border-right': '' });
-        $('.editbtn').show();
-
-        if (document.getElementById("LC_NONLC").value == 2) {
-            document.getElementById("LC_CCY").value = "";
-            document.getElementById("LC_AMT1").disabled = true;
-            document.getElementById("PRES_BAL_LC").disabled = true;
-        }
-
-        loadTempFields();
-        checkMandatoryFieldsForSections();
-
-        const C_MAIN_REF = getFldValue("C_MAIN_REF");
-        const moduleProductCode = PRODUCT_ID;
-
-        $.ajax({
-            url: '../servlets/ActiveStatus',
-            type: 'get',
-            async: false,
-            dataType: 'json',
-            data: { refNumber: C_MAIN_REF, moduleProductCode: moduleProductCode },
-            success: function (responseText) {
-                const [status, lastAction] = responseText.split("$");
-                $("#C_TRX_STATUS").val(status);
-                $("#LastAction").val(lastAction);
-            },
-            error: function (err) {
-                console.log("Error STAUS" + err);
-            }
-        });
-
-        const s = $("#C_TRX_STATUS").val();
-        let status = "";
-        const hideEdit = ["A", "B", "C", "D", "E", "J", "M", "S"];
-
-        const statusMap = {
-            'A': "Rejected by Bank",
-            'B': "Pending Bank Authorisation",
-            'C': "Processed",
-            'D': "Incomplete",
-            'E': "Modification",
-            'J': "Rejected by Customer Checker",
-            'M': "Authorised",
-            'P': "Pending with Customer Checker",
-            'R': "Rejected by Customer Checker",
-            'S': "Pending with Bank",
-            'T': "Pending with Customer Checker",
-            'Z': "Saved as Draft"
-        };
-
-        if (statusMap[s]) status = statusMap[s];
-        if (hideEdit.includes(s)) {
-            $("#editspan, #editid").hide();
-        }
-
-        if (s === 'A') {
-            $("#makerrejreason").val(getFldValue("NOTES"));
-        } else {
-            $("#makerrejreason").val($("input[name='C_REFUSE_REASON']").val());
-        }
-
-        $("#makerrejstatus").val(status);
-        $("#editspan, #editid").show();
-    }
-}
-
-if (sesFuncId === "F05030701095") {
-    // Past transactions view
-    $("#TrxSysBtnsDiv1, .cue-card, .step-by-step, .rejectdiv, #editid, #editspan, #submitButtonid").hide();
-    $("#expportAsid, #expportAsid1").show();
-    loadTempFields();
-    disableAllFields('EXNDmainDiv1');
-    checkMandatoryFieldsForSections();
-    $('.sec_cancel').attr("disabled", false);
-    $("#backButtonid").attr("disabled", false);
-}
-
-}
+function handleSpecialApplication() { const applId = $("#APPL_ID").val(); if (applId.startsWith("00000080875812998")) { insertCommentsOnAuth("s"); $("#issueLcIdTd").addClass('star'); $("#C_AUDIT_COMMENTR, #CASE_ID").prop("readonly", false); $("#C_DROP_DOWN").prop("disabled", false); } else { $("#issueLcId").hide(); } }
 
