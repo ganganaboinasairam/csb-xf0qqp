@@ -1,323 +1,191 @@
-function doPageInit(){
-		debugger;
-		
-      setTimeout(function(){
-		  
-	if(sessionStorage.getItem('SingleAuthLC') == "Y"){
-			sessionStorage.setItem('SingleAuthLC','N');			
-			singleAuthorizeLC();		
-	}		
-	},100);
-	
-	setTimeout(function(){
-		  
-	amountToWordsAll();		
-	},500);
-	console.log("doPageInit starts");
-	
-	if(ITEM_ID!="ModifyTrx" || sessionStorage.getItem('draftFlag')=='P' || sessionStorage.getItem('draftFlagset')=='P' ) {
-			sessionStorage.setItem('EditFlag','N')
-			{
-				
-				$("#activepasttab").hide();
+function doPageInit() { debugger;
 
-			}
-			sessionStorage.setItem('draftFlagset','');
-		} 
-	$("#confirmButtonid").hide();
-	
-//FOR CHECKER
-  if(sessionStorage.getItem('role')=='C'){
-             
-        document.getElementById("CHECKBOX2").checked = true 
-	    $("#CHECKBOX2").attr("checked","checked");
-		$("#CHECKBOX2").attr("disabled","disabled");
-		$("#TrxSysBtnsDiv1").hide();
-		$("#TrxSysBtnsDivChecker").show();
-		 $('.use-existing-template').hide();
-		 $("#prim_release").attr("disabled",false);
-		  $("#prim_release1").attr("disabled",false);
-		$("#releaseTab").hide();
-		$('#COMMENT_BTN').hide();
-        $('#authLCButton1').removeAttr('disabled');
-		$('#unlockLCButton').removeAttr('disabled');
-		$('#viewLCButton1').removeAttr('disabled');
-		$('.sec_cancel').removeAttr('disabled');	
-         $("#sec_cancel").hide();
-         $("#btnMaker").hide();
-		 $("#btnChecker").show();
-		 $('#SavedActTrx').hide();  
-        $('#save_tab').hide();	/* 
-document.getElementById("BILL_FINANCE_CCY").value = document.getElementById("BILL_FINANCE_CCY_TEMP").value;
-			  setFldValue('BILL_FINANCE_CCY',getFldValue('BILL_FINANCE_CCY_TEMP'));	 */	
-			 EBR_FLAG_OnChange();
-			  loadTempFields();//for checker
-			   $("#BILL_FINANCE_CCY").attr("disabled",true);
-		if (document.getElementById("TEMP_ROW_COUNT").value > 0){
-           document.getElementById("tick5").style.display="inline";
-}else {
-document.getElementById("tick5").style.display="none";
-}	
-					if(sessionStorage.getItem('AuthStatus')=='Auth')
-					{
-					$("input[name=REJECT]").hide();
-					}
-					else if(sessionStorage.getItem('AuthStatus')=='Rej')
-					{
-					$("input[name=AUTHORISE]").show();
-					}
-		if($("#APPL_ID").val().indexOf("00000080875812998") ==0){
-		insertCommentsOnAuth("s");
-		$("#issueLcIdTd").addClass(' star');
-		$("#C_AUDIT_COMMENTR").removeAttr("readonly");
-		if (document.getElementById("CASE_ID")){
-			$("#CASE_ID").removeAttr("readonly");
-		}
-			if (document.getElementById("C_DROP_DOWN")){
-				$("#C_DROP_DOWN").removeAttr("disabled");
-			}
-		}
-     if($("#APPL_ID").val().indexOf("00000080875812998") ==-1){
-		$("#issueLcId").css("display","none");
-		}
-			
-	//View and manage in checker
-		if(sessionStorage.getItem('EditFlag')=='Y'|| SYS_FUNCTION_TYPE=='EC'  )
-		{
-		    disableAllFields('EXNDmainDiv1');
-			$("#tdconfirmChecker").hide();	
-			$("#btnChecker").css("display","none");
-			$("#btnMaker").hide();
-			$("#btnChecker").show();
-			$("#editid").hide();
-			$("#editspan").hide();
-			$("#backButtonid").hide();
-			$("#save_tab").show();
-			$("#expportAsid").show();
-			$("#expportAsid1").show();
-			$("#submitButtonid").hide();
-			$("#confirmButtonid").hide();
-			$(".sec_cancel").attr("disabled",false);
-			$('#viewLCButton1').css('background-color','white');
-	        $('#viewLCButton1').css('color','#5b1d8d');
-	        $('#viewLCButton1').css('border-right','1px solid white');
-			$('#authLCButton').css('background-color','');
-	        $('#authLCButton').css('color','');
-	        $('#authLCButton').css('border-right','');
-			checkMandatoryFieldsForSections();
-		}	
- }
-	
- if(sessionStorage.getItem('role')=='M'){
+// Delayed initializations
+setTimeout(() => {
+    if (sessionStorage.getItem('SingleAuthLC') === "Y") {
+        sessionStorage.setItem('SingleAuthLC', 'N');
+        singleAuthorizeLC();
+    }
+}, 100);
 
-	    $("#TrxSysBtnsDiv1").show();
-		$("#TrxSysBtnsDivChecker").hide();
-		$("#btnChecker").hide();
-		 $('#SavedActTrx').hide();
-		 $('#save_tab').hide();
-		 $("#btnMaker").show();
-		 
-	if (document.getElementById("TEMP_ROW_COUNT").value > 0){
-document.getElementById("tick5").style.display="inline";
-document.getElementById("number4").style.display="none";
+setTimeout(() => {
+    amountToWordsAll();
+}, 500);
+
+console.log("doPageInit starts");
+
+// Check transaction mode and flags
+if (ITEM_ID !== "ModifyTrx" || sessionStorage.getItem('draftFlag') === 'P' || sessionStorage.getItem('draftFlagset') === 'P') {
+    sessionStorage.setItem('EditFlag', 'N');
+    $("#activepasttab").hide();
+    sessionStorage.setItem('draftFlagset', '');
 }
-else {
-document.getElementById("tick5").style.display="none";
-}	 
-		 
-	
-//For saved transaction(active transaction)
-	
-	if(sessionStorage.getItem('EditFlag')=='Y' && sessionStorage.getItem('draftFlag')!='P' || SYS_FUNCTION_TYPE=='EC'){
-	     	$('#SavedActTrx').show();
-			$("#TrxSysBtnsDiv1").hide();
-			
-	        enabledFlag=false;
-			
-			$("#CHECKBOX2").attr("checked","checked");
-		    $("#CHECKBOX2").attr("disabled","disabled");
-            $('.sec_cancel').hide();
-            $('.use-existing-template').hide();
-			
-			  EBR_FLAG_OnChange();
-			disableAllFields('EXNDmainDiv1');
-			
-			
-			$('#save_tab').show();
-		    $("#expportAsid").attr("disabled",false);
-		    $("#backButtonid").attr("disabled",false);
-	        $("#submitButtonid").attr("disabled",true);
-			$("#prim_next").hide();
-			$('#prim_save').hide();
-			$("#submitButtonid").show();
-			$("#btnMaker").show();			
-			$("#buttonContainer").hide();
-			$('#tabsForChecker').hide();
-			$('#viewLCButton').css('background-color','white');
-	        $('#viewLCButton').css('color','#5b1d8d');
-	        $('#viewLCButton').css('border-right','1px solid white');
-			$('#exndNegoDiscButton').css('background-color','');
-	        $('#exndNegoDiscButton').css('color','');
-	        $('#exndNegoDiscButton').css('border-right','');
-			
-			$('.editbtn').show();
-			
-			if(document.getElementById("LC_NONLC").value==2){
-              document.getElementById("LC_CCY").value="";
-			  document.getElementById("LC_AMT1").disabled=true;
-              document.getElementById("PRES_BAL_LC").disabled=true;
-              }
-			  loadTempFields();//for active trxn
-			  checkMandatoryFieldsForSections();//check for mandatory fields
-			var C_MAIN_REF=getFldValue("C_MAIN_REF");
-			var moduleProductCode=PRODUCT_ID;			
-			$.ajax({
-	url: '../servlets/ActiveStatus',
-		type: 'get',
-		async : false,
-		dataType : 'json',
-		data : {refNumber : C_MAIN_REF,moduleProductCode : moduleProductCode},
-		success: function(responseText)
-		{				
-		var pre=responseText.split("$");
-		var status=pre[0];
-		var lastAction=pre[1];
-		
-			$("#C_TRX_STATUS").val(status);
-			  $("#LastAction").val(lastAction);		
-		},
-		error: function(err){
-			console.log("Error STAUS"+err);
-		}
-		});
-		var s=$("#C_TRX_STATUS").val();
-			var status="";
-			if(s=='A')
-			{
-			status="Rejected by Bank";
-			
-			$("#editspan").hide();
-			$("#editid").hide();
-			
-			}
-			else if (s=='B')
-			{
-			status="Pending Bank Authorisation";
-			
-			$("#editspan").hide();
-			$("#editid").hide();
-			
-			}else if (s=='C')
-			{
-			status="Processed";
-			
-			$("#editspan").hide();
-			$("#editid").hide();
-			
-			}
-			else if (s=='D')
-			{
-			status="Incomplete";
-			
-			$("#editspan").hide();
-			$("#editid").hide();
-			
-			}
-			else if (s=='E')
-			{
-			status="Modification";
-			
-			$("#editspan").hide();
-			$("#editid").hide();
-			
-			}
-   else if (s=='J')
-			{
-			
-			status="Rejected by Customer Checker";
-			
-			$("#editspan").hide();
-			$("#editid").hide();
-			
-			}
-    else if (s=='M')
-			{
-			status="Authorised";
-			
-			$("#editspan").hide();
-			$("#editid").hide();
-			
-			}
-			else if (s=='P')
-			{
-			
-			status="Pending with Customer Checker";
-			
-			}
-			else if (s=='R')
-			{
-			
-			status="Rejected by Customer Checker";
-			
-			}
-			else if (s=='S')
-			{
-			
-			status="Pending with Bank";
-			
-			$("#editspan").hide();
-			$("#editid").hide();
-			
-			}
-			else if (s=='T')
-			{
-			
-			status="Pending with Customer Checker";
-			
-			}
-			else if (s=='Z')
-			{
-			
-			status="Saved as Draft";
-			
-			}
 
-			if(s=='A')
-			{
-				$("#makerrejreason").val(getFldValue("NOTES"));
-			}else{
-			$("#makerrejreason").val($("input[name='C_REFUSE_REASON']").val());
-			}
-			
-			$("#makerrejstatus").val(status);
-             $('#editspan').show();
-			$('#editid').show();
-			
-		}
-	
-	}	
-	//FOR PAST TRANSACTIONS
-	if(sesFuncId == "F05030701095"){
-	
-        
-		 $("#TrxSysBtnsDiv1").hide();
-		 $(".cue-card").hide();
-		  $(".step-by-step").hide();
-		   $("#expportAsid1").show();
-		  $("#expportAsid").show();
-		  $(".rejectdiv").hide();
-		  $("#editid").hide();
-		  $("#editspan").hide();
-		  loadTempFields();
-			 
-		 disableAllFields('EXNDmainDiv1');
-		  $("#submitButtonid").hide();
-		  checkMandatoryFieldsForSections();
-		 $(".sec_cancel").attr("disabled",false);
-		 $("#backButtonid").attr("disabled",false);
-		 
-		 
-	}
-	
-	
+$("#confirmButtonid").hide();
+
+const role = sessionStorage.getItem('role');
+
+if (role === 'C') {
+    // Checker role actions
+    document.getElementById("CHECKBOX2").checked = true;
+    $("#CHECKBOX2").attr("checked", "checked");
+    $("#CHECKBOX2").attr("disabled", "disabled");
+    $("#TrxSysBtnsDiv1").hide();
+    $("#TrxSysBtnsDivChecker").show();
+    $('.use-existing-template').hide();
+    $("#prim_release, #prim_release1").attr("disabled", false);
+    $("#releaseTab, #COMMENT_BTN, #sec_cancel, #btnMaker, #SavedActTrx, #save_tab").hide();
+    $("#btnChecker").show();
+
+    $('#authLCButton1, #unlockLCButton, #viewLCButton1, .sec_cancel').removeAttr('disabled');
+
+    EBR_FLAG_OnChange();
+    loadTempFields();
+    $("#BILL_FINANCE_CCY").attr("disabled", true);
+
+    if (document.getElementById("TEMP_ROW_COUNT").value > 0) {
+        document.getElementById("tick5").style.display = "inline";
+    } else {
+        document.getElementById("tick5").style.display = "none";
+    }
+
+    if (sessionStorage.getItem('AuthStatus') === 'Auth') {
+        $("input[name=REJECT]").hide();
+    } else if (sessionStorage.getItem('AuthStatus') === 'Rej') {
+        $("input[name=AUTHORISE]").show();
+    }
+
+    if ($("#APPL_ID").val().indexOf("00000080875812998") === 0) {
+        insertCommentsOnAuth("s");
+        $("#issueLcIdTd").addClass(' star');
+        $("#C_AUDIT_COMMENTR").removeAttr("readonly");
+
+        if (document.getElementById("CASE_ID")) {
+            $("#CASE_ID").removeAttr("readonly");
+        }
+        if (document.getElementById("C_DROP_DOWN")) {
+            $("#C_DROP_DOWN").removeAttr("disabled");
+        }
+    } else {
+        $("#issueLcId").css("display", "none");
+    }
+
+    if (sessionStorage.getItem('EditFlag') === 'Y' || SYS_FUNCTION_TYPE === 'EC') {
+        disableAllFields('EXNDmainDiv1');
+        $("#tdconfirmChecker, #btnChecker, #btnMaker, #editid, #editspan, #backButtonid, #submitButtonid, #confirmButtonid").hide();
+        $("#save_tab, #expportAsid, #expportAsid1").show();
+        $('.sec_cancel').attr("disabled", false);
+        $('#viewLCButton1').css({ 'background-color': 'white', 'color': '#5b1d8d', 'border-right': '1px solid white' });
+        checkMandatoryFieldsForSections();
+    }
 }
+
+if (role === 'M') {
+    // Maker role actions
+    $("#TrxSysBtnsDiv1").show();
+    $("#TrxSysBtnsDivChecker, #btnChecker, #SavedActTrx, #save_tab").hide();
+    $("#btnMaker").show();
+
+    if (document.getElementById("TEMP_ROW_COUNT").value > 0) {
+        document.getElementById("tick5").style.display = "inline";
+        document.getElementById("number4").style.display = "none";
+    } else {
+        document.getElementById("tick5").style.display = "none";
+    }
+
+    if ((sessionStorage.getItem('EditFlag') === 'Y' && sessionStorage.getItem('draftFlag') !== 'P') || SYS_FUNCTION_TYPE === 'EC') {
+        $('#SavedActTrx').show();
+        $("#TrxSysBtnsDiv1").hide();
+        enabledFlag = false;
+        $("#CHECKBOX2").attr("checked", "checked").attr("disabled", "disabled");
+        $('.sec_cancel, .use-existing-template').hide();
+
+        EBR_FLAG_OnChange();
+        disableAllFields('EXNDmainDiv1');
+
+        $('#save_tab').show();
+        $("#expportAsid, #backButtonid").attr("disabled", false);
+        $("#submitButtonid").attr("disabled", true).show();
+        $("#prim_next, #prim_save, #buttonContainer, #tabsForChecker").hide();
+        $("#btnMaker").show();
+
+        $('#viewLCButton').css({ 'background-color': 'white', 'color': '#5b1d8d', 'border-right': '1px solid white' });
+        $('#exndNegoDiscButton').css({ 'background-color': '', 'color': '', 'border-right': '' });
+        $('.editbtn').show();
+
+        if (document.getElementById("LC_NONLC").value == 2) {
+            document.getElementById("LC_CCY").value = "";
+            document.getElementById("LC_AMT1").disabled = true;
+            document.getElementById("PRES_BAL_LC").disabled = true;
+        }
+
+        loadTempFields();
+        checkMandatoryFieldsForSections();
+
+        const C_MAIN_REF = getFldValue("C_MAIN_REF");
+        const moduleProductCode = PRODUCT_ID;
+
+        $.ajax({
+            url: '../servlets/ActiveStatus',
+            type: 'get',
+            async: false,
+            dataType: 'json',
+            data: { refNumber: C_MAIN_REF, moduleProductCode: moduleProductCode },
+            success: function (responseText) {
+                const [status, lastAction] = responseText.split("$");
+                $("#C_TRX_STATUS").val(status);
+                $("#LastAction").val(lastAction);
+            },
+            error: function (err) {
+                console.log("Error STAUS" + err);
+            }
+        });
+
+        const s = $("#C_TRX_STATUS").val();
+        let status = "";
+        const hideEdit = ["A", "B", "C", "D", "E", "J", "M", "S"];
+
+        const statusMap = {
+            'A': "Rejected by Bank",
+            'B': "Pending Bank Authorisation",
+            'C': "Processed",
+            'D': "Incomplete",
+            'E': "Modification",
+            'J': "Rejected by Customer Checker",
+            'M': "Authorised",
+            'P': "Pending with Customer Checker",
+            'R': "Rejected by Customer Checker",
+            'S': "Pending with Bank",
+            'T': "Pending with Customer Checker",
+            'Z': "Saved as Draft"
+        };
+
+        if (statusMap[s]) status = statusMap[s];
+        if (hideEdit.includes(s)) {
+            $("#editspan, #editid").hide();
+        }
+
+        if (s === 'A') {
+            $("#makerrejreason").val(getFldValue("NOTES"));
+        } else {
+            $("#makerrejreason").val($("input[name='C_REFUSE_REASON']").val());
+        }
+
+        $("#makerrejstatus").val(status);
+        $("#editspan, #editid").show();
+    }
+}
+
+if (sesFuncId === "F05030701095") {
+    // Past transactions view
+    $("#TrxSysBtnsDiv1, .cue-card, .step-by-step, .rejectdiv, #editid, #editspan, #submitButtonid").hide();
+    $("#expportAsid, #expportAsid1").show();
+    loadTempFields();
+    disableAllFields('EXNDmainDiv1');
+    checkMandatoryFieldsForSections();
+    $('.sec_cancel').attr("disabled", false);
+    $("#backButtonid").attr("disabled", false);
+}
+
+}
+
