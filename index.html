@@ -1,62 +1,117 @@
-import java.io.*;
+package com;
+
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
 
-public class FolderFileListTool {
-
+public class DailyTempFolderUpdater {
     public static void main(String[] args) {
-        // Base folder (root)
-        String basePath = "C:\\your\\target\\folder";  // Change this
-        String outputPath = "C:\\your\\output\\file_list.txt"; // Change this
+        // Define the desktop path
+        String desktopPath = System.getProperty("user.home") + "\\Desktop";
+        Path todayFolderPath = Paths.get(desktopPath, "TEMP");
 
-        File baseDir = new File(basePath);
-        if (!baseDir.exists() || !baseDir.isDirectory()) {
-            System.out.println("Invalid folder path.");
+        // Define the destination path
+        String destinationPath = "F:\\REVAMP_TEMP\\";
+        Path destinationDirPath = Paths.get(destinationPath);
+
+        // Get the current date in dd-MM-yyyy format
+        String formattedDate = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+
+        // Define the new folder path
+        Path newFolderPath = Paths.get(destinationPath, formattedDate);
+
+        // Ensure the destination directory exists
+        try {
+            if (!Files.exists(destinationDirPath)) {
+                Files.createDirectories(destinationDirPath);
+                System.out.println("Destination directory created: " + destinationPath);
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to create destination directory: " + destinationPath);
+            e.printStackTrace();
             return;
         }
 
-        // TreeMap to sort and group by relative path + filename
-        TreeMap<String, List<File>> fileMap = new TreeMap<>();
-
-        collectFiles(baseDir, baseDir, fileMap);
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath))) {
-            writer.write(String.format("%-40s %-70s %-20s", "File Name", "File Path", "Last Modified"));
-            writer.newLine();
-            writer.write("-".repeat(135));
-            writer.newLine();
-
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-            for (Map.Entry<String, List<File>> entry : fileMap.entrySet()) {
-                for (File file : entry.getValue()) {
-                    String fileName = file.getName();
-                    String filePath = file.getAbsolutePath();
-                    String lastModified = sdf.format(new Date(file.lastModified()));
-
-                    writer.write(String.format("%-40s %-70s %-20s", fileName, filePath, lastModified));
-                    writer.newLine();
-                }
+        // Create the new folder for today's date
+        try {
+            if (Files.exists(newFolderPath)) {
+                // Handle existing folder - clear its contents
+                System.out.println("The folder already exists. Clearing its contents.");
+                deleteDirectory(newFolderPath); // Clear existing folder contents
             }
-
-            System.out.println("File list saved successfully to: " + outputPath);
+            Files.createDirectory(newFolderPath);
+            System.out.println("New folder created: " + newFolderPath.toAbsolutePath());
         } catch (IOException e) {
+            System.err.println("Failed to create or clear destination folder: " + newFolderPath.toAbsolutePath());
+            e.printStackTrace();
+            return;
+        }
+
+        // Move the "TODAY" folder's contents to the new folder
+        moveContents(todayFolderPath, newFolderPath);
+
+        // Delete the old "TODAY" folder after moving its contents
+        try {
+            if (Files.exists(todayFolderPath)) {
+                deleteDirectory(todayFolderPath);
+                System.out.println("Old 'TEMP' folder deleted,"+"on dated "+formattedDate);
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to delete old 'TEMP' folder.");
+            e.printStackTrace();
+        }
+
+        // Create a new "TODAY" folder
+        Path newTodayFolderPath = Paths.get(desktopPath, "TEMP");
+        try {
+            if (!Files.exists(newTodayFolderPath)) {
+                Files.createDirectory(newTodayFolderPath);
+                System.out.println("New 'TEMP' folder created,"+"on dated "+formattedDate);
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to create 'TEMP' folder,"+"on dated "+formattedDate);
             e.printStackTrace();
         }
     }
 
-    private static void collectFiles(File baseDir, File currentDir, TreeMap<String, List<File>> map) {
-        File[] files = currentDir.listFiles();
-        if (files == null) return;
+    // Method to move contents from source to destination
+    private static void moveContents(Path source, Path destination) {
+        if (Files.exists(source)) {
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(source)) {
+                for (Path entry : stream) {
+                    Path targetPath = destination.resolve(entry.getFileName());
+                    if (Files.isDirectory(entry)) {
+                        if (!Files.exists(targetPath)) {
+                            Files.createDirectory(targetPath);
+                        }
+                        moveContents(entry, targetPath); // Recursive call for directories
+                    } else {
+                        Files.move(entry, targetPath);
+                        System.out.println("Moved: " + entry.toAbsolutePath() + " to " + targetPath.toAbsolutePath());
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to move contents from folder: " + source.toAbsolutePath() + " to " + destination.toAbsolutePath());
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("Source folder does not exist: " + source.toAbsolutePath());
+        }
+    }
 
-        for (File file : files) {
-            if (file.isFile()) {
-                String relativePath = baseDir.toPath().relativize(file.toPath()).toString();
-                String key = relativePath.replace(File.separatorChar, '/'); // normalize separator
-                map.computeIfAbsent(key, k -> new ArrayList<>()).add(file);
-            } else if (file.isDirectory()) {
-                collectFiles(baseDir, file, map);
+    // Method to delete a directory and its contents
+    private static void deleteDirectory(Path path) throws IOException {
+        if (Files.isDirectory(path)) {
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
+                for (Path entry : stream) {
+                    deleteDirectory(entry);
+                }
             }
         }
+        Files.delete(path);
     }
 }
