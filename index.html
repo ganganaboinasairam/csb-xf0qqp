@@ -1,31 +1,62 @@
-// Check if the input field is currency field to add amount in words
-					else if (amountFields.map(field => field.ccy).includes($input.attr('name'))) {
-                        // Event listener to update amount in words when the input changes
-                        $input.on('change', function () {
-						var ccyFieldId = $input.attr('id');
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
-						// Find the corresponding currency field for the current amount field
-						var fieldMapping = amountFields.find(field => field.ccy === ccyFieldId);
-						
-						if (fieldMapping) {
-							var amtFieldId = fieldMapping.amt;
-							var amountInWordsDiv = document.getElementById(amtFieldId + '_amountInWords');
-							var ccyDiv = $('#' + ccyFieldId).parent();
+public class FolderFileListTool {
 
-							// Apply high-priority styles
-							ccyDiv.attr('style', 'display: flex !important; align-items: top !important; gap: 2% !important; width: 100% !important; height: 60% !important;');
-							$('#' + ccyFieldId).attr('style', 'flex: 0 0 24% !important; max-width: 24% !important; min-width: 24% !important; height: 70% !important;');
-							$('#' + amtFieldId).attr('style', 'flex: 0 0 74% !important; max-width: 74% !important; min-width: 74% !important; height: 70% !important;');
-							ccyDiv.css({ flexWrap: 'wrap' });
+    public static void main(String[] args) {
+        // Base folder (root)
+        String basePath = "C:\\your\\target\\folder";  // Change this
+        String outputPath = "C:\\your\\output\\file_list.txt"; // Change this
 
-							// Update the amount in words
-							if ($('#' + amtFieldId).val().trim() === "") {
-								amountInWordsDiv.textContent = "";
-								reArrangeAmtFields();
-							} else {
-								var amountInWords = amountInWordsNew(ccyFieldId, amtFieldId); // Call the conversion function
-								amountInWordsDiv.textContent = amountInWords; // Update the text in the amountInWordsDiv
-							}
-						}
-					}); 
-                    }
+        File baseDir = new File(basePath);
+        if (!baseDir.exists() || !baseDir.isDirectory()) {
+            System.out.println("Invalid folder path.");
+            return;
+        }
+
+        // TreeMap to sort and group by relative path + filename
+        TreeMap<String, List<File>> fileMap = new TreeMap<>();
+
+        collectFiles(baseDir, baseDir, fileMap);
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath))) {
+            writer.write(String.format("%-40s %-70s %-20s", "File Name", "File Path", "Last Modified"));
+            writer.newLine();
+            writer.write("-".repeat(135));
+            writer.newLine();
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+            for (Map.Entry<String, List<File>> entry : fileMap.entrySet()) {
+                for (File file : entry.getValue()) {
+                    String fileName = file.getName();
+                    String filePath = file.getAbsolutePath();
+                    String lastModified = sdf.format(new Date(file.lastModified()));
+
+                    writer.write(String.format("%-40s %-70s %-20s", fileName, filePath, lastModified));
+                    writer.newLine();
+                }
+            }
+
+            System.out.println("File list saved successfully to: " + outputPath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void collectFiles(File baseDir, File currentDir, TreeMap<String, List<File>> map) {
+        File[] files = currentDir.listFiles();
+        if (files == null) return;
+
+        for (File file : files) {
+            if (file.isFile()) {
+                String relativePath = baseDir.toPath().relativize(file.toPath()).toString();
+                String key = relativePath.replace(File.separatorChar, '/'); // normalize separator
+                map.computeIfAbsent(key, k -> new ArrayList<>()).add(file);
+            } else if (file.isDirectory()) {
+                collectFiles(baseDir, file, map);
+            }
+        }
+    }
+}
