@@ -1,15 +1,62 @@
-NEED A JS TOOL TO CONVERT THE XML IN THE BELOW FORMAT
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>XML to XSL Converter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      margin-bottom: 10px;
+      font-family: monospace;
+    }
+    #output {
+      white-space: pre-wrap;
+      background: #f0f0f0;
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 8px 16px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
 
+  <h2>XML to XSL Converter</h2>
+  <textarea id="inputXml" placeholder="Paste your XML tags here..."></textarea>
+  <br>
+  <button onclick="convert()">Convert</button>
+  <h3>Converted XSL:</h3>
+  <div id="output"></div>
 
-ORIGINAL TAGS :
+  <script>
+    function convertXmlToXsl(xmlString) {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(`<root>${xmlString}</root>`, "application/xml");
+      const elements = xmlDoc.documentElement.children;
+      let output = "";
 
+      for (let elem of elements) {
+        const tagName = elem.tagName;
+        const value = elem.textContent.trim();
+        output += `<xsl:element name="${tagName}"><xsl:value-of select="/root/domData/${value}"/></xsl:element>\n`;
+      }
 
-		<APPL_ADD1 ec-tag="N" fv-type="F" op-tag="N" order="265">APPL_ADD_AP</APPL_ADD1>
-		<APPL_ADD2 ec-tag="N" fv-type="F" op-tag="N" order="265">APPL_ADD_DO</APPL_ADD2>
-		<ORGN_BR_CODE ec-tag="N" fv-type="F" op-tag="N" order="265">ORGN_BR_CODE123</ORGN_BR_CODE>
-		
-NEW TAGS:
+      return output.trim();
+    }
 
-<xsl:element name="APPL_ADD1"><xsl:value-of select="/root/domData/APPL_ADD_AP"/></xsl:element>
-<xsl:element name="APPL_ADD2"><xsl:value-of select="/root/domData/APPL_ADD_DO"/></xsl:element>
-<xsl:element name="ORGN_BR_CODE"><xsl:value-of select="/root/domData/ORGN_BR_CODE123"/></xsl:element>
+    function convert() {
+      const input = document.getElementById("inputXml").value;
+      const result = convertXmlToXsl(input);
+      document.getElementById("output").textContent = result;
+    }
+  </script>
+
+</body>
+</html>
