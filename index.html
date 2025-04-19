@@ -1,71 +1,110 @@
-package storexml;
+import java.io.*;
+import java.util.Properties;
+import javax.xml.parsers.*;
+import org.w3c.dom.*;
+import org.xml.sax.InputSource;
+import storexml.StoreXML;
 
-import db.DBConnection;
-import java.io.ByteArrayInputStream;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.util.logging.Logger;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import org.w3c.dom.Element;
+public class SFTPFileProcessor {
 
-public class StoreXML {
-    public static Connection con;
-    public static Logger logg = Logger.getLogger("Log1");
+    public void fetchAndProcess() {
+        Properties pr = new Properties();
+        try {
+            pr.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/XmlgenPath.properties"));
+            String remotePath = pr.getProperty("sftpDir");   // example: /remote/path/
+            String localTemp = pr.getProperty("localTemp"); // example: /tmp/xml/
 
-    public StoreXML(Element contractElement, String contractId, String contractValue ,String recType) throws Exception {
-        DBConnection db = new DBConnection();
-        con = db.getConnection();
-        //logg.info("Inside store xml class to store data in database");
-        PreparedStatement pstmt = null;
+            // Step 1: List remote files
+            ProcessBuilder pbList = new ProcessBuilder("sftp", "-oPort=2201", "user@12.02.54.256");
+            Process listProcess = pbList.start();
 
-        if (contractElement != null) {
-            try {
-                con.setAutoCommit(false); // Turn off auto-commit mode
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(listProcess.getOutputStream()));
+            writer.write("ls " + remotePath + "\n");
+            writer.write("exit\n");
+            writer.flush();
 
-                String sql = "INSERT INTO store_files(fid, xmlfile, contract_value,rec_type) VALUES (?, ?, ?, ?)";
-                pstmt = con.prepareStatement(sql);
-                pstmt.setString(1, contractId);
-                
+            BufferedReader reader = new BufferedReader(new InputStreamReader(listProcess.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!line.trim().isEmpty() && !line.contains("sftp>")) {
+                    String fileName = line.trim();
+                    System.out.println("Found file: " + fileName);
 
-                // Convert Element to InputStream
-                String xmlString = elementToString(contractElement);
-                ByteArrayInputStream xmlStream = new ByteArrayInputStream(xmlString.getBytes(StandardCharsets.UTF_8));
+                    // Step 2: Download file
+                    downloadFile(remotePath, localTemp, fileName);
 
-                pstmt.setAsciiStream(2, xmlStream);
-                pstmt.setString(3, contractValue);
-                pstmt.setString(4, recType);
-                pstmt.executeUpdate();
-                con.commit(); // Commit the transaction
-                //logg.info("Record inserted successfully with contract ID: " + contractId);
-            } catch (Exception e) {
-                con.rollback(); // Rollback the transaction in case of error
-                //logg.severe("Failed to insert record with contract ID: " + contractId);
-                throw e;
-            } finally {
-                if (pstmt != null) pstmt.close();
-                if (con != null) con.close();
+                    // Step 3: Parse & Process
+                    File downloadedFile = new File(localTemp + fileName);
+                    String content = new String(java.nio.file.Files.readAllBytes(downloadedFile.toPath()), "UTF-8");
+
+                    processXML(content);
+                }
             }
+
+            writer.close();
+            reader.close();
+            listProcess.waitFor();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    private String elementToString(Element element) {
+    private void downloadFile(String remotePath, String localTemp, String fileName) {
         try {
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            StringWriter writer = new StringWriter();
-            transformer.transform(new DOMSource(element), new StreamResult(writer));
-            return writer.toString();
+            ProcessBuilder pbGet = new ProcessBuilder("sftp", "-oPort=2201", "user@12.02.54.256");
+            Process getProcess = pbGet.start();
+
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(getProcess.getOutputStream()));
+            writer.write("get " + remotePath + fileName + " " + localTemp + fileName + "\n");
+            writer.write("exit\n");
+            writer.flush();
+            writer.close();
+
+            getProcess.waitFor();
+            System.out.println("Downloaded: " + fileName);
         } catch (Exception e) {
-            logg.severe("Error converting element to string: " + e.getMessage());
-            return "";
+            e.printStackTrace();
         }
+    }
+
+    private void processXML(String xmlContent) {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document document = builder.parse(new InputSource(new StringReader(xmlContent)));
+
+            NodeList contractNodes = document.getElementsByTagName("CONTRACTDTL");
+            NodeList vendorNodes = document.getElementsByTagName("VENDORDTL");
+
+            if (contractNodes.getLength() > 0) {
+                for (int i = 0; i < contractNodes.getLength(); i++) {
+                    Element contractElement = (Element) contractNodes.item(i);
+                    String contractId = getTagValue(contractElement, "contractid");
+                    String contractValue = contractElement.getTextContent().trim();
+                    new StoreXML(contractElement, contractId, contractValue, "C");
+                }
+            } else if (vendorNodes.getLength() > 0) {
+                for (int i = 0; i < vendorNodes.getLength(); i++) {
+                    Element vendorElement = (Element) vendorNodes.item(i);
+                    String vendorId = getTagValue(vendorElement, "vendorid");
+                    String vendorValue = vendorElement.getTextContent().trim();
+                    new StoreXML(vendorElement, vendorId, vendorValue, "V");
+                }
+            } else {
+                System.out.println("No CONTRACTDTL or VENDORDTL found in the file.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String getTagValue(Element parent, String tagName) {
+        NodeList nodeList = parent.getElementsByTagName(tagName);
+        if (nodeList.getLength() > 0) {
+            return nodeList.item(0).getTextContent().trim();
+        }
+        return null;
     }
 }
