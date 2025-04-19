@@ -1,72 +1,71 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.IOException;
-import java.util.Properties;
+package storexml;
 
-public class SFTPWithKeyAuthDownload {
+import db.DBConnection;
+import java.io.ByteArrayInputStream;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.util.logging.Logger;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Element;
 
-    public void sftpGetFile(String remoteFilePath, String localDirectory) throws IOException {
+public class StoreXML {
+    public static Connection con;
+    public static Logger logg = Logger.getLogger("Log1");
 
-        Properties pr = new Properties();
-        pr.load(new FileInputStream("/TFEEAPP/base_domain/Railways/properties/XmlgenPath.properties"));
+    public StoreXML(Element contractElement, String contractId, String contractValue ,String recType) throws Exception {
+        DBConnection db = new DBConnection();
+        con = db.getConnection();
+        //logg.info("Inside store xml class to store data in database");
+        PreparedStatement pstmt = null;
 
-        String sftpHost = "user@12.02.54.256";  // Replace with your real server IP and user
-        String sftpPort = "2201";
+        if (contractElement != null) {
+            try {
+                con.setAutoCommit(false); // Turn off auto-commit mode
 
-        // Build the SFTP command
-        String[] command = {
-                "sftp", "-oPort=" + sftpPort, sftpHost
-        };
+                String sql = "INSERT INTO store_files(fid, xmlfile, contract_value,rec_type) VALUES (?, ?, ?, ?)";
+                pstmt = con.prepareStatement(sql);
+                pstmt.setString(1, contractId);
+                
 
-        ProcessBuilder processBuilder = new ProcessBuilder(command);
-        Process process = null;
+                // Convert Element to InputStream
+                String xmlString = elementToString(contractElement);
+                ByteArrayInputStream xmlStream = new ByteArrayInputStream(xmlString.getBytes(StandardCharsets.UTF_8));
 
-        try {
-            process = processBuilder.start();
-
-            OutputStream outputStream = process.getOutputStream();
-            BufferedReader inputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-            // Build SFTP get command
-            String getCommand = "get " + remoteFilePath + " " + localDirectory + "\n";
-            outputStream.write(getCommand.getBytes());
-            outputStream.write("exit\n".getBytes());
-            outputStream.flush();
-
-            // Read success responses
-            String line;
-            while ((line = inputReader.readLine()) != null) {
-                System.out.println(line);
-            }
-
-            // Read error responses
-            while ((line = errorReader.readLine()) != null) {
-                System.err.println(line);
-            }
-
-            int exitCode = process.waitFor();
-            System.out.println("SFTP process exited with code: " + exitCode);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (process != null) {
-                process.destroy();
+                pstmt.setAsciiStream(2, xmlStream);
+                pstmt.setString(3, contractValue);
+                pstmt.setString(4, recType);
+                pstmt.executeUpdate();
+                con.commit(); // Commit the transaction
+                //logg.info("Record inserted successfully with contract ID: " + contractId);
+            } catch (Exception e) {
+                con.rollback(); // Rollback the transaction in case of error
+                //logg.severe("Failed to insert record with contract ID: " + contractId);
+                throw e;
+            } finally {
+                if (pstmt != null) pstmt.close();
+                if (con != null) con.close();
             }
         }
     }
 
-    public static void main(String[] args) {
-        SFTPWithKeyAuthDownload sftp = new SFTPWithKeyAuthDownload();
+    private String elementToString(Element element) {
         try {
-            // Example usage: remote path and local directory
-            sftp.sftpGetFile("/remote/path/yourfile.xml", "/local/path/");
-        } catch (IOException e) {
-            e.printStackTrace();
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(element), new StreamResult(writer));
+            return writer.toString();
+        } catch (Exception e) {
+            logg.severe("Error converting element to string: " + e.getMessage());
+            return "";
         }
     }
 }
