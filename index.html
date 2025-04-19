@@ -259,19 +259,3 @@ public class readSFTPFile {
         }
     }
 }
-
-
-
-in the above class the sftp is connecting with a password , but i want to change the logic of the sftp connection as a password less connection loke
-
-                          String[] command = {
-			            "sftp","-oPort=2201", user + "@" + host
-			        };
-
-			        ProcessBuilder 
-					= new ProcessBuilder(command);
-			       
-			        try {
-			        	logg.info("1111111");
-			            // Start the SFTP process
-			            Process process = processBuilder.start();
