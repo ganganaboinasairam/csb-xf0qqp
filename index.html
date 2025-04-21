@@ -1,326 +1,210 @@
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.StringReader;
-import java.nio.file.Files;
-import java.nio.file.OpenOption;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.io.*;
+import java.nio.file.*;
 import java.util.Properties;
 import java.util.logging.Logger;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import org.w3c.dom.*;
 import org.xml.sax.InputSource;
-
 import storexml.StoreXML;
 
 public class SFTPFileProcessor {
-	public static Logger logg = Logger.getLogger("Log1");
-	
+
+    private static final Logger logg = Logger.getLogger(SFTPFileProcessor.class.getName());
+    private static final int SFTP_PORT = 2202;
+    private Properties properties;
+
+    public SFTPFileProcessor() {
+        loadProperties();
+    }
+
+    private void loadProperties() {
+        properties = new Properties();
+        try (FileInputStream fis = new FileInputStream("properties/XmlreadPath.properties")) {
+            properties.load(fis);
+        } catch (IOException e) {
+            logg.severe("Failed to load properties: " + e.getMessage());
+        }
+    }
 
     public void fetchAndProcess() {
-        Properties pr = new Properties();
+        String remotePath = properties.getProperty("path");
+        String localTemp = properties.getProperty("localTemp");
+        String user = properties.getProperty("user");
+        String host = properties.getProperty("host");
+
         try {
-            
-        	pr.load(new FileInputStream("properties/XmlreadPath.properties"));
-        	String remotePath = pr.getProperty("path");   // example: /remote/path/
-            String localTemp = pr.getProperty("localTemp"); // example: /tmp/xml/
-            String user = pr.getProperty("user");
-            String host = pr.getProperty("host");
+            for (String fileName : listRemoteFiles(remotePath, user, host)) {
+                if (!fileName.toLowerCase().endsWith(".xml")) {
+                    logg.info("Skipping non-XML file: " + fileName);
+                    continue;
+                }
 
-            // Step 1: List remote files
-            ProcessBuilder pbList = new ProcessBuilder("sftp", "-oPort=2202", user+"@"+host);
-            Process listProcess = pbList.start();
+                File localFile = new File(localTemp + fileName);
+                if (localFile.exists()) {
+                    logg.info("Skipping (already downloaded): " + fileName);
+                    continue;
+                }
 
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(listProcess.getOutputStream()));
-            writer.write("ls " + remotePath + "\n");
-            writer.write("exit\n");
-            writer.flush();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(listProcess.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (!line.trim().isEmpty() && !line.contains("sftp>")) {
-
-                    String fullPath = line.trim();
-                    String fileName = new File(fullPath).getName();  // Clean filename
-
-                    // Only process XML files
-                    if (fileName.toLowerCase().endsWith(".xml")) {
-
-                        File localFile = new File(localTemp + fileName);
-
-                        // Skip if file already downloaded
-                        if (localFile.exists()) {
-                            System.out.println("Skipping (already downloaded): " + fileName);
-                            continue;
-                        }
-
-                        System.out.println("Found new XML file: " + fileName);
-
-                        // Step 2: Download
-                        downloadFile(remotePath, localTemp, fileName, user, host);
-
-                        // Step 3: Process
-                        if (localFile.exists()) {
-                            System.out.println("Processing downloaded file: " + localFile.getAbsolutePath());
-
-                            String content = new String(java.nio.file.Files.readAllBytes(localFile.toPath()), "UTF-8");
-                            processXML(content,fileName,user,host);
-                        } else {
-                            System.out.println("File missing after download: " + localFile.getAbsolutePath());
-                        }
-                    } else {
-                        System.out.println("Skipping non-XML file: " + fileName);
-                    }
+                logg.info("Found new XML file: " + fileName);
+                if (downloadFile(remotePath, localTemp, fileName, user, host)) {
+                    processDownloadedFile(localFile, fileName, user, host);
                 }
             }
-
-            writer.close();
-            reader.close();
-            listProcess.waitFor();
-
         } catch (Exception e) {
+            logg.severe("Error in fetchAndProcess: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    private void downloadFile(String remotePath, String localTemp, String fileName, String user, String host) {
-        try {
-            ProcessBuilder pbGet =  new ProcessBuilder("sftp", "-oPort=2202", user+"@"+host);
-            Process getProcess = pbGet.start();
+    private String[] listRemoteFiles(String remotePath, String user, String host) throws Exception {
+        ProcessBuilder pb = new ProcessBuilder("sftp", "-oPort=" + SFTP_PORT, user + "@" + host);
+        Process process = pb.start();
 
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(getProcess.getOutputStream()));
-            writer.write("get " + remotePath + fileName + " " + localTemp + "\n");
-            System.out.println("get " + remotePath + fileName + " " + localTemp + "\n");
-            writer.write("exit\n");
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+
+            writer.write("ls " + remotePath + "\nexit\n");
             writer.flush();
-            writer.close();
 
-            getProcess.waitFor();
-            System.out.println("Downloaded: " + fileName);
-        } catch (Exception e) {
-            e.printStackTrace();
+            return reader.lines()
+                    .filter(line -> !line.trim().isEmpty() && !line.contains("sftp>"))
+                    .toArray(String[]::new);
+        } finally {
+            process.waitFor();
         }
     }
 
-    private void processXML(String xmlContent, String fileName,String user,String host) {
+    private boolean downloadFile(String remotePath, String localTemp, String fileName, String user, String host) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("sftp", "-oPort=" + SFTP_PORT, user + "@" + host);
+            Process process = pb.start();
+
+            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()))) {
+                writer.write("get " + remotePath + fileName + " " + localTemp + "\nexit\n");
+                writer.flush();
+            }
+
+            int exitCode = process.waitFor();
+            logg.info("Downloaded " + fileName + " with exit code: " + exitCode);
+            return new File(localTemp + fileName).exists();
+        } catch (Exception e) {
+            logg.severe("Download failed for " + fileName + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    private void processDownloadedFile(File localFile, String fileName, String user, String host) {
+        try {
+            String content = Files.readString(localFile.toPath());
+            processXML(content, fileName, user, host);
+        } catch (IOException e) {
+            logg.severe("Error reading downloaded file: " + e.getMessage());
+        }
+    }
+
+    private void processXML(String xmlContent, String fileName, String user, String host) {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(true);
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document document = builder.parse(new InputSource(new StringReader(xmlContent)));
+            Document document = factory.newDocumentBuilder().parse(new InputSource(new StringReader(xmlContent)));
 
-            NodeList contractNodes = document.getElementsByTagName("CONTRACTDTL");
-            NodeList vendorNodes = document.getElementsByTagName("VENDORDTL");
+            NodeList contracts = document.getElementsByTagName("CONTRACTDTL");
+            NodeList vendors = document.getElementsByTagName("VENDORDTL");
 
-            if (contractNodes.getLength() > 0) {
-            	for (int i = 0; i < contractNodes.getLength(); i++) {
-                	String contractId = null;
-                	String type = "C";
-                    try {
-						Element contractElement = (Element) contractNodes.item(i);
-						 contractId = getTagValue(contractElement, "CONTRACTID");
-						String contractValue = getTagValue(contractElement, "CONTRACT_VALUE");
-						
-
-						logg.info("Generated contract ID: " + contractId);
-						new StoreXML(contractElement, contractId, contractValue, type);
-						logg.info("Record inserted in database successfully: " + contractId);
-						success(fileName,contractId,type,user,host);
-					} catch (Exception e) {
-						//Auto-generated catch block
-						e.printStackTrace();
-						fail(e,fileName,contractId,type,user,host);
-					}
-                }
-            } else if (vendorNodes.getLength() > 0) {
-            	for (int i = 0; i < vendorNodes.getLength(); i++) {
-                  	String vendorId=null;
-                  	String type = "V";
-                      try {
-							Element vendorElement = (Element) vendorNodes.item(i);
-						 vendorId = getTagValue(vendorElement, "VENDOR_ID");
-
-							logg.info("Generated vendor ID: " + vendorId);
-
-							// Store XML content in the database
-							 new StoreXML(vendorElement, vendorId, "", type);
-							logg.info("Record inserted in database successfully: " + vendorId);
-              // Call success method after processing
-							success(fileName,vendorId,type,user,host);
-						} catch (Exception e) {
-							// Auto-generated catch block
-							 logg.severe("Failed to process vendor id: " + vendorId);
-			                    logg.severe("Error message: " + e.getMessage());
-			                    fail(e,fileName,vendorId,type,user,host);
-						}
-                  }
+            if (contracts.getLength() > 0) {
+                processNodes(contracts, "C", fileName, user, host);
+            } else if (vendors.getLength() > 0) {
+                processNodes(vendors, "V", fileName, user, host);
             } else {
-                System.out.println("No CONTRACTDTL or VENDORDTL found in the file.");
+                logg.warning("No CONTRACTDTL or VENDORDTL found in file: " + fileName);
             }
+
         } catch (Exception e) {
-            e.printStackTrace();
+            logg.severe("Error parsing XML: " + e.getMessage());
+        }
+    }
+
+    private void processNodes(NodeList nodes, String type, String fileName, String user, String host) {
+        for (int i = 0; i < nodes.getLength(); i++) {
+            Element element = (Element) nodes.item(i);
+            String id = type.equals("C") ? getTagValue(element, "CONTRACTID") : getTagValue(element, "VENDOR_ID");
+            String contractValue = type.equals("C") ? getTagValue(element, "CONTRACT_VALUE") : "";
+
+            try {
+                new StoreXML(element, id, contractValue, type);
+                logg.info("Record inserted successfully: " + id);
+                success(fileName, id, type, user, host);
+            } catch (Exception e) {
+                logg.severe("Failed to process ID: " + id + ", Error: " + e.getMessage());
+                fail(e, fileName, id, type, user, host);
+            }
         }
     }
 
     private String getTagValue(Element parent, String tagName) {
         NodeList nodeList = parent.getElementsByTagName(tagName);
-        if (nodeList.getLength() > 0) {
-            return nodeList.item(0).getTextContent().trim();
-        }
-        return null;
+        return (nodeList.getLength() > 0) ? nodeList.item(0).getTextContent().trim() : null;
     }
-    
-    
-    public static void success(String filename, String contractId, String type, String user, String host)
-    {
-    	String fileName = filename;
-        int dotIndex = fileName.lastIndexOf(".");
-        String onlyFileName = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
-      String sucess = onlyFileName +"_"+ contractId + "_success";
-      String absoluteFilePath = sucess + ".txt";
-      File file = new File(absoluteFilePath);
-      String msg;
-      if(type == "C") {
-    	  msg = "Contract ID :";
-      }else {
-    	  msg = "Vendor ID :";
-      }
-      Properties pr2 = new Properties();
-      try {
-        pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
-        String outbox = pr2.getProperty("ackPath");
-        String localOutbox = pr2.getProperty("localOutbox");
-        String[] command = {
-			"sftp","-oPort=2202", user + "@" + host
-		};
-		ProcessBuilder processBuilder = new ProcessBuilder(command);
-        String fileData =msg + contractId + " from " + onlyFileName + ".xml successfully recieved. ";
-        Files.write(Paths.get(absoluteFilePath, new String[0]), fileData.getBytes(), new OpenOption[0]);
-        if (file.isFile()) {
-			Process process = processBuilder.start();
-            String put = outbox + file.getName();
-		BufferedReader inputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-		BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-		
-		// Provide the commands to upload the file (this can be written to process.getOutputStream())
-		
-		// transfering file to sfg server
-		process.getOutputStream().write(("put " + file + " " + outbox + "\n").getBytes());
-		process.getOutputStream().write("exit\n".getBytes()); // Exit the SFTP session
-		process.getOutputStream().flush();
-		String line;
-			           
-			            // Read output from the process
-			            while ((line = inputReader.readLine()) != null) {
-			                logg.info(line);
-			            }
 
-			            // Read errors from the process (if any)
-			            while ((line = errorReader.readLine()) != null) {
-			                System.err.println(line);
-			            }
+    private void success(String filename, String id, String type, String user, String host) {
+        String baseName = filename.substring(0, filename.lastIndexOf('.'));
+        String statusFile = baseName + "_" + id + "_success.txt";
 
-//			            // Wait for the process to complete
-			            int exitCode = process.waitFor();
-			            logg.info("SFTP Process finished with exit code: " + exitCode);
-          Files.copy(file.toPath(), Paths.get(localOutbox, file.getName()), StandardCopyOption.REPLACE_EXISTING);
-          //ins.close();
-          file.delete();
+        String ackPath = properties.getProperty("ackPath");
+        String localOutbox = properties.getProperty("localOutbox");
+        String message = (type.equals("C") ? "Contract ID :" : "Vendor ID :") + id +
+                " from " + baseName + ".xml successfully received.";
+
+        try {
+            Files.writeString(Paths.get(statusFile), message);
+            uploadFileToSFTP(statusFile, ackPath, user, host);
+            Files.copy(Paths.get(statusFile), Paths.get(localOutbox, new File(statusFile).getName()), StandardCopyOption.REPLACE_EXISTING);
+            Files.delete(Paths.get(statusFile));
+            logg.info("Success acknowledgment sent for: " + baseName + ".xml");
+        } catch (Exception e) {
+            logg.severe("Error in success acknowledgment for " + id + ": " + e.getMessage());
         }
-      }
-      catch (Exception e)
-      {
-        e.printStackTrace();
-      }
-      logg.info("Success Acknowledgement generated for" + onlyFileName + ".xml");
-      logg.info("--------------------------------------------------");
     }
-    
-    public static void fail(Exception e2, String filename, String contractId, String type, String user, String host)
-    {
-    	String fileName = filename;
-    	String fail = null; 
-    	String fileData = null;
-        int dotIndex = fileName.lastIndexOf(".");
-        String onlyFileName = (dotIndex == -1) ? fileName : fileName.substring(0, dotIndex);
-        if(e2.getMessage().contains("ORA-00001")) {
-        	fail = onlyFileName +"_"+ contractId + "_duplicate";
-        }else if(type == "F"){
-        	fail = onlyFileName + "_fail";
-        }else {
-        	fail = onlyFileName +"_"+ contractId + "_fail";
+
+    private void fail(Exception e, String filename, String id, String type, String user, String host) {
+        String baseName = filename.substring(0, filename.lastIndexOf('.'));
+        String suffix = e.getMessage().contains("ORA-00001") ? "_duplicate" : "_fail";
+        String statusFile = baseName + "_" + id + suffix + ".txt";
+
+        String errorMsg = " from " + baseName + ".xml failed due to reason " + e;
+        String message = switch (type) {
+            case "C" -> "Contract ID :" + id + errorMsg;
+            case "V" -> "Vendor ID :" + id + errorMsg;
+            default -> "Data processing " + errorMsg;
+        };
+
+        try {
+            Files.writeString(Paths.get(statusFile), message);
+            uploadFileToSFTP(statusFile, properties.getProperty("ackPath"), user, host);
+            Files.copy(Paths.get(statusFile), Paths.get(properties.getProperty("localOutbox"), new File(statusFile).getName()), StandardCopyOption.REPLACE_EXISTING);
+            Files.delete(Paths.get(statusFile));
+            logg.info("Failure acknowledgment sent for: " + baseName + ".xml");
+        } catch (Exception ex) {
+            logg.severe("Error writing fail file for " + id + ": " + ex.getMessage());
         }
-      String absoluteFilePath = fail + ".txt"; 
-      File file = new File(absoluteFilePath);
-      String msg = " from " +  onlyFileName + ".xml failed due to reason " + e2; 
-      if(type == "C") {
-    	  fileData = "Contract ID :" + contractId + msg;
-      }else if(type == "V") {
-    	  fileData = "Vendor ID :" + contractId + msg;
-      }else if(type == "F") {
-    	  fileData = "Data processing " + msg;
-      }if (e2.getMessage().contains("ORA-00001") && type == "C") {
-    	  fileData = "Contract XML with contract ID:" + contractId+ " is already recived.";
-      }else if (e2.getMessage().contains("ORA-00001") && type == "V") {
-    	  fileData = "Vendor XML with vendor ID:" + contractId+ " is already recived.";
-      }
-      Properties pr2 = new Properties();
-      try {
-        pr2.load(new FileInputStream("properties/XmlReadPath.properties"));
-        String outbox = pr2.getProperty("ackPath");
-        String localOutbox = pr2.getProperty("localOutbox");
-        String[] command = {
-			"sftp","-oPort=2202", user + "@" + host
-		};
-		ProcessBuilder processBuilder = new ProcessBuilder(command);
-        Files.write(Paths.get(absoluteFilePath, new String[0]), fileData.getBytes(), new OpenOption[0]);
-        if (file.isFile()) {
-			Process process = processBuilder.start();
-          String put = outbox + file.getName();
-          BufferedReader inputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-		BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-		
-		// Provide the commands to upload the file (this can be written to process.getOutputStream())
-		
-		// transfering file to sfg server
-		process.getOutputStream().write(("put " + file + " " + outbox + "\n").getBytes());
-		process.getOutputStream().write("exit\n".getBytes()); // Exit the SFTP session
-		process.getOutputStream().flush();
-		String line;
-			           
-			            // Read output from the process
-			            while ((line = inputReader.readLine()) != null) {
-			                logg.info(line);
-			            }
+    }
 
-			            // Read errors from the process (if any)
-			            while ((line = errorReader.readLine()) != null) {
-			                System.err.println(line);
-			            }
+    private void uploadFileToSFTP(String localFilePath, String remotePath, String user, String host) throws Exception {
+        ProcessBuilder pb = new ProcessBuilder("sftp", "-oPort=" + SFTP_PORT, user + "@" + host);
+        Process process = pb.start();
 
-//			            // Wait for the process to complete
-			            int exitCode = process.waitFor();
-			            logg.info("SFTP Process finished with exit code: " + exitCode);
-          Files.copy(file.toPath(), Paths.get(localOutbox, file.getName()), StandardCopyOption.REPLACE_EXISTING);
-          file.delete();
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+             BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+             BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+
+            writer.write("put " + localFilePath + " " + remotePath + "\nexit\n");
+            writer.flush();
+
+            outputReader.lines().forEach(logg::info);
+            errorReader.lines().forEach(line -> logg.severe("SFTP error: " + line));
+            int exitCode = process.waitFor();
+            logg.info("SFTP upload finished for: " + localFilePath + ", exit code: " + exitCode);
         }
-      }
-      catch (Exception e)
-      {
-        e.printStackTrace();
-      }
-
-      logg.info("Failure Acknowledgement generated for" + onlyFileName + ".xml");
-      logg.info("--------------------------------------------------");
     }
 }
