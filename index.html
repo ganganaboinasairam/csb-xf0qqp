@@ -1,126 +1,18 @@
-import java.io.*;
-import java.nio.file.*;
-import java.util.*;
+private void waitForPrompt() throws IOException {
+    long startTime = System.currentTimeMillis();
+    long timeout = 10000; // 10 seconds timeout
+    StringBuilder output = new StringBuilder();
+    String line;
 
-public class SFTPManager {
-    private Process process;
-    private BufferedWriter writer;
-    private BufferedReader reader;
-
-    public SFTPManager(String user, String host, int port) throws IOException {
-        ProcessBuilder pb = new ProcessBuilder("sftp", "-oPort=" + port, user + "@" + host);
-        pb.redirectErrorStream(true);
-        process = pb.start();
-        writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
-        reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        waitForPrompt();
-    }
-
-    private void waitForPrompt() throws IOException {
-        String line;
-        long start = System.currentTimeMillis();
-        while ((line = reader.readLine()) != null) {
+    while (System.currentTimeMillis() - startTime < timeout) {
+        if (reader.ready() && (line = reader.readLine()) != null) {
+            output.append(line).append("\n");
             System.out.println("SFTP >> " + line);
-            if (line.trim().endsWith("sftp>")) break;
-            if (System.currentTimeMillis() - start > 10000) {
-                throw new IOException("Timed out waiting for sftp prompt");
+            if (line.trim().endsWith("sftp>")) {
+                return;
             }
         }
     }
 
-    private void sendCommand(String command) throws IOException {
-        writer.write(command);
-        writer.newLine();
-        writer.flush();
-        waitForPrompt();
-    }
-
-    public void getFile(String remotePath, String localPath) throws IOException {
-        Path localDir = Paths.get(localPath).getParent();
-        if (localDir != null && !Files.exists(localDir)) {
-            Files.createDirectories(localDir);
-        }
-        sendCommand("get " + remotePath + " " + localPath);
-    }
-
-    public void putFile(String localPath, String remotePath) throws IOException {
-        sendCommand("mkdir -p " + Paths.get(remotePath).getParent().toString().replace("\\", "/"));
-        sendCommand("put " + localPath + " " + remotePath);
-    }
-
-    public void uploadDirectory(Path localRoot, String remoteRoot) throws IOException {
-        Files.walk(localRoot)
-            .filter(Files::isRegularFile)
-            .forEach(localPath -> {
-                try {
-                    String relativePath = localRoot.relativize(localPath).toString().replace("\\", "/");
-                    String remotePath = remoteRoot + "/" + relativePath;
-                    System.out.println("Uploading: " + localPath + " to " + remotePath);
-                    putFile(localPath.toString(), remotePath);
-                } catch (IOException e) {
-                    System.err.println("Failed to upload: " + e.getMessage());
-                }
-            });
-    }
-
-    public void downloadFilesFromList(List<String> remoteFiles, Path localRoot, String remoteRoot) throws IOException {
-        for (String remotePath : remoteFiles) {
-            String relative = remotePath.replaceFirst("^" + remoteRoot, "").replaceFirst("^/", "");
-            Path localPath = localRoot.resolve(relative);
-            System.out.println("Downloading: " + remotePath + " to " + localPath);
-            getFile(remotePath, localPath.toString());
-        }
-    }
-
-    public static List<String> loadFileList(String filePath) throws IOException {
-        List<String> fileList = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (!line.trim().isEmpty()) {
-                    fileList.add(line.trim());
-                }
-            }
-        }
-        return fileList;
-    }
-
-    public void close() throws IOException {
-        sendCommand("bye");
-        process.destroy();
-    }
-
-    public static void main(String[] args) {
-        try {
-            Properties props = new Properties();
-            props.load(new FileInputStream("config.properties"));
-
-            String host = props.getProperty("sftp.host");
-            int port = Integer.parseInt(props.getProperty("sftp.port"));
-            String user = props.getProperty("sftp.user");
-            String dummyRoot = props.getProperty("dummy.root").replace("\\", "/");
-            String remoteRoot = props.getProperty("remote.root").replace("\\", "/");
-            String operation = props.getProperty("operation", "upload");
-
-            SFTPManager sftp = new SFTPManager(user, host, port);
-
-            if ("upload".equalsIgnoreCase(operation)) {
-                Path localRoot = Paths.get(dummyRoot);
-                sftp.uploadDirectory(localRoot, remoteRoot);
-            } else if ("download".equalsIgnoreCase(operation)) {
-                String fileListPath = props.getProperty("file.list.path");
-                if (fileListPath == null) {
-                    throw new IllegalArgumentException("file.list.path must be specified for download operation.");
-                }
-                List<String> fileList = loadFileList(fileListPath);
-                Path localRoot = Paths.get(dummyRoot);
-                sftp.downloadFilesFromList(fileList, localRoot, remoteRoot);
-            }
-
-            sftp.close();
-            System.out.println("SFTP operation completed.");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    System.out.println("Timed out waiting for sftp> prompt.");
 }
