@@ -44,30 +44,50 @@ public class SFTPManager {
     }
 
     public void putFile(String localPath, String remotePath) throws IOException {
+        sendCommand("mkdir -p " + Paths.get(remotePath).getParent().toString().replace("\\", "/"));
         sendCommand("put " + localPath + " " + remotePath);
+    }
+
+    public void uploadDirectory(Path localRoot, String remoteRoot) throws IOException {
+        Files.walk(localRoot)
+            .filter(Files::isRegularFile)
+            .forEach(localPath -> {
+                try {
+                    String relativePath = localRoot.relativize(localPath).toString().replace("\\", "/");
+                    String remotePath = remoteRoot + "/" + relativePath;
+                    System.out.println("Uploading: " + localPath + " to " + remotePath);
+                    putFile(localPath.toString(), remotePath);
+                } catch (IOException e) {
+                    System.err.println("Failed to upload: " + e.getMessage());
+                }
+            });
+    }
+
+    public void downloadFilesFromList(List<String> remoteFiles, Path localRoot, String remoteRoot) throws IOException {
+        for (String remotePath : remoteFiles) {
+            String relative = remotePath.replaceFirst("^" + remoteRoot, "").replaceFirst("^/", "");
+            Path localPath = localRoot.resolve(relative);
+            System.out.println("Downloading: " + remotePath + " to " + localPath);
+            getFile(remotePath, localPath.toString());
+        }
+    }
+
+    public static List<String> loadFileList(String filePath) throws IOException {
+        List<String> fileList = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (!line.trim().isEmpty()) {
+                    fileList.add(line.trim());
+                }
+            }
+        }
+        return fileList;
     }
 
     public void close() throws IOException {
         sendCommand("bye");
         process.destroy();
-    }
-
-    public static List<String[]> loadFilePairs(String filePath) throws IOException {
-        List<String[]> filePairs = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (!line.trim().isEmpty()) {
-                    String[] parts = line.trim().split(";", 2); // local;remote
-                    if (parts.length == 2) {
-                        filePairs.add(parts);
-                    } else {
-                        throw new IOException("Invalid line in file list: " + line);
-                    }
-                }
-            }
-        }
-        return filePairs;
     }
 
     public static void main(String[] args) {
@@ -78,28 +98,27 @@ public class SFTPManager {
             String host = props.getProperty("sftp.host");
             int port = Integer.parseInt(props.getProperty("sftp.port"));
             String user = props.getProperty("sftp.user");
-            String fileListPath = props.getProperty("file.list.path");
-            String operation = props.getProperty("operation", "download"); // "download" or "upload"
+            String dummyRoot = props.getProperty("dummy.root").replace("\\", "/");
+            String remoteRoot = props.getProperty("remote.root").replace("\\", "/");
+            String operation = props.getProperty("operation", "upload");
 
             SFTPManager sftp = new SFTPManager(user, host, port);
-            List<String[]> filePairs = loadFilePairs(fileListPath);
 
-            for (String[] pair : filePairs) {
-                if ("download".equalsIgnoreCase(operation)) {
-                    String remote = pair[0];
-                    String local = pair[1];
-                    System.out.println("Downloading: " + remote);
-                    sftp.getFile(remote, local);
-                } else if ("upload".equalsIgnoreCase(operation)) {
-                    String local = pair[0];
-                    String remote = pair[1];
-                    System.out.println("Uploading: " + local);
-                    sftp.putFile(local, remote);
+            if ("upload".equalsIgnoreCase(operation)) {
+                Path localRoot = Paths.get(dummyRoot);
+                sftp.uploadDirectory(localRoot, remoteRoot);
+            } else if ("download".equalsIgnoreCase(operation)) {
+                String fileListPath = props.getProperty("file.list.path");
+                if (fileListPath == null) {
+                    throw new IllegalArgumentException("file.list.path must be specified for download operation.");
                 }
+                List<String> fileList = loadFileList(fileListPath);
+                Path localRoot = Paths.get(dummyRoot);
+                sftp.downloadFilesFromList(fileList, localRoot, remoteRoot);
             }
 
             sftp.close();
-            System.out.println("Operation completed.");
+            System.out.println("SFTP operation completed.");
         } catch (Exception e) {
             e.printStackTrace();
         }
