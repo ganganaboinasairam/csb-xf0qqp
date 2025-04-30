@@ -1,4 +1,166 @@
-need a java tool to get and put files into the sftp .
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 
-1. sftp is connected via process builder (sftp -oPort=0000 user@host)
-2. the sftp root folder should be visible as a filemanager interface, then the user can keep files or retrive from them
+public class SFTPManager {
+    private Process process;
+    private BufferedWriter writer;
+    private BufferedReader reader;
+
+    public SFTPManager(String user, String host, int port) throws IOException {
+        ProcessBuilder pb = new ProcessBuilder("sftp", "-oPort=" + port, user + "@" + host);
+        process = pb.start();
+        writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+        reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+        // Wait for initial prompt
+        waitForPrompt();
+    }
+
+    private void waitForPrompt() throws IOException {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.trim().endsWith("sftp>")) break;
+        }
+    }
+
+    public List<String> listFiles() throws IOException {
+        sendCommand("ls");
+        List<String> files = new ArrayList<>();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.trim().endsWith("sftp>")) break;
+            files.add(line.trim());
+        }
+        return files;
+    }
+
+    public String uploadFile(String localPath) throws IOException {
+        sendCommand("put " + localPath);
+        return readResponse();
+    }
+
+    public String downloadFile(String remotePath, String localPath) throws IOException {
+        sendCommand("get " + remotePath + " " + localPath);
+        return readResponse();
+    }
+
+    private void sendCommand(String command) throws IOException {
+        writer.write(command + "\n");
+        writer.flush();
+    }
+
+    private String readResponse() throws IOException {
+        StringBuilder response = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.trim().endsWith("sftp>")) break;
+            response.append(line).append("\n");
+        }
+        return response.toString();
+    }
+
+    public void close() throws IOException {
+        sendCommand("bye");
+        writer.close();
+        reader.close();
+    }
+}
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.File;
+import java.util.List;
+
+public class SFTPFileManagerUI extends JFrame {
+    private SFTPManager manager;
+    private JTextArea logArea;
+    private DefaultListModel<String> listModel;
+
+    public SFTPFileManagerUI() {
+        setTitle("SFTP File Manager");
+        setSize(600, 400);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // UI Components
+        listModel = new DefaultListModel<>();
+        JList<String> fileList = new JList<>(listModel);
+        JScrollPane listScroll = new JScrollPane(fileList);
+
+        JButton refreshBtn = new JButton("Refresh");
+        JButton uploadBtn = new JButton("Upload");
+        JButton downloadBtn = new JButton("Download");
+
+        logArea = new JTextArea(5, 20);
+        JScrollPane logScroll = new JScrollPane(logArea);
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(refreshBtn);
+        buttonPanel.add(uploadBtn);
+        buttonPanel.add(downloadBtn);
+
+        add(listScroll, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.NORTH);
+        add(logScroll, BorderLayout.SOUTH);
+
+        // SFTP Connect
+        try {
+            manager = new SFTPManager("user", "host", 22); // Replace with real values
+            refreshFileList();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Failed to connect: " + e.getMessage());
+        }
+
+        // Actions
+        refreshBtn.addActionListener(e -> refreshFileList());
+
+        uploadBtn.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                File file = chooser.getSelectedFile();
+                try {
+                    String response = manager.uploadFile(file.getAbsolutePath());
+                    logArea.append("Upload:\n" + response);
+                    refreshFileList();
+                } catch (Exception ex) {
+                    logArea.append("Error uploading: " + ex.getMessage() + "\n");
+                }
+            }
+        });
+
+        downloadBtn.addActionListener(e -> {
+            String selected = fileList.getSelectedValue();
+            if (selected == null) return;
+
+            JFileChooser chooser = new JFileChooser();
+            chooser.setSelectedFile(new File(selected));
+            if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                File file = chooser.getSelectedFile();
+                try {
+                    String response = manager.downloadFile(selected, file.getAbsolutePath());
+                    logArea.append("Download:\n" + response);
+                } catch (Exception ex) {
+                    logArea.append("Error downloading: " + ex.getMessage() + "\n");
+                }
+            }
+        });
+    }
+
+    private void refreshFileList() {
+        try {
+            List<String> files = manager.listFiles();
+            listModel.clear();
+            for (String file : files) {
+                listModel.addElement(file);
+            }
+        } catch (Exception e) {
+            logArea.append("Error listing files: " + e.getMessage() + "\n");
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new SFTPFileManagerUI().setVisible(true));
+    }
+}
