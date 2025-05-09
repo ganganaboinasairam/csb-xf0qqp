@@ -360,3 +360,164 @@ END;
 /
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
+CREATE or replace PROCEDURE process_cust (
+    c_id IN customer.customerid%TYPE
+) is
+    type cust_rec is record
+    (
+    cust_id varchar2(50),
+    cust_nm varchar2(50),
+    cust_add varchar2(100)
+    );
+    c_rec cust_rec;
+BEGIN
+    SELECT
+        customerid,customername,address
+    INTO c_rec
+    FROM
+        customer
+    WHERE
+        customerid = c_id;
+        
+       -- c_rec.customername := 'changed name';
+        
+        dbms_output.put_line(c_rec.cust_id
+                         || ' '
+                         || c_rec.cust_nm
+                         || ' '
+                         ||c_rec.cust_add);
+END;
+/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+DECLARE
+    c_id   customer.customerid%TYPE := 1;
+    c_name customer.customername%TYPE;
+    v_val  VARCHAR2(10);
+    v_val1 BOOLEAN;
+BEGIN
+    SELECT
+        customername
+    INTO c_name
+    FROM
+        customer
+    WHERE
+        customerid = c_id;
+
+    v_val := SQL%rowcount;
+    dbms_output.put_line(v_val);
+    v_val1 := SQL%notfound;
+    IF v_val1 THEN
+        dbms_output.put_line('TRUE');
+    ELSE
+        dbms_output.put_line('FALSE');
+    END IF;
+
+EXCEPTION
+    WHEN no_data_found THEN
+        dbms_output.put_line('no_data_found');
+END;
+/
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE PROCEDURE process_cust (
+    c_id customer.customerid%TYPE
+) AS
+
+    c_name customer.customername%TYPE;
+    c_addr customer.address%TYPE;
+    CURSOR c IS
+    SELECT
+        customername,
+        address
+    FROM
+        customer
+    WHERE
+        customerid = c_id;
+
+BEGIN
+    OPEN c;
+    FETCH c INTO
+        c_name,
+        c_addr;
+    dbms_output.put_line(c_name);
+    dbms_output.put_line(c_addr);
+    CLOSE c;
+END;
+/
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE PROCEDURE process_cust (
+    c_cntry customer.country%TYPE
+) AS
+
+    c_name customer.customername%TYPE;
+    c_addr customer.address%TYPE;
+    CURSOR c IS
+    SELECT
+        customername,
+        address
+    FROM
+        customer
+    WHERE
+        country = c_cntry;
+
+BEGIN
+    OPEN c;
+    LOOP
+        FETCH c INTO
+            c_name,
+            c_addr;
+        EXIT WHEN c%notfound;
+        dbms_output.put_line(c_name);
+        dbms_output.put_line(c_addr);
+    END LOOP;
+
+    CLOSE c;
+END;
+/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CREATE OR REPLACE PROCEDURE process_cust AS
+    CURSOR c IS
+    SELECT
+        *
+    FROM
+        cetrx.INIS_master
+    WHERE
+        c_main_ref LIKE '%0999524%';
+
+    c_rec c%rowtype;
+BEGIN
+    OPEN c;
+    LOOP
+        FETCH c INTO c_rec;
+        EXIT WHEN c%notfound;
+        dbms_output.put_line(c_rec.c_main_ref || ' ' ||C_REC.C_FUNC_SHORT_NAME);
+    END LOOP;
+
+    dbms_output.put_line('NO OF ROWS ARE ' || c%rowcount);
+    CLOSE c;
+END;
+/
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE process_cust AS
+BEGIN
+    FOR c_rec IN (
+        SELECT
+            *
+        FROM
+            cetrx.inis_master
+        WHERE
+            c_main_ref LIKE '%0999524%'
+    ) LOOP
+        dbms_output.put_line(c_rec.c_main_ref
+                             || ' '
+                             || c_rec.c_func_short_name);
+    END LOOP;
+
+END;
+/
