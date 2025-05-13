@@ -1,24 +1,18 @@
-CREATE OR REPLACE PROCEDURE update_bill_amt (
-    p_status IN VARCHAR2
-) AS
-    TYPE coll_type IS
-        TABLE OF NUMBER INDEX BY BINARY_INTEGER;
-    del_area coll_type;
+DECLARE
+    v_msg_type VARCHAR2 := 'INLC_INLC_IssueLC_EE2CE';
+    v_msg_cont CLOB;
 BEGIN
     SELECT
-        area_for_delv
-    BULK COLLECT
-    INTO del_area
+        c_msg_content
+    INTO v_msg_cont
     FROM
-        fwco_master where status = p_status;
+        stp_in_msg_sto
+    WHERE
+            c_main_ref = '0999517LC0000722'
+        AND c_msg_content LIKE '%'
+                               || v_msg_type
+                               || '%';
 
-    FORALL indx IN 1..del_area.count
-        /*UPDATE fwco_master f
-        SET
-            f.bill_amt = '100'
-        WHERE
-            area_for_delv = del_area(indx);*/
-dbms_output.put_line(del_area(indx));
-
-end;
+    dbms_output.put_line(v_msg_cont);
+END;
 /
