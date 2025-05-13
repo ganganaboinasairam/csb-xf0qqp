@@ -1,3 +1,5 @@
+
+Error starting at line : 1 in command -
 DECLARE
     v_msg_type VARCHAR2 := 'INLC_INLC_IssueLC_EE2CE';
     v_msg_cont CLOB;
@@ -15,4 +17,9 @@ BEGIN
 
     dbms_output.put_line(v_msg_cont);
 END;
-/
+Error report -
+ORA-06550: line 2, column 16:
+PLS-00215: String length constraints must be in range (1 .. 32767)
+06550. 00000 -  "line %s, column %s:\n%s"
+*Cause:    Usually a PL/SQL compilation error.
+*Action:
