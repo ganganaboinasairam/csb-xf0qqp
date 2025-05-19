@@ -1,26 +1,41 @@
-
-Error starting at line : 1 in command -
-declare
+DECLARE
+    v_bk_grp_id    ceuser.sec_unit_func.c_bk_group_id%TYPE := 'SBI';
+    v_product_id   ceuser.sec_unit_func.c_product_id%TYPE := 'P345RT45';
+    v_product_name ceuser.sec_unit_func.c_product_name%TYPE := 'PRODUCT_NAME';
+    V_ITEM_ID      ceuser.sec_unit_func.C_ITEM_ID%TYPE := 'EDIT';
+    V_FUNC_ID      ceuser.sec_unit_func.C_FUNC_ID%TYPE := 'FO305070SEF';
+    V_PRODUCT_TYPE      ceuser.sec_unit_func.I_PRODUCT_TYPE%TYPE := '1';
     TYPE coll_type IS
-        TABLE OF varchar2(50) INDEX BY BINARY_INTEGER;
-    unit_code coll_type;
+        TABLE OF VARCHAR2(50) INDEX BY BINARY_INTEGER;
+    unit_code      coll_type;
 BEGIN
-
-    select distinct c_unit_code into unit_code from ceuser.sec_unit_func;
+    SELECT DISTINCT
+        c_unit_code
+    BULK COLLECT
+    INTO unit_code
+    FROM
+        ceuser.sec_unit_func;
 
     FOR indx IN 1..unit_code.count LOOP
-        dbms_output.put_line(unit_code(indx));
-
+        dbms_output.put_line('INSERT INTO CEUSER.SEC_UNIT_FUNC (C_UNIT_CODE,C_BK_GROUP_ID,C_PRODUCT_ID,C_PRODUCT_NAME,C_ITEM_ID,C_FUNC_ID,I_PRODUCT_TYPE,I_FUNC_TYPE,C_GRP_CODE) VALUES ('''
+                             || unit_code(indx)
+                             || ''','''
+                             || v_bk_grp_id
+                             || ''','''
+                             || v_product_id
+                             || ''','''
+                             || v_product_name
+                             || ''','''
+                             || V_ITEM_ID
+                             ||''','''
+                             || V_FUNC_ID
+                             || ''','''
+                             || V_PRODUCT_TYPE
+							 || ''','''','''''
+                             || ');');
+                             
+        
     END LOOP;
 
 END;
-Error report -
-ORA-06550: line 7, column 38:
-PLS-00597: expression 'UNIT_CODE' in the INTO list is of wrong type
-ORA-06550: line 7, column 48:
-PL/SQL: ORA-00904: : invalid identifier
-ORA-06550: line 7, column 5:
-PL/SQL: SQL Statement ignored
-06550. 00000 -  "line %s, column %s:\n%s"
-*Cause:    Usually a PL/SQL compilation error.
-*Action:
+/
