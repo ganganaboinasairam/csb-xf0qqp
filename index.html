@@ -1,17 +1,26 @@
-CREATE OR REPLACE FUNCTION get_msg_cont (v_msg_type VARCHAR2) 
-RETURN clob_table 
-PIPELINED 
-AS
+
+Error starting at line : 1 in command -
+declare
+    TYPE coll_type IS
+        TABLE OF varchar2(50) INDEX BY BINARY_INTEGER;
+    unit_code coll_type;
 BEGIN
-    FOR rec IN (
-        SELECT c_msg_content
-        FROM stp_in_msg_sto
-        WHERE c_msg_content LIKE '%' || v_msg_type || '%'
-    )
-    LOOP
-        PIPE ROW (rec.c_msg_content);
+
+    select distinct c_unit_code into unit_code from ceuser.sec_unit_func;
+
+    FOR indx IN 1..unit_code.count LOOP
+        dbms_output.put_line(unit_code(indx));
+
     END LOOP;
 
-    RETURN;
 END;
-/
+Error report -
+ORA-06550: line 7, column 38:
+PLS-00597: expression 'UNIT_CODE' in the INTO list is of wrong type
+ORA-06550: line 7, column 48:
+PL/SQL: ORA-00904: : invalid identifier
+ORA-06550: line 7, column 5:
+PL/SQL: SQL Statement ignored
+06550. 00000 -  "line %s, column %s:\n%s"
+*Cause:    Usually a PL/SQL compilation error.
+*Action:
