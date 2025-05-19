@@ -1,30 +1,15 @@
-DECLARE
-    TYPE func_table IS TABLE OF VARCHAR2(20);
-    TYPE item_table IS TABLE OF VARCHAR2(20);
-
-    func_ids func_table := func_table('FO305070SEF', 'FO305071SEF', 'FO305072SEF');
-    item_ids item_table := item_table('EDIT', 'VIEW', 'DELETE');  -- matching c_item_id
-
-    v_bk_grp_id    CONSTANT VARCHAR2(10) := 'SBI';
-    v_product_id   CONSTANT VARCHAR2(20) := 'P345RT45';
-    v_product_name CONSTANT VARCHAR2(50) := 'PRODUCT_NAME';
-    v_product_type CONSTANT VARCHAR2(5)  := '1';
-
-    TYPE coll_type IS TABLE OF VARCHAR2(50) INDEX BY BINARY_INTEGER;
-    unit_code coll_type;
-BEGIN
-    SELECT DISTINCT c_unit_code
-    BULK COLLECT INTO unit_code
-    FROM ceuser.sec_unit_func;
-
-    FOR i IN 1 .. func_ids.COUNT LOOP
-        FOR j IN 1 .. unit_code.COUNT LOOP
-            DBMS_OUTPUT.PUT_LINE(
-                'INSERT INTO CEUSER.SEC_UNIT_FUNC (C_UNIT_CODE, C_BK_GROUP_ID, C_PRODUCT_ID, C_PRODUCT_NAME, C_ITEM_ID, C_FUNC_ID, I_PRODUCT_TYPE, I_FUNC_TYPE, C_GRP_CODE) VALUES (''' ||
-                unit_code(j) || ''', ''' || v_bk_grp_id || ''', ''' || v_product_id || ''', ''' || v_product_name || ''', ''' || item_ids(i) || ''', ''' ||
-                func_ids(i) || ''', ''' || v_product_type || ''', '''' || ''', '''' || ''');'
-            );
-        END LOOP;
-    END LOOP;
-END;
-/
+-- Example: list of multiple function ids and item ids
+SELECT
+  'INSERT INTO CEUSER.SEC_UNIT_FUNC (C_UNIT_CODE, C_BK_GROUP_ID, C_PRODUCT_ID, C_PRODUCT_NAME, C_ITEM_ID, C_FUNC_ID, I_PRODUCT_TYPE, I_FUNC_TYPE, C_GRP_CODE) VALUES ('''
+  || u.c_unit_code || ''', ''SBI'', ''P345RT45'', ''PRODUCT_NAME'', ''' 
+  || f.c_item_id || ''', ''' 
+  || f.c_func_id || ''', ''1'', '''', '''');' AS insert_stmt
+FROM (
+  SELECT DISTINCT c_unit_code FROM ceuser.sec_unit_func
+) u,
+(
+  SELECT 'FO305070SEF' AS c_func_id, 'EDIT' AS c_item_id FROM DUAL
+  UNION ALL
+  SELECT 'FO305071XYZ', 'VIEW' FROM DUAL
+  -- Add more func/item combinations as needed
+) f;
