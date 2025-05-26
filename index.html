@@ -1,47 +1,8 @@
-$(document).ready(function () {
-    autoPopulateCrystDtUpto();
+$('#CRYST_DT_UPTO').change(function () {
+    const expectedDate = formatDate(addDays(parseDate($('#ND_END_DT').val()), getDaysToAddBasedOnRating($('#CUST_CRE_RTNG').val())));
+    const selectedDate = parseDate($(this).val());
+
+    if (selectedDate > parseDate(expectedDate)) {
+        alert("As per extent instructions, extension is permitted upto 45 Days from the due date/ notional due date. However, the selected date for extension is beyond the permitted date");
+    }
 });
-
-function autoPopulateCrystDtUpto() {
-    const rating = $('#CUST_CRE_RTNG').val();
-    const dueDateStr = $('#ND_END_DT').val();
-
-    if (!rating || !dueDateStr) return;
-
-    const daysToAdd = getDaysToAddBasedOnRating(rating);
-    const dueDate = parseDate(dueDateStr);
-
-    if (!dueDate) return;
-
-    const extendedDate = addDays(dueDate, daysToAdd);
-    const formattedDate = formatDate(extendedDate);
-    $('#CRYST_DT_UPTO').val(formattedDate);
-}
-
-// Returns 45 for SB1-SB7, else 30
-function getDaysToAddBasedOnRating(rating) {
-    const highRatings = ['SB1', 'SB2', 'SB3', 'SB4', 'SB5', 'SB6', 'SB7'];
-    return highRatings.includes(rating.toUpperCase()) ? 45 : 30;
-}
-
-// Parses dd/mm/yyyy to JS Date
-function parseDate(dateStr) {
-    const parts = dateStr.split('/');
-    if (parts.length !== 3) return null;
-    return new Date(parts[2], parts[1] - 1, parts[0]);
-}
-
-// Adds N calendar days to the date
-function addDays(date, days) {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-}
-
-// Formats JS Date to dd/mm/yyyy
-function formatDate(date) {
-    const dd = ('0' + date.getDate()).slice(-2);
-    const mm = ('0' + (date.getMonth() + 1)).slice(-2);
-    const yyyy = date.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-}
