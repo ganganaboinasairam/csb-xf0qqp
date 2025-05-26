@@ -1,15 +1,67 @@
-i need a javascript validation for a date field , i will call the function i document.ready to autopopulate when screen loads
+$(document).ready(function () {
+    autoPopulateCrystDtUpto();
+});
 
-CRYST_DT_UPTO(Extention of Crystallisation Due Date allowed upto) is the field which is to be auto caluclated up on the sb rating(CUST_CRE_RTNG) and due date(ND_END_DT)
+function autoPopulateCrystDtUpto() {
+    const rating = $('#CUST_CRE_RTNG').val();
+    const dueDateStr = $('#ND_END_DT').val();
 
-date format : dd/mm/yyyy
+    if (!rating || !dueDateStr) return;
 
-consider saturday and sunday as holidays.
+    const daysToAdd = getDaysToAddBasedOnRating(rating);
+    const dueDate = parseDate(dueDateStr);
 
-** For current Credit Rating values SB1 to SB7, Extended date = Due Date + 45 Days.
-If the 45th days falls on holiday / Saturday, next working day.
-  
-If CE-Maker selects a later date than the system displayed date, a pop up “As per extent instructions, extension is permitted upto 45 Days from the due date/ notional due date.  However, the selected date for extension is beyond the permitted date”.
+    if (!dueDate) return;
 
-For current Credit Rating values SB8 to SB16 & ‘NA’, Extended date = Due Date + 30 Days.
-If the 30th days falls on holiday / Saturday, next working day.
+    let extendedDate = addWorkingDays(dueDate, daysToAdd);
+
+    const formattedDate = formatDate(extendedDate);
+    $('#CRYST_DT_UPTO').val(formattedDate);
+}
+
+// Returns 45 for SB1-SB7, else 30
+function getDaysToAddBasedOnRating(rating) {
+    const highRatings = ['SB1', 'SB2', 'SB3', 'SB4', 'SB5', 'SB6', 'SB7'];
+    return highRatings.includes(rating.toUpperCase()) ? 45 : 30;
+}
+
+// Parses dd/mm/yyyy to JS Date
+function parseDate(dateStr) {
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+}
+
+// Returns true if the date is Sat/Sun
+function isHoliday(date) {
+    const day = date.getDay();
+    return day === 0 || day === 6; // Sunday = 0, Saturday = 6
+}
+
+// Adds N days, skipping weekends
+function addWorkingDays(date, daysToAdd) {
+    let result = new Date(date);
+    let addedDays = 0;
+
+    while (addedDays < daysToAdd) {
+        result.setDate(result.getDate() + 1);
+        if (!isHoliday(result)) {
+            addedDays++;
+        }
+    }
+
+    // If final day is holiday, skip to next working day
+    while (isHoliday(result)) {
+        result.setDate(result.getDate() + 1);
+    }
+
+    return result;
+}
+
+// Formats JS Date to dd/mm/yyyy
+function formatDate(date) {
+    const dd = ('0' + date.getDate()).slice(-2);
+    const mm = ('0' + (date.getMonth() + 1)).slice(-2);
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+}
