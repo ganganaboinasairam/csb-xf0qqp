@@ -92,13 +92,14 @@ begin
     select isbn into v_isbn from books where isbn=p_isbn;
     RAISE_APPLICATION_ERROR(-20001, 'Book with this ISBN already exists');
     
-    add_author (p_author_fname,p_author_lname,v_author_id);
-    
     
     exception
     when no_data_found then
     select book_id_seq.nextval into v_book_id from dual;
     insert into books (book_id,title,isbn,publication_year,genre_id,total_quantity,available_quantity) values (v_book_id,p_title,p_isbn,p_publication_year,p_genre_id,p_total_quantity,p_available_quantity);
+	
+    add_author (p_author_fname,p_author_lname,v_author_id);
+    
     commit;
     insert into book_authors values (v_book_id,v_author_id);
     commit;
@@ -218,7 +219,7 @@ END;
 
 
 
-create or replace procedure search_books(
+create or replace procedure display_books(
     p_title in varchar2 default null,
     p_author_name in varchar2 default null,
     p_isbn in varchar2 default null,
@@ -280,6 +281,177 @@ ELSE
     query_str := 'SELECT * FROM books';
     OPEN p_results FOR query_str;
 END IF;
+
+
+
+end;
+/
+
+
+ create or replace procedure search_books(
+    p_title in varchar2 default null,
+    p_author_name in varchar2 default null,
+    p_isbn in varchar2 default null
+ )as
+
+v_cursor SYS_REFCURSOR;
+v_book books%rowtype;
+
+begin
+display_books(p_title,p_author_name,p_isbn,v_cursor);
+
+loop 
+fetch v_cursor into v_book;
+exit when v_cursor%notfound;
+dbms_output.put_line('Title: '||v_book.title || ',ISBN: '|| v_book.isbn);
+end loop;
+close v_cursor;
+end;
+/
+
+
+
+CREATE OR REPLACE PROCEDURE member_register (
+    p_first_name      VARCHAR2,
+    p_last_name       VARCHAR2,
+    p_address         VARCHAR2,
+    p_phone_number    NUMBER,
+    p_email           VARCHAR2,
+    p_status          VARCHAR2
+) AS
+    v_member_id NUMBER(10);
+BEGIN
+    SELECT
+        member_id
+    INTO v_member_id
+    FROM
+        members
+    WHERE
+        email = lower(p_email);
+
+    raise_application_error(-20001, 'Member already exists with the same email');
+EXCEPTION
+    WHEN no_data_found THEN
+        INSERT INTO members (
+            member_id,
+            first_name,
+            last_name,
+            address,
+            phone_number,
+            email,
+            membership_date,
+            status
+        ) VALUES (
+            member_id_seq.NEXTVAL,
+            p_first_name,
+            p_last_name,
+            p_address,
+            p_phone_number,
+            lower(p_email),
+            sysdate,
+            p_status
+        );
+        
+        commit;
+        dbms_output.put_line('New member is added Sucessfully !');
+
+END;
+/
+
+
+create or replace procedure update_member (
+    p_member_id       number,
+    p_first_name      VARCHAR2 default null,
+    p_last_name       VARCHAR2  default null,
+    p_address         VARCHAR2 default null,
+    p_phone_number    NUMBER default null,
+    p_email           VARCHAR2 default null,
+    p_status          VARCHAR2 default null
+)as 
+v_member_id number(10);
+begin
+
+begin
+select member_id into v_member_id from members where member_id = p_member_id;
+exception
+when no_data_found then
+RAISE_APPLICATION_ERROR(-20001, 'Please provide correct member ID, There is no member present with the given ID !');
+end;
+
+if p_first_name is not null then
+update members set first_name = p_first_name where member_id = p_member_id;
+end if;
+if p_last_name is not null then
+update members set last_name = p_last_name where member_id = p_member_id;
+end if;
+if p_address is not null then
+update members set address = p_address where member_id = p_member_id;
+end if;
+if p_phone_number is not null then
+update members set phone_number = p_phone_number where member_id = p_member_id;
+end if;
+if p_email is not null then
+update members set email = p_email where member_id = p_member_id;
+end if;
+if p_status is not null then
+update members set status = p_status where member_id = p_member_id;
+end if;
+
+commit;
+
+dbms_output.put_line('Member with ID '||v_member_id||' is updated Sucessfully !');
+
+end;
+/
+
+
+create or replace function get_member_status (
+p_member_id number
+)return varchar2 as
+v_status varchar2(50);
+begin
+select status into v_status from members where member_id = p_member_id;
+
+return v_status;
+exception
+when no_data_found then 
+return 'NO USER FOUND !';
+dbms_output.put_line('No member found with the ID !! ');
+end;
+/
+
+
+create or replace procedure check_out_book (
+p_book_id number,
+p_member_id number
+) as
+v_member_status varchar2(50);
+v_book_avail number(10);
+v_member_name varchar2(50);
+begin 
+
+select first_name into v_member_name from members where member_id=p_member_id;
+v_member_status := member_management_pkg.get_member_status(p_member_id);
+begin
+v_book_avail := book_management_pkg.check_availability(p_book_id);
+exception
+when no_data_found then
+raise_application_error(-20002,'Book is not availble, Please check !');
+end;
+
+if v_member_status = 'Active' then
+dbms_output.put_line ('user is active');
+if v_book_avail > 0 then
+dbms_output.put_line ('book is avaialable');
+insert into loans (loan_id,book_id,member_id,loan_date,due_date,return_date,status) values (loan_id_seq.nextval,p_book_id,p_member_id,sysdate,sysdate+30,null,'open');
+update books set available_quantity = v_book_avail - 1 where book_id = p_book_id;
+dbms_output.put_line ('book is issued to the user '|| v_member_name);
+commit;
+end if;
+
+else
+raise_application_error(-20001,'user is inactive, Please check !');
+end if;
 
 
 end;
