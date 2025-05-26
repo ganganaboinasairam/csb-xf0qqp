@@ -13,8 +13,7 @@ function autoPopulateCrystDtUpto() {
 
     if (!dueDate) return;
 
-    let extendedDate = addWorkingDays(dueDate, daysToAdd);
-
+    const extendedDate = addDays(dueDate, daysToAdd);
     const formattedDate = formatDate(extendedDate);
     $('#CRYST_DT_UPTO').val(formattedDate);
 }
@@ -32,29 +31,10 @@ function parseDate(dateStr) {
     return new Date(parts[2], parts[1] - 1, parts[0]);
 }
 
-// Returns true if the date is Sat/Sun
-function isHoliday(date) {
-    const day = date.getDay();
-    return day === 0 || day === 6; // Sunday = 0, Saturday = 6
-}
-
-// Adds N days, skipping weekends
-function addWorkingDays(date, daysToAdd) {
-    let result = new Date(date);
-    let addedDays = 0;
-
-    while (addedDays < daysToAdd) {
-        result.setDate(result.getDate() + 1);
-        if (!isHoliday(result)) {
-            addedDays++;
-        }
-    }
-
-    // If final day is holiday, skip to next working day
-    while (isHoliday(result)) {
-        result.setDate(result.getDate() + 1);
-    }
-
+// Adds N calendar days to the date
+function addDays(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
     return result;
 }
 
