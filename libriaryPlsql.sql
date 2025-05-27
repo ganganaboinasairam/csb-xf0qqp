@@ -63,6 +63,13 @@ paid_date date,
 status VARCHAR2(25) not null
 )
 
+create table library_logs (
+table_name varchar2(50),
+user_nm varchar2(50),
+trx_date date,
+c_log clob
+);
+
 
 create SEQUENCE author_id_seq start with 10001 increment by 1;
 create SEQUENCE genre_id_seq start with 20001 increment by 1;
@@ -148,7 +155,7 @@ BEGIN
 
     EXCEPTION
         WHEN no_data_found THEN
-            raise_application_error(-20001, 'Book with this ISBN does not exists');
+            raise_application_error(-20002, 'Book with this ISBN does not exists');
     END;
 
     IF p_title IS NOT NULL THEN
@@ -329,7 +336,7 @@ BEGIN
     WHERE
         email = lower(p_email);
 
-    raise_application_error(-20001, 'Member already exists with the same email');
+    raise_application_error(-20003, 'Member already exists with the same email');
 EXCEPTION
     WHEN no_data_found THEN
         INSERT INTO members (
@@ -375,7 +382,7 @@ begin
 select member_id into v_member_id from members where member_id = p_member_id;
 exception
 when no_data_found then
-RAISE_APPLICATION_ERROR(-20001, 'Please provide correct member ID, There is no member present with the given ID !');
+RAISE_APPLICATION_ERROR(-20004, 'Please provide correct member ID, There is no member present with the given ID !');
 end;
 
 if p_first_name is not null then
@@ -436,23 +443,76 @@ begin
 v_book_avail := book_management_pkg.check_availability(p_book_id);
 exception
 when no_data_found then
-raise_application_error(-20002,'Book is not availble, Please check !');
+raise_application_error(-20005,'Book is not availble, Please check !');
 end;
 
 if v_member_status = 'Active' then
-dbms_output.put_line ('user is active');
 if v_book_avail > 0 then
-dbms_output.put_line ('book is avaialable');
-insert into loans (loan_id,book_id,member_id,loan_date,due_date,return_date,status) values (loan_id_seq.nextval,p_book_id,p_member_id,sysdate,sysdate+30,null,'open');
-update books set available_quantity = v_book_avail - 1 where book_id = p_book_id;
-dbms_output.put_line ('book is issued to the user '|| v_member_name);
+insert into loans (loan_id,book_id,member_id,loan_date,due_date,return_date,status) values (loan_id_seq.nextval,p_book_id,p_member_id,sysdate,sysdate+30,null,'O');
 commit;
+else
+raise_application_error(-20006,'Book is OUT OF STOCK Please come back !');
 end if;
 
 else
-raise_application_error(-20001,'user is inactive, Please check !');
+raise_application_error(-20007,'user is inactive, Please check !');
 end if;
 
 
+end;
+/
+
+
+create or replace function check_loan_id (
+p_loan_id number
+)return number as
+v_loan_id number(10);
+v_status varchar2(10);
+begin
+select loan_id,status into v_loan_id,v_status from loans where loan_id = p_loan_id;
+if v_status = 'R' then
+return 2;
+else
+return 1;
+end if;
+exception 
+when no_data_found then
+return -1;
+end;
+/
+
+
+create or replace procedure check_in_book (
+p_loan_id number
+)as
+v_chk_loan_id number;
+v_return_date date;
+begin
+v_chk_loan_id := check_loan_id(p_loan_id);
+
+if v_chk_loan_id = 1 then
+update loans set return_date = sysdate,status = 'R' where loan_id = p_loan_id;
+commit;
+elsif v_chk_loan_id = 2 then
+select return_date into v_return_date from loans where loan_id = p_loan_id;
+RAISE_APPLICATION_ERROR(-20008,'Book is already returned on '|| v_return_date);
+else
+RAISE_APPLICATION_ERROR(-20009,'Loan is not avaiable with ID ' ||p_loan_id);
+end if;
+end;
+/
+
+
+create or replace TRIGGER update_book_qty
+after insert or update on loans 
+for each row 
+begin
+if :new.status = 'R' then
+update books set available_quantity = available_quantity + 1 where book_id = :new.book_id;
+insert into library_logs (table_name,user_nm,trx_date,c_log) values ('Loans',sysuser,sysdate,'Book '|| :new.book_id || ' is returned by '|| :new.member_id ||' with loan ID' || :new.loan_id);
+elsif :new.status = 'O' then
+update books set available_quantity = available_quantity - 1 where book_id = :new.book_id;
+insert into library_logs (table_name,user_nm,trx_date,c_log) values ('Loans',sysuser,sysdate,'Book '|| :new.book_id || ' is issued to '|| :new.member_id ||' with loan ID ' || :new.loan_id);
+end if;
 end;
 /
