@@ -1,8 +1,34 @@
-$('#CRYST_DT_UPTO').change(function () {
-    const expectedDate = formatDate(addDays(parseDate($('#ND_END_DT').val()), getDaysToAddBasedOnRating($('#CUST_CRE_RTNG').val())));
-    const selectedDate = parseDate($(this).val());
+create or replace procedure check_out_book (
+p_book_id number,
+p_member_id number
+) as
+v_member_status varchar2(50);
+v_book_avail number(10);
+v_member_name varchar2(50);
+begin 
 
-    if (selectedDate > parseDate(expectedDate)) {
-        alert("As per extent instructions, extension is permitted upto 45 Days from the due date/ notional due date. However, the selected date for extension is beyond the permitted date");
-    }
-});
+select first_name into v_member_name from members where member_id=p_member_id;
+v_member_status := member_management_pkg.get_member_status(p_member_id);
+begin
+v_book_avail := book_management_pkg.check_availability(p_book_id);
+exception
+when no_data_found then
+raise_application_error(-20002,'Book is not availble, Please check !');
+end;
+
+if v_member_status = 'Active' then
+dbms_output.put_line ('user is active');
+if v_book_avail > 0 then
+dbms_output.put_line ('book is avaialable');
+insert into loans (loan_id,book_id,member_id,loan_date,due_date,return_date,status) values (loan_id_seq.nextval,p_book_id,p_member_id,sysdate,sysdate+30,null,'open');
+update books set available_quantity = v_book_avail - 1 where book_id = p_book_id;
+dbms_output.put_line ('book is issued to the user '|| v_member_name);
+commit;
+end if;
+
+else
+raise_application_error(-20001,'user is inactive, Please check !');
+end if;
+
+
+end;
