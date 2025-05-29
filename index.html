@@ -1,184 +1,110 @@
-create or replace package body fines_management_pkg as
- procedure cal_overdue_fines (
-p_loan_id number
-)as
-v_due_date date;
-v_due_days number(5);
-v_member_id number(10);
-v_fine_amt number(18,2);
-v_is_overdue number;
-begin
 
-v_is_overdue := fines_management_pkg.check_overdue_fines(p_loan_id);
+    $(".DATE_M, .DATE_O").each(function() {
+        var $this = $(this);
+    
+        // Initialize AirDatepicker with all relevant callbacks
+        new AirDatepicker(this, {
+            locale: {
+                days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+                daysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                daysMin: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
+                months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+                monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                today: 'Today',
+                clear: 'Clear',
+                dateFormat: 'dd/MM/yyyy',
+                firstDay: 0
+            },
+            dateFormat: 'dd/MM/yyyy',
+            view: 'days',
+            minView: 'days',
+            autoClose: true,
+    
+            // Callback when a date is selected
+            onSelect: function(formattedDate, date, inst) {
+                console.log($this.attr('id') + ' date selected: ' + formattedDate);
+                // Manually trigger the onchange event after date selection
+                $this.trigger('change');
+    
+                // Optionally call custom onchange function
+                var changeFunctionName = $this.data('onchange'); // Get function name from data attribute
+                if (changeFunctionName && typeof window[changeFunctionName] === 'function') {
+                    window[changeFunctionName](); // Call the function dynamically
+                }
+            },
+    
+            // Callback when datepicker is shown
+            onShow: function(inst) {
+                console.log($this.attr('id') + ' datepicker shown');
+                $this.trigger('focus'); // Trigger focus event when datepicker is shown
+            },
+    
+            // Callback when datepicker is hidden
+            onHide: function(inst) {
+                console.log($this.attr('id') + ' datepicker hidden');
+                $this.trigger('blur'); // Trigger blur event when datepicker is hidden
+            },
+    
+            // Callback when datepicker is rendered
+            onRender: function(inst) {
+                console.log($this.attr('id') + ' datepicker rendered');
+            }
+        });
 
-select due_date,member_id into v_due_date,v_member_id from loans where loan_id = p_loan_id;
+        // Hide the jQuery UI Datepicker div if still present
+        $("#ui-datepicker-div").remove(); // Remove the lingering jQuery UI element
+    
+        // Mark as initialized
+        $this.addClass('air-datepicker-initialized');
 
-v_due_days := round((sysdate - v_due_date),2);
+        // Ensure AirDatepicker is not re-attached multiple times
+        if ($this.hasClass('air-datepicker-initialized')) {
+            return;
+        }
 
-v_fine_amt := v_due_days * 50;
+        // Remove any lingering jQuery UI Datepicker
+        if ($this.hasClass("hasDatepicker")) {
+            $.datepicker._showDatepicker = function() {
+                return false; // Block any further jQuery UI Datepicker from appearing
+            };
+        }
 
-if sysdate > v_due_date then 
-dbms_output.put_line('SYSDATE IS MORE THAN DURE DATE');
-if v_is_overdue = -1 then
-dbms_output.put_line('NO EXISTING FINES');
-insert into fines (fine_id,loan_id,member_id,fine_amount,status) values (FINE_ID_SEQ.nextval,p_loan_id,v_member_id,v_fine_amt,'NP');
-else
-update fines set fine_amount = v_fine_amt where loan_id = p_loan_id;
-end if;
-else
-raise_application_error(-20010,'No FINE !!! Return date for the Book is '||v_due_date);
-dbms_output.put_line('No FINE !!! ,Due date for the loan is '||v_due_date);
-end if;
-COMMIT;
-end;
+       
 
-procedure pay_fine(
-p_loan_id number
-)as
-v_is_overdue number;
-begin
-
-v_is_overdue := fines_management_pkg.check_overdue_fines(p_loan_id);
-
-if v_is_overdue = 1 then 
-update fines set fine_amount = '0' ,paid_date = sysdate, status='P' where loan_id = p_loan_id;
-else
-RAISE_APPLICATION_ERROR(-20011, 'No Fines are pending with the Loan ID '||p_loan_id);
-end if;
-end;
-
-function check_overdue_fines(
-p_loan_id number
-)return number as
-v_loan_id number;
-v_status varchar2(10);
-begin
-select loan_id,status into v_loan_id,v_status from FINES where loan_id = p_loan_id;
-if v_status = 'NP' then
-return 1;
-elsif v_status = 'P' then
-return 2;
-end if;
-exception 
-when no_data_found then
-return -1;
-end;
-
-end fines_management_pkg;
-
-create or replace package body loan_management_pkg as
-
-procedure check_out_book (
-p_book_id number,
-p_member_id number
-) as
-v_member_status varchar2(50);
-v_book_avail number(10);
-v_member_name varchar2(50);
-begin 
-
-select first_name into v_member_name from members where member_id=p_member_id;
-v_member_status := member_management_pkg.get_member_status(p_member_id);
-begin
-v_book_avail := book_management_pkg.check_availability(p_book_id);
-exception
-when no_data_found then
-raise_application_error(-20005,'Book is not availble, Please check !');
-end;
-
-if v_member_status = 'Active' then
-if v_book_avail > 0 then
-insert into loans (loan_id,book_id,member_id,loan_date,due_date,return_date,status) values (loan_id_seq.nextval,p_book_id,p_member_id,sysdate,sysdate+30,null,'O');
-commit;
-else
-raise_application_error(-20006,'Book is OUT OF STOCK Please come back !');
-end if;
-
-else
-raise_application_error(-20007,'user is inactive, Please check !');
-end if;
-
-
-end;
-
-function check_loan_id (
-p_loan_id number
-)return number as
-v_loan_id number(10);
-v_status varchar2(10);
-begin
-select loan_id,status into v_loan_id,v_status from loans where loan_id = p_loan_id;
-if v_status = 'R' then
-return 2;
-else
-return 1;
-end if;
-exception 
-when no_data_found then
-return -1;
-end;
-
-procedure check_in_book (
-p_loan_id number
-)as
-v_chk_loan_id number;
-v_return_date date;
-begin
-v_chk_loan_id := check_loan_id(p_loan_id);
-
-if v_chk_loan_id = 1 then
-update loans set return_date = sysdate,status = 'R' where loan_id = p_loan_id;
-commit;
-elsif v_chk_loan_id = 2 then
-select return_date into v_return_date from loans where loan_id = p_loan_id;
-RAISE_APPLICATION_ERROR(-20008,'Book is already returned on '|| v_return_date);
-else
-RAISE_APPLICATION_ERROR(-20009,'Loan is not avaiable with ID ' ||p_loan_id);
-end if;
-end;
-
-end loan_management_pkg;
-
-
-create or replace TRIGGER loan_event_trigr
-after insert or update or delete on loans 
-for each row 
-begin
-if updating then
-if :new.status = 'R' then
-update books set available_quantity = available_quantity + 1 where book_id = :new.book_id;
-insert into library_logs (table_name,user_nm,trx_date,c_log) values ('Loans',user,sysdate,'Book '|| :new.book_id || ' is returned by '|| :new.member_id ||' with loan ID ' || :new.loan_id);
-if :new.return_date > :new.due_date then
---insert into fines (fine_id,loan_id,member_id,fine_amount,status) values (fine_id_seq.nextval,:new.loan_id,:new.member_id,((:new.return_date - :new.due_date) * 50),'NP');
-fines_management_pkg.cal_overdue_fines(:new.loan_id);
-end if;
-end if;
-end if;
-if inserting then
-if :new.status = 'O' then
-update books set available_quantity = available_quantity - 1 where book_id = :new.book_id;
-insert into library_logs (table_name,user_nm,trx_date,c_log) values ('Loans',user,sysdate,'Book '|| :new.book_id || ' is issued to '|| :new.member_id ||' with loan ID ' || :new.loan_id);
-end if;
-end if;
-if deleting then
-insert into library_logs (table_name,user_nm,trx_date,c_log) values ('Loans',user,sysdate,'Loan '|| :old.loan_id || ' is Deleted');
-end if;
-end;
-
-
-
-
-Error starting at line : 17 in command -
-BEGIN loan_management_pkg.check_in_book(60014); END;
-Error report -
-ORA-04091: table CETRX.LOANS is mutating, trigger/function may not see it
-ORA-06512: at "CETRX.FINES_MANAGEMENT_PKG", line 14
-ORA-06512: at "CETRX.LOAN_EVENT_TRIGR", line 8
-ORA-04088: error during execution of trigger 'CETRX.LOAN_EVENT_TRIGR'
-ORA-06512: at "CETRX.LOAN_MANAGEMENT_PKG", line 62
-ORA-06512: at line 1
-04091. 00000 -  "table %s.%s is mutating, trigger/function may not see it"
-*Cause:    A trigger (or a user defined plsql function that is referenced in
-           this statement) attempted to look at (or modify) a table that was
-           in the middle of being modified by the statement which fired it.
-*Action:   Rewrite the trigger (or function) so it does not read that table.
+    
+        // Re-attach existing events
+        addOnChange($this.attr('id'));
+        addOnBlur($this.attr('id'));
+        addOnClick($this.attr('id'));
+        addOnFocus($this.attr('id'));
+    
+        // Optionally bind custom onblur, onclick, onfocus events
+        $this.on('blur', function() {
+            console.log($this.attr('id') + ' field blurred');
+            // Call custom blur function if needed
+            var blurFunctionName = $this.data('onblur');
+            if (blurFunctionName && typeof window[blurFunctionName] === 'function') {
+                window[blurFunctionName]();
+            }
+        });
+    
+        $this.on('focus', function() {
+            console.log($this.attr('id') + ' field focused');
+            // Call custom focus function if needed
+            var focusFunctionName = $this.data('onfocus');
+            if (focusFunctionName && typeof window[focusFunctionName] === 'function') {
+                window[focusFunctionName]();
+            }
+        });
+    
+        $this.on('click', function() {
+            console.log($this.attr('id') + ' field clicked');
+            // Call custom click function if needed
+            var clickFunctionName = $this.data('onclick');
+            if (clickFunctionName && typeof window[clickFunctionName] === 'function') {
+                window[clickFunctionName]();
+            }
+        });
+		
+		
+    });
