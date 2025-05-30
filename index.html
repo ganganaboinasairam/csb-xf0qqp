@@ -2,141 +2,134 @@ package com.library;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.*;
 
 import com.db.DBConnection;
 
 @WebServlet("/libUtility")
-public class libUtility extends HttpServlet{
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	
-	protected void libSeg(HttpServletRequest request, HttpServletResponse response) {
-		String actionType = request.getParameter("actionType");
-		
-		try {
-			if (actionType.equals("addBook")) {
-				addBook(request, response);
-			}else if (actionType.equals("getBookGenres")) {
-				getBookGenres(request, response);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
+public class libUtility extends HttpServlet {
+    private static final long serialVersionUID = 1L;
 
-	protected void addBook(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		request.setCharacterEncoding("UTF-8");
-		response.setContentType("text/plain");
-		
+    // Entry point for all requests
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        libSeg(request, response);
+    }
 
-		CallableStatement stmt = null;
-		Connection conn = DBConnection.getBDConn();
-		
-		String title = request.getParameter("title");
-		String isbn = request.getParameter("isbn");
-		String pub_year = request.getParameter("pub_year");
-		String genre = request.getParameter("genre");
-		String ttl_qty = request.getParameter("ttl_qty");
-		String aval_qty = request.getParameter("aval_qty");
-		String auth_fname = request.getParameter("auth_fname");
-		String auth_lname = request.getParameter("auth_lname");
-		
-		try {
-			
-			
-			
-			String sql  = "{call add_book(?,?,?,?,?,?,?,?)}";
-			
-			stmt = conn.prepareCall(sql);
-			
-			stmt.setString(1, title);
-			stmt.setString(1, isbn);
-			stmt.setString(1, pub_year);
-			stmt.setString(1, genre);
-			stmt.setString(1, ttl_qty);
-			stmt.setString(1, aval_qty);
-			stmt.setString(1, auth_fname);
-			stmt.setString(1, auth_lname);
-			
-			stmt.execute();
-			
-			System.out.println("Book Added Sucessfully ! ! !");
-			
-			
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				stmt.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-			try {
-				conn.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		PrintWriter out = response.getWriter();
-		
-		out.println("Book Added");
-	}
-	
-	
-	protected void getBookGenres(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        libSeg(request, response);
+    }
 
-		Connection conn = DBConnection.getBDConn();
-		PreparedStatement stmt = null;
-		
-		
-		
-		try {
-			String sql = "select genre_id,GENRE_NAME from genres";
-			stmt = conn.prepareStatement(sql);
-			ResultSet rs = stmt.executeQuery();
-			
-			StringBuilder json = new StringBuilder();
-			json.append("[");
-			boolean first = true;
-			
-			while (rs.next()) {
+    protected void libSeg(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String actionType = request.getParameter("actionType");
+
+        if (actionType == null) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing actionType");
+            return;
+        }
+
+        try {
+            if (actionType.equals("addBook")) {
+                addBook(request, response);
+            } else if (actionType.equals("getBookGenres")) {
+                getBookGenres(request, response);
+            } else {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown actionType");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected void addBook(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        request.setCharacterEncoding("UTF-8");
+        response.setContentType("text/plain");
+
+        CallableStatement stmt = null;
+        Connection conn = DBConnection.getBDConn();
+
+        String title = request.getParameter("title");
+        String isbn = request.getParameter("isbn");
+        String pub_year = request.getParameter("pub_year");
+        String genre = request.getParameter("genre");
+        String ttl_qty = request.getParameter("ttl_qty");
+        String aval_qty = request.getParameter("aval_qty");
+        String auth_fname = request.getParameter("auth_fname");
+        String auth_lname = request.getParameter("auth_lname");
+
+        try {
+            String sql = "{call add_book(?, ?, ?, ?, ?, ?, ?, ?)}";
+            stmt = conn.prepareCall(sql);
+
+            stmt.setString(1, title);
+            stmt.setString(2, isbn);
+            stmt.setString(3, pub_year);
+            stmt.setString(4, genre);
+            stmt.setString(5, ttl_qty);
+            stmt.setString(6, aval_qty);
+            stmt.setString(7, auth_fname);
+            stmt.setString(8, auth_lname);
+
+            stmt.execute();
+
+            System.out.println("Book Added Successfully!");
+            PrintWriter out = response.getWriter();
+            out.println("Book Added");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error adding book");
+        } finally {
+            try {
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    protected void getBookGenres(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        Connection conn = DBConnection.getBDConn();
+        PreparedStatement stmt = null;
+
+        response.setContentType("application/json");
+        PrintWriter out = response.getWriter();
+
+        try {
+            String sql = "SELECT genre_id, GENRE_NAME FROM genres";
+            stmt = conn.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+
+            StringBuilder json = new StringBuilder();
+            json.append("[");
+            boolean first = true;
+
+            while (rs.next()) {
                 if (!first) json.append(",");
                 json.append("{");
                 json.append("\"id\":").append(rs.getInt("genre_id")).append(",");
-                json.append("\"name\":\"").append(rs.getString("GENRE_NAME").replace("\"", "\\\"")).append("\",");
+                json.append("\"name\":\"").append(rs.getString("GENRE_NAME").replace("\"", "\\\"")).append("\"");
                 json.append("}");
                 first = false;
             }
-			
-			json.append("]");
-			
-			PrintWriter out = response.getWriter();
-			
+
+            json.append("]");
             out.print(json.toString());
 
             rs.close();
-            stmt.close();
-            conn.close();
-			
-			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-	}
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error retrieving genres");
+        } finally {
+            try {
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
