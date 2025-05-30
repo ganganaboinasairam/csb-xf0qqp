@@ -1,55 +1,142 @@
-import java.io.*;
-import java.sql.*;
-import javax.servlet.*;
+package com.library;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.*;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-@WebServlet("/GetPostsServlet")
-public class GetPostsServlet extends HttpServlet {
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+import com.db.DBConnection;
 
-        response.setContentType("application/json");
-        PrintWriter out = response.getWriter();
+@WebServlet("/libUtility")
+public class libUtility extends HttpServlet{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	protected void libSeg(HttpServletRequest request, HttpServletResponse response) {
+		String actionType = request.getParameter("actionType");
+		
+		try {
+			if (actionType.equals("addBook")) {
+				addBook(request, response);
+			}else if (actionType.equals("getBookGenres")) {
+				getBookGenres(request, response);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 
-        try {
-            // Load driver
-            Class.forName("oracle.jdbc.driver.OracleDriver");
+	protected void addBook(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		request.setCharacterEncoding("UTF-8");
+		response.setContentType("text/plain");
+		
 
-            // Connect to DB
-            Connection conn = DriverManager.getConnection(
-                "jdbc:oracle:thin:@localhost:1521:xe", "user", "pass");
+		CallableStatement stmt = null;
+		Connection conn = DBConnection.getBDConn();
+		
+		String title = request.getParameter("title");
+		String isbn = request.getParameter("isbn");
+		String pub_year = request.getParameter("pub_year");
+		String genre = request.getParameter("genre");
+		String ttl_qty = request.getParameter("ttl_qty");
+		String aval_qty = request.getParameter("aval_qty");
+		String auth_fname = request.getParameter("auth_fname");
+		String auth_lname = request.getParameter("auth_lname");
+		
+		try {
+			
+			
+			
+			String sql  = "{call add_book(?,?,?,?,?,?,?,?)}";
+			
+			stmt = conn.prepareCall(sql);
+			
+			stmt.setString(1, title);
+			stmt.setString(1, isbn);
+			stmt.setString(1, pub_year);
+			stmt.setString(1, genre);
+			stmt.setString(1, ttl_qty);
+			stmt.setString(1, aval_qty);
+			stmt.setString(1, auth_fname);
+			stmt.setString(1, auth_lname);
+			
+			stmt.execute();
+			
+			System.out.println("Book Added Sucessfully ! ! !");
+			
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				stmt.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		PrintWriter out = response.getWriter();
+		
+		out.println("Book Added");
+	}
+	
+	
+	protected void getBookGenres(HttpServletRequest request, HttpServletResponse response) throws IOException {
 
-            // Execute SQL
-            String sql = "SELECT id, title, content FROM posts";
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            ResultSet rs = stmt.executeQuery();
-
-            // Build JSON response
-            StringBuilder json = new StringBuilder();
-            json.append("[");
-            boolean first = true;
-
-            while (rs.next()) {
+		Connection conn = DBConnection.getBDConn();
+		PreparedStatement stmt = null;
+		
+		
+		
+		try {
+			String sql = "select genre_id,GENRE_NAME from genres";
+			stmt = conn.prepareStatement(sql);
+			ResultSet rs = stmt.executeQuery();
+			
+			StringBuilder json = new StringBuilder();
+			json.append("[");
+			boolean first = true;
+			
+			while (rs.next()) {
                 if (!first) json.append(",");
                 json.append("{");
-                json.append("\"id\":").append(rs.getInt("id")).append(",");
-                json.append("\"title\":\"").append(rs.getString("title").replace("\"", "\\\"")).append("\",");
-                json.append("\"content\":\"").append(rs.getString("content").replace("\"", "\\\"")).append("\"");
+                json.append("\"id\":").append(rs.getInt("genre_id")).append(",");
+                json.append("\"name\":\"").append(rs.getString("GENRE_NAME").replace("\"", "\\\"")).append("\",");
                 json.append("}");
                 first = false;
             }
-
-            json.append("]");
+			
+			json.append("]");
+			
+			PrintWriter out = response.getWriter();
+			
             out.print(json.toString());
 
             rs.close();
             stmt.close();
             conn.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            out.print("{\"error\":\"Database error\"}");
-        }
-    }
+			
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+	}
 }
