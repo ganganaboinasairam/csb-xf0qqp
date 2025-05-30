@@ -1,110 +1,55 @@
+import java.io.*;
+import java.sql.*;
+import javax.servlet.*;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
 
-    $(".DATE_M, .DATE_O").each(function() {
-        var $this = $(this);
-    
-        // Initialize AirDatepicker with all relevant callbacks
-        new AirDatepicker(this, {
-            locale: {
-                days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-                daysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-                daysMin: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
-                months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-                monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                today: 'Today',
-                clear: 'Clear',
-                dateFormat: 'dd/MM/yyyy',
-                firstDay: 0
-            },
-            dateFormat: 'dd/MM/yyyy',
-            view: 'days',
-            minView: 'days',
-            autoClose: true,
-    
-            // Callback when a date is selected
-            onSelect: function(formattedDate, date, inst) {
-                console.log($this.attr('id') + ' date selected: ' + formattedDate);
-                // Manually trigger the onchange event after date selection
-                $this.trigger('change');
-    
-                // Optionally call custom onchange function
-                var changeFunctionName = $this.data('onchange'); // Get function name from data attribute
-                if (changeFunctionName && typeof window[changeFunctionName] === 'function') {
-                    window[changeFunctionName](); // Call the function dynamically
-                }
-            },
-    
-            // Callback when datepicker is shown
-            onShow: function(inst) {
-                console.log($this.attr('id') + ' datepicker shown');
-                $this.trigger('focus'); // Trigger focus event when datepicker is shown
-            },
-    
-            // Callback when datepicker is hidden
-            onHide: function(inst) {
-                console.log($this.attr('id') + ' datepicker hidden');
-                $this.trigger('blur'); // Trigger blur event when datepicker is hidden
-            },
-    
-            // Callback when datepicker is rendered
-            onRender: function(inst) {
-                console.log($this.attr('id') + ' datepicker rendered');
+@WebServlet("/GetPostsServlet")
+public class GetPostsServlet extends HttpServlet {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        response.setContentType("application/json");
+        PrintWriter out = response.getWriter();
+
+        try {
+            // Load driver
+            Class.forName("oracle.jdbc.driver.OracleDriver");
+
+            // Connect to DB
+            Connection conn = DriverManager.getConnection(
+                "jdbc:oracle:thin:@localhost:1521:xe", "user", "pass");
+
+            // Execute SQL
+            String sql = "SELECT id, title, content FROM posts";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+
+            // Build JSON response
+            StringBuilder json = new StringBuilder();
+            json.append("[");
+            boolean first = true;
+
+            while (rs.next()) {
+                if (!first) json.append(",");
+                json.append("{");
+                json.append("\"id\":").append(rs.getInt("id")).append(",");
+                json.append("\"title\":\"").append(rs.getString("title").replace("\"", "\\\"")).append("\",");
+                json.append("\"content\":\"").append(rs.getString("content").replace("\"", "\\\"")).append("\"");
+                json.append("}");
+                first = false;
             }
-        });
 
-        // Hide the jQuery UI Datepicker div if still present
-        $("#ui-datepicker-div").remove(); // Remove the lingering jQuery UI element
-    
-        // Mark as initialized
-        $this.addClass('air-datepicker-initialized');
+            json.append("]");
+            out.print(json.toString());
 
-        // Ensure AirDatepicker is not re-attached multiple times
-        if ($this.hasClass('air-datepicker-initialized')) {
-            return;
+            rs.close();
+            stmt.close();
+            conn.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            out.print("{\"error\":\"Database error\"}");
         }
-
-        // Remove any lingering jQuery UI Datepicker
-        if ($this.hasClass("hasDatepicker")) {
-            $.datepicker._showDatepicker = function() {
-                return false; // Block any further jQuery UI Datepicker from appearing
-            };
-        }
-
-       
-
-    
-        // Re-attach existing events
-        addOnChange($this.attr('id'));
-        addOnBlur($this.attr('id'));
-        addOnClick($this.attr('id'));
-        addOnFocus($this.attr('id'));
-    
-        // Optionally bind custom onblur, onclick, onfocus events
-        $this.on('blur', function() {
-            console.log($this.attr('id') + ' field blurred');
-            // Call custom blur function if needed
-            var blurFunctionName = $this.data('onblur');
-            if (blurFunctionName && typeof window[blurFunctionName] === 'function') {
-                window[blurFunctionName]();
-            }
-        });
-    
-        $this.on('focus', function() {
-            console.log($this.attr('id') + ' field focused');
-            // Call custom focus function if needed
-            var focusFunctionName = $this.data('onfocus');
-            if (focusFunctionName && typeof window[focusFunctionName] === 'function') {
-                window[focusFunctionName]();
-            }
-        });
-    
-        $this.on('click', function() {
-            console.log($this.attr('id') + ' field clicked');
-            // Call custom click function if needed
-            var clickFunctionName = $this.data('onclick');
-            if (clickFunctionName && typeof window[clickFunctionName] === 'function') {
-                window[clickFunctionName]();
-            }
-        });
-		
-		
-    });
+    }
+}
