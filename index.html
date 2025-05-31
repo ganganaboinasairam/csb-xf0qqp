@@ -1,135 +1,102 @@
-package com.library;
-
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.sql.*;
-
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.*;
-
-import com.db.DBConnection;
-
-@WebServlet("/libUtility")
-public class libUtility extends HttpServlet {
-    private static final long serialVersionUID = 1L;
-
-    // Entry point for all requests
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        libSeg(request, response);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Library Management System</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        libSeg(request, response);
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
     }
 
-    protected void libSeg(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String actionType = request.getParameter("actionType");
-
-        if (actionType == null) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing actionType");
-            return;
-        }
-
-        try {
-            if (actionType.equals("addBook")) {
-                addBook(request, response);
-            } else if (actionType.equals("getBookGenres")) {
-                getBookGenres(request, response);
-            } else {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown actionType");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    header {
+      background-color: #1e90ff;
+      color: white;
+      width: 100%;
+      padding: 20px 0;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    protected void addBook(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        request.setCharacterEncoding("UTF-8");
-        response.setContentType("text/plain");
-
-        CallableStatement stmt = null;
-        Connection conn = DBConnection.getBDConn();
-
-        String title = request.getParameter("title");
-        String isbn = request.getParameter("isbn");
-        String pub_year = request.getParameter("pub_year");
-        String genre = request.getParameter("genre");
-        String ttl_qty = request.getParameter("ttl_qty");
-        String aval_qty = request.getParameter("aval_qty");
-        String auth_fname = request.getParameter("auth_fname");
-        String auth_lname = request.getParameter("auth_lname");
-
-        try {
-            String sql = "{call add_book(?, ?, ?, ?, ?, ?, ?, ?)}";
-            stmt = conn.prepareCall(sql);
-
-            stmt.setString(1, title);
-            stmt.setString(2, isbn);
-            stmt.setString(3, pub_year);
-            stmt.setString(4, genre);
-            stmt.setString(5, ttl_qty);
-            stmt.setString(6, aval_qty);
-            stmt.setString(7, auth_fname);
-            stmt.setString(8, auth_lname);
-
-            stmt.execute();
-
-            System.out.println("Book Added Successfully!");
-            PrintWriter out = response.getWriter();
-            out.println("Book Added");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error adding book");
-        } finally {
-            try {
-                if (stmt != null) stmt.close();
-                if (conn != null) conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
+    main {
+      background-color: white;
+      margin-top: 40px;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
     }
 
-    protected void getBookGenres(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        Connection conn = DBConnection.getBDConn();
-        PreparedStatement stmt = null;
-
-        response.setContentType("application/json");
-        PrintWriter out = response.getWriter();
-
-        try {
-            String sql = "SELECT genre_id, GENRE_NAME FROM genres";
-            stmt = conn.prepareStatement(sql);
-            ResultSet rs = stmt.executeQuery();
-
-            StringBuilder json = new StringBuilder();
-            json.append("[");
-            boolean first = true;
-
-            while (rs.next()) {
-                if (!first) json.append(",");
-                json.append("{");
-                json.append("\"id\":").append(rs.getInt("genre_id")).append(",");
-                json.append("\"name\":\"").append(rs.getString("GENRE_NAME").replace("\"", "\\\"")).append("\"");
-                json.append("}");
-                first = false;
-            }
-
-            json.append("]");
-            out.print(json.toString());
-
-            rs.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error retrieving genres");
-        } finally {
-            try {
-                if (stmt != null) stmt.close();
-                if (conn != null) conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
+    h1 {
+      font-size: 2em;
     }
-}
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 15px 0;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-genre {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .btn-genre:hover {
+      background-color: #218838;
+    }
+
+    .btn-book {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .btn-book:hover {
+      background-color: #0069d9;
+    }
+
+    footer {
+      margin-top: auto;
+      padding: 20px;
+      color: #777;
+      text-align: center;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Library Management System</h1>
+  </header>
+
+  <main>
+    <h2>Admin Actions</h2>
+    <button class="btn btn-genre">➕ Add Genre</button>
+    <button class="btn btn-book">📚 Add Book</button>
+  </main>
+
+  <footer>
+    &copy; 2025 Library System. All rights reserved.
+  </footer>
+
+</body>
+</html>
