@@ -1,102 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Library Management System</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+private void getAllBooks(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    	Connection conn = null;
+        
+        DBConnection db = new DBConnection();
+        conn = db.getConnection();
+
+        PreparedStatement stmt = null;
+
+        response.setContentType("application/json");
+        PrintWriter out = response.getWriter();
+
+        try {
+            String sql = "SELECT BOOK_ID, TITLE, ISBN, PUBLICATION_YEAR, GENRE_ID, TOTAL_QUANTITY, AVAILABLE_QUANTITY FROM books";
+            stmt = conn.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+
+            StringBuilder json = new StringBuilder();
+            json.append("[");
+            boolean first = true;
+
+            while (rs.next()) {
+                if (!first) json.append(",");
+                json.append("{");
+                json.append("\"BOOK_ID\":").append(rs.getInt("BOOK_ID")).append(",");
+                json.append("\"TITLE\":\"").append(rs.getString("TITLE").replace("\"", "\\\"")).append("\"");
+                json.append("\"PUBLICATION_YEAR\":").append(rs.getInt("PUBLICATION_YEAR")).append(",");
+                json.append("\"GENRE_ID\":").append(rs.getInt("GENRE_ID")).append(",");
+                json.append("\"TOTAL_QUANTITY\":").append(rs.getInt("TOTAL_QUANTITY")).append(",");
+                json.append("\"ISBN\":").append(rs.getInt("ISBN")).append(",");
+                json.append("\"AVAILABLE_QUANTITY\":").append(rs.getInt("AVAILABLE_QUANTITY")).append(",");
+                json.append("}");
+                first = false; 
+            }
+
+            json.append("]");
+            out.print(json);
+
+            rs.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error retrieving books");
+        } finally {
+            try {
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
     }
-
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f6f9;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-    }
-
-    header {
-      background-color: #1e90ff;
-      color: white;
-      width: 100%;
-      padding: 20px 0;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    main {
-      background-color: white;
-      margin-top: 40px;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      width: 90%;
-      max-width: 400px;
-      text-align: center;
-    }
-
-    h1 {
-      font-size: 2em;
-    }
-
-    .btn {
-      display: block;
-      width: 100%;
-      padding: 12px;
-      margin: 15px 0;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    .btn-genre {
-      background-color: #28a745;
-      color: white;
-    }
-
-    .btn-genre:hover {
-      background-color: #218838;
-    }
-
-    .btn-book {
-      background-color: #007bff;
-      color: white;
-    }
-
-    .btn-book:hover {
-      background-color: #0069d9;
-    }
-
-    footer {
-      margin-top: auto;
-      padding: 20px;
-      color: #777;
-      text-align: center;
-      font-size: 14px;
-    }
-  </style>
-</head>
-<body>
-
-  <header>
-    <h1>Library Management System</h1>
-  </header>
-
-  <main>
-    <h2>Admin Actions</h2>
-    <button class="btn btn-genre">➕ Add Genre</button>
-    <button class="btn btn-book">📚 Add Book</button>
-  </main>
-
-  <footer>
-    &copy; 2025 Library System. All rights reserved.
-  </footer>
-
-</body>
-</html>
