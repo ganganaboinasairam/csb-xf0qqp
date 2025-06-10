@@ -1,25 +1,57 @@
-Here’s the updated version of your message with that clarification:
+create or replace TRIGGER ADD_CUST_ALLOWED_DATA 
+AFTER INSERT OR UPDATE ON GOOD_MASTER
+FOR EACH ROW
+DECLARE 
+   c_unit_code varchar2(5);
+   c_main_ref  varchar2(50);
+   c_cust_id   varchar2(50);
+   cust_nm     varchar2(50);
+   hsn_code_s  varchar2(4000);
+   hsn_desc_s  varchar2(4000);
+   status_s    varchar2(4000);
+   items       integer := 0;
+   hsn_code    sys.odcivarchar2list;
+   hsn_desc    sys.odcivarchar2list;
+   status      sys.odcivarchar2list;
+   function splits(p_list varchar2, p_items integer) return sys.odcivarchar2list as
+      t_list sys.odcivarchar2list;
+   begin
+      select regexp_substr(p_list, '[^;]+', 1, level) ids bulk collect into t_list
+         from dual connect by level <= p_items;
+      return t_list;
+   exception
+      When Others Then Return T_List;
+   end;
+Begin
+   C_Unit_Code := :New.C_UNIT_CODE;
+   C_Main_Ref  := :New.C_Main_Ref;
+   C_Cust_Id   := :New.Cust_Id;
+   Cust_Nm     := :New.Cust_Nm;
+   Hsn_Code_S  := :New.HSN_CODE;
+   hsn_desc_s  := :New.GOODS_DEF;
+   status_s    := :NEW.STATUS;
+   
 
-
----
-
-Subject: BIRT Report Generation Issue in CE Production (Specific Report Design)
-
-Dear Suresh,
-
-We are currently facing an issue with BIRT Report generation in CE Production after migrating from IBM WebSphere to WebLogic. This issue is occurring for a specific BIRT report design which was working correctly before the migration.
-
-Kindly share the attached logs with the CS Team for further analysis. Also, please arrange a Teams meeting at the earliest to help us resolve this issue collaboratively.
-
-Looking forward to your support.
-
-Best regards,
-[Your Full Name]
-[Your Designation]
-[Your Contact Information]
-
-
----
-
-Let me know if you want to mention the report name or provide additional technical details.
-
+   Items := Regexp_Count(Hsn_Code_S, ';') + 1;
+   
+   dbms_output.put_line('Count :'||Items);
+   
+   hsn_code := splits(hsn_code_s, items);
+   hsn_desc := splits(hsn_desc_s, items);
+   status   := splits(status_s,   items);
+ 
+   Delete From Cetrx.Cust_Allowed_Goods Where Cust_Id=C_Cust_Id;
+   
+   for i in 1..items loop
+      dbms_output.put_line(
+         c_unit_code || ', ' ||
+         c_main_ref  || ', ' ||
+         c_cust_id   || ', ' ||
+         cust_nm     || ', ' ||
+         hsn_code(i) || ', ' ||
+         hsn_desc(i) || ', ' ||
+         Status(i));
+         
+         INSERT INTO CETRX.cust_allowed_goods  (CUST_ID, CUST_NM, HSN_GOODS_CODE, HSN_GOODS_DESC, STATUS) VALUES (c_cust_id,cust_nm,  hsn_code(i),hsn_desc(i) ,Status(i));
+   End Loop;
+END;
