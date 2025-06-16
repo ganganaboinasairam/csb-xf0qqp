@@ -1,84 +1,273 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>HTML Table Normalizer</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-    textarea {
-      width: 100%;
-      height: 300px;
-      font-family: monospace;
-      font-size: 14px;
-    }
-    #output {
-      margin-top: 20px;
-      padding: 10px;
-      background: #f0f0f0;
-      white-space: pre-wrap;
-      border: 1px solid #ccc;
-    }
-    button {
-      margin-top: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-    }
-  </style>
-</head>
-<body>
+i will provide whole JSP , the tool should target only divs with class 'panel' and change that div only , there will be multiple divs with that class and rest od the jsp code should be intact
 
-  <h2>HTML Table Normalizer</h2>
-  <p>Paste your HTML code below and click "Convert" to normalize table rows.</p>
-
-  <textarea id="inputHtml" placeholder="Paste your HTML here..."></textarea>
-  <br>
-  <button onclick="convertHtml()">Convert</button>
-
-  <h3>Normalized Output:</h3>
-  <div id="output"></div>
-
-  <script>
-    function normalizeTableRows(htmlString) {
-      const wrapper = document.createElement('div');
-      wrapper.innerHTML = htmlString;
-
-      const rows = wrapper.querySelectorAll('table tbody tr');
-      const newRows = [];
-
-      rows.forEach((row) => {
-        const cells = Array.from(row.children);
-        if (cells.length <= 2) {
-          newRows.push(row.cloneNode(true));
-        } else {
-          for (let i = 0; i < cells.length; i += 2) {
-            const newRow = document.createElement('tr');
-            const labelTd = cells[i].cloneNode(true);
-            const valueTd = cells[i + 1] ? cells[i + 1].cloneNode(true) : document.createElement('td');
-            newRow.appendChild(labelTd);
-            newRow.appendChild(valueTd);
-            newRows.push(newRow);
-          }
-        }
-      });
-
-      const tbody = wrapper.querySelector('table tbody');
-      if (tbody) {
-        tbody.innerHTML = '';
-        newRows.forEach((row) => tbody.appendChild(row));
-      }
-
-      return wrapper.innerHTML;
-    }
-
-    function convertHtml() {
-      const inputHtml = document.getElementById('inputHtml').value;
-      const output = normalizeTableRows(inputHtml);
-      document.getElementById('output').textContent = output;
-    }
-  </script>
-
-</body>
-</html>
+example input:
+<%@ page import = "com.cs.ce.core.helper.ScriptConvHelper"%>
+<%@ taglib uri = "/EXIMTAGS" prefix = "EXIMTAGS"%>
+<%@ taglib uri = "/CETAGS" prefix = "CETAGS"%>
+<EXIMTAGS:IncludeFile filePath="../JS/FWCO_New_Forward_Contract_Function.js"/>
+<EXIMTAGS:IncludeFile filePath="../JS/FWCO_New_Forward_Contract_Event.js"/>
+<EXIMTAGS:IncludeFile filePath="../JS/FWCO_BaseFunc.js"/>
+<EXIMTAGS:IncludeFile filePath="../SYS_JS/CSBaseFunc.js"/>
+<jsp:include page="EEBranches.jsp"/>
+<link href="../theme/OctLoader.css" rel="stylesheet" type="text/css" />
+<input name="ADVN_PYMT_CCY" type="hidden" class="CHAR_O" id="ADVN_PYMT_CCY" title="Advance Payment CCY" />
+<input name="AMT_OF_ADV_PMT" type="hidden" class="CHAR_O" id="AMT_OF_ADV_PMT" title="Amount of Advance Payment" />
+<input name="INVC_CCY" type="hidden" class="CHAR_O" id="INVC_CCY" title="Invoice Currency" />
+<input name="REDISC" type="hidden" class="INT_O" id="REDISC" title="Rediscounting" />
+<input name="INSTITUITION" type="hidden" class="INT_O" id="INSTITUITION" title="INSTITUITION" />
+<input name="CPC_CODE" type="hidden" class="CHAR_O" id="CPC_CODE" title="CPC Code" value="" />
+<input name="SOC_CODE" type="hidden" class="CHAR_O" id="SOC_CODE" title="Source Code" value="" />
+<input name="HOME_BRANCH_CODE" type="hidden" id="HOME_BRANCH_CODE" title="Home Branch Code" />
+<input name="C_UNIT_CODE" type="hidden" id="C_UNIT_CODE" title="Unit Code" size="35" maxlength="35" />
+<input name="ORGN_BR_CODE" type="hidden" id="ORGN_BR_CODE" title="Originating Branch Code" size="5" maxlength="5" />
+<input name="REPO_STATUS" type="hidden" class="CHAR_O" id="REPO_STATUS" title="Report Status" value="2" />
+<input name="BENE_BK_ID" type="hidden" class="CHAR_O" id="BENE_BK_ID" title="Party address1" value="" />
+<input name="BENE_BK_NM" type="hidden" class="CHAR_O" id="BENE_BK_NM" title="Party address1" value="" />
+<input name="BENE_BK_ADD" type="hidden" class="CHAR_O" id="BENE_BK_ADD" title="Party address1" value="" />
+<input name="INW_REM_REF" type="hidden" class="CHAR_O" id="INW_REM_REF" title="Party address1" value="" />
+<input name="EMAIL_SUBJECT" type="hidden" class="CHAR_O" id="EMAIL_SUBJECT" title="Email Subject" value="" />
+<input name="EMAIL_TO" type="hidden" class="CHAR_O" id="EMAIL_TO" title="Email Send to" value="" />
+<input name="COMPANY_UNIT_CODE" type="hidden" class="CHAR_O" id="COMPANY_UNIT_CODE" title="COMPANY UNIT CODE" />
+<input name="STATUS" type="hidden" class="CHAR_O" id="STATUS" title="Status" value="" />
+<input name="FC_NO" type="hidden" class="CHAR_O" id="FC_NO" title="Status"  />
+<input name="DRAFT_CCY" type="hidden" class="CHAR_O" id="DRAFT_CCY" title="ccy" value="" />
+<input name="EMAIL_TEMP" type="hidden" class="CHAR_O" id="EMAIL_TEMP" title="Temporary EMAIL" value="" />
+<input name="BENE_ID" type="hidden" class="CHAR_O" id="BENE_ID" title="Temporary EMAIL" value="" />
+<input name="BENE_NM" type="hidden" class="CHAR_O" id="BENE_NM" title="Temporary EMAIL" value="" />
+<input name="BENE_ADD" type="hidden" class="CHAR_O" id="BENE_ADD" title="Temporary EMAIL" value="" />
+<input  type="hidden" class="CHAR_O" id="C_TRX_STATUS">
+<input name="C_REFUSE_REASON" type="hidden" class="CHAR_O" id="C_REFUSE_REASON" title="" value="" />
+<input name="CONVERTED" type="hidden" class="CHAR_O" id="CONVERTED" title="CONVERTED" value="1" />
+<input name="TEMP_BILL_AMT" type="hidden" class="AMT_O" id="TEMP_BILL_AMT" title="TEMP_BILL_AMT" value="" />
+<input name="TEMP_NEW_BILL_DUE_DT" type="hidden" class="DATE_O" id="TEMP_NEW_BILL_DUE_DT" title="TEMP_NEW_BILL_DUE_DT" value="" />
+<input name="CUST_ID" type="hidden" class="CHAR_O" id="CUST_ID" title="CUST_ID" value="" />
+<input name="APPL_ID" type="hidden" class="CHAR_O" id="APPL_ID" title="APPL_ID" value="" />
+<input name="APCL_DT" type="hidden" class="DATE_O" id="APCL_DT" title="APCL_DT" value="" />
+<input name="TRX_DT" type="hidden" class="DATE_O" id="TRX_DT" title="TRX_DT" value="" />
+<input name="DUMMY_C_MAIN_REF" type="hidden" class="CHAR_O" id="DUMMY_C_MAIN_REF" title="DUMMYMAINREF" value="">
+<input name="TEMP_ROW_COUNT" type="hidden" class="CHAR_O" id="TEMP_ROW_COUNT" title="TEMP_ROW_COUNT" value="">
+<input name="CONVERSION_RATES_TEMP" type="hidden" class="CHAR_O" id="CONVERSION_RATES_TEMP" title="CONVERSION_RATES" value="">
+<input name="BOOKING_SYSTEM_TEMP" type="hidden" class="CHAR_O" id="BOOKING_SYSTEM_TEMP" title="CONVERSION_RATES" value="">
+<input name="TOM_DATE" type="hidden" class="CHAR_O" id="TOM_DATE" title="TOM_DATE" value="">
+<input name="SPOT_DATE" type="hidden" class="CHAR_O" id="SPOT_DATE" title="SPOT_DATE" value="">
+<input name="TOM_SPOT_DATE" type="hidden" class="CHAR_O" id="TOM_SPOT_DATE" title="SPOT_DATE" value="">
+<input  type="hidden" id="createTemplate"  value="">
+<div id="Octloader" style="display:none"></div>
+<div id="mainDiv" style="display:;">
+<table id="outwardMainDiv1" style="background-color: #e4e4e4; width: 101%; border: 0px; border-spacing: 0px; border-collapse: collapse; margin: auto;padding: 0px;">
+   <jsp:include  page="FWCO_Buttons.jsp"/>
+   <tr>
+      <td style="height: 10px; width: 100%;">
+         &nbsp;
+      </td>
+   </tr>
+   <tr>
+      <td id="outwardMainDiv" style="background-color: #FFFFFF; border: 0px; border-spacing: 0px; border-collapse: collapse; margin: auto;padding: 10px; box-shadow: 0px 3px 6px #b9b9b9;">
+         <div style="padding: 10px; padding-bottom: 2px;" onchange='greenTick("div1","")' id='div1'>
+            <table style="width: 100%;">
+               <tr>
+                  <td>
+                     <div onclick="callMe(this)" class="accordion" id="mainTab">
+                        <table style="width: 100%;">
+                           <tr>
+                              <td style="text-align: left;">
+                                 <img src="/CEWeb/Images/icons/Tick.svg" href="#" id="tick" style="margin-bottom: -2px; margin-right: 7px; display:none;"/>&nbsp;Main Tab
+                              </td>
+                              <td style="text-align: right;">
+                                 <img src="/CEWeb/Images/icons/arrow_accor.svg" id="mainTab_UpArrow" href="#" style="margin-bottom: -2px;margin-right: 7px;"/>
+                                 <img src="/CEWeb/Images/icons/arrow_accor1.svg" id="mainTab_DownArrow" href="#" style="margin-bottom: -2px;margin-right: 7px; display: none;"/>
+                              </td>
+                           </tr>
+                        </table>
+                     </div>
+                     <br>
+                     <div class="panel">
+                        <table style="width:100%;">
+                           <tbody>
+                              <tr>
+                                 <td colspan="3">&nbsp;</td>
+                              </tr>
+                              <tr>
+                                 <td width="23%" class="FldLabel">CE Reference No.</td>
+                                 <td width="27%"><input name="C_MAIN_REF" type="text" class="CHAR_P" id="C_MAIN_REF" title="CE Reference No." size="25" maxlength="17"  style="width: 250px;resize:none;padding-right: 1px;margin-left: 1px;"></td>
+                                 <td class="FldLabel ">Operative Account Number</td>
+                                 <td>
+                                    <input name="OPERA_ACC_NO" id="OPERA_ACC_NO" title="Operative Account Number" maxlength="11" class="CHAR_O" charset="SX" custChar="NUM">
+                                 </td>
+                              </tr>
+                              <tr>
+                                 <td class="FldLabel star">Transaction type</td>
+                                 <td>
+                                    <select type="text" name="TRANSCTION_TYPE" id="TRANSCTION_TYPE" title="Transaction Type" class="CHAR_M" maxlength="20" >
+                                       <option value="1"selected=>Booking</option>
+                                       <option value="2">Rebooking</option>
+                                    </select>
+                                 </td>
+                                 <td class="FldLabel">Rebooking / Rollover Reference</td>
+                                 <td>
+                                    <input type="text" name="REBOOK_REF" id="REBOOK_REF" title="Rebooking / Rollover Reference" class="CHAR_P" maxlength="16" readonly="" style="visibility: visible;">
+                                    <input name="REF_ROL_BT" type="button" class="search" id="REF_ROL_BT" title="Rebooking / Rollover Reference Button" disabled='true'>
+                                    <input type="button" value="Reset" onclick="resetRebookroll();" style="background-color: white; border: none; color: #0095DA; text-decoration: underline; font-size: 14px; outline:none; cursor: pointer;" title="Rebooking / Rollover Reference Reset button">
+                                 </td>
+                              </tr>
+                              <tr>
+                                 <td class="FldLabel">Customer Contact Number for this Transaction</td>
+                                 <td><input name="CUST_CONTACT" class="CHAR_O" id="CUST_CONTACT" title="Customer Contact Number for this Transaction" style="padding-top: -30;width: 230px;margin-top: 0px;margin-left: 30px;" charset="SX" size="10" maxlength="10" onblur="ValidateMobileNumber(this)" custChar="NUM"></td>
+                                 <td class="FldLabel">Customer Email ID for this Transaction</td>
+                                 <td><input name="EMAIL_ADD2"  class="CHAR_O" id="EMAIL_ADD2" title="Customer Email ID for this Transaction " style="width:230px; margin-left: 30px;" onblur="EMAIL_ID_check()" maxlength="100" ></td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </td>
+               </tr>
+            </table>
+         </div>
+         <div style="padding: 10px; padding-bottom: 2px;display:none" onchange='greenTick("div3","")' id='div3'>
+            <table style="width: 100%;">
+               <tr>
+                  <td>
+                     <div onclick="callMe(this)" class="accordion" id="party" >
+                        <table style="width: 100%;">
+                           <tr>
+                              <td style="text-align: left;">
+                                 <img src="/CEWeb/Images/icons/Tick.svg" href="#" id="tick2" style="margin-bottom: -2px; margin-right: 7px; display:none;">&nbsp; Rate Details for booking
+                              </td>
+                              <td style="text-align: right;">
+                                 <img src="/CEWeb/Images/icons/arrow_accor.svg" id="party_UpArrow" href="#" style="margin-bottom: -2px;margin-right: 7px;  display: none;"/>
+                                 <img src="/CEWeb/Images/icons/arrow_accor1.svg" id="party_DownArrow" href="#" style="margin-bottom: -2px;margin-right: 7px;"/>
+                              </td>
+                           </tr>
+                        </table>
+                     </div>
+                     <br>
+                     <div class="panel" style="display:none;">
+                        <table  style="width: 95%;">
+                           <tbody>
+                              <tr>
+                                 <td class="FldLabel star">Dealer/eForex Ref Number</td>
+                                 <td>
+                                    <input type="text" name="CUST_RT_CANCL_REFNO" id="CUST_RT_CANCL_REFNO" title="Dealer/eForex Ref Number" class="CHAR_M" maxlength="20" charset="SX" spl-char='NO'>
+                                 </td>
+                                 <td class="FldLabel star">Dealer/eForex Amount</td>
+                                 <td>
+                                    <select name="LC_CCY_4" id="LC_CCY_4" class="CHAR_O" title="Dealer/eForex Amount" maxlength="3">
+                                       <EXIMTAGS:DropDownElement elementType="CCY" />
+                                    </select>
+                                    <input type="text" name="CUST_RT_CANCL_AMT" id="CUST_RT_CANCL_AMT" title="Dealer/eForex Amount" class="AMT_M" maxlength="20" onblur="amountFormat('CUST_RT_CANCL_AMT')" onfocus="this.select();">
+                                 </td>
+                              </tr>
+                              <tr>
+                                 <td class="FldLabel star">Dealer/eForex Rate</td>
+                                 <td style="vertical-align:top;">
+                                    <input type="text" name="CUST_CANCL_RATE" id="CUST_CANCL_RATE"  class="CHAR_M" title="Dealer/eForex Rate" maxlength="12" custChar="NUM_DEC">
+                                 </td>
+                                 <td class="FldLabel">Booking Rate Remarks</td>
+                                 <td>
+                                    <textarea  type="text" name="REMARKS" id="REMARKS" title="Booking Rate Remarks" class="CHAR_O"  rows="20" cols="50" oninput="limitText(this,500)" style="resize:vertical" ></textarea>
+                                 </td>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </td>
+               </tr>
+            </table>
+         </div>
+         <div style="padding: 10px; padding-bottom: 2px;" onchange='greenTick("div6","")' id='div6'>
+            <table style="width: 100%;">
+               <tr>
+                  <td>
+                     <div onclick="callMe(this)" class="accordion" id="party" >
+                        <table style="width: 100%;">
+                           <tr>
+                              <td style="text-align: left;">
+                                 <img src="/CEWeb/Images/icons/Tick.svg" href="#" id="tick2" style="margin-bottom: -2px; margin-right: 7px; display:none;">&nbsp; Underlying transaction Details
+                              </td>
+                              <td style="text-align: right;">
+                                 <img src="/CEWeb/Images/icons/arrow_accor.svg" id="party_UpArrow" href="#" style="margin-bottom: -2px;margin-right: 7px;  display: none;"/>
+                                 <img src="/CEWeb/Images/icons/arrow_accor1.svg" id="party_DownArrow" href="#" style="margin-bottom: -2px;margin-right: 7px;"/>
+                              </td>
+                           </tr>
+                        </table>
+                     </div>
+                     <br>
+                     <div class="panel" style="display:none;">
+                        <table  style="width: 95%;">
+                           <tbody>
+                              <tr>
+                                 <td class="FldLabel star">Underlying Transaction Source</td>
+                                 <td>
+                                    <select name="UNDERLYING_TRX_SRC" id="UNDERLYING_TRX_SRC" title="Underlying Transaction Source" maxlength="15" class="CHAR_M">
+                                       <option value="1" id="TFS">Trade Finance Transaction</option>
+                                       <option value="2" id="EEFC">EEFC</option>
+                                       <option value="3" id="FCNB Deposits">FCNB Deposits</option>
+                                       <option value="4" id="FCNB Loans">FCNB Loans</option>
+                                       <option value="5" id="Others">Others</option>
+                                       <option value="" selected=""></option>
+                                    </select>
+                                 </td>
+                                 <td class="FldLabel">Underlying Transaction Ref. No</td>
+                                 <td>
+                                    <input type="text" name="UNDERLYING_TRX_REF" id="UNDERLYING_TRX_REF" title="Underlying Transaction Ref. No" class="CHAR_O" maxlength="16" charset="SX"  spl-char = "NO">
+                                 </td>
+                              </tr>
+                              <td class="FldLabel">EEFC /FCNB Account No</td>
+                              <td>
+                                 <input type="text" name="CUST_ACC_NO" id="CUST_ACC_NO" title="EEFC /FCNB Account No"  class="CHAR_O" oninput="validateNumber(this)" maxlength="11" charset="SX" >
+                              </td>
+                              <tr>
+                              </tr>
+                           </tbody>
+                        </table>
+                     </div>
+                  </td>
+               </tr>
+            </table>
+         </div>
+         <div style="padding: 10px; padding-bottom: 3px;" onchange='greenTick("div7","")' id='div7'>
+            <table style="width: 100%;">
+               <tr>
+                  <td>
+                     <div onclick="callMe(this)" class="accordion" id="communication">
+                        <table style="width: 100%;">
+                           <tr>
+                              <td style="text-align: left;">
+                                 <img src="/CEWeb/Images/icons/Tick.svg" href="#" id="tick2" style="margin-bottom: -2px;margin-right: 3px; display: none;">&nbsp;Communication
+                              </td>
+                              <td style="text-align: right;">
+                                 <img src="/CEWeb/Images/icons/arrow_accor.svg" id="communication_UpArrow" href="#" style="margin-bottom: -2px;margin-right: 7px;  display: none;"/>
+                                 <img src="/CEWeb/Images/icons/arrow_accor1.svg" id="communication_DownArrow" href="#" style="margin-bottom: -2px;margin-right: 7px;"/>
+                              </td>
+                           </tr>
+                        </table>
+                     </div>
+                     <br>
+                     <div class="panel" style="display:none;">
+                        <table style="width: 100%;">
+                           <tr>
+                              <td class="FldLabel">Correspondence with Bank :</td>
+                              <td style="width: 80%;">
+                                 <textarea name="MSG_DESC" cols="100" rows="100" style="height:100px; width: 85% !important; max-width: 100% !important; border: none; outline: none; resize: none; border-bottom: 1px solid #bcbebf;margin-top:35px;" class="CHAR_O" id="MSG_DESC" title="Correspondence Between User & Supervisor " maxlength="6150" ></textarea>
+                              </td>
+                           </tr>
+                           <tr>
+                              <td class="FldLabel">Communication between maker & Checker :</td>
+                              <td style="width: 80%;">
+                                 <textarea name="MSG_TO_BK" cols="100" rows="100" style="height:100px; width: 85% !important; max-width: 100% !important; border: none; outline: none; resize: none; border-bottom: 1px solid #bcbebf;margin-top:35px;"  class="CHAR_O"  id="MSG_TO_BK" title="Correspondence with Bank" maxlength="6150"></textarea>
+                              </td>
+                           </tr>
+                        </table>
+                     </div>
+                  </td>
+               </tr>
+            </table>
+         </div>
+         
+         
+      </td>
+   </tr>
+</table>
+<%if("TRUE".equals(ScriptConvHelper.declareScriptVar(request.getParameter("VIEWHISTORY")))){%>
+<CETAGS:ViewReport/>
+<%}%>
