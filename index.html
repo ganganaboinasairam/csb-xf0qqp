@@ -1,87 +1,84 @@
-i need a js tool to convert the html struncture :
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HTML Table Normalizer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 300px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    #output {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f0f0f0;
+      white-space: pre-wrap;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
 
-input structure:
-<div class="panel">
-   <table style="width:100%;">
-      <tbody>
-         <tr>
-            <td colspan="3">&nbsp;</td>
-         </tr>
-         <tr>
-            <td width="23%" class="FldLabel">CE Reference No.</td>
-            <td width="27%"><input name="C_MAIN_REF" type="text" class="CHAR_P" id="C_MAIN_REF" title="CE Reference No." size="25" maxlength="17"  style="width: 250px;resize:none;padding-right: 1px;margin-left: 1px;"></td>
-            <td class="FldLabel ">Operative Account Number</td>
-            <td>
-               <input name="OPERA_ACC_NO" id="OPERA_ACC_NO" title="Operative Account Number" maxlength="11" class="CHAR_O" charset="SX" custChar="NUM">
-            </td>
-         </tr>
-         <tr>
-            <td class="FldLabel star">Transaction type</td>
-            <td>
-               <select type="text" name="TRANSCTION_TYPE" id="TRANSCTION_TYPE" title="Transaction Type" class="CHAR_M" maxlength="20" >
-                  <option value="1"selected=>Booking</option>
-                  <option value="2">Rebooking</option>
-               </select>
-            </td>
-            <td class="FldLabel">Rebooking / Rollover Reference</td>
-            <td>
-               <input type="text" name="REBOOK_REF" id="REBOOK_REF" title="Rebooking / Rollover Reference" class="CHAR_P" maxlength="16" readonly="" style="visibility: visible;">
-               <input name="REF_ROL_BT" type="button" class="search" id="REF_ROL_BT" title="Rebooking / Rollover Reference Button" disabled='true'>
-               <input type="button" value="Reset" onclick="resetRebookroll();" style="background-color: white; border: none; color: #0095DA; text-decoration: underline; font-size: 14px; outline:none; cursor: pointer;" title="Rebooking / Rollover Reference Reset button">
-            </td>
-         </tr>
-         <tr>
-            <td class="FldLabel">Customer Contact Number for this Transaction</td>
-            <td><input name="CUST_CONTACT" class="CHAR_O" id="CUST_CONTACT" title="Customer Contact Number for this Transaction" style="padding-top: -30;width: 230px;margin-top: 0px;margin-left: 30px;" charset="SX" size="10" maxlength="10" onblur="ValidateMobileNumber(this)" custChar="NUM"></td>
-            <td class="FldLabel">Customer Email ID for this Transaction</td>
-            <td><input name="EMAIL_ADD2"  class="CHAR_O" id="EMAIL_ADD2" title="Customer Email ID for this Transaction " style="width:230px; margin-left: 30px;" onblur="EMAIL_ID_check()" maxlength="100" ></td>
-         </tr>
-      </tbody>
-   </table>
-</div>
+  <h2>HTML Table Normalizer</h2>
+  <p>Paste your HTML code below and click "Convert" to normalize table rows.</p>
 
-output structure:
-<div class="panel">
-   <table style="width:100%;">
-      <tbody>
-         <tr>
-            <td colspan="3">&nbsp;</td>
-         </tr>
-         <tr>
-            <td width="23%" class="FldLabel">CE Reference No.</td>
-            <td width="27%"><input name="C_MAIN_REF" type="text" class="CHAR_P" id="C_MAIN_REF" title="CE Reference No." size="25" maxlength="17"  style="width: 250px;resize:none;padding-right: 1px;margin-left: 1px;"></td>
-         </tr>
-         <tr>
-            <td class="FldLabel ">Operative Account Number</td>
-            <td>
-               <input name="OPERA_ACC_NO" id="OPERA_ACC_NO" title="Operative Account Number" maxlength="11" class="CHAR_O" charset="SX" custChar="NUM">
-            </td>
-         </tr>
-         <tr>
-            <td class="FldLabel star">Transaction type</td>
-            <td>
-               <select type="text" name="TRANSCTION_TYPE" id="TRANSCTION_TYPE" title="Transaction Type" class="CHAR_M" maxlength="20" >
-                  <option value="1"selected=>Booking</option>
-                  <option value="2">Rebooking</option>
-               </select>
-            </td>
-         </tr>
-         <tr>
-            <td class="FldLabel">Rebooking / Rollover Reference</td>
-            <td>
-               <input type="text" name="REBOOK_REF" id="REBOOK_REF" title="Rebooking / Rollover Reference" class="CHAR_P" maxlength="16" readonly="" style="visibility: visible;">
-               <input name="REF_ROL_BT" type="button" class="search" id="REF_ROL_BT" title="Rebooking / Rollover Reference Button" disabled='true'>
-               <input type="button" value="Reset" onclick="resetRebookroll();" style="background-color: white; border: none; color: #0095DA; text-decoration: underline; font-size: 14px; outline:none; cursor: pointer;" title="Rebooking / Rollover Reference Reset button">
-            </td>
-         </tr>
-         <tr>
-            <td class="FldLabel">Customer Contact Number for this Transaction</td>
-            <td><input name="CUST_CONTACT" class="CHAR_O" id="CUST_CONTACT" title="Customer Contact Number for this Transaction" style="padding-top: -30;width: 230px;margin-top: 0px;margin-left: 30px;" charset="SX" size="10" maxlength="10" onblur="ValidateMobileNumber(this)" custChar="NUM"></td>
-         </tr>
-         <tr>
-            <td class="FldLabel">Customer Email ID for this Transaction</td>
-            <td><input name="EMAIL_ADD2"  class="CHAR_O" id="EMAIL_ADD2" title="Customer Email ID for this Transaction " style="width:230px; margin-left: 30px;" onblur="EMAIL_ID_check()" maxlength="100" ></td>
-         </tr>
-      </tbody>
-   </table>
-</div>
+  <textarea id="inputHtml" placeholder="Paste your HTML here..."></textarea>
+  <br>
+  <button onclick="convertHtml()">Convert</button>
+
+  <h3>Normalized Output:</h3>
+  <div id="output"></div>
+
+  <script>
+    function normalizeTableRows(htmlString) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = htmlString;
+
+      const rows = wrapper.querySelectorAll('table tbody tr');
+      const newRows = [];
+
+      rows.forEach((row) => {
+        const cells = Array.from(row.children);
+        if (cells.length <= 2) {
+          newRows.push(row.cloneNode(true));
+        } else {
+          for (let i = 0; i < cells.length; i += 2) {
+            const newRow = document.createElement('tr');
+            const labelTd = cells[i].cloneNode(true);
+            const valueTd = cells[i + 1] ? cells[i + 1].cloneNode(true) : document.createElement('td');
+            newRow.appendChild(labelTd);
+            newRow.appendChild(valueTd);
+            newRows.push(newRow);
+          }
+        }
+      });
+
+      const tbody = wrapper.querySelector('table tbody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        newRows.forEach((row) => tbody.appendChild(row));
+      }
+
+      return wrapper.innerHTML;
+    }
+
+    function convertHtml() {
+      const inputHtml = document.getElementById('inputHtml').value;
+      const output = normalizeTableRows(inputHtml);
+      document.getElementById('output').textContent = output;
+    }
+  </script>
+
+</body>
+</html>
