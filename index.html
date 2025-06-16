@@ -1,44 +1,48 @@
-import java.io.*;
-import java.util.regex.*;
+<script>
+  function normalizeTableInPanel(panelHtml) {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = panelHtml;
 
-public class PanelModifier {
-    public static void main(String[] args) {
-        String inputFile = "input.jsp";
-        String outputFile = "output.jsp";
+    const tables = wrapper.querySelectorAll('table');
+    tables.forEach(table => {
+      const tbody = table.querySelector('tbody');
+      if (!tbody) return;
 
-        try {
-            StringBuilder contentBuilder = new StringBuilder();
-            BufferedReader reader = new BufferedReader(new FileReader(inputFile));
-            String line;
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const newRows = [];
 
-            while ((line = reader.readLine()) != null) {
-                contentBuilder.append(line).append("\n");
-            }
-            reader.close();
-
-            String content = contentBuilder.toString();
-
-            // Regex to match <div class="panel">...</div>
-            String pattern = "<div\\s+class\\s*=\\s*\"panel\"[^>]*>(.*?)</div>";
-            Pattern regex = Pattern.compile(pattern, Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
-            Matcher matcher = regex.matcher(content);
-
-            StringBuffer result = new StringBuffer();
-
-            while (matcher.find()) {
-                String replacement = "<div class=\"panel\">\n    <!-- Panel content replaced -->\n</div>";
-                matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
-            }
-            matcher.appendTail(result);
-
-            // Write output to file
-            BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile));
-            writer.write(result.toString());
-            writer.close();
-
-            System.out.println("✅ Modified content written to " + outputFile);
-        } catch (IOException e) {
-            System.err.println("❌ Error: " + e.getMessage());
+      rows.forEach(row => {
+        const cells = Array.from(row.children);
+        if (cells.length <= 2) {
+          newRows.push(row.cloneNode(true));
+        } else {
+          for (let i = 0; i < cells.length; i += 2) {
+            const newRow = document.createElement('tr');
+            const labelTd = cells[i].cloneNode(true);
+            const valueTd = cells[i + 1] ? cells[i + 1].cloneNode(true) : document.createElement('td');
+            newRow.appendChild(labelTd);
+            newRow.appendChild(valueTd);
+            newRows.push(newRow);
+          }
         }
-    }
-}
+      });
+
+      tbody.innerHTML = '';
+      newRows.forEach(row => tbody.appendChild(row));
+    });
+
+    return wrapper.innerHTML;
+  }
+
+  function convertHtml() {
+    let inputHtml = document.getElementById('inputHtml').value;
+
+    const panelRegex = /<div[^>]*class=["']panel["'][^>]*>[\s\S]*?<\/div>/gi;
+
+    const outputHtml = inputHtml.replace(panelRegex, (panelDivHtml) => {
+      return normalizeTableInPanel(panelDivHtml);
+    });
+
+    document.getElementById('output').textContent = outputHtml;
+  }
+</script>
