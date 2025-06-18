@@ -1,48 +1,36 @@
-<script>
-  function normalizeTableInPanel(panelHtml) {
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = panelHtml;
-
-    const tables = wrapper.querySelectorAll('table');
-    tables.forEach(table => {
-      const tbody = table.querySelector('tbody');
-      if (!tbody) return;
-
-      const rows = Array.from(tbody.querySelectorAll('tr'));
-      const newRows = [];
-
-      rows.forEach(row => {
-        const cells = Array.from(row.children);
-        if (cells.length <= 2) {
-          newRows.push(row.cloneNode(true));
-        } else {
-          for (let i = 0; i < cells.length; i += 2) {
-            const newRow = document.createElement('tr');
-            const labelTd = cells[i].cloneNode(true);
-            const valueTd = cells[i + 1] ? cells[i + 1].cloneNode(true) : document.createElement('td');
-            newRow.appendChild(labelTd);
-            newRow.appendChild(valueTd);
-            newRows.push(newRow);
-          }
-        }
-      });
-
-      tbody.innerHTML = '';
-      newRows.forEach(row => tbody.appendChild(row));
-    });
-
-    return wrapper.innerHTML;
-  }
-
-  function convertHtml() {
-    let inputHtml = document.getElementById('inputHtml').value;
-
-    const panelRegex = /<div[^>]*class=["']panel["'][^>]*>[\s\S]*?<\/div>/gi;
-
-    const outputHtml = inputHtml.replace(panelRegex, (panelDivHtml) => {
-      return normalizeTableInPanel(panelDivHtml);
-    });
-
-    document.getElementById('output').textContent = outputHtml;
-  }
-</script>
+class Solution {
+    public static int[] twoSum(int[] nums, int target) {
+	try {
+		
+		int[] output = new int[2];
+		
+		int sum = target +1 ;
+		
+		for (int i = 0; i <= nums.length ; i++) {
+			for (int j = i;  j < nums.length ; j++) {
+				if ( i != j) {
+					
+				sum  = nums[i] + nums[j];
+				}
+				
+				if (sum == target) {
+					output[0] = i;
+					output[1] = j;
+					sum = 0;
+					return output;
+					
+				}
+				
+			}
+		}
+		
+		
+		
+		return output;
+	} catch (Exception e) {
+		e.printStackTrace();
+		return null;
+	}
+        
+    }
+}
