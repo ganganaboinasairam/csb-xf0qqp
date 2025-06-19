@@ -1,1 +1,18 @@
-<div class="field-wrapper"><td class="FldLabel">Bills of Exchange/Drafts</td><div class="radio-wrapper"><input id="YES" type="radio" name="DRAFT_REQD" value="YES" checked="checked" onclick="availby(true)"><label for="YES" style="font-size:15px; color:#506070;"><span></span>YES</label><input id="NO" type="radio" name="DRAFT_REQD" value="NO" onclick="availby(true)"><label for="NO" style="font-size:15px; color:#506070; padding-left:53px;"><span></span>NO</label></div></div>
+ if($input.attr('type') === 'radio'){
+						 //debugger;
+                        //var fieldWrapper = $('<div class="radio-group"></div>');
+                        var fieldWrapper = $('<div class="field-wrapper"></div>');
+                        fieldWrapper.append($label);
+                        var radioGroup = $row.find(`input[name="${$input.attr('name')}"]`);
+                        var radioWrapper = $('<div class="radio-wrapper"></div>');
+                        radioGroup.each(function () {
+                            var $radio = $(this);
+                            var radioLabel = $row.find(`label[for="${$radio.attr('id')}"]`);                            
+                            radioWrapper.append($radio); 
+                            radioWrapper.append(radioLabel);                            
+                        });
+                        fieldWrapper.append(radioWrapper); 
+
+                        newRow.append(fieldWrapper);
+                        count++;
+                    } 
