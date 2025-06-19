@@ -1,18 +1,33 @@
- if($input.attr('type') === 'radio'){
-						 //debugger;
-                        //var fieldWrapper = $('<div class="radio-group"></div>');
-                        var fieldWrapper = $('<div class="field-wrapper"></div>');
-                        fieldWrapper.append($label);
-                        var radioGroup = $row.find(`input[name="${$input.attr('name')}"]`);
-                        var radioWrapper = $('<div class="radio-wrapper"></div>');
-                        radioGroup.each(function () {
-                            var $radio = $(this);
-                            var radioLabel = $row.find(`label[for="${$radio.attr('id')}"]`);                            
-                            radioWrapper.append($radio); 
-                            radioWrapper.append(radioLabel);                            
-                        });
-                        fieldWrapper.append(radioWrapper); 
+if ($input.attr('type') === 'radio') {
+    var fieldWrapper = $('<div class="field-wrapper"></div>');
+    fieldWrapper.append($label); // Assuming $label is for the group label like "Bills of Exchange/Drafts"
 
-                        newRow.append(fieldWrapper);
-                        count++;
-                    } 
+    var radioGroup = $row.find(`input[name="${$input.attr('name')}"]`);
+    var radioWrapper = $('<div class="radio-wrapper"></div>');
+
+    radioGroup.each(function () {
+        var $radio = $(this);
+        var radioLabel = $row.find(`label[for="${$radio.attr('id')}"]`);
+
+        // Detach to avoid duplicating in DOM
+        var $clonedRadio = $radio.clone(true);
+        var $clonedLabel = radioLabel.clone(true);
+
+        // Wrap each radio and label together
+        var radioItem = $('<label style="font-size:15px; color:#506070; display:flex; align-items:center; gap:5px;"></label>');
+        radioItem.append($clonedRadio);
+        radioItem.append($clonedLabel.contents());
+
+        radioWrapper.append(radioItem);
+    });
+
+    radioWrapper.css({
+        display: 'flex',
+        gap: '40px',
+        alignItems: 'center'
+    });
+
+    fieldWrapper.append(radioWrapper);
+    newRow.append(fieldWrapper);
+    count++;
+}
