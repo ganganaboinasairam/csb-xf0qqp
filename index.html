@@ -1,33 +1,19 @@
-if ($input.attr('type') === 'radio') {
-    var fieldWrapper = $('<div class="field-wrapper"></div>');
-    fieldWrapper.append($label); // Assuming $label is for the group label like "Bills of Exchange/Drafts"
+Contract Id-1260245032100863
 
-    var radioGroup = $row.find(`input[name="${$input.attr('name')}"]`);
-    var radioWrapper = $('<div class="radio-wrapper"></div>');
+Contract Value-3992788.8
 
-    radioGroup.each(function () {
-        var $radio = $(this);
-        var radioLabel = $row.find(`label[for="${$radio.attr('id')}"]`);
+contract date-18-02-2025
 
-        // Detach to avoid duplicating in DOM
-        var $clonedRadio = $radio.clone(true);
-        var $clonedLabel = radioLabel.clone(true);
+Supply description-Anethesia work stationn supply
 
-        // Wrap each radio and label together
-        var radioItem = $('<label style="font-size:15px; color:#506070; display:flex; align-items:center; gap:5px;"></label>');
-        radioItem.append($clonedRadio);
-        radioItem.append($clonedLabel.contents());
+Applicant ID-0000008086950226869101
 
-        radioWrapper.append(radioItem);
-    });
+Applicant Name-NCR HEAD QUARTER-3201(Subdivision code
 
-    radioWrapper.css({
-        display: 'flex',
-        gap: '40px',
-        alignItems: 'center'
-    });
+Applicant Address-North Central Railway ,Prayagraj
 
-    fieldWrapper.append(radioWrapper);
-    newRow.append(fieldWrapper);
-    count++;
-}
+vendor details-code-3867,INTERSALES-LUCKNOW
+
+Maker COntact no-9794866108
+
+checker contact-9794866134
