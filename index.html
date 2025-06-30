@@ -1,15 +1,25 @@
-1. request quote (ce)
-2. request quote (ee)
-3. accpet quote (ee)
-4. accept quote (ce)
-5. issuance buyers quote (ee)
-6. intrest reset (ee)
-7. repayment (ce)
-8. rollover/payment (ee)
-9. RFO
-10. rollover after RFO
-11. rollover quote (ee)
-12. rollover(ce)
+function EMAIL_ID_check(){
+    try {
+		
+      var email = document.MAINFORM.EMAIL_ADD.value;
+      var emailfilter = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/;
+	  var isValidEmail = emailfilter.test(email);
+	  if (isValidEmail){
+		return true;
+	  }else{
+		alert("Please enter a valid email address.");
+		document.MAINFORM.EMAIL_ADD.value = '';
+		return false;
+	  }
+	  }catch (e) {
+        DisExcpt("NLRF_EMAIL_ID_Function.js", e);
+    }
+    }
 
 
-Path 1 :(start)- 1 - 2 - 3 - 4 -5 -(if fresh BQ)-6 - 7 - 8 -9 -10-(end)
+    1. Email ID should present the symbol '@'
+2. Email ID should not start or end with special characters
+3. domain after @ is allowed .com, .net, .co.in, .gov.in)
+4. No space is allowed in email id
+5. Characters Alphabets A-Z, a-z, Digits 0-9, Special Characters -, _,+,=, . are allowed before @ symbol.
+6.Start and end of email should not be with special characters
