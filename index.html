@@ -7,10 +7,11 @@ success: function(responseText){
     // Create Floating Window
     const floatingDiv = document.createElement('div');
     floatingDiv.style.position = "fixed";
-    floatingDiv.style.top = "5%";
-    floatingDiv.style.left = "10%";
-    floatingDiv.style.width = "80%";
-    floatingDiv.style.maxHeight = "85%";
+    floatingDiv.style.top = "50%";
+    floatingDiv.style.left = "50%";
+    floatingDiv.style.transform = "translate(-50%, -50%)";
+    floatingDiv.style.width = "85%";
+    floatingDiv.style.maxHeight = "90%";
     floatingDiv.style.overflow = "auto";
     floatingDiv.style.backgroundColor = "#fff";
     floatingDiv.style.border = "3px solid #2b2e83";
@@ -19,6 +20,7 @@ success: function(responseText){
     floatingDiv.style.borderRadius = "12px";
     floatingDiv.style.zIndex = "9999";
     floatingDiv.style.fontFamily = "Arial, sans-serif";
+    floatingDiv.style.color = "#000"; // Fixes invisible text
 
     // Close Button
     const closeBtn = document.createElement('span');
@@ -65,7 +67,7 @@ success: function(responseText){
     const filterDiv = document.createElement('div');
     filterDiv.style.marginBottom = "20px";
     filterDiv.innerHTML = `
-      <label style="margin-right:10px;">Transaction Type:
+      <label style="margin-right:20px;">Transaction Type:
         <select id="filter-type" style="margin-left:5px;">
           <option value="">All</option>
         </select>
@@ -81,13 +83,14 @@ success: function(responseText){
     const table = document.createElement('table');
     table.style.width = "100%";
     table.style.borderCollapse = "collapse";
+    table.style.backgroundColor = "#fff";
 
     const headerRow = document.createElement('tr');
     const headers = ["Transaction Type", "Date & Time", "User ID", "User Name", "Status", "Pending With"];
     headers.forEach(h => {
         const th = document.createElement('th');
         th.textContent = h;
-        th.style.backgroundColor = "#2b2e83";
+        th.style.backgroundColor = "#2b2e83"; // SBI Blue
         th.style.color = "#fff";
         th.style.padding = "10px";
         th.style.border = "1px solid #ccc";
@@ -104,7 +107,7 @@ success: function(responseText){
         filteredData.forEach(row => {
             const tr = document.createElement('tr');
             tr.style.backgroundColor = "#f9f9f9";
-            tr.onmouseover = () => tr.style.backgroundColor = "#ffeaf2";
+            tr.onmouseover = () => tr.style.backgroundColor = "#ffeaf2"; // Light pink hover
             tr.onmouseout = () => tr.style.backgroundColor = "#f9f9f9";
 
             const cells = [
@@ -127,9 +130,6 @@ success: function(responseText){
         });
     }
 
-    // Initial table load
-    renderTable(data);
-
     // Populate filter dropdowns
     const types = [...new Set(data.map(d => d.C_FUNC_SHORT_NAME1))];
     const statuses = [...new Set(data.map(d => d.C_EVENT_STATUS))];
@@ -141,7 +141,7 @@ success: function(responseText){
         $('#filter-status').append(`<option value="${s}">${s}</option>`);
     });
 
-    // Add filtering behavior
+    // Filtering behavior
     $('#filter-type, #filter-status').on('change', function() {
         const selectedType = $('#filter-type').val();
         const selectedStatus = $('#filter-status').val();
@@ -152,12 +152,15 @@ success: function(responseText){
         renderTable(filtered);
     });
 
-    // Append all to floating window
+    // Initial Table Load
+    renderTable(data);
+
+    // Append all to floating div
     floatingDiv.appendChild(headerTable);
     floatingDiv.appendChild(filterDiv);
     floatingDiv.appendChild(table);
 
-    // Append floating window to screen
+    // Show on screen
     document.getElementById("0_div").appendChild(floatingDiv);
     $("#Tab").show();
 }
