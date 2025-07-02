@@ -1,166 +1,86 @@
-success: function(responseText){
-    let data = JSON.parse(responseText);
+const table = document.createElement('table');
+table.style.width = "100%";
+table.style.borderCollapse = "collapse";
+table.style.backgroundColor = "#fff";
 
-    // Clear existing content
-    $("#0_div").empty();
+const headerRow = document.createElement('tr');
+const headers = [
+    { label: "Transaction Type", key: "C_FUNC_SHORT_NAME1" },
+    { label: "Date & Time", key: "D_CREA_DATE1" },
+    { label: "User ID", key: "C_RELE_BY" },
+    { label: "User Name", key: "USER_DESC" },
+    { label: "Status", key: "C_EVENT_STATUS" },
+    { label: "Pending With", key: "LEVEL_STATUS" }
+];
 
-    // Create Floating Window
-    const floatingDiv = document.createElement('div');
-    floatingDiv.style.position = "fixed";
-    floatingDiv.style.top = "50%";
-    floatingDiv.style.left = "50%";
-    floatingDiv.style.transform = "translate(-50%, -50%)";
-    floatingDiv.style.width = "85%";
-    floatingDiv.style.maxHeight = "90%";
-    floatingDiv.style.overflow = "auto";
-    floatingDiv.style.backgroundColor = "#fff";
-    floatingDiv.style.border = "3px solid #2b2e83";
-    floatingDiv.style.boxShadow = "0 0 20px rgba(0,0,0,0.3)";
-    floatingDiv.style.padding = "20px";
-    floatingDiv.style.borderRadius = "12px";
-    floatingDiv.style.zIndex = "9999";
-    floatingDiv.style.fontFamily = "Arial, sans-serif";
-    floatingDiv.style.color = "#000"; // Fixes invisible text
+let currentSortKey = "D_CREA_DATE1";
+let sortDirection = "desc";
 
-    // Close Button
-    const closeBtn = document.createElement('span');
-    closeBtn.textContent = "×";
-    closeBtn.style.position = "absolute";
-    closeBtn.style.top = "10px";
-    closeBtn.style.right = "20px";
-    closeBtn.style.cursor = "pointer";
-    closeBtn.style.fontSize = "24px";
-    closeBtn.style.color = "#d82d7e";
-    closeBtn.title = "Close";
-    closeBtn.onclick = () => floatingDiv.remove();
-    floatingDiv.appendChild(closeBtn);
+// Header Clickable Sorting
+headers.forEach(h => {
+    const th = document.createElement('th');
+    th.innerHTML = h.label + (h.key === currentSortKey ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : '');
+    th.style.backgroundColor = "#2b2e83";
+    th.style.color = "#fff";
+    th.style.padding = "10px";
+    th.style.cursor = "pointer";
+    th.style.border = "1px solid #ccc";
+    th.onclick = function () {
+        if (currentSortKey === h.key) {
+            sortDirection = sortDirection === "asc" ? "desc" : "asc";
+        } else {
+            currentSortKey = h.key;
+            sortDirection = "asc";
+        }
 
-    // HEADER Table
-    const headerTable = document.createElement('table');
-    headerTable.style.width = "100%";
-    headerTable.style.marginBottom = "20px";
+        data.sort((a, b) => {
+            let valA = a[currentSortKey];
+            let valB = b[currentSortKey];
 
-    const refRow = document.createElement('tr');
-    const beneRow = document.createElement('tr');
+            // For date, use Date object
+            if (currentSortKey === "D_CREA_DATE1") {
+                valA = new Date(valA);
+                valB = new Date(valB);
+            }
 
-    const refLabel = document.createElement('td');
-    refLabel.textContent = "Ref No.";
-    refLabel.style.fontWeight = "bold";
-    const refValue = document.createElement('td');
-    refValue.textContent = data[0].C_MAIN_REF1;
-
-    const beneLabel = document.createElement('td');
-    beneLabel.textContent = "Counter Party Name";
-    beneLabel.style.fontWeight = "bold";
-    const stpRecord = data.find(d => d.USER_DESC === "STPUser");
-    const beneValue = document.createElement('td');
-    beneValue.textContent = stpRecord ? stpRecord.BENE_NM : data[0].BENE_NM;
-
-    refRow.appendChild(refLabel);
-    refRow.appendChild(refValue);
-    beneRow.appendChild(beneLabel);
-    beneRow.appendChild(beneValue);
-    headerTable.appendChild(refRow);
-    headerTable.appendChild(beneRow);
-
-    // FILTERS
-    const filterDiv = document.createElement('div');
-    filterDiv.style.marginBottom = "20px";
-    filterDiv.innerHTML = `
-      <label style="margin-right:20px;">Transaction Type:
-        <select id="filter-type" style="margin-left:5px;">
-          <option value="">All</option>
-        </select>
-      </label>
-      <label>Status:
-        <select id="filter-status" style="margin-left:5px;">
-          <option value="">All</option>
-        </select>
-      </label>
-    `;
-
-    // Table
-    const table = document.createElement('table');
-    table.style.width = "100%";
-    table.style.borderCollapse = "collapse";
-    table.style.backgroundColor = "#fff";
-
-    const headerRow = document.createElement('tr');
-    const headers = ["Transaction Type", "Date & Time", "User ID", "User Name", "Status", "Pending With"];
-    headers.forEach(h => {
-        const th = document.createElement('th');
-        th.textContent = h;
-        th.style.backgroundColor = "#2b2e83"; // SBI Blue
-        th.style.color = "#fff";
-        th.style.padding = "10px";
-        th.style.border = "1px solid #ccc";
-        headerRow.appendChild(th);
-    });
-    table.appendChild(headerRow);
-
-    const tbody = document.createElement('tbody');
-    table.appendChild(tbody);
-
-    // Function to render rows
-    function renderTable(filteredData) {
-        tbody.innerHTML = "";
-        filteredData.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.style.backgroundColor = "#f9f9f9";
-            tr.onmouseover = () => tr.style.backgroundColor = "#ffeaf2"; // Light pink hover
-            tr.onmouseout = () => tr.style.backgroundColor = "#f9f9f9";
-
-            const cells = [
-                row.C_FUNC_SHORT_NAME1,
-                row.D_CREA_DATE1,
-                row.C_RELE_BY,
-                row.USER_DESC,
-                row.C_EVENT_STATUS,
-                row.LEVEL_STATUS
-            ];
-            cells.forEach(text => {
-                const td = document.createElement('td');
-                td.textContent = text;
-                td.style.padding = "8px";
-                td.style.border = "1px solid #ddd";
-                td.style.color = "#000";
-                tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
+            if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+            if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+            return 0;
         });
-    }
 
-    // Populate filter dropdowns
-    const types = [...new Set(data.map(d => d.C_FUNC_SHORT_NAME1))];
-    const statuses = [...new Set(data.map(d => d.C_EVENT_STATUS))];
+        renderTable(data);
+        updateHeaderSortIcons();
+    };
+    headerRow.appendChild(th);
+});
+table.appendChild(headerRow);
 
-    types.forEach(t => {
-        $('#filter-type').append(`<option value="${t}">${t}</option>`);
+// Sort icons update function
+function updateHeaderSortIcons() {
+    const ths = table.querySelectorAll("th");
+    headers.forEach((h, i) => {
+        ths[i].innerHTML = h.label + (h.key === currentSortKey ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : '');
     });
-    statuses.forEach(s => {
-        $('#filter-status').append(`<option value="${s}">${s}</option>`);
-    });
-
-    // Filtering behavior
-    $('#filter-type, #filter-status').on('change', function() {
-        const selectedType = $('#filter-type').val();
-        const selectedStatus = $('#filter-status').val();
-        const filtered = data.filter(row => {
-            return (!selectedType || row.C_FUNC_SHORT_NAME1 === selectedType)
-                && (!selectedStatus || row.C_EVENT_STATUS === selectedStatus);
-        });
-        renderTable(filtered);
-    });
-
-    // Initial Table Load
-    renderTable(data);
-
-    // Append all to floating div
-    floatingDiv.appendChild(headerTable);
-    floatingDiv.appendChild(filterDiv);
-    floatingDiv.appendChild(table);
-
-    // Show on screen
-    document.getElementById("0_div").appendChild(floatingDiv);
-    $("#Tab").show();
 }
+
+const tbody = document.createElement('tbody');
+table.appendChild(tbody);
+
+
+const formattedDate = new Date(row.D_CREA_DATE1).toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+}).replace(',', '');
+
+const cells = [
+    row.C_FUNC_SHORT_NAME1,
+    formattedDate,
+    row.C_RELE_BY,
+    row.USER_DESC,
+    row.C_EVENT_STATUS,
+    row.LEVEL_STATUS
+];
