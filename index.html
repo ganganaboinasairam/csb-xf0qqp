@@ -1,4 +1,192 @@
-[{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit","C_CREA_BY":"STPUser","D_CREA_DATE1":"2025-07-02 12:12:14","C_RELE_BY":"STPUser","D_RELE_DATE":"--","C_EVENT_STATUS":"Approved by Bank","USER_DESC":"STPUser","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Transaction Completed"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit","C_CREA_BY":"STPUser","D_CREA_DATE1":"2025-07-02 12:30:44","C_RELE_BY":"STPUser","D_RELE_DATE":"--","C_EVENT_STATUS":"Approved by Bank","USER_DESC":"STPUser","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Transaction Completed"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Request Quote","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 11:39:57","C_RELE_BY":"BR04UAT","D_RELE_DATE":"--","C_EVENT_STATUS":"Submitted by Maker to Checker","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Checker Class 1"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Request Quote","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 11:44:49","C_RELE_BY":"BR04UAT","D_RELE_DATE":"--","C_EVENT_STATUS":"Submitted by Maker to Checker","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Checker Class 1"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Request Quote","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 11:45:25","C_RELE_BY":"BR04UAT","D_RELE_DATE":"02-07-2025 11:45:25","C_EVENT_STATUS":"Authorized, Sent to Bank","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Pending with Bank"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Accept Quote","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 12:01:58","C_RELE_BY":"BR04UAT","D_RELE_DATE":"--","C_EVENT_STATUS":"Submitted by Maker to Checker","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Checker Class 1"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Accept Quote","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 12:02:46","C_RELE_BY":"BR04UAT","D_RELE_DATE":"02-07-2025 12:02:46","C_EVENT_STATUS":"Authorized, Sent to Bank","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Pending with Bank"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Repayment","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 13:33:54","C_RELE_BY":"BR04UAT","D_RELE_DATE":"--","C_EVENT_STATUS":"Submitted by Maker to Checker","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Checker Class 1"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Repayment","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 13:34:48","C_RELE_BY":"BR04UAT","D_RELE_DATE":"02-07-2025 13:34:48","C_EVENT_STATUS":"Authorized, Sent to Bank","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Pending with Bank"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit","C_CREA_BY":"STPUser","D_CREA_DATE1":"2025-07-02 11:58:19","C_RELE_BY":"STPUser","D_RELE_DATE":"--","C_EVENT_STATUS":"Approved by Bank","USER_DESC":"STPUser","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Transaction Completed"}]
+
+function selectedTrackBgis(selectedid){	
+
+var index = selectedid.replace('select', '');
 
 
-I recive this response from the servlet, and i want to display this info as a table on the screen as a floating window , and the color theme is as sbi yono colors
+
+var j=selectedid.slice(6);
+var C_MAIN_REF=$('#R'+j+'C_MAIN_REF').text();
+C_MAIN_REF1=C_MAIN_REF.trim();
+getCMainRefForTrack(C_MAIN_REF1);	
+}
+
+
+function getCMainRefForTrack(C_MAIN_REF1){
+		   var responseString="";
+$.ajax({
+		url : '../servlets/getCMainRefForTrackAll',
+		type: 'GET',
+		async : false,
+		data:{C_MAIN_REF1: C_MAIN_REF1+"@@"+PRODUCT_ID},
+		dataType: 'text',
+		success: function(responseText){
+		responseString=responseText;
+		console.log(responseString);
+		data = JSON.parse(responseString);
+		console.log(data);
+		
+	$("#table_header").remove();	
+	var table1 = document.createElement('table');
+	table1.setAttribute("id", "table_header");
+
+		var td_hed1 = document.createElement('td');
+		var tr_hed_1 = document.createElement('tr');
+		var tr_hed_3 = document.createElement('tr'); 		
+		
+		
+		var text_hed_1 = document.createTextNode('Ref No.');
+		var text_hed_3 = document.createTextNode('Counter Party Name');
+		
+		tr_hed_1.appendChild(text_hed_1);
+		tr_hed_3.appendChild(text_hed_3);
+		
+		td_hed1.appendChild(tr_hed_1);
+		td_hed1.appendChild(tr_hed_3);
+		
+		
+		table1.appendChild(td_hed1);
+		
+		var tr1 = document.createElement('tr');
+    var td1 = document.createElement('td');  
+	
+    var tr1 = document.createElement('tr'); 
+	var tr3 = document.createElement('tr');
+
+    var text1 = document.createTextNode(data[0].C_MAIN_REF1);
+//start of cr 24080247	
+	//var text3 = document.createTextNode(data[0].BENE_NM);
+var text3 ;
+	var stpRecord= data.find(record => record.USER_DESC=='STPUser');
+	if(stpRecord){
+		var text3 = document.createTextNode(stpRecord.BENE_NM);
+	}else{
+		
+		var text3 = document.createTextNode(data[0].BENE_NM);
+	}
+//end of cr 24080247
+    tr1.appendChild(text1);
+    tr3.appendChild(text3);
+	
+
+    td1.appendChild(tr1);
+    td1.appendChild(tr3);
+
+    table1.appendChild(td1).style.backgroundColor = "#FFFFFF";
+	table1.appendChild(td1).style.color = "#000000";
+	table1.style.width="50px";
+   
+    document.getElementById("0_div").appendChild(table1).style.fontSize = "medium";
+	document.getElementById("0_div").appendChild(table1).style.backgroundColor = "#5b1d8d";
+	document.getElementById("0_div").appendChild(table1).style.color = "#FFFFFF";
+	document.getElementById("0_div").appendChild(table1).style.width = "30%";
+	document.getElementById("0_div").appendChild(table1).style.marginTop = "40px";
+
+	
+		$("#table_body").remove();
+		var table = document.createElement('table');
+		table.setAttribute("id", "table_body");
+
+		var tr_hed = document.createElement('tr');
+		
+		var td_hed_2 = document.createElement('td'); 
+		
+		var td_hed_4 = document.createElement('td'); 
+		var td_hed_5 = document.createElement('td'); 
+		var td_hed_6 = document.createElement('td'); 
+		var td_hed_7 = document.createElement('td'); 		
+		var td_hed_8 = document.createElement('td'); 		
+		
+		
+	
+		var text_hed_2 = document.createTextNode('Transaction Type');
+		
+		var text_hed_4 = document.createTextNode('Date & Time');
+		var text_hed_5 = document.createTextNode('User ID');
+		var text_hed_6 = document.createTextNode('User Name');
+		var text_hed_7 = document.createTextNode('Status');
+		var text_hed_8 = document.createTextNode('Pending with');
+		
+
+		td_hed_2.appendChild(text_hed_2);
+		
+		td_hed_4.appendChild(text_hed_4);
+		td_hed_5.appendChild(text_hed_5);
+		td_hed_6.appendChild(text_hed_6);
+		td_hed_7.appendChild(text_hed_7);
+		td_hed_8.appendChild(text_hed_8);
+		
+	
+		tr_hed.appendChild(td_hed_2);
+		
+		tr_hed.appendChild(td_hed_4);
+		tr_hed.appendChild(td_hed_5);
+		tr_hed.appendChild(td_hed_6);
+		tr_hed.appendChild(td_hed_7);
+		tr_hed.appendChild(td_hed_8);
+		
+		
+		table.appendChild(tr_hed);
+		
+		var td = document.createElement('td');
+        for (var i = 0; i < data.length; i++){
+    var tr = document.createElement('tr');  
+	
+                            
+	var td2 = document.createElement('td');
+
+	var td4 = document.createElement('td');
+	var td5 = document.createElement('td');
+	var td6 = document.createElement('td');
+	var td7 = document.createElement('td');
+	var td8 = document.createElement('td');
+
+   
+	var text2 = document.createTextNode(data[i].C_FUNC_SHORT_NAME1);
+	
+	var text4 = document.createTextNode(data[i].D_CREA_DATE1);
+	var text5 = document.createTextNode(data[i].C_RELE_BY);
+	var text6 = document.createTextNode(data[i].USER_DESC);
+	var text7 = document.createTextNode(data[i].C_EVENT_STATUS);
+	var text8 = document.createTextNode(data[i].LEVEL_STATUS);
+   
+    td2.appendChild(text2);
+  
+    td4.appendChild(text4);
+    td5.appendChild(text5);
+    td6.appendChild(text6);
+    td7.appendChild(text7);
+    td8.appendChild(text8);
+	
+
+   
+    tr.appendChild(td2);
+  
+    tr.appendChild(td4);
+    tr.appendChild(td5);
+    tr.appendChild(td6);
+    tr.appendChild(td7);
+    tr.appendChild(td8);
+
+    table.appendChild(tr).style.backgroundColor = "#FFFFFF";
+	table.appendChild(tr).style.color = "#000000";
+	table.style.width="50px";
+   }
+	
+    document.getElementById("0_div").appendChild(table).style.fontSize = "medium";
+	document.getElementById("0_div").appendChild(table).style.backgroundColor = "#5b1d8d";
+	document.getElementById("0_div").appendChild(table).style.color = "#FFFFFF";
+	document.getElementById("0_div").appendChild(table).style.width = "100%";
+	document.getElementById("0_div").appendChild(table).style.marginTop = "40px";
+
+	
+	$("#Tab").show();
+		},	
+		error: function(err){
+			responseString="";
+			
+		}
+	});
+	}
+	
+	
