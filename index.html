@@ -1,19 +1,4 @@
-function EMAIL_ID_check() {
-    try {
-        var email = document.MAINFORM.EMAIL_ADD.value.trim();
-        
-        // Validate using custom regex
-        var emailfilter = /^[a-zA-Z0-9](?:[a-zA-Z0-9._+=-]*[a-zA-Z0-9])?@(?:[a-zA-Z0-9-]+\.)+(com|net|co\.in|gov\.in)$/;
-        var isValidEmail = emailfilter.test(email);
+[{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit","C_CREA_BY":"STPUser","D_CREA_DATE1":"2025-07-02 12:12:14","C_RELE_BY":"STPUser","D_RELE_DATE":"--","C_EVENT_STATUS":"Approved by Bank","USER_DESC":"STPUser","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Transaction Completed"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit","C_CREA_BY":"STPUser","D_CREA_DATE1":"2025-07-02 12:30:44","C_RELE_BY":"STPUser","D_RELE_DATE":"--","C_EVENT_STATUS":"Approved by Bank","USER_DESC":"STPUser","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Transaction Completed"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Request Quote","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 11:39:57","C_RELE_BY":"BR04UAT","D_RELE_DATE":"--","C_EVENT_STATUS":"Submitted by Maker to Checker","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Checker Class 1"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Request Quote","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 11:44:49","C_RELE_BY":"BR04UAT","D_RELE_DATE":"--","C_EVENT_STATUS":"Submitted by Maker to Checker","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Checker Class 1"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Request Quote","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 11:45:25","C_RELE_BY":"BR04UAT","D_RELE_DATE":"02-07-2025 11:45:25","C_EVENT_STATUS":"Authorized, Sent to Bank","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Pending with Bank"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Accept Quote","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 12:01:58","C_RELE_BY":"BR04UAT","D_RELE_DATE":"--","C_EVENT_STATUS":"Submitted by Maker to Checker","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Checker Class 1"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Accept Quote","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 12:02:46","C_RELE_BY":"BR04UAT","D_RELE_DATE":"02-07-2025 12:02:46","C_EVENT_STATUS":"Authorized, Sent to Bank","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Pending with Bank"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Repayment","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 13:33:54","C_RELE_BY":"BR04UAT","D_RELE_DATE":"--","C_EVENT_STATUS":"Submitted by Maker to Checker","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Checker Class 1"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit Repayment","C_CREA_BY":"BR04UAT","D_CREA_DATE1":"2025-07-02 13:34:48","C_RELE_BY":"BR04UAT","D_RELE_DATE":"02-07-2025 13:34:48","C_EVENT_STATUS":"Authorized, Sent to Bank","USER_DESC":"UAT User","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Pending with Bank"},{"C_MAIN_REF1":"0999525BR0400105","C_FUNC_SHORT_NAME1":"Buyers Credit","C_CREA_BY":"STPUser","D_CREA_DATE1":"2025-07-02 11:58:19","C_RELE_BY":"STPUser","D_RELE_DATE":"--","C_EVENT_STATUS":"Approved by Bank","USER_DESC":"STPUser","BENE_NM":"ARJUN GUPTA","LEVEL_STATUS":"Transaction Completed"}]
 
-        if (isValidEmail) {
-            return true;
-        } else {
-            alert("Please enter a valid email address.");
-            document.MAINFORM.EMAIL_ADD.value = '';
-            return false;
-        }
-    } catch (e) {
-        DisExcpt("NLRF_EMAIL_ID_Function.js", e);
-    }
-}
+
+I recive this response from the servlet, and i want to display this info as a table on the screen as a floating window , and the color theme is as sbi yono colors
