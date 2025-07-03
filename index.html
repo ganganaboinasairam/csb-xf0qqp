@@ -1,5 +1,70 @@
-<textarea name="TEXT_SHIPP_GUAR" maxlength="25000" cols="5000" rows="50" class="CHAR_M textarea-field" id="TEXT_SHIPP_GUAR" title="Text of Shipping Guarantee" charset="SX"></textarea>
+function changeFieldClassNew(inputId, param) {
+    const inputField = document.getElementById(inputId);
+    if (!inputField) {
+        console.error(`No input field found with ID: ${inputId}`);
+        return;
+    }
 
-when iam passing changeFieldClassNew('TEXT_SHIPP_GUAR','O') the class is changing to class="textarea-field CHAR_O"
+    const typePrefixes = ['char_', 'amt_', 'date_', 'int_'];
 
-second time when i pass changeFieldClassNew('TEXT_SHIPP_GUAR','P') the class is changing to class="CHAR_P textarea-field CHAR_O" , BUT IT SHOULD BE class="CHAR_P textarea-field"
+    // Step 1: Identify the current field type from the class list
+    let fieldType = null;
+    for (let cls of inputField.classList) {
+        for (let prefix of typePrefixes) {
+            if (cls.toLowerCase().startsWith(prefix)) {
+                fieldType = prefix.slice(0, -1).toUpperCase(); // e.g., 'char_' -> 'CHAR'
+                break;
+            }
+        }
+        if (fieldType) break;
+    }
+
+    if (!fieldType) {
+        console.error(`No recognized type class (char_, amt_, etc.) found on input field with ID: ${inputId}`);
+        return;
+    }
+
+    // Step 2: Remove old type-related classes (e.g., char_M, amt_P)
+    const toRemove = Array.from(inputField.classList).filter(cls =>
+        typePrefixes.some(prefix => cls.toLowerCase().startsWith(prefix))
+    );
+    toRemove.forEach(cls => inputField.classList.remove(cls));
+
+    // Step 3: Add new class (e.g., CHAR_M)
+    const newTypeClass = `${fieldType}_${param}`;
+    inputField.classList.add(newTypeClass);
+
+    // Step 4: Handle special settings based on param
+    let parentTd = inputField.parentElement;
+    if (!parentTd) return;
+
+    if (['select-wrapper', 'date-wrapper', 'textarea-wrapper'].includes(parentTd.className)) {
+        parentTd = inputField.parentElement.parentElement.firstChild;
+    } else {
+        parentTd = inputField.parentElement.firstChild;
+    }
+
+    const previousTd = parentTd;
+    if (!previousTd) return;
+
+    if (param === "M") {
+        previousTd.className = "FldLabel star";
+        inputField.readOnly = false;
+        inputField.removeAttribute('disabled');
+
+        if (fieldType === "DATE") {
+            inputField.classList.add("hasDatepicker", "air-datepicker-initialized");
+            addDatePicker(inputField);
+        }
+    } else if (param === "O") {
+        previousTd.className = "FldLabel";
+        inputField.readOnly = false;
+        inputField.removeAttribute('disabled');
+    } else if (param === "P") {
+        previousTd.className = "FldLabel";
+        inputField.readOnly = true;
+        inputField.setAttribute('disabled', 'true');
+    } else {
+        console.error(`Invalid parameter value: ${param}`);
+    }
+}
