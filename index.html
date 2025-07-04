@@ -1,20 +1,9 @@
-1. Email ID should present the symbol '@'
-2. Email ID should not start or end with special characters
-3. domain allowed .com, .net, .co.in, .gov.in
-4. No space is allowed in email id
-5. Characters Alphabets A-Z, a-z, Digits 0-9, Special Characters -, _,+,=, . are allowed before @ symbol.
-6.Start and end of email should not be with special characters 
-7. If user captures incorrect email id then alert 'Please enter a valid email address.' 
-
-
-
-
 function EMAIL_ID_check() {
     try {
         var email = document.MAINFORM.EMAIL_ADD.value.trim();
-        
-        // Validate using custom regex
-        var emailfilter = /^[a-zA-Z0-9](?:[a-zA-Z0-9._+=-]*[a-zA-Z0-9])?@(?:[a-zA-Z0-9-]+\.)+(com|net|co\.in|gov\.in)$/;
+
+        // Updated regex to allow local part ending with special chars (except '.')
+        var emailfilter = /^(?![.])[a-zA-Z0-9._+=-]+(?<![.])@(?:[a-zA-Z0-9-]+\.)+(com|net|co\.in|gov\.in)$/;
         var isValidEmail = emailfilter.test(email);
 
         if (isValidEmail) {
@@ -27,4 +16,4 @@ function EMAIL_ID_check() {
     } catch (e) {
         DisExcpt("NLRF_EMAIL_ID_Function.js", e);
     }
-}	
+}
