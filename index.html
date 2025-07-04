@@ -1,70 +1,30 @@
-function changeFieldClassNew(inputId, param) {
-    const inputField = document.getElementById(inputId);
-    if (!inputField) {
-        console.error(`No input field found with ID: ${inputId}`);
-        return;
-    }
+1. Email ID should present the symbol '@'
+2. Email ID should not start or end with special characters
+3. domain allowed .com, .net, .co.in, .gov.in
+4. No space is allowed in email id
+5. Characters Alphabets A-Z, a-z, Digits 0-9, Special Characters -, _,+,=, . are allowed before @ symbol.
+6.Start and end of email should not be with special characters 
+7. If user captures incorrect email id then alert 'Please enter a valid email address.' 
 
-    const typePrefixes = ['char_', 'amt_', 'date_', 'int_'];
 
-    // Step 1: Identify the current field type from the class list
-    let fieldType = null;
-    for (let cls of inputField.classList) {
-        for (let prefix of typePrefixes) {
-            if (cls.toLowerCase().startsWith(prefix)) {
-                fieldType = prefix.slice(0, -1).toUpperCase(); // e.g., 'char_' -> 'CHAR'
-                break;
-            }
+
+
+function EMAIL_ID_check() {
+    try {
+        var email = document.MAINFORM.EMAIL_ADD.value.trim();
+        
+        // Validate using custom regex
+        var emailfilter = /^[a-zA-Z0-9](?:[a-zA-Z0-9._+=-]*[a-zA-Z0-9])?@(?:[a-zA-Z0-9-]+\.)+(com|net|co\.in|gov\.in)$/;
+        var isValidEmail = emailfilter.test(email);
+
+        if (isValidEmail) {
+            return true;
+        } else {
+            alert("Please enter a valid email address.");
+            document.MAINFORM.EMAIL_ADD.value = '';
+            return false;
         }
-        if (fieldType) break;
+    } catch (e) {
+        DisExcpt("NLRF_EMAIL_ID_Function.js", e);
     }
-
-    if (!fieldType) {
-        console.error(`No recognized type class (char_, amt_, etc.) found on input field with ID: ${inputId}`);
-        return;
-    }
-
-    // Step 2: Remove old type-related classes (e.g., char_M, amt_P)
-    const toRemove = Array.from(inputField.classList).filter(cls =>
-        typePrefixes.some(prefix => cls.toLowerCase().startsWith(prefix))
-    );
-    toRemove.forEach(cls => inputField.classList.remove(cls));
-
-    // Step 3: Add new class (e.g., CHAR_M)
-    const newTypeClass = `${fieldType}_${param}`;
-    inputField.classList.add(newTypeClass);
-
-    // Step 4: Handle special settings based on param
-    let parentTd = inputField.parentElement;
-    if (!parentTd) return;
-
-    if (['select-wrapper', 'date-wrapper', 'textarea-wrapper'].includes(parentTd.className)) {
-        parentTd = inputField.parentElement.parentElement.firstChild;
-    } else {
-        parentTd = inputField.parentElement.firstChild;
-    }
-
-    const previousTd = parentTd;
-    if (!previousTd) return;
-
-    if (param === "M") {
-        previousTd.className = "FldLabel star";
-        inputField.readOnly = false;
-        inputField.removeAttribute('disabled');
-
-        if (fieldType === "DATE") {
-            inputField.classList.add("hasDatepicker", "air-datepicker-initialized");
-            addDatePicker(inputField);
-        }
-    } else if (param === "O") {
-        previousTd.className = "FldLabel";
-        inputField.readOnly = false;
-        inputField.removeAttribute('disabled');
-    } else if (param === "P") {
-        previousTd.className = "FldLabel";
-        inputField.readOnly = true;
-        inputField.setAttribute('disabled', 'true');
-    } else {
-        console.error(`Invalid parameter value: ${param}`);
-    }
-}
+}	
