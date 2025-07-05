@@ -1,19 +1,15 @@
-function EMAIL_ID_check() {
-    try {
-        var email = document.MAINFORM.EMAIL_ADD.value.trim();
+Dear Sir,
 
-        // Updated regex to allow local part ending with special chars (except '.')
-        var emailfilter = /^(?![.])[a-zA-Z0-9._+=-]+(?<![.])@(?:[a-zA-Z0-9-]+\.)+(com|net|co\.in|gov\.in)$/;
-        var isValidEmail = emailfilter.test(email);
+We have received  three Railway LC issuance,
+firstly, for every issuance we have to raise Score for CTA mapping .
+Secondly, we are getting the grey field data empty or incorrect
+i have raised Score for each one of these (23570371, 23570359, 23570318)
+As per the Data received from CRIS and the application received from customer, a few of the field data is incorrect
+Please check where is data fixing needed
 
-        if (isValidEmail) {
-            return true;
-        } else {
-            alert("Please enter a valid email address.");
-            document.MAINFORM.EMAIL_ADD.value = '';
-            return false;
-        }
-    } catch (e) {
-        DisExcpt("NLRF_EMAIL_ID_Function.js", e);
-    }
-}
+
+
+this is the mail that i have receved from the client, so we have resloved the second issue permanantly and regarding the first isuue , it is not the issue . for railways the CTA mapping is different from the normal lC , so, the account need to be mapped always from the backend when ever the new customer is issued LC for the first time (it is one time process)
+
+
+write a mail reply based on the text given  
