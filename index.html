@@ -1,48 +1,27 @@
-Here’s a professional draft email you can send to the support team:
-
-
----
-
-Subject: Request to Implement FAR Request and Passwordless SFTP Setup between CE App Server and Railway SFG
-
-Dear Support Team,
-
-We would like to request the implementation of the following setup between the CE Application Server and the Railway SFG system:
-
-1. FAR (Firewall Access Request) Implementation
-
-From: CE App Server (Server ID: 157)
-
-To: Railway SFG Server
-
-This is required to enable secure communication for Rail LC process execution.
-
-
-
-2. Passwordless SFTP Connection Setup
-
-Direction: From CE App Server (157) to Railway SFG Server
-
-This will facilitate automated data transfers without manual intervention or credential prompts.
-
-
-
-
-Reason for Request:
-The above configurations are essential to run a Java-based tool that supports the Rail LC (Letter of Credit) process from the CE Application Server. This connection ensures timely and accurate data transmission between systems for operational efficiency.
-
-Please let us know if any additional details, configurations, or approvals are required from our end to proceed with the request.
-
-Thank you for your support.
-
-Best Regards,
-[Your Full Name]
-[Your Designation]
-[Department/Team]
-[Contact Information]
-
-
----
-
-Let me know if you'd like to include any specific IP addresses, ports, or attach a configuration file with it.
-
+we have two lov fields INCOTERMS_YEAR and INCOTERMS , INCOTERMS_YEAR hvaing 2 values 2010 and 2020,and a onclick function 'changeIncoterms()' when we select the 2010 the incotems lov should contain 
+<option value="5">CFR Freight Prepaid</option>
+							<option value="6">CIF Freight Prepaid</option>
+							<option value="8">CIP Freight to pay</option>
+							<option value="7">CPT Freight Prepaid</option>
+							<option value="17">DAP Freight Prepaid</option>
+							<option value="16">DAT Freight Prepaid</option>
+							<option value="13">DDP Freight to pay</option>
+							<option value="1">EXW Freight to pay</option>
+							<option value="3">FAS Freight to pay</option>
+							<option value="2">FCA Freight to pay</option>
+							<option value="4">FOB Freight to pay</option>
+							<option value="" selected="">PLEASE SELECT</option>
+if the year is 2020 then <option value="5">CFR Freight Prepaid</option>
+							<option value="6">CIF Freight Prepaid</option>
+							<option value="8">CIP Freight to pay</option>
+							<option value="7">CPT Freight Prepaid</option>
+							<option value="17">DAP Freight Prepaid</option>
+							<option value="18">DPU Freight Prepaid</option>
+							<option value="13">DDP Freight to pay</option>
+							<option value="1">EXW Freight to pay</option>
+							<option value="3">FAS Freight to pay</option>
+							<option value="2">FCA Freight to pay</option>
+							<option value="4">FOB Freight to pay</option>
+							<option value="" selected="">PLEASE SELECT</option>
+if no year is selected then 
+<option value="" selected="">PLEASE SELECT</option>
