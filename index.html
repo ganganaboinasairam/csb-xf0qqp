@@ -1,27 +1,58 @@
-we have two lov fields INCOTERMS_YEAR and INCOTERMS , INCOTERMS_YEAR hvaing 2 values 2010 and 2020,and a onclick function 'changeIncoterms()' when we select the 2010 the incotems lov should contain 
-<option value="5">CFR Freight Prepaid</option>
-							<option value="6">CIF Freight Prepaid</option>
-							<option value="8">CIP Freight to pay</option>
-							<option value="7">CPT Freight Prepaid</option>
-							<option value="17">DAP Freight Prepaid</option>
-							<option value="16">DAT Freight Prepaid</option>
-							<option value="13">DDP Freight to pay</option>
-							<option value="1">EXW Freight to pay</option>
-							<option value="3">FAS Freight to pay</option>
-							<option value="2">FCA Freight to pay</option>
-							<option value="4">FOB Freight to pay</option>
-							<option value="" selected="">PLEASE SELECT</option>
-if the year is 2020 then <option value="5">CFR Freight Prepaid</option>
-							<option value="6">CIF Freight Prepaid</option>
-							<option value="8">CIP Freight to pay</option>
-							<option value="7">CPT Freight Prepaid</option>
-							<option value="17">DAP Freight Prepaid</option>
-							<option value="18">DPU Freight Prepaid</option>
-							<option value="13">DDP Freight to pay</option>
-							<option value="1">EXW Freight to pay</option>
-							<option value="3">FAS Freight to pay</option>
-							<option value="2">FCA Freight to pay</option>
-							<option value="4">FOB Freight to pay</option>
-							<option value="" selected="">PLEASE SELECT</option>
-if no year is selected then 
-<option value="" selected="">PLEASE SELECT</option>
+function changeIncoterms() {
+  const year = document.getElementById("INCOTERMS_YEAR").value;
+  const incotermsSelect = document.getElementById("INCOTERMS");
+
+  // Clear current options
+  incotermsSelect.innerHTML = '';
+
+  // Always add the default option
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.selected = true;
+  defaultOption.text = "PLEASE SELECT";
+  incotermsSelect.appendChild(defaultOption);
+
+  const options2010 = [
+    { value: "5", text: "CFR Freight Prepaid" },
+    { value: "6", text: "CIF Freight Prepaid" },
+    { value: "8", text: "CIP Freight to pay" },
+    { value: "7", text: "CPT Freight Prepaid" },
+    { value: "17", text: "DAP Freight Prepaid" },
+    { value: "16", text: "DAT Freight Prepaid" },
+    { value: "13", text: "DDP Freight to pay" },
+    { value: "1", text: "EXW Freight to pay" },
+    { value: "3", text: "FAS Freight to pay" },
+    { value: "2", text: "FCA Freight to pay" },
+    { value: "4", text: "FOB Freight to pay" }
+  ];
+
+  const options2020 = [
+    { value: "5", text: "CFR Freight Prepaid" },
+    { value: "6", text: "CIF Freight Prepaid" },
+    { value: "8", text: "CIP Freight to pay" },
+    { value: "7", text: "CPT Freight Prepaid" },
+    { value: "17", text: "DAP Freight Prepaid" },
+    { value: "18", text: "DPU Freight Prepaid" },
+    { value: "13", text: "DDP Freight to pay" },
+    { value: "1", text: "EXW Freight to pay" },
+    { value: "3", text: "FAS Freight to pay" },
+    { value: "2", text: "FCA Freight to pay" },
+    { value: "4", text: "FOB Freight to pay" }
+  ];
+
+  let selectedOptions = [];
+
+  if (year === "2010") {
+    selectedOptions = options2010;
+  } else if (year === "2020") {
+    selectedOptions = options2020;
+  }
+
+  // Add the year-specific options
+  selectedOptions.forEach(opt => {
+    const option = document.createElement("option");
+    option.value = opt.value;
+    option.text = opt.text;
+    incotermsSelect.appendChild(option);
+  });
+}
