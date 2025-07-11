@@ -1,18 +1,26 @@
-function reArrangeTextArea(firstFld,secFld,edtbtn){
-	
-	var div1 = document.getElementById(firstFld).parentElement
-	$(div1).wrap('<div id = "'+firstFld+'_parent">');
-	document.getElementById(firstFld+'_parent').style.display='flex';
-	document.getElementById(firstFld+'_parent').style.gap='30px';
-	document.getElementById(secFld).parentElement.nextElementSibling.remove();
-	document.getElementById(firstFld+'_parent').append(document.getElementById(secFld).parentElement);
-	var titleTD = document.getElementById(firstFld+'_parent').previousElementSibling;
-	$(titleTD).wrap('<div id="'+firstFld+'_title">');
-	document.getElementById(firstFld+'_title').style.marginTop = '20px'
-	document.getElementById(firstFld+'_title').append(document.getElementById(edtbtn));
-	document.getElementById(secFld).parentElement.style.display='none';
-	$(edtbtn).click(function() {
-        document.getElementById(secFld).parentElement.style.display='';
+function reArrangeTextArea(firstFld, secFld, edtbtn) {
+    var $div1 = $('#' + firstFld).parent();
+    $div1.wrap('<div id="' + firstFld + '_parent"></div>');
+
+    var $parent = $('#' + firstFld + '_parent');
+    $parent.css({
+        display: 'flex',
+        gap: '30px'
     });
-	
+
+    $('#' + secFld).parent().next().remove();
+    $parent.append($('#' + secFld).parent());
+
+    var $titleTD = $parent.prev();
+    $titleTD.wrap('<div id="' + firstFld + '_title"></div>');
+
+    var $titleWrapper = $('#' + firstFld + '_title');
+    $titleWrapper.css('margin-top', '20px');
+    $titleWrapper.append($('#' + edtbtn));
+
+    $('#' + secFld).parent().hide();
+
+    $('#' + edtbtn).on('click', function () {
+        $('#' + secFld).parent().show();
+    });
 }
