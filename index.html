@@ -1,103 +1,75 @@
 <style>
-body {
-  background: #f2f2f2;
-  font-family: 'Georgia', 'Times New Roman', serif;
-  padding: 30px;
-  color: #333;
-}
+  body {
+    background: #fff;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #333;
+    padding: 30px;
+  }
 
-.panel {
-  width: 800px;
-  margin: 30px auto;
-  background: white;
-  padding: 30px 40px;
-  border: 1px solid #d3cce3;
-  box-shadow: 0 0 10px rgba(103, 51, 145, 0.2);
-  page-break-inside: avoid;
-}
+  .section {
+    margin-bottom: 40px;
+  }
 
-.topic {
-  font-size: 20px;
-  font-weight: bold;
-  color: #673391;
-  border-bottom: 2px solid #673391;
-  padding-bottom: 6px;
-  margin-bottom: 20px;
-}
+  .section-title {
+    font-size: 20px;
+    color: #673391;
+    font-weight: bold;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #673391;
+    padding-bottom: 4px;
+  }
 
-table {
-  width: 100%;
-  margin-bottom: 20px;
-  border-spacing: 0;
-}
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
 
-td {
-  padding: 6px 8px;
-  vertical-align: top;
-}
+  .field-label {
+    width: 25%;
+    font-weight: bold;
+    color: #673391;
+    padding-right: 8px;
+    box-sizing: border-box;
+  }
 
-.FldLabel {
-  font-weight: bold;
-  color: #673391;
-  width: 200px;
-  white-space: nowrap;
-}
+  .field-value {
+    width: 25%;
+    color: #222;
+    font-family: 'Courier New', monospace;
+  }
 
-input[readonly],
-textarea[readonly] {
-  border: none;
-  background: none;
-  padding: 0;
-  color: #222;
-  font-size: 15px;
-  font-family: 'Courier New', monospace;
-  width: 100%;
-  resize: none;
-  overflow: hidden;
-}
+  .field-label, .field-value {
+    margin-bottom: 6px;
+  }
 
-textarea[readonly] {
-  height: auto !important;
-}
+  input[readonly],
+  textarea[readonly] {
+    border: none;
+    background: none;
+    color: #222;
+    font-size: 15px;
+    font-family: 'Courier New', monospace;
+    width: 100%;
+    resize: none;
+    padding: 0;
+  }
 
-input[type="button"] {
-  display: none; /* hide preview buttons */
-}
+  .print-btn {
+    display: block;
+    margin: 30px auto;
+    padding: 10px 20px;
+    background-color: #673391;
+    color: white;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
 
-/* Optional: Highlight important field */
-#LC_AMT {
-  font-weight: bold;
-  color: #673391;
-}
+  @media print {
+    .print-btn {
+      display: none;
+    }
+  }
 </style>
-
-<script>
-window.addEventListener('DOMContentLoaded', () => {
-  document.title = "LC Preview - Classic View";
-
-  // Apply classic formatting class
-  document.querySelectorAll(".panel").forEach(p => {
-    p.classList.add("pdf-panel");
-  });
-
-  // Convert all .FldLabel to strong classic headings
-  document.querySelectorAll(".FldLabel").forEach(label => {
-    label.style.color = "#673391";
-    label.style.fontWeight = "bold";
-  });
-
-  // Remove all input styling and make them look like plain text
-  document.querySelectorAll("input[readonly], textarea[readonly]").forEach(el => {
-    el.style.border = "none";
-    el.style.background = "none";
-    el.style.color = "#222";
-    el.style.fontFamily = "Courier New, monospace";
-    el.style.fontSize = "15px";
-  });
-
-  // Hide functional buttons like CONFIRM, BACK
-  document.querySelectorAll("input[type='button']").forEach(btn => {
-    btn.style.display = "none";
-  });
-});
-</script>
