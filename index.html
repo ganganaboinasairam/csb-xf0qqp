@@ -1,338 +1,64 @@
+window.addEventListener("DOMContentLoaded", () => {
+  document.body.style.background = "#f8f9fa";
+  document.body.style.fontFamily = "'Segoe UI', sans-serif";
 
-<div class="panel">
-<br>
-<input name="C_MAIN_REF" type="text" class="CHAR_P" style="background-color:white; width: 230px;border:none;display :none;" id="C_MAIN_REF" title="eTradeSBI Ref No" size="25" maxlength="16" readonly=""><table id="1_table">
-<tbody>
+  // Style all panels
+  document.querySelectorAll(".panel").forEach(panel => {
+    panel.style.background = "#fff";
+    panel.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
+    panel.style.borderRadius = "12px";
+    panel.style.padding = "20px";
+    panel.style.marginBottom = "30px";
+  });
 
-<input type="hidden" id="CSRFTOKEN" value="c8qaAw6F3F61AeADA0xO8GhM9WYD98R3637EQ01689dqwDD3DC41CDds0B2S0955">
-<input type="hidden" id="REFRESH_TOKEN" value="1691644333545">
+  // Style field labels
+  document.querySelectorAll(".FldLabel").forEach(label => {
+    label.style.fontWeight = "600";
+    label.style.color = "#34495e";
+    label.style.padding = "6px 8px";
+  });
 
+  // Style inputs and textareas
+  document.querySelectorAll(".FirstPart, .CHAR_P").forEach(field => {
+    field.style.backgroundColor = "#f5f7fa";
+    field.style.border = "1px solid #ced4da";
+    field.style.borderRadius = "6px";
+    field.style.padding = "6px 10px";
+    field.style.margin = "4px 0";
+    field.style.width = field.size ? `${field.size * 6}px` : "100%";
+  });
 
-<input name="HOME_BRANCH_CODE" type="hidden" id="HOME_BRANCH_CODE" title="Home Branch Code" value="08965">
-<tr> 
-    <td align="right"> </td><td align="right"> </td><td class="topic" align="right">LC Details</td>
-</tr>
-<tr>
-	<td colspan="4">&nbsp;</td>
-</tr> 
+  // Highlight amount field
+  const lcAmt = document.getElementById("LC_AMT");
+  if (lcAmt) {
+    lcAmt.style.backgroundColor = "#EFE7F6";
+    lcAmt.style.fontWeight = "bold";
+    lcAmt.style.color = "#652A84";
+  }
 
-<tr>
-        <td class="FldLabel">Customer Reference No.</td>
-        
-	
-	
-	
-	<td class="FldLabel">Beneficiary Address In SFMS</td> 
-	
-	 <td class="FldLabel">Tenor Days</td>
-	<td class="FldLabel">Tenor From</td>
-	<td class="FldLabel">LC Amount</td> 
-	<td class="FldLabel">Place of Expiry</td>
-	<td class="FldLabel">Date of Expiry</td>		
-</tr>
-<tr>
-	<td><input name="CUST_REF" class="FirstPart" style="border:none;" id="CUST_REF" title="Customer Reference No" size="35" maxlength="100" readonly=""></td> 
-	<td><textarea name="CONS_ADD" cols="37" rows="4" class="FirstPart" style="border:none; resize:none;" size="36" maxlength="40" id="CONS_ADD" title="Beneficiary Address In SFMS" readonly=""></textarea></td>
-	<td><input name="TENOR_DAYS" class="FirstPart" style="border:none;" id="TENOR_DAYS" title="Tenor Days" size="33" maxlength="100" readonly=""></td>
-	<td><input name="TENOR_FROM" class="FirstPart" style="border:none;" id="TENOR_FROM" title="Tenor From" size="42" maxlength="100" readonly=""></td>
-	<td><input name="LC_AMT" class="FirstPart" style="border:none; color:#652A84;" id="LC_AMT" title="LC Amount" size="29" maxlength="100" readonly=""></td>
-	<td><input name="PLACE_OF_EXPIRY" class="FirstPart" style="border:none;" id="PLACE_OF_EXPIRY" title="Place of Expiry" size="28" maxlength="100" readonly=""></td>
-	
-	
-	<td><input name="EXPIRY_DT" class="FirstPart" style="border:none;" id="EXPIRY_DT" title="Date of Expiry" size="8" maxlength="100" readonly=""></td>
-	
-</tr>
-<tr>
-    <td class="FldLabel">Insurance Policy No.</td>
-    <td class="FldLabel">Tolerance</td>
-    <td class="FldLabel">Form of LC</td>
-    <td class="FldLabel">Incoterms</td> 
-    <td class="FldLabel">Available By</td>
-    <td class="FldLabel">Tenor Type</td>
-    <td class="FldLabel">Bills of Exchange/Drafts</td> 
-</tr>
-<tr>
-	<td><input name="INSUR_POLICY_NO" class="FirstPart" style="border:none;" id="INSUR_POLICY_NO" title="Insurance Policy No." size="35" maxlength="100" readonly=""></td>
-	<td><input name="TOLERANCE" class="FirstPart" style="border:none;" id="TOL_PER_PLUS" title="Tolerance" size="35" maxlength="100" readonly=""></td>
-	<td><input name="FORM_OF_LC" class="FirstPart" style="border:none;" id="FORM_OF_LC" title="Form of LC" size="35" maxlength="100" readonly=""></td>
-	<td><input name="INCOTERMS" class="FirstPart" style="border:none;" id="INCOTERMS" title="Incoterms" size="35" maxlength="100" readonly=""></td>
-	<td><input name="AVAL_BY1" class="FirstPart" style="border:none;" id="AVAL_BY1" title="Available By" size="33" maxlength="100" readonly=""></td>
-	<td><input name="TENOR_TYPE" class="FirstPart" style="border:none;" id="TENOR_TYPE" title="Tenor Type" size="30" maxlength="100" readonly=""></td>
-	
-	
-	<td><input name="BILLS_OF_EXC" class="FirstPart" style="border:none;" id="BILLS_OF_EXC" title="Bills of Exchange/Drafts" size="8" maxlength="100" readonly=""></td>
-	
-</tr>
-				<tr>
-				  <td class="FldLabel">Revolving Flag</td>
-                  <td class="FldLabel">Additional Amount Covered</td>
-				  </tr>
-					<tr>
-					<td><input name="REVOL_FLG" class="FirstPart" style="border:none;" id="REVOL_FLG" title="Revolving Flag" size="36" maxlength="40" readonly=""> </td>
-	                   <td><input name="AMT_COVR" class="FirstPart" style="border:none;" id="AMT_COVR" size="30" title="Additional Amount Covered" maxlength="100" readonly="">
-												
-	                 </td>
-					 </tr>
-</tbody>
-</table>
-<table id="1_table">
-<tbody>
+  // Style headings
+  document.querySelectorAll(".topic").forEach(topic => {
+    topic.style.fontSize = "18px";
+    topic.style.color = "#652A84";
+    topic.style.fontWeight = "700";
+    topic.style.marginBottom = "10px";
+  });
 
+  // Button Styling
+  document.querySelectorAll("input[type='button']").forEach(button => {
+    button.style.backgroundColor = "#652A84";
+    button.style.color = "white";
+    button.style.border = "none";
+    button.style.borderRadius = "6px";
+    button.style.padding = "8px 16px";
+    button.style.fontWeight = "600";
+    button.style.cursor = "pointer";
+    button.style.margin = "10px";
+  });
 
-<tr style="display:none">
-
-<td class="FldLabel">Address</td>
-</tr>
-<tr>
-	<td><textarea name="BENE_ADDRESS" cols="51" rows="1" class="FirstPart" style="resize:none;border:none; width:1863px;" id="BENE_ADDR" title="Address" size="50" readonly=""></textarea></td>
-</tr>
-</tbody>
-</table>
-</div>
-
-<br>
-
-<div class="panel">
-<br>
-<br>
-&nbsp;
-	<table id="2_table">
-    <tbody>
-<tr>
-<tr></tr><tr><td></td><td></td><td class="topic" style="padding-left:810px;">Bank &amp; Other Details</td></tr>
-</tbody>
-</table>
-<table>
-<tbody>
-	<tr>
-	<td colspan="4">&nbsp;</td>
-	</tr>
-	<tr>
-	
-	<td class="FldLabel">Charges Flag</td>
-	<td class="FldLabel">Advise Through Bank</td>
-	<td class="FldLabel">Credit Available with Bank</td> 
-	<td class="FldLabel">Confirming Bank ID</td>
-	</tr>
-	<tr>
-	
-	<td><input name="CHG_FLAG" class="FirstPart" style="border:none;" id="CHG_FLAG" title="Charges Flag" size="55" maxlength="40" readonly=""></td>
-	<td><textarea name="ADV_THRU_BK_NM_ADD" cols="78" rows="4" class="FirstPart" style="border:none;resize:none;" id="ADV_THRU_BK_NM_ADD" title="Advise Through Bank" charset="SX" readonly=""></textarea></td>
-	<td><textarea name="AVAL_WT_BK_NM_ADD" cols="78" rows="4" class="FirstPart" style="border:none;resize:none;" id="AVAL_WT_BK_NM_ADD" title="Credit Available with Bank" readonly=""></textarea></td>	
-	<td><textarea name="CONF_BNK_NM_ADD" cols="37" rows="4" class="FirstPart" style="border:none; resize:none;" size="36" maxlength="40" id="CONF_BNK_NM_ADD" title="Confirming Bank ID" readonly=""></textarea></td>	
-	</tr>
-	</tbody>
-</table>
-<table id="2_table">
-    <tbody>
-	<tr>
-	
-	<td class="FldLabel">Advising Bank ID</td>
-	<td class="FldLabel">Advising Bank Name</td>
-	<td class="FldLabel">Advising Bank Address</td>
-	
-	</tr>
-	<tr>
-	
-	
-	
-        <td><input name="ADV_BK_ID" class="FirstPart" style="border:none;" id="ADV_BK_ID" title="Advising Bank ID" size="55" maxlength="40" readonly=""> </td>
-	<td><input name="ADV_BK_NM" class="FirstPart" style="border:none;" id="ADV_BK_NM" title="Advising Bank Name" size="77" maxlength="40" readonly=""> </td>
-	<td><textarea name="ADV_BK_ADD1" cols="75" rows="4" class="FirstPart" style="border:none; resize:none;" size="36" maxlength="40" id="ADV_BK_ADD1" title="Advising Bank Address" readonly=""></textarea></td>
-	          
-    </tr>
-	</tbody>
-</table>
-
-</div>
-
-<br>
-
-<div class="panel">
-<br>
-<br>
-<table id="3_table">
-    <tbody>
-	<tr></tr><tr><td></td><td></td><td class="topic" style="padding-left:810px;">Shipment Details</td></tr>
-	</tbody>
-</table>
-	<table id="3_table">
-    <tbody>
-	<tr>
-	<td colspan="4">&nbsp;</td>
-	</tr>
-	<tr>
-	
-	<td class="FldLabel">Port of Shipment</td>	
-	<td class="FldLabel">Port of Delivery Name</td>
-	
-	
-	
-	
-	
-    <td class="FldLabel">Latest Shipment Date</td>
-    
-    <td class="FldLabel">Presentation Days& From</td>
-	<td class="FldLabel">Loading on Board</td>
-	<td class="FldLabel">For Transportation to</td>
-	</tr>
-	<tr>
-	
-	<td><input name="PORT_OF_SHIP" class="FirstPart" style="border:none;" id="PORT_OF_SHIP" title="Port of Shipment" size="36" maxlength="100" readonly=""></td>
-	<td><input name="SHIP_TO" class="FirstPart" style="border:none;" id="SHIP_TO" title="Port of Delivery Name" size="35.5" maxlength="100" readonly=""></td>
-	
-	
-	
-	
-	<td><input name="LTST_SHIP_DT" class="FirstPart" style="border:none;" id="LTST_SHIP_DT" title="Latest Shipment Date" size="35" maxlength="100" readonly=""></td>
-	<td><input name="PRES_PRD" class="FirstPart" style="border:none;" id="PRES_PRD" title="Presentation Days" size="35" maxlength="100" readonly=""></td>
-	<td>											
-		<input name="LOAD_ON_BORD" class="FirstPart" style="border:none;" id="LOAD_ON_BORD" title="Loading on Board" size="24" maxlength="35" readonly=""></td>
-		 <td>
-				<input name="TRANSPORTATION_TO" class="FirstPart" style="border:none;" id="TRANSPORTATION_TO" title="For Transportation to" size="24" maxlength="35" readonly="">
-			</td>
-	
-	</tr>
-	</tbody>
-</table>
-<table id="3_table">
-    <tbody>
-	<tr>
-	<td class="FldLabel">Partial Shipment</td>
-	<td class="FldLabel">Trans-Shipment</td>
-	<!--<td class="FldLabel">Is Review of MT 700 Required?</td>-->
-	<td class="FldLabel">Goods Code</td>
-    <td class="FldLabel">Goods Description</td>    
-             
-	</tr>
-	<tr>
-	<td><input name="PARTIAL_SHIP" class="FirstPart" style="border:none;" id="PARTIAL_SHIP" title="Partial Shipment" size="36" maxlength="100" readonly=""></td>
-	<td><input name="TNSHIP" class="FirstPart" style="border:none;" id="TNSHIP" title="Trans-Shipment" size="35" maxlength="100" readonly=""></td>
-	<td><textarea name="T_GOOD_CODE_CONCAT" class="FirstPart" style="height:100px;resize: none;max-width:750px;width: 61%!important;border:none;background-color: #F7F8FB;font-family: arial;color: #506070;padding-bottom: 1px;padding-top: 10px;" id="T_GOOD_CODE_CONCAT" title="Goods Code" size="35" maxlength="100" readonly=""></textarea></td>
-	<td>
-	<textarea name="GOODS_DESCRIPTION" cols="195" rows="29" class="FirstPart" style="height:100px;resize: none;max-width:750px;width: 61%!important;border:none;background-color: #F7F8FB;font-family: arial;color: #506070;padding-bottom: 1px;padding-top: 10px;" id="GOODS_DESCRIPTION" title="Description of Goods/Services (45A)" maxlength="6150" readonly=""></textarea>
-	</td>
-		<!--<td><input name="GOODS_CODE" class="FirstPart" style="border:none;" id="GOODS_CODE" title="Goods Code" size="35" maxlength="100" readonly=""></td>
-
-	<td><textarea name="GOODS_DESC" cols="33" rows="3" class="FirstPart" style="border:none;width:1863px;resize:none;" id="GOODS_DESC" title="Goods Description" size="35" maxlength="50" readonly=""></textarea></td>-->
-	
-	</tr>
-	</tbody>
-</table>
-</div>
-
-<br>
-
-<div class="panel">
-<br>
-<br>
-<table id="4_table">
-    <tbody>
-	<tr><td></td><td></td><td></td><td class="topic" style="padding-left:808px;">Documents Required &amp; Additional Conditions</td></tr>
-	<tr>
-	</tr></tbody>
-</table>
-	 &nbsp;&nbsp;&nbsp;
-	<table id="4_table">
-    <tbody>
-	<tr><td colspan="4">&nbsp;</td>
-	</tr>
-	<tr>
-	
-    
-	<td class="FldLabel" id="docsReqdName">Documents Required</td>
-	
-	
-	
-	<td class="FldLabel">Additional Conditions</td> 
-	<td class="FldLabel">Contract Details/PO No</td> 
-	
-	</tr>
-	<tr>
-	
-	
-	<td><textarea name="Copies" cols="80" rows="1" class="FirstPart" style="border:none;resize:none;margin-top: 6px;margin-bottom: 12px;margin-right:40px;" id="Copies1" title="Documents Required" readonly=""></textarea></td>
-	
-	
-	
-	<td><textarea name="ADDIT_COND" cols="80" rows="1" class="FirstPart" style="border:none;resize:none;margin-right:40px;" id="ADDIT_COND" title="Additional Conditions" readonly=""></textarea></td>
-	<td><textarea name="CONTCT_DETL" cols="80" rows="1" class="FirstPart" style="border:none;resize:none;margin-right:40px;" id="CONTCT_DETL" title="Contract Details/PO No" readonly=""></textarea></td>
-
-	
-</tr>	
-	<tr>
-	</tr></tbody>
-</table>
-
-
-
-</div>
-
-<br>
-
-<div class="panel">
-<br>
-<br>
-<table id="6_table">
-    <tbody>
-	<tr><td></td><td></td><td></td><td class="topic" style="padding-left:808px;">Undertakings</td></tr>
-	</tbody>
-	</table>
-	
-	<table>
-	</tbody>
-	<tr>
-	<td colspan="4">&nbsp;</td>
-	</tr>
-	<tr>
-	
-	
-	
-	<td class="FldLabel">Other Terms &amp; Conditions</td>
-	
-	</tr><tr>
-	
-	<td><input name="checkBox2" class="FirstPart" style="border:none;" id="checkBox2" title="Other Terms & Conditions" size="35" readonly=""></td>
-	<td><input name="checkBox2" class="FirstPart" style="border:none;" id="checkBox2" title="XYZ" size="37" readonly=""></td>
-	<td><input name="checkBox2" class="FirstPart" style="border:none;" id="checkBox2" title="XYZ" size="35" readonly=""></td>
-	<td><input name="checkBox2" class="FirstPart" style="border:none;" id="checkBox2" title="XYZ" size="35" readonly=""></td>
-	</tr> 
-	</tbody>
-</table>
-</div>
-
-<br>
-
-
-<br>
-<div class="panel">
-<br>
-<br>
-<table id="5_table">
-    <tbody>
-
-	<tr><td></td> <td></td> <td></td> <td class="topic" style="padding-left:808px;">Conversation with Bank</td></tr>
-		</tbody>
-</table><table id="Id_ImageTable" style="width: 266px;">
-									<tbody>
-									<tr>
-									<td class="FldLabel">Message to Bank</td>
-									<td class="FldLabel">Is Review of MT 700 Required?</td>
-									</tr>
-									<tr>
-									<td><textarea name="NOTES" cols="80" rows="1" class="FirstPart" style="border:none;resize:none;margin-right:40px;" id="NOTES" title="Message to Bank" readonly=""></textarea></td>
-									
-									 <td>
-										<input name="REVIEW_MT700_REQ" class="FirstPart" style="border:none;" id="REVIEW_MT700_REQ" title="For Transportation to" size="24" maxlength="35" readonly="">
-									</td>
-									</tr>
-							</tbody></table>
-							
-
-</div>
-<div>
-									<P style="color:red;"> This is preview of data entered in the application, if any changes made subsequently,please reload/refresh this page</p>
-</div>
-<br>
-<input type="button"  name="back" class="backButton" id="BACK" value="BACK" onclick="window.close(); "/>
-<input type="button"  name="confirm" class="confirmButton" id="PreviewConfirm" value="CONFIRM" onclick="PreviewConfirm1()"/>
+  // Optional: responsive adjustments
+  document.querySelectorAll("table").forEach(table => {
+    table.style.width = "100%";
+    table.style.borderCollapse = "collapse";
+  });
+});
