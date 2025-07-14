@@ -1,64 +1,34 @@
-window.addEventListener("DOMContentLoaded", () => {
-  document.body.style.background = "#f8f9fa";
-  document.body.style.fontFamily = "'Segoe UI', sans-serif";
+.panel {
+  margin-bottom: 2rem;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
 
-  // Style all panels
-  document.querySelectorAll(".panel").forEach(panel => {
-    panel.style.background = "#fff";
-    panel.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.1)";
-    panel.style.borderRadius = "12px";
-    panel.style.padding = "20px";
-    panel.style.marginBottom = "30px";
-  });
+.FldLabel {
+  font-weight: 600;
+  color: #34495e;
+}
 
-  // Style field labels
-  document.querySelectorAll(".FldLabel").forEach(label => {
-    label.style.fontWeight = "600";
-    label.style.color = "#34495e";
-    label.style.padding = "6px 8px";
-  });
+input.FirstPart,
+textarea.FirstPart {
+  background-color: #f5f7fa;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
 
-  // Style inputs and textareas
-  document.querySelectorAll(".FirstPart, .CHAR_P").forEach(field => {
-    field.style.backgroundColor = "#f5f7fa";
-    field.style.border = "1px solid #ced4da";
-    field.style.borderRadius = "6px";
-    field.style.padding = "6px 10px";
-    field.style.margin = "4px 0";
-    field.style.width = field.size ? `${field.size * 6}px` : "100%";
-  });
+.topic {
+  font-size: 18px;
+  font-weight: bold;
+  color: #652A84;
+}
 
-  // Highlight amount field
-  const lcAmt = document.getElementById("LC_AMT");
-  if (lcAmt) {
-    lcAmt.style.backgroundColor = "#EFE7F6";
-    lcAmt.style.fontWeight = "bold";
-    lcAmt.style.color = "#652A84";
-  }
-
-  // Style headings
-  document.querySelectorAll(".topic").forEach(topic => {
-    topic.style.fontSize = "18px";
-    topic.style.color = "#652A84";
-    topic.style.fontWeight = "700";
-    topic.style.marginBottom = "10px";
-  });
-
-  // Button Styling
-  document.querySelectorAll("input[type='button']").forEach(button => {
-    button.style.backgroundColor = "#652A84";
-    button.style.color = "white";
-    button.style.border = "none";
-    button.style.borderRadius = "6px";
-    button.style.padding = "8px 16px";
-    button.style.fontWeight = "600";
-    button.style.cursor = "pointer";
-    button.style.margin = "10px";
-  });
-
-  // Optional: responsive adjustments
-  document.querySelectorAll("table").forEach(table => {
-    table.style.width = "100%";
-    table.style.borderCollapse = "collapse";
-  });
-});
+input[type='button'] {
+  background-color: #652A84;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+}
