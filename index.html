@@ -1,34 +1,103 @@
+<style>
+body {
+  background: #f2f2f2;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  padding: 30px;
+  color: #333;
+}
+
 .panel {
-  margin-bottom: 2rem;
-  border-radius: 12px;
+  width: 800px;
+  margin: 30px auto;
   background: white;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-}
-
-.FldLabel {
-  font-weight: 600;
-  color: #34495e;
-}
-
-input.FirstPart,
-textarea.FirstPart {
-  background-color: #f5f7fa;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  padding: 6px 10px;
+  padding: 30px 40px;
+  border: 1px solid #d3cce3;
+  box-shadow: 0 0 10px rgba(103, 51, 145, 0.2);
+  page-break-inside: avoid;
 }
 
 .topic {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: bold;
-  color: #652A84;
+  color: #673391;
+  border-bottom: 2px solid #673391;
+  padding-bottom: 6px;
+  margin-bottom: 20px;
 }
 
-input[type='button'] {
-  background-color: #652A84;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
+table {
+  width: 100%;
+  margin-bottom: 20px;
+  border-spacing: 0;
 }
+
+td {
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.FldLabel {
+  font-weight: bold;
+  color: #673391;
+  width: 200px;
+  white-space: nowrap;
+}
+
+input[readonly],
+textarea[readonly] {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #222;
+  font-size: 15px;
+  font-family: 'Courier New', monospace;
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+}
+
+textarea[readonly] {
+  height: auto !important;
+}
+
+input[type="button"] {
+  display: none; /* hide preview buttons */
+}
+
+/* Optional: Highlight important field */
+#LC_AMT {
+  font-weight: bold;
+  color: #673391;
+}
+</style>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+  document.title = "LC Preview - Classic View";
+
+  // Apply classic formatting class
+  document.querySelectorAll(".panel").forEach(p => {
+    p.classList.add("pdf-panel");
+  });
+
+  // Convert all .FldLabel to strong classic headings
+  document.querySelectorAll(".FldLabel").forEach(label => {
+    label.style.color = "#673391";
+    label.style.fontWeight = "bold";
+  });
+
+  // Remove all input styling and make them look like plain text
+  document.querySelectorAll("input[readonly], textarea[readonly]").forEach(el => {
+    el.style.border = "none";
+    el.style.background = "none";
+    el.style.color = "#222";
+    el.style.fontFamily = "Courier New, monospace";
+    el.style.fontSize = "15px";
+  });
+
+  // Hide functional buttons like CONFIRM, BACK
+  document.querySelectorAll("input[type='button']").forEach(btn => {
+    btn.style.display = "none";
+  });
+});
+</script>
