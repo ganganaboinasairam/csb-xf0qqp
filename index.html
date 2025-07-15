@@ -1,17 +1,22 @@
-function enablefields(){
+function enablefields() {
+    // Enable only those textareas that do NOT have restricted classes
+    $("textarea:not(.CHAR_P):not(.AMT_P):not(.INT_P):not(.DATE_P)").attr("disabled", false);
 
-    $("textarea").attr("disabled",false); 
-	$("input").attr("disabled",false);
-	$("select").attr("disabled",false); 
-	$(".search").attr("disabled",false); 
-	$(".search-button").attr("disabled",false); 
-	$("#submitButtonid").attr("disabled",false);	
-		enabledFlag=true;
-	$("#makerrejstatus").prop("disabled",true);
-	$("#makerrejreason").prop("disabled",true);
-		
+    // Enable only those inputs that do NOT have restricted classes
+    $("input:not(.CHAR_P):not(.AMT_P):not(.INT_P):not(.DATE_P)").attr("disabled", false);
+
+    // Enable only those selects that do NOT have restricted classes
+    $("select:not(.CHAR_P):not(.AMT_P):not(.INT_P):not(.DATE_P)").attr("disabled", false);
+
+    // Enable buttons and fields by class/id
+    $(".search").attr("disabled", false);
+    $(".search-button").attr("disabled", false);
+    $("#submitButtonid").attr("disabled", false);
+
+    // Set a global flag
+    enabledFlag = true;
+
+    // Disable specific fields
+    $("#makerrejstatus").prop("disabled", true);
+    $("#makerrejreason").prop("disabled", true);
 }
-
-
-
-as of now enablefields function is changing the disable attritute to false, but it should change to only that fields that contains class other than 'CHAR_P,AMT_P,INT_P,DATE_P'.
