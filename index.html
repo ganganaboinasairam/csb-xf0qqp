@@ -1,68 +1,16 @@
-<style>
-  body {
-    font-family: 'Georgia', serif;
-    background: #fff;
-    color: #333;
-    padding: 30px;
+<script>
+  function autoResizeTextareas() {
+    document.querySelectorAll('textarea').forEach(function(textarea) {
+      textarea.style.height = 'auto'; // Reset height
+      textarea.style.height = textarea.scrollHeight + 'px'; // Set new height
+    });
   }
 
-  .section {
-    margin-bottom: 40px;
-  }
+  // Run on page load
+  window.addEventListener('DOMContentLoaded', autoResizeTextareas);
 
-  .section-title {
-    font-size: 20px;
-    color: #673391;
-    font-weight: bold;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #673391;
-    padding-bottom: 6px;
-  }
-
-  /* Container for each section's fields */
-  .section > .row,
-  .section > div {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px 80px;
-  }
-
-  .row {
-    margin-bottom: 16px;
-  }
-
-  .field-label {
-    font-weight: bold;
-    font-size: 14px;
-    color: #673391;
-    margin-bottom: 3px;
-  }
-
-  .field-value input,
-  .field-value textarea {
-    width: 100%;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    color: #222;
-    background: none;
-    border: none;
-    padding: 0;
-    resize: none;
-  }
-
-  input[readonly],
-  textarea[readonly] {
-    outline: none;
-  }
-
-  textarea {
-    line-height: 1.4;
-  }
-
-  /* Fix layout when there's a flex-wrap container */
-  .section > div[style*="flex-wrap"] {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px 80px;
-  }
-</style>
+  // Optional: run on input in case content changes dynamically
+  document.querySelectorAll('textarea').forEach(function(textarea) {
+    textarea.addEventListener('input', autoResizeTextareas);
+  });
+</script>
