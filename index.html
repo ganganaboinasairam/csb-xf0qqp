@@ -1,16 +1,17 @@
-<script>
-  function autoResizeTextareas() {
-    document.querySelectorAll('textarea').forEach(function(textarea) {
-      textarea.style.height = 'auto'; // Reset height
-      textarea.style.height = textarea.scrollHeight + 'px'; // Set new height
-    });
-  }
+function enablefields(){
 
-  // Run on page load
-  window.addEventListener('DOMContentLoaded', autoResizeTextareas);
+    $("textarea").attr("disabled",false); 
+	$("input").attr("disabled",false);
+	$("select").attr("disabled",false); 
+	$(".search").attr("disabled",false); 
+	$(".search-button").attr("disabled",false); 
+	$("#submitButtonid").attr("disabled",false);	
+		enabledFlag=true;
+	$("#makerrejstatus").prop("disabled",true);
+	$("#makerrejreason").prop("disabled",true);
+		
+}
 
-  // Optional: run on input in case content changes dynamically
-  document.querySelectorAll('textarea').forEach(function(textarea) {
-    textarea.addEventListener('input', autoResizeTextareas);
-  });
-</script>
+
+
+as of now enablefields function is changing the disable attritute to false, but it should change to only that fields that contains class other than 'CHAR_P,AMT_P,INT_P,DATE_P'.
