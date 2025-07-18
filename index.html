@@ -1,22 +1,117 @@
-function enablefields() {
-    // Enable only those textareas that do NOT have restricted classes
-    $("textarea:not(.CHAR_P):not(.AMT_P):not(.INT_P):not(.DATE_P)").attr("disabled", false);
+15 13 * * * su - tfeedev2 -c "/TFEEAPP/base_domain/Reports/SrcScripts/auto_can_normal.sh >> /TFEEAPP/base_domain/Reports/SrcScripts/auto_can_normal.log 2>1"
 
-    // Enable only those inputs that do NOT have restricted classes
-    $("input:not(.CHAR_P):not(.AMT_P):not(.INT_P):not(.DATE_P)").attr("disabled", false);
+auto_can_normal.sh
+#!/usr/bin/ksh
+#
+#** Start of PVCS Information ******************************
+# $Archive:   $ IR 24393.
+# $Revision:  $
+# $Modtime:   $
+# $Author:    $
+# $Date:      $
+#** End of PVCS Information ********************************
+#
 
-    // Enable only those selects that do NOT have restricted classes
-    $("select:not(.CHAR_P):not(.AMT_P):not(.INT_P):not(.DATE_P)").attr("disabled", false);
 
-    // Enable buttons and fields by class/id
-    $(".search").attr("disabled", false);
-    $(".search-button").attr("disabled", false);
-    $("#submitButtonid").attr("disabled", false);
+if [ -n "$1" ]
+then
+    echo "This program will get the data for Auto crystallization script "
+    exit
+fi
+todate=`util getTodayDate`
 
-    // Set a global flag
-    enabledFlag = true;
+dir=$(dirname $0)
+for sch in SCRIPT
+do
+    echo "Getting data for Auto crystallization $sch Script"
+    getdatsql="$base/SrcScripts/AUTO_CAN_NORMAL_$sch.sql"
+    sqlplus eximtrx@eedbsbi/eximbills @$getdatsql >/dev/null 2>&1 &
+done
+echo "sql Done on $todate"
+================================================================================================
 
-    // Disable specific fields
-    $("#makerrejstatus").prop("disabled", true);
-    $("#makerrejreason").prop("disabled", true);
-}
+cat AUTO_CAN_NORMAL_SCRIPT.sql
+set linesize 1000
+set pagesize 10000
+set heading off
+set feedback off
+set headsep on
+set echo off
+set colsep '    '
+set wrap off
+set verify off
+set termout off
+set trimspool on
+SET SERVEROUTPUT ON
+column spoolname new_value new_spoolname;
+select concat(concat('/TFEEAPP/base_domain/Reports/Spool/AUTO_CAN',to_char(sysdate,'ddmmyyyy')),'.lst') spoolname from dual;
+SPOOL &new_spoolname append;
+alter session set nls_date_format='YYYYMMDD';
+set SERVEROUTPUT on;
+declare
+cnt number;
+CURSOR C1 IS
+select
+a.DUE_DT_CONTRACT,a.c_main_ref,a.c_func_short_name
+from
+fwco_master a,eximsys.std_holiday b
+where a.C_TRX_STATUS='M'
+and (a.BAL_FRGN_AMT > 0)
+and a.C_LOCKED_FLAG='F'
+and (a.CAN_FLG is null or a.CAN_FLG =0)
+and to_date(sysdate,'YYYYMMDD')=to_date(a.due_dt_contract +3 ,'YYYYMMDD')
+AND (a.AREA_DELIVERY != '3' OR DE_SUB_DT IS NOT NULL)
+and TO_DATE((a.DUE_DT_CONTRACT),'YYYYMMDD')=to_date(( B.C_YEAR||B.C_MONTH || B.C_DATE ),'YYYYMMDD');
+CURSOR C2 IS
+select
+a.BOOKING_DATE,a.AREA_DELIVERY,a.DE_SUB_DT,a.c_func_short_name,a.c_main_ref
+from
+fwco_master a,eximsys.std_holiday b
+where a.C_TRX_STATUS='M'
+and (a.BAL_FRGN_AMT > 0)
+and a.C_LOCKED_FLAG='F'
+and (a.CAN_FLG is null or a.CAN_FLG =0)
+and to_date(sysdate,'YYYYMMDD')=to_date(a.BOOKING_DATE + 15 ,'YYYYMMDD')
+and a.area_delivery = '3'
+and a.DE_SUB_DT is null
+and a.c_func_short_name <> 'SubmittedDE-15'
+and a.booking_date=to_date(( B.C_YEAR||B.C_MONTH || B.C_DATE ),'YYYYMMDD');
+cursor v1 (dt_abs date)is select to_date(( B.C_YEAR||B.C_MONTH || B.C_DATE ),'YYYYMMDD') as d_dt from eximsys.std_holiday b where to_date(( B.C_YEAR||B.C_MONTH || B.C_DATE ),'YYYYMMDD')  > to_date(TO_CHAR(dt_abs),'YYYYMMDD') and c_type='W'  order by to_date(( B.C_YEAR||B.C_MONTH || B.C_DATE ),'YYYYMMDD') ;
+cursor v3 (dt_abs date)is SELECT to_date(( B.C_YEAR||B.C_MONTH || B.C_DATE ),'YYYYMMDD') as d_dt,c_type as holi_type from EXIMSYS.STD_HOLIDAY b where to_date(( B.C_YEAR||B.C_MONTH || B.C_DATE ),'YYYYMMDD')  > to_date(TO_CHAR(dt_abs),'YYYYMMDD') order by to_date(( B.C_YEAR||B.C_MONTH || B.C_DATE ),'YYYYMMDD');
+begin
+for C1_RECORD1 in C1
+LOOP
+cnt :=0;
+for V2 in V1(c1_record1.due_dt_contract)
+loop
+cnt := cnt + 1;
+dbms_output.put_line('C_MAIN_REF -- ' || c1_record1.c_main_ref  ||  'cnt -- ' || cnt);
+if (CNT = 3) then
+dbms_output.put_line( 'C_MAIN_REF -- ' || c1_record1.c_main_ref  || ' --d_dt-- ' || v2.d_dt);
+update EXIMTRX.FWCO_MASTER set T_SYS_REL_TIME=V2.D_DT where C_MAIN_REF=C1_RECORD1.C_MAIN_REF ;
+exit;
+commit;
+end if;
+end loop;
+end LOOP;
+for C2_RECORD1 in C2
+LOOP
+cnt :=0;
+for V4 in V3(C2_RECORD1.BOOKING_DATE)
+LOOP
+cnt := cnt + 1;
+dbms_output.put_line('C_MAIN_REF -- ' || c2_record1.c_main_ref  ||  'cnt -- ' || cnt);
+if (cnt = 16) then
+dbms_output.put_line( 'C_MAIN_REF -- ' || c2_record1.c_main_ref  || ' --d_dt-- ' || v4.d_dt);
+update EXIMTRX.FWCO_MASTER set T_SYS_REL_TIME=v4.d_dt where C_MAIN_REF=C2_RECORD1.C_MAIN_REF ;
+for v11 in v1(v4.d_dt)
+loop
+dbms_output.put_line( 'C_MAIN_REF -- ' || c2_record1.c_main_ref  || ' --d_dt-- ' || v11.d_dt);
+exit;
+update EXIMTRX.FWCO_MASTER set T_SYS_REL_TIME=v11.d_dt where C_MAIN_REF=C2_RECORD1.C_MAIN_REF ;
+commit;
+end loop;
+end if;
+end loop;
+end loop;
+update eximtrx.fwco_master set can_flg='1',rec_type='5' where t_sys_rel_time=trunc(sysdate) and (c_main_ref like '%FS%' or c_main_ref like '%FP%');
