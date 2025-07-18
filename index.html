@@ -1,53 +1,44 @@
 $(document).on('input', function (event) {
+    const target = event.target;
+    const value = target.value;
+    const id = target.id;
+    const el = document.getElementById(id);
 
-if(event.target.className.includes('AMT')){        
-    var regex = /^\d{1,12}(\.\d{0,2})?$/;
-    var value = event.target.value;
-    
-    if (value !== "0" && value !== '') {
-        
-        if (!regex.test(value)) {
-            event.target.value = value.slice(0, -1); 
+    if (!el) return;
+
+    let sanitizedValue = value;
+
+    // AMT class validation (12 digits before decimal, 2 after)
+    if (target.className.includes('AMT')) {
+        const regex = /^\d{0,12}(\.\d{0,2})?$/;
+        if (value !== "0" && value !== '' && !regex.test(value)) {
+            sanitizedValue = sanitizedValue.match(/^\d{0,12}(\.\d{0,2})?/);
+            target.value = sanitizedValue ? sanitizedValue[0] : '';
+            return;
         }
     }
-	}
-	
-	if(document.getElementById(event.target.id).getAttribute("spl-char") == 'NO'){
-		var regex=/^[a-zA-Z0-9]+$/;
-		var value = event.target.value;
-		if (!regex.test(value)) {
-            event.target.value = value.slice(0, -1); 
-        }
-	}
-	if(document.getElementById(event.target.id).getAttribute("spl-char") == 'SX'){
-		var regex=/^[a-zA-Z0-9\/\-\?:().,'+\r\n ]*$/;
-		var value = event.target.value;
-		if (!regex.test(value)) {
-            event.target.value = value.slice(0, -1); 
-        }
-	}
-	if(document.getElementById(event.target.id).getAttribute("spl-char") == 'NO1'){
-		var regex=/^[a-zA-Z0-9 ]+$/;
-		var value = event.target.value;
-		if (!regex.test(value)) {
-            event.target.value = value.slice(0, -1); 
-        }
-	}
-	if(document.getElementById(event.target.id).getAttribute("custChar") == 'NUM'){
-		var regex=/^[0-9]+$/;
-		var value = event.target.value;
-		if (!regex.test(value)) {
-            event.target.value = value.slice(0, -1); 
-        }
-	}
-	if(document.getElementById(event.target.id).getAttribute("custChar") == 'NUM_DEC'){
-		var regex=/^[0-9.]+$/;
-		var value = event.target.value;
-		if (!regex.test(value)) {
-            event.target.value = value.slice(0, -1); 
-        }
-	}
-	
-	
-	
+
+    const splChar = el.getAttribute("spl-char");
+    const custChar = el.getAttribute("custChar");
+
+    // spl-char validations
+    if (splChar === 'NO') {
+        sanitizedValue = sanitizedValue.replace(/[^a-zA-Z0-9]/g, '');
+        target.value = sanitizedValue;
+    } else if (splChar === 'SX') {
+        sanitizedValue = sanitizedValue.replace(/[^a-zA-Z0-9\/\-\?:().,'+\r\n ]/g, '');
+        target.value = sanitizedValue;
+    } else if (splChar === 'NO1') {
+        sanitizedValue = sanitizedValue.replace(/[^a-zA-Z0-9 ]/g, '');
+        target.value = sanitizedValue;
+    }
+
+    // custChar validations
+    if (custChar === 'NUM') {
+        sanitizedValue = sanitizedValue.replace(/[^0-9]/g, '');
+        target.value = sanitizedValue;
+    } else if (custChar === 'NUM_DEC') {
+        sanitizedValue = sanitizedValue.replace(/[^0-9.]/g, '');
+        target.value = sanitizedValue;
+    }
 });
