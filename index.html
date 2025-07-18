@@ -1,44 +1,5 @@
-$(document).on('input', function (event) {
-    const target = event.target;
-    const value = target.value;
-    const id = target.id;
-    const el = document.getElementById(id);
+Dear team,
 
-    if (!el) return;
+After the analysis, we came to found that the component(/TFCEAPP/TFDomain/PARAM/REPORTTMPL/INIS_IssueLC_Form.rptdesign) is mismatch in both the servers.
 
-    let sanitizedValue = value;
-
-    // AMT class validation (12 digits before decimal, 2 after)
-    if (target.className.includes('AMT')) {
-        const regex = /^\d{0,12}(\.\d{0,2})?$/;
-        if (value !== "0" && value !== '' && !regex.test(value)) {
-            sanitizedValue = sanitizedValue.match(/^\d{0,12}(\.\d{0,2})?/);
-            target.value = sanitizedValue ? sanitizedValue[0] : '';
-            return;
-        }
-    }
-
-    const splChar = el.getAttribute("spl-char");
-    const custChar = el.getAttribute("custChar");
-
-    // spl-char validations
-    if (splChar === 'NO') {
-        sanitizedValue = sanitizedValue.replace(/[^a-zA-Z0-9]/g, '');
-        target.value = sanitizedValue;
-    } else if (splChar === 'SX') {
-        sanitizedValue = sanitizedValue.replace(/[^a-zA-Z0-9\/\-\?:().,'+\r\n ]/g, '');
-        target.value = sanitizedValue;
-    } else if (splChar === 'NO1') {
-        sanitizedValue = sanitizedValue.replace(/[^a-zA-Z0-9 ]/g, '');
-        target.value = sanitizedValue;
-    }
-
-    // custChar validations
-    if (custChar === 'NUM') {
-        sanitizedValue = sanitizedValue.replace(/[^0-9]/g, '');
-        target.value = sanitizedValue;
-    } else if (custChar === 'NUM_DEC') {
-        sanitizedValue = sanitizedValue.replace(/[^0-9.]/g, '');
-        target.value = sanitizedValue;
-    }
-});
+Production server (.179) contains correct component, Please sync it with the (.180) server
