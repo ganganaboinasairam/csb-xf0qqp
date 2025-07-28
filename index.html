@@ -1,37 +1,35 @@
- <domData>
-<Assign_Accessed><value>CAG;CCG;RNB;SAMG</value></Assign_Accessed>
-<SLA_GRP_ID><value>1000000024</value><value>1000000020</value><value>1000000026</value></SLA_GRP_ID>
-<C_UNIT_CODE><value>63933</value></C_UNIT_CODE>
-<C_CNTY_CODE><value>IN</value></C_CNTY_CODE><C_USER_DESC><value>DEOSEVENMANOJ</value>
-</C_USER_DESC><_LOGIN_USER_TYPE><value>USER_PC_ADM</value></_LOGIN_USER_TYPE><verticalAccess><value>CAG</value><value>CCG</value><value>RNB</value><value>SAMG</value></verticalAccess><C_SLA_USER_TYPE><value>O</value></C_SLA_USER_TYPE><_LOGIN_USER_BANK><value/></_LOGIN_USER_BANK><OP_TYPE><value>MODIFY</value></OP_TYPE><C_USER_ID><value>DEO7</value></C_USER_ID><_TRX_STATUS><value>ROLEFUNMGR</value></_TRX_STATUS><I_USER_LEVEL><value>1</value></I_USER_LEVEL><CSRFTOKEN><value>b7541c0adc2f479384040729c0e9768f</value></CSRFTOKEN><I_USER_TYPE><value>64</value></I_USER_TYPE><_C_UNIT_CODE><value>63933</value></_C_UNIT_CODE><C_REFUSE_REASON><value/></C_REFUSE_REASON><_LOGIN_USER_CNTY><value/></_LOGIN_USER_CNTY><C_BK_GROUP_ID><value>SBI</value></C_BK_GROUP_ID><C_ROLE_ID><value>NEWDEOHYD*0</value><value>DEO2*1</value><value>Auditor*2</value></C_ROLE_ID><_LOGIN_USER_LEVEL><value>1</value></_LOGIN_USER_LEVEL><_LOGIN_USER_UNIT><value>63933</value></_LOGIN_USER_UNIT>
-</domData>
+public String UpdateSLATEMP(DocumentImpl paraDOM)
+{
+  try {
+    APLog.reportLog("ParaDOM for SLA insert and delete" + XMLManager.convertToString(paraDOM));
 
+    Node nodeDomData = XMLManager.findChildNode(paraDOM.getDocumentElement(), "domData");
 
- public String UpdateSLATEMP(DocumentImpl paraDOM)
-  {
-    try
-    {
-      APLog.reportLog("ParaDOM for SLA insert and delete" + XMLManager.convertToString(paraDOM));
-      Node nodeDomData = XMLManager.findChildNode(paraDOM.getDocumentElement(), "domData");
-      Node slaGrpID = XMLManager.findChildNode(nodeDomData, "SLA_GRP_ID");
-      String slaGrpIDValue = XMLManager.getChildNodeValue(slaGrpID, "value", true);
-      Node userIDNode = XMLManager.findChildNode(nodeDomData, "C_USER_ID");
-      String userIdValue = XMLManager.getChildNodeValue(userIDNode, "value", true);
-      Node cUnitCode = XMLManager.findChildNode(nodeDomData, "C_UNIT_CODE");
-      String cUnitCodeValue = XMLManager.getChildNodeValue(cUnitCode, "value", true);
-      Node slaUserType = XMLManager.findChildNode(nodeDomData, "C_SLA_USER_TYPE");
-      String slaUserTypeValue = XMLManager.getChildNodeValue(slaUserType, "value", true);
+    // Fetch common nodes
+    String userIdValue = XMLManager.getChildNodeValue(nodeDomData, "C_USER_ID", "value", true);
+    String cUnitCodeValue = XMLManager.getChildNodeValue(nodeDomData, "C_UNIT_CODE", "value", true);
+    String slaUserTypeValue = XMLManager.getChildNodeValue(nodeDomData, "C_SLA_USER_TYPE", "value", true);
 
-      processDeleteSLATemp(userIdValue, cUnitCodeValue);
-      processInsertSLATemp(slaGrpIDValue, userIdValue, cUnitCodeValue, slaUserTypeValue);
+    // Delete existing SLA temp
+    processDeleteSLATemp(userIdValue, cUnitCodeValue);
+
+    // Process each SLA_GRP_ID value
+    Node slaGrpID = XMLManager.findChildNode(nodeDomData, "SLA_GRP_ID");
+    NodeList values = slaGrpID.getChildNodes();
+
+    for (int i = 0; i < values.getLength(); i++) {
+      Node valueNode = values.item(i);
+      if (valueNode.getNodeType() == Node.ELEMENT_NODE && "value".equals(valueNode.getNodeName())) {
+        String slaGrpIDValue = valueNode.getTextContent().trim();
+        if (!slaGrpIDValue.isEmpty()) {
+          processInsertSLATemp(slaGrpIDValue, userIdValue, cUnitCodeValue, slaUserTypeValue);
+        }
+      }
     }
-    catch (Exception e) {
-      APLog.reportLog("An error has occured while updating the flag value : " + e.getMessage());
-      APLog.reportErrLog(e.getMessage());
-    }
-
-    return null;
+  } catch (Exception e) {
+    APLog.reportLog("An error has occurred while updating the flag value : " + e.getMessage());
+    APLog.reportErrLog(e.getMessage());
   }
-  
-  
-read the dom data, for the node "SLA_GRP_ID" i will get multiple values from the screen , for every value i need to pass one insert query using "processInsertSLATemp" method the rest of the ndes "C_USER_ID" , "C_UNIT_CODE", "C_SLA_USER_TYPE" will be common for all the insert queries.
+
+  return null;
+}
