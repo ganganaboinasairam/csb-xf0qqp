@@ -1,61 +1,449 @@
+package com.chat;
 
-1. Have you developed and deployed both web and mobile apps? Tell us about one.
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import javax.websocket.OnClose;
+import javax.websocket.OnError;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.Session;
+import javax.websocket.server.ServerEndpoint;
 
-I’ve developed and deployed web applications extensively, particularly in the banking domain. One example is the Trade Finance Revamp project for State Bank of India, where I worked on modernizing legacy systems using JSP, Servlets, PL/SQL, JS. The goal was to align the UI with the YONO 2.0 mobile-first theme, although I personally didn’t publish mobile apps — my work ensured the web application was responsive and mobile-friendly.
+@ServerEndpoint("/chat")
+public class ChatServer {
+    private static Set<Session> sessions = Collections.synchronizedSet(new HashSet<>());
+
+    @OnOpen
+    public void onOpen(Session session) {
+        sessions.add(session);
+        System.out.println("Client Connected: " + session.getId());
+    }
+
+    @OnMessage
+    public void onMessage(String message, Session senderSession) {
+        System.out.println("Received: " + message);
+
+        // ✅ Handle PING-PONG (keep-alive)
+        if ("PING".equals(message)) {
+            try {
+            	System.out.println("Websocket is idle connection re- established.");
+                return;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return;
+        }
+
+        // ✅ Broadcast to all (including sender for confirmation)
+        for (Session s : sessions) {
+        	if(!s.equals(senderSession)){
+            try {
+                s.getBasicRemote().sendText(message);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        	}
+        }
+    }
+
+    @OnClose
+    public void onClose(Session session) {
+        sessions.remove(session);
+        System.out.println("WebSocket Closed: " + session.getId());
+    }
+
+    @OnError
+    public void onError(Session session, Throwable throwable) {
+        System.out.println("WebSocket Error: " + session.getId());
+        throwable.printStackTrace();
+    }
+}
 
 
 
-2. What AI tools do you actively use for coding?
-
-I actively use  ChatGPT,BlackBox and NoteBook LM to enhance productivity, refactor code, and quickly generate utility functions or boilerplate code. These tools help with faster debugging, code generation, and documentation.
 
 
 
-3. Can you share your GitHub or GitLab profile?
-
-Yes, here’s my GitHub profile:
-https://github.com/ganganaboinasairam
 
 
+      --------------------------------ce html
 
-4. Have you published apps on the Google Play Store?
+      <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Floating Chat</title>
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; padding: 0; font-family: sans-serif; }
 
-No, I haven’t personally published apps on the Play Store. However, I have developed a Mobile App for my personal use.
+#chatbox {
+    height: 100%;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+}
+
+#chatbox-header {
+    background: linear-gradient(to right, orange, tomato);
+    color: white;
+    padding: 15px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#chat-messages {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.message {
+    max-width: 80%;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 15px;
+}
+.from-user { background: #ffe08a; margin-left: auto; border-bottom-right-radius: 0; }
+.from-system { background: #eee; margin-right: auto; border-bottom-left-radius: 0; }
+
+#chat-input {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-top: 1px solid #ddd;
+    background: white;
+}
+#chat-input input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    outline: none;
+    font-size: 14px;
+}
+#chat-input button {
+    margin-left: 10px;
+    border: none;
+    background: linear-gradient(to right, orange, tomato);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<div id="chatbox">
+    <div id="chatbox-header">Welcome to CE ChatApp</div>
+    <div id="chat-messages">
+        <div class="message from-system">Hi! How can we help you?</div>
+    </div>
+    <div id="chat-input">
+        <input type="text" id="messageBox" placeholder="Type a message..." />
+        <button type="button" onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+const username = localStorage.getItem("username") || "Supervisor1";
+
+//const socket = new WebSocket("wss://10.191.153.212/ChatboxEECE/chat");
+const socket = new WebSocket("ws://localhost:8080/ChatboxEECE/chat");
+
+socket.onopen = () => console.log("✅ CE WebSocket connected");
+
+socket.onmessage = function(event) {
+	const msg=JSON.parse(event.data);
+    if (msg.type === "PING")
+     return;  // ignore keep-alive response
+
+    const div = document.createElement("div");
+    div.className = "message from-system";
+    div.textContent = msg.msg;
+    document.getElementById("chat-messages").appendChild(div);
+};
+
+function sendMessage() {
+    const input = document.getElementById("messageBox");
+    const text = input.value.trim();
+    if (!text) return;
+
+    const msg = username + ": " + text;
+    socket.send(JSON.stringify({user:username,msg:text}));
+
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "message from-user";
+    msgDiv.textContent = text;
+    document.getElementById("chat-messages").appendChild(msgDiv);
+
+    input.value = "";
+}
+
+document.getElementById("messageBox").addEventListener("keypress", function (e) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+// ✅ Keep WebSocket alive
+
+setInterval(() => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "PING"}));
+    }
+}, 25000); 
+// 25 seconds to keep connection alive
+</script>
+</body>
+</html>
+
+
+      ---------------------------------------------ee 
 
 
 
-5. Which frontend frameworks are your go-to?
+      <%@ page import="java.util.*"%>
+<%@page import ="java.time.LocalDateTime"%>
+<%@page import ="java.time.format.DateTimeFormatter"%>
+<%
+	List<String> groups = (List<String>) application.getAttribute("chatGroups");
+	if (groups == null) {
+		groups = new ArrayList<>();
+		application.setAttribute("chatGroups", groups);
+	}
+	
+%>
+<!DOCTYPE html>
+<html>
+<head>
 
-My go-to frontend framework is React JS, which I’ve used in projects like the Instant messaging App. I’m comfortable building component-based UIs with state management and hooks.
+<meta charset="UTF-8">
+<title>EE Chat</title>
+<style>
+* {
+	box-sizing: border-box;
+}
+
+html, body {
+	margin: 0;
+	height: 100%;
+	font-family: sans-serif;
+}
+
+.chat-container {
+	display: flex;
+	height: 100vh;
+}
+
+.group-panel {
+	width: 30%;
+	background: #f1f1f1;
+	padding: 20px;
+	overflow-y: auto;
+	border-right: 1px solid #ccc;
+}
+
+.group {
+	background: white;
+	padding: 10px;
+	border-radius: 8px;
+	margin-bottom: 10px;
+	cursor: pointer;
+}
+
+.group:hover {
+	background: #ddd;
+}
+
+.chat-panel {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.chat-header {
+	background: orange;
+	color: white;
+	padding: 15px;
+	font-size: 18px;
+}
+
+.chat-messages {
+	flex: 1;
+	padding: 10px;
+	overflow-y: auto;
+	background: #fff;
+}
+
+.message {
+	max-width: 80%;
+	margin-bottom: 10px;
+	padding: 10px;
+	border-radius: 15px;
+}
+
+.from-user {
+	background: #ffe08a;
+	margin-left: auto;
+}
+
+.from-system {
+	background: #eee;
+	margin-right: auto;
+}
+
+.chat-input {
+	display: flex;
+	padding: 10px;
+	border-top: 1px solid #ccc;
+}
+
+#messageBox {
+	flex: 1;
+	padding: 10px;
+	border-radius: 20px;
+	border: 1px solid #ccc;
+}
+
+#sendBtn {
+	margin-left: 10px;
+	padding: 10px 20px;
+	border: none;
+	background: orange;
+	color: white;
+	border-radius: 20px;
+	cursor: pointer;
+}
+</style>
+</head>
+<body>
+	<div class="chat-container">
+		<div class="group-panel">
+			<h3>Customer Groups</h3>
+			<div id="groupContainer">
+				<%
+					for (String g : groups) {
+				%>
+				<div class="group" onclick="selectGroup('<%=g%>')"><%=g%></div>
+				<%
+					}
+				%>
+			</div>
+		</div>
+		<div class="chat-panel">
+			<div class="chat-header" id="chat-header">Select a Group</div>
+			<div class="chat-messages" id="chat-messages"></div>
+			<div class="chat-input">
+				<input type="text" id="messageBox" placeholder="Type message..."
+					disabled />
+				<button onclick="sendMessage()" id="sendBtn" disabled>Send</button>
+			</div>
+		</div>
+	</div>
+	<script src="ee.js"></script>
+</body>
+</html>
 
 
+const socket = new WebSocket("wss://10.191.153.212/ChatboxEECE/chat");
+		   //const socket = new WebSocket("ws://localhost:8080/ChatboxEECE/chat");
+		   
+         let selectedGroup = null;
+         
+         socket.onopen = () => console.log("✅ EE WebSocket connected");
+          
+         socket.onmessage = function(event) {
+        	 const msg=JSON.parse(event.data);
+             if (msg.type === "PING")
+              return; // ignore keep-alive response
+                      
+             const div = document.createElement("div");
+             div.className = "message from-system";
+             div.textContent = msg.msg;
+             document.getElementById("chat-messages").appendChild(div);
+             document.getElementById("chat-messages").scrollTop = document.getElementById("chat-messages").scrollHeight;
+         };
+         
+         function selectGroup(group) {
+             selectedGroup = group;
+             document.getElementById("chat-header").innerText = "Chatting with " + group;
+             document.getElementById("messageBox").disabled = false;
+             document.getElementById("sendBtn").disabled = false;
+             document.getElementById("chat-messages").innerHTML = "";
+         }
+         
+         function sendMessage() {
+             const input = document.getElementById("messageBox");
+             const text = input.value.trim();
+             const username = localStorage.getItem("branch_user") || "Branch Officer";
+      
+         
+             if (text && selectedGroup) {
+                 const msg =  username + ": " + text;
+                 socket.send(JSON.stringify({user:username,msg:text}));
+         
+                 const div = document.createElement("div");
+                 div.className = "message from-user";
+                 div.textContent = text;
+                 document.getElementById("chat-messages").appendChild(div);
+         
+                 input.value = "";
+             }
+         }
+         
+         document.getElementById("messageBox").addEventListener("keypress", function(e) {
+             if (e.key === "Enter") sendMessage();
+         });
+         
+         
+         //group creation 
+         window.onload = function() {
+             const groupName = localStorage.getItem("username") || "UAT TESTING HYDERABAD 123345";
+             console.log("GrpName: " + groupName);
+             if (!groupName) return;
+         
+             const exists = Array.from(document.getElementsByClassName("group")).some(el => el.innerText === groupName);
+             if (!exists) {
+               const newDiv = document.createElement("div");
+               newDiv.className = "group";
+               newDiv.innerText = groupName;
+               newDiv.onclick = () => selectGroup(groupName);
+               document.getElementById("groupContainer").appendChild(newDiv);
+               fetch("persistGroup.jsp?group=" + encodeURIComponent(groupName));
+             }
+         
+             selectGroup(groupName);
+           }; 
+         
+        // ✅ Keep WebSocket alive
+           setInterval(() => { 
+               if (socket && socket.readyState === WebSocket.OPEN) {
+                   socket.send(JSON.stringify({ type: "PING"}));
+               }
+           }, 25000);
+           // 25 seconds to keep connection alive
 
-6. What’s your backend experience in production projects?
+--------------------------------------------------------------------------persistGroup.jsp
 
-I have strong backend experience with Java , having worked on enterprise-grade applications for SBI. I developed custom business logic, PL/SQL scripts for data migration, and REST APIs. I also handled full deployment cycles including JAR packaging and integration with middleware like IBM MQ.
-
-
-
-7. Have you implemented offline storage and sync in mobile apps?
-
-Not directly. While I haven't implemented offline storage in mobile apps.
-
-
-
-8. What CI/CD tools have you used to automate your deployments?
-
-I’ve primarily worked in environments where builds and deployments are managed by internal enterprise tools and pipelines. I'm familiar with using Git, GitHub, and SourceTree, and I’ve packaged apps as executable JARs as part of the deployment lifecycle.
-
-
-
-9. Have you worked with any FMCG clients? What was your role?
-
-Not yet. My current domain is Banking and Finance, specifically with the State Bank of India via TCS, where I serve as both a Full Stack Developer and Scrum Lead.
-
-
-
-10. What’s the most recent full-stack project you worked on — and what did you build yourself?
-
-My most recent full-stack project is the Student Management System, which is available on my GitHub. I developed both the frontend (HTML, JS) and backend (Spring Boot), integrated Oracle SQL, built REST APIs, and managed complete CRUD operations. It’s a simple but effective demo of my full-stack capabilities outside enterprise work.
-
+          <%@ page import="java.util.*" %>
+<%
+  String group = request.getParameter("group");
+  if (group != null && !group.trim().isEmpty()) {
+      List<String> groups = (List<String>) application.getAttribute("chatGroups");
+      if (groups == null) {
+          groups = new ArrayList<>();
+      }
+      if (!groups.contains(group)) {
+          groups.add(group);
+          application.setAttribute("chatGroups", groups);
+      }
+  }
+%>
 
