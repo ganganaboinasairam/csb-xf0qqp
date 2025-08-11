@@ -1,27 +1,122 @@
-Here’s a concise and professional draft for your email:
+java.lang.IllegalStateException: The remote endpoint was in state [TEXT_FULL_WRITING] which is an invalid state for called method
+WebSocket Closed: 14
+	at org.apache.tomcat.websocket.WsRemoteEndpointImplBase$StateMachine.checkState(WsRemoteEndpointImplBase.java:1244)
+	at org.apache.tomcat.websocket.WsRemoteEndpointImplBase$StateMachine.textStart(WsRemoteEndpointImplBase.java:1214)
+	at org.apache.tomcat.websocket.WsRemoteEndpointImplBase.sendString(WsRemoteEndpointImplBase.java:190)
+	at org.apache.tomcat.websocket.WsRemoteEndpointBasic.sendText(WsRemoteEndpointBasic.java:36)
+	at com.chat.ChatServer.onMessage(ChatServer.java:48)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.apache.tomcat.websocket.pojo.PojoMessageHandlerWholeBase.onMessage(PojoMessageHandlerWholeBase.java:101)
+	at org.apache.tomcat.websocket.WsFrameBase.sendMessageText(WsFrameBase.java:390)
+	at org.apache.tomcat.websocket.server.WsFrameServer.sendMessageText(WsFrameServer.java:130)
+	at org.apache.tomcat.websocket.WsFrameBase.processDataText(WsFrameBase.java:484)
+	at org.apache.tomcat.websocket.WsFrameBase.processData(WsFrameBase.java:284)
+	at org.apache.tomcat.websocket.WsFrameBase.processInputBuffer(WsFrameBase.java:130)
+	at org.apache.tomcat.websocket.server.WsFrameServer.onDataAvailable(WsFrameServer.java:85)
+	at org.apache.tomcat.websocket.server.WsFrameServer.doOnDataAvailable(WsFrameServer.java:184)
+	at org.apache.tomcat.websocket.server.WsFrameServer.notifyDataAvailable(WsFrameServer.java:164)
+	at org.apache.tomcat.websocket.server.WsHttpUpgradeHandler.upgradeDispatch(WsHttpUpgradeHandler.java:152)
+	at org.apache.coyote.http11.upgrade.UpgradeProcessorInternal.dispatch(UpgradeProcessorInternal.java:60)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:57)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:928)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1786)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+	at java.lang.Thread.run(Thread.java:748)
 
 
----
-
-Subject: Frequent Connection Loss Issue with WinSCP & RDP via PAM Portal
-
-Hi [Team],
-
-We are facing a recurring issue while connecting to WinSCP and Windows RDP through the newly introduced PAM portal. The connection is getting interrupted midway, and an error message appears stating:
-
-> "An error occurred: the connection was lost."
 
 
+package com.chat;
 
-Once this happens, the error window does not close and multiple instances keep opening. We have to manually kill the process in Task Manager and reopen it to continue work.
+import java.io.IOException;
+import java.sql.Connection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import javax.websocket.OnClose;
+import javax.websocket.OnError;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.Session;
+import javax.websocket.server.ServerEndpoint;
 
-This issue is occurring very frequently and is impacting our productivity. Request you to look into this at the earliest and suggest a resolution.
+import com.cs.core.dao.DSManager;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
-Thanks & Regards,
-[Your Name]
+@ServerEndpoint("/chat")
+public class ChatServer {
+    private static Set<Session> sessions = Collections.synchronizedSet(new HashSet<>());
 
+    @OnOpen
+    public void onOpen(Session session) {
+        sessions.add(session);
+        System.out.println("Client Connected: " + session.getId());
+    }
 
----
+    @OnMessage
+    public void onMessage(String message, Session senderSession) throws Exception {
+        System.out.println("Received: " + message);
 
-If you want, I can also make a slightly stronger version that stresses the urgency and impact more firmly. Would you like me to do that?
+        // ✅ Handle PING-PONG (keep-alive)
+        if ("PING".equals(message)) {
+            try {
+            	System.out.println("Websocket is idle connection re- established.");
+                return;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return;
+        }
 
+        // ✅ Broadcast to all (including sender for confirmation)
+        for (Session s : sessions) {
+        	if(!s.equals(senderSession)){
+            try {
+                s.getBasicRemote().sendText(message);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        	}
+        }
+        
+        JsonObject obj = JsonParser.parseString(message).getAsJsonObject();
+        
+        String type = obj.get("type").getAsString();
+        
+        if("message".equalsIgnoreCase(type)) {
+        saveMessagesToDB( obj);
+        }
+         
+    }
+
+    @OnClose
+    public void onClose(Session session) {
+        sessions.remove(session);
+        System.out.println("WebSocket Closed: " + session.getId());
+    }
+
+    @OnError
+    public void onError(Session session, Throwable throwable) {
+        System.out.println("WebSocket Error: " + session.getId());
+        throwable.printStackTrace();
+    }
+    
+    public void saveMessagesToDB(JsonObject obj) throws Exception {
+    	
+    	
+    	System.out.println("obj   " +obj);
+    	
+    	Connection conn = DSManager.getConnection("CET");
+    	
+    	
+    	
+    	
+    }
+}
