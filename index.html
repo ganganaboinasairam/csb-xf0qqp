@@ -1,76 +1,69 @@
-[
-  {
-    "date": "2025-08-14 12:46:32",
-    "sender": "customer",
-    "custID1": "123123",
-    "message": "hello bank",
-    "brCode": "09995"
-  },
-  {
-    "date": "2025-08-14 12:50:16.22937",
-    "sender": "bank",
-    "custID1": "123123",
-    "message": "SADSDSD",
-    "brCode": "09995"
-  },
-  {
-    "date": "2025-08-14 15:23:47.457742",
-    "sender": "customer",
-    "custID1": "123123",
-    "message": "hello bank, iam karthik",
-    "brCode": "09995"
-  },
-  {
-    "date": "2025-08-14 15:24:23.241137",
-    "sender": "customer",
-    "custID1": "456456",
-    "message": "afdsfdf",
-    "brCode": "09995"
-  },
-  {
-    "date": "2025-08-14 15:24:29.847566",
-    "sender": "bank",
-    "custID1": "456456",
-    "message": "sdfsdfdsf",
-    "brCode": "09995"
-  },
-  {
-    "date": "2025-08-13 19:30:42",
-    "sender": "customer",
-    "custID1": "123123",
-    "message": "asdasdsadsad",
-    "brCode": "09995"
-  },
-  {
-    "date": "2025-08-13 19:32:13",
-    "sender": "customer",
-    "custID1": "123123",
-    "message": "dsasasf",
-    "brCode": "09995"
-  },
-  {
-    "date": "2025-08-13 19:32:43",
-    "sender": "bank",
-    "custID1": "123123",
-    "message": "asdasdasd",
-    "brCode": "09995"
-  },
-  {
-    "date": "2025-08-14 15:11:39.45056",
-    "sender": "bank",
-    "custID1": "123123",
-    "message": "sdfsdfdsf",
-    "brCode": "09995"
-  },
-  {
-    "date": "2025-08-14 15:24:59.742205",
-    "sender": "customer",
-    "custID1": "456456",
-    "message": "ima karthik",
-    "brCode": "09995"
-  }
-]
+useEffect(() => {
+    loadPreviousMessages();
+}, []);
 
+const loadPreviousMessages = async () => {
+    try {
+        const branchCode = getUrlParameter('branch_code') || '00000';
 
+        const response = await fetch(`./LoadPreviousMesgs?cust_id=00000&branch_code=${branchCode}`);
+        if (!response.ok) throw new Error('Failed to fetch previous messages');
 
-the messages will be of different customers ,it should display seperately 
+        let data = await response.json();
+
+        // Group messages by custID1
+        const customerMap = {};
+
+        data.forEach(msg => {
+            const custId = msg.custID1;
+            if (!customerMap[custId]) {
+                customerMap[custId] = {
+                    id: custId,
+                    name: `Customer ${custId}`, // Change if name is available
+                    lastMessage: '',
+                    lastMessageTime: '',
+                    status: "online",
+                    unreadCount: 0,
+                    messages: []
+                };
+            }
+
+            customerMap[custId].messages.push({
+                content: msg.message,
+                isCustomer: msg.sender.toLowerCase() === 'customer',
+                timestamp: msg.date
+            });
+        });
+
+        // Sort messages inside each customer
+        Object.values(customerMap).forEach(customer => {
+            customer.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            // Set last message details
+            const lastMsg = customer.messages[customer.messages.length - 1];
+            customer.lastMessage = lastMsg.content;
+            customer.lastMessageTime = new Date(lastMsg.timestamp).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        });
+
+        // Convert to array and sort by last message time (desc)
+        const customerList = Object.values(customerMap).sort((a, b) => {
+            const timeA = new Date(a.messages[a.messages.length - 1].timestamp);
+            const timeB = new Date(b.messages[b.messages.length - 1].timestamp);
+            return timeB - timeA;
+        });
+
+        // Update state
+        setCustomers(customerList);
+
+        // Optionally select the most recent customer automatically
+        if (customerList.length > 0) {
+            setSelectedCustomer(customerList[0]);
+        }
+
+    } catch (error) {
+        console.error('Error loading previous messages:', error);
+    }
+};
