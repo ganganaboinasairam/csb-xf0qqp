@@ -1,69 +1,414 @@
-useEffect(() => {
-    loadPreviousMessages();
-}, []);
-
-const loadPreviousMessages = async () => {
-    try {
-        const branchCode = getUrlParameter('branch_code') || '00000';
-
-        const response = await fetch(`./LoadPreviousMesgs?cust_id=00000&branch_code=${branchCode}`);
-        if (!response.ok) throw new Error('Failed to fetch previous messages');
-
-        let data = await response.json();
-
-        // Group messages by custID1
-        const customerMap = {};
-
-        data.forEach(msg => {
-            const custId = msg.custID1;
-            if (!customerMap[custId]) {
-                customerMap[custId] = {
-                    id: custId,
-                    name: `Customer ${custId}`, // Change if name is available
-                    lastMessage: '',
-                    lastMessageTime: '',
-                    status: "online",
-                    unreadCount: 0,
-                    messages: []
-                };
-            }
-
-            customerMap[custId].messages.push({
-                content: msg.message,
-                isCustomer: msg.sender.toLowerCase() === 'customer',
-                timestamp: msg.date
-            });
-        });
-
-        // Sort messages inside each customer
-        Object.values(customerMap).forEach(customer => {
-            customer.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-            // Set last message details
-            const lastMsg = customer.messages[customer.messages.length - 1];
-            customer.lastMessage = lastMsg.content;
-            customer.lastMessageTime = new Date(lastMsg.timestamp).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        });
-
-        // Convert to array and sort by last message time (desc)
-        const customerList = Object.values(customerMap).sort((a, b) => {
-            const timeA = new Date(a.messages[a.messages.length - 1].timestamp);
-            const timeB = new Date(b.messages[b.messages.length - 1].timestamp);
-            return timeB - timeA;
-        });
-
-        // Update state
-        setCustomers(customerList);
-
-        // Optionally select the most recent customer automatically
-        if (customerList.length > 0) {
-            setSelectedCustomer(customerList[0]);
+<%@ page import= "java.sql.Connection" %>
+<%@ page import= "java.sql.PreparedStatement" %>
+<%@ page import= "java.sql.ResultSet" %>
+<%@ page import= "com.cs.ceweb.servlets.HomeCugCheck" %>
+<%
+	session.removeAttribute("SS_APPL_NAME_HEADER");
+	if(session.getAttribute("SS_APPL_NAME_HEADER") == null){
+		java.sql.Connection conn = null;
+		java.sql.PreparedStatement pstmt = null;
+		java.sql.ResultSet rs = null;
+		String userId = ((com.cs.core.pojo.UserInfo)session.getAttribute("SS_USER_INFO")).getUserId().substring(0,4);
+		String defcode = ((com.cs.core.pojo.UserInfo)session.getAttribute("SS_USER_INFO")).getDeftUnitCode();
+		System.out.println("defcode session is "+defcode);	
+String unitCode="";	
+		System.out.println("userId bankbanner is " + userId);
+		String applicantNameString = "";	
+		String applicantAddressString= "";
+		String applicantIdString= "";
+		String homeBranchString= "";
+		try{
+		conn = com.cs.core.dao.DSManager.getConnection("CET");	
+		String 	query ="select C_UNIT_CODE,NAME,ADDRESS,CUST_ID,HOME_BRANCH_CODE from CETRX.DATA_MASTER where c_main_ref='" + defcode + "'";
+		pstmt = conn.prepareStatement(query);	
+		rs = pstmt.executeQuery(query);
+		while(rs.next()) {	
+             unitCode = rs.getString("C_UNIT_CODE") != null ? rs.getString("C_UNIT_CODE") : "";	
+			applicantNameString = rs.getString("NAME") != null ? rs.getString("NAME") : "";	
+			applicantNameString = applicantNameString.replaceAll("\n", " ");
+			applicantAddressString = rs.getString("ADDRESS") != null ? rs.getString("ADDRESS") : "";
+			applicantAddressString = applicantAddressString.replaceAll("\n", " ");		
+			applicantIdString = rs.getString("CUST_ID") != null ? rs.getString("CUST_ID") : "";
+			applicantIdString = applicantIdString.replaceAll("\n", " ");
+			homeBranchString = rs.getString("HOME_BRANCH_CODE") != null ? rs.getString("HOME_BRANCH_CODE") : "";	
+			homeBranchString = homeBranchString.replaceAll("\n", " ");			
+		}
+		session.setAttribute("SS_APPL_NAME_HEADER",applicantNameString);
+				session.setAttribute("unitCode",unitCode);
+		System.out.println("applicantNameString bankbanner is " + applicantNameString);
+				System.out.println("applicantNameString bankbanner is " + applicantNameString);
+		System.out.println("unitCode is 111111   " + unitCode);
+		session.setAttribute("SS_APPL_ADDRESS_HEADER",applicantAddressString); 
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+		finally{
+			try{
+				if (rs!=null) rs.close();
+				if (pstmt!=null) pstmt.close();
+				if (conn!=null) conn.close();
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+	}
+%>
+<input type="hidden" id="sideMenuValue" value="1">
+<input type="hidden" id="CUST_ID" value="">
+<input type="hidden" id="CUST_BR_CODE" value="">
+<p type="text" style="display:none;" id="iecodeval_ID">text to be replace</p>
+<p type="text" style="display:none;" id="usertypeval_ID">text to be replace</p>
+<div class = "backdrop">
+	<div id="popdiv" style="width:27% !important;">
+	<div style="transform:translateY(40%)">
+		<div align="center">
+			<span style="font-weight: bold;font-size:18px;">Which role do you want to access?<label style="vertical-align:super;font-size:18px;color:red;">*</label></span>
+			<br><br><br>
+			<div>
+				<input style="font-size:15px;" type="button" id="P_UM" class="addCSS" value=" User Maker" onclick="setRole('M')">&nbsp &nbsp &nbsp &nbsp
+				<input style="font-size:15px;" type="button" id="P_UC" class="addCSS" value="User Checker" onclick="setRole('C')">
+			</div>
+			<br>
+			<span style="font-size:13px;"><label style="vertical-align:super;font-size:13px;color:red;">*</label>Applicable for Import LC,Inland LC, Import LC Bill Acceptance, Export LC Advising journey and Export Collection Bills</span>
+		</div>
+	</div>
+	</div>
+</div>
+<div id="divHeader" style="background-color: white">
+    <iframe id="SYS_FRAME" name="SYS_FRAME" style="border:0; height:0; width:0;visibility:hidden" src="/CEWeb/screen/SYS_Dummy.htm"></iframe>
+    <div id="HelpTip" style="position:absolute; display:none; filter: alpha(opacity=70); -moz-opacity:0.7;opacity: 0.7; background-color:#000066; color:#ffffff; z-index:10;"></div>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tbody>
+        <tr>
+          <td style="width: 5%;>
+		  <a title="LOGO">
+						<img src="/CEWeb/Images/icons/Burger Menu.svg" title="Menu" style="margin-left: 36.5%; cursor: pointer;" onclick="sideMenuClose();">
+		  </a>
+          </td>
+          <td style="width: 20%;>
+		  <a title="LOGO">
+          <img border="0" src="/CEWeb/Images/icons/LogoYono.png" style="width: 40%; margin-top: 0%;" alt=""SBI Trade Finance" />
+		  </a>
+          </td>
+		  		  <input type="hidden" id="demo"style="color:white;"></input>
+		  <td align="center" valign="top" style="width="35%;">
+						<div class="searchby" style="display: none;">
+							<input type="text" class="refsea" id="bankbannersearchbar"  placeholder="Search transactions,Payments or help"/>
+						</div>
+		  </td>
+             <td align="right" valign="top" style="width=15%;">
+			 <span style="align:right;font-weight: normal; color: #0064B2; font-size: 0.75em;">
+             <div style="width: 24%;margin-right:3%;margin-top: -0.8%; margin-bottom: 1%;text-align: left;border-radius: 20px;font-size: 9px;">
+             <img src="/CEWeb/Images/icons/user.jpg" alt="User" style="border-radius: 50px;width: 69px;float: right;margin-top: -14px;">
+			 </div>
+			 </span>
+			 </td>
+			 <td align="right" valign="top" style="width: 15%;">
+<%
+  System.out.println("********************************** User is "+((com.cs.core.pojo.UserInfo)session.getAttribute("SS_USER_INFO")).getUserId());
+  String userName = ((com.cs.core.pojo.UserInfo)session.getAttribute("SS_USER_INFO")).getUserId();
+  String displayHome = "false";
+  	HomeCugCheck obj = new HomeCugCheck();
+	boolean val=false;
+		if(userName!=null){
+			val= obj.mainClass("home_button", userName); 
+			if(val){
+				displayHome = "true";
+			}
+			System.out.println("********************************** HOME DISPLAY "+displayHome);
+		}
+	System.out.println("********************************** CugUser is "+val);
+  if( !((com.cs.core.pojo.UserInfo)session.getAttribute("SS_USER_INFO")).getUserId().equalsIgnoreCase("RESET")){
+  %>
+			<div style="/* width: 40%; */margin-right: 3%;margin-top: -16.8px;margin-bottom: 1%;text-align: left;border-radius: 20px;font-size: 9px; WHITE-SPACE: nowrap;">
+             <span style="color:#676767; font-size: 1.5em;">Welcome </span> 
+			 <span style="font-size: 1.5em; color:#676767;">
+			 	<%=userDesc%> <span id="userRoleName"></span>
+	<input type="hidden" id="user_name" name="user_name" value="<%=userDesc%>"></input>
+			</span>
+			<div class="dropdown">
+			<img src="/CEWeb/Images/icons/arrow.PNG" alt="User">
+			<div class="dropdown-content">
+			<span style="color:#676767;font-size:12px; padding-top: 10px;/* margin-top: 19px;  */  display: inline-flex;"></br></br><a style="color:#676767;" href="#" onClick="check_password(<%=displayHome%>)">Change Password</a></span><%}%>
+			</div>
+			</div>
+             </br>
+			 <span id="applicantNameHeader" style="color:#676767;font-size:12px;PADDING-TOP: 10PX;DISPLAY: block;"></span>
+			 <span id="applicantAddressHeader" style="DISPLAY: NONE;"></span>
+			<span style="color:#676767;font-size:12px;PADDING-TOP: 10PX;DISPLAY: block;">Your last login was
+            <CETAGS:GETLOGTIME type="LAST" timeFormat="hh:mm:ss" />
+			</span>
+			</span>
+			</div>
+            </td>
+                 <td style="width:5%; padding-bottom:12px; white-space: nowrap;">
+				 <%if("true".equals(displayHome)){%>
+                  <a title="yono BUSINESS HOME" href = "javascript:SYS_CE_HOME();"> <img width="20px" border="0" src="/CEWeb/Images/HeaderIcons/home_icons.png" alt="Secure Log Out"  style="cursor: pointer;">&nbsp;&nbsp;&nbsp;</a>
+				 <%}%>
+				<div>
+				</div>
+				<div id="contactId" style="position:relative;display: inline-block;">		 
+                  <img width="20px" border="0" src="/CEWeb/Images/HeaderIcons/contact.svg" alt="Contact Us" style="cursor: pointer;">&nbsp;&nbsp;&nbsp;
+				  <div class="contact-content">
+					<div class="content-wrapper" id="container" style="width: 450px;">             
+		<div class="table">
+			<table style="width: 99%; text-align: center; border: 1px solid grey; margin: auto; border-spacing: 0px; border-collapse: collapse;">
+				<tr>
+					<td colspan=3 style="text-align: center;  border-bottom: 1px solid grey; border-right: 1px solid grey;"><h3>Contact Us</h3></td>
+				</tr>
+				<tr>
+					<th style="text-align: center; padding: 15px; padding-right: 15%; background-color: #5b1d8d; border-bottom: 1px solid grey; color: white;">Contact Type</th> 
+					<th style="text-align: center; padding: 15px; padding-right: 15%; background-color: #5b1d8d; border-bottom: 1px solid grey; color: white; border-right: 1px solid grey;">Contact Details</th>
+				</tr>
+				<tr>		
+					<td style="text-align: left; padding: 13px; border-bottom: 1px solid grey;">Helpdesk</td>
+					<td style="text-align: left; padding: 13px; border-bottom: 1px solid grey; border-right: 1px solid grey;">022-27579841, 27566067</td>
+				</tr>
+				<tr>	
+					<td style="text-align: left; padding: 13px; ">Email</td>
+					<td style="text-align: left; padding: 13px; border-right: 1px solid grey;">cesupport@sbi.co.in,</td>
+				</tr>
+				<tr>
+					<td style="text-align: left; padding: 13px; border-bottom: 1px solid grey;"></td>
+					<td style="text-align: left; padding: 13px; border-bottom: 1px solid grey; border-right: 1px solid grey;">support.yonobusiness@sbi.co.in</td>			
+				</tr>
+				</table>
+				</div>
+		</div>
+				  </div>
+				</div>
+					<img width="20" border="0" src="/CEWeb/Images/HeaderIcons/chat.png" class = "notIconAndCount" id="chaticon" style="display:none; cursor: pointer;" onclick="createPopupWin('http://10.177.139.87:7001/SAIANU/','GeeksforGeeks Website', 1200, 650);" alt="ChatBox" title="ChatBox">
+				  <img width="20" border="0" src="/CEWeb/Images/HeaderIcons/notifications.svg" class = "notIconAndCount" id="NotificationIcon" style="display:none; cursor: pointer;" onclick="dropnotify();" alt="Notifications" title="Notifications">&nbsp;&nbsp;&nbsp;
+				 <span class = "notIconAndCount" id = "notiCount"><p class="txt" id="countvalue" style="display:none"></p></span>
+				  <img width="20px" height="19px" border="0" src="/CEWeb/Images/HeaderIcons/logout.svg" alt="Secure Log Out" onClick="clearSessionItem(); SYS_CE_LOGOUT(false);" style="cursor: pointer;" title="Logout">&nbsp;&nbsp;&nbsp;
+                  </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+<div class="notification-menu1" style="display: none; ">
+			<table style="width: 100%; background-color: white;">
+					<tr>
+						<td style="width: 100%; border-bottom: 1px solid #ddd;">					
+							<div id="message_viewall_1" style="border-bottom: 0px solid #A1AAB2; padding: 5px;">Notifications: Last 7 Days<a href="#" class="clear_all"  style="font-size: 15px; float: right;text-decoration:underline; color:#0095da;">Clear All</a></div>
+						</td>
+					</tr>
+					<tr>
+						<td style="width: 100%;">
+							<div class="scrollbar" id="style1">
+								<div id="li_inside_viewall">   			
+									<div class="Id_notification1"></div>
+								</div>
+							</div>
+						</td>
+					</tr>			
+				</table>
+		</div>
+		<div class="notification-menu" id="notifimenu"  style="display: none;">
+			<table style="width: 100%; background-color: white;">
+				<tr>
+					<td style="width: 100%; border-bottom: 1px solid #ddd;">
+						<div id="message" style="padding: 5px;"> Notifications <a href="#" class="clear_all" id="clr"   style="font-size: 15px;text-decoration:underline; color:#0095da;">Clear All</a></div>
+					</td>
+				</tr>
+				<tr>
+					<td style="width: 100%;">
+						<div class="Id_notification"></div>
+					</td>
+				</tr>
+				<tr>
+					<td style="width: 100%;">
+						<div id="Viewall" style="background-color: #f5f5f5; text-align: center; vertical-align: middle; padding: 15px;">
+							<a href="#" class="toggleopen" onClick="viewAllNotification();" style="font-size: 15px;text-decoration:underline; color:#0095da;font-weight:bold;">View All</a>
+						</div>
+					</td>
+				</tr>
+			</table>
+		</div>	
+		<div id="myModal" class="modal" style="display: none;">
+			  	<div class="modal-content">
+				  <table style="width: 100%; border: 0px; border-spacing: 0px; border-collapse: collapse; text-align: center; margin: auto;">
+				  	<tr>
+				  		<td>
+				  			<img src="/CEWeb/Images/icons/cancel.svg" class="close" id="cross" onclick="modalfun();" style="padding-bottom: 20px;text-align: right;">
+				  		</td>
+				 	 </tr>
+				  	<tr>
+				  		<td>
+				  			<p id="duplicatevalue"></p>
+				  		</td>
+				  	</tr>
+				</table>
+				</div>	 		
+			</div>
+  <script>
+$(document).ready(function(){
+	var userType;
+	var unitCode = '<%= (String)session.getAttribute("unitCode")%>';
+	localStorage.setItem("unitCode", unitCode);
+	var userType = '<%=((com.cs.core.pojo.UserInfo)session.getAttribute("SS_USER_INFO")).getUserType()%>';
+	document.getElementById("applicantNameHeader").innerHTML = '<%= (String)session.getAttribute("SS_APPL_NAME_HEADER")%>';
+	document.getElementById("applicantAddressHeader").innerHTML = '<%= (String)session.getAttribute("SS_APPL_ADDRESS_HEADER")%>';
+	if(userType == "2"){
+	$('.notIconAndCount').show();
+	document.getElementById("countvalue").style.display = "block";
+	var role = sessionStorage.getItem('role');
+	if(role == null || role == ""){
+		$(".backdrop").css("display","block");
+	}
+	if(role == 'C'){
+		$('.slider').click();
+		sessionStorage.setItem('role','C');
+	}
+	if(role == 'C'){
+		document.getElementById("userRoleName").innerHTML = '(Checker)';
+	} else if(role == 'M'){
+		document.getElementById("userRoleName").innerHTML = '(Maker)';
+	}
+	}
+	sideMenuClose();
+});
+function clearSessionItem(){
+	sessionStorage.clear();
+}
+function csrfResolution(url){
+	var csrfDataArray = encodeUrl(url).split("?")[1].split("&");
+	var CSRFData = csrfDataArray[0].split("=");
+	var refreshTokenData = csrfDataArray[1].split("=");
+	var csrfObject = {"url":url,"csrf":CSRFData[1],"refreshToken":refreshTokenData[1]};
+	return csrfObject;
+}
+function setRole(roleVal){
+	sessionStorage.setItem('role',roleVal);
+	if(roleVal == 'C'){
+		$('.slider').click();
+		sessionStorage.setItem('role',roleVal);
+	}
+	if(roleVal == 'C'){
+		document.getElementById("userRoleName").innerHTML = '(Checker)';
+	} else if(roleVal == 'M'){
+		document.getElementById("userRoleName").innerHTML = '(Maker)';
+	}
+	$(".backdrop").css("display","none");
+}
+function EnableEditScreenFlag(value){
+	sessionStorage.setItem('EditFlag',value);	
+}
+	function createPopupWin(pageURL, pageTitle, popupWinWidth, popupWinHeight) 
+		{
+            let left = (screen.width);
+            let top = (screen.height);
+            let myWindow = window.open(pageURL, pageTitle,
+                'resizable=yes, width=' + popupWinWidth
+                + ', height=' + popupWinHeight + ', top='
+                + top + ', left=' + left);
         }
-
-    } catch (error) {
-        console.error('Error loading previous messages:', error);
-    }
-};
+	function dropnotify()
+		{	
+			$('.notification-menu').show();
+			$('.notification-menu1').hide();
+		}
+	function modalfun()
+		{
+			document.getElementById("myModal").style.display = "none";
+		}
+	function viewAllNotification()
+	{
+		$('.notification-menu').hide();
+		$('.notification-menu1').show();
+	}
+	$(document).mouseup(function (e) 
+	{
+		if ((($(e.target).closest(".notification-menu").length=== 0))&&(($(e.target).closest(".modal").length=== 0))) {
+			$( ".notification-menu" ).hide();
+		}
+		if ((($(e.target).closest(".notification-menu1").length=== 0))&&(($(e.target).closest(".modal").length=== 0))) {
+    		$( ".notification-menu1" ).hide();
+    	}
+	});
+	function notificationPopup1(obj,rowCount,notificationType) {
+		document.getElementById("myModal").style.display = "block";
+		if(notificationType=='1'){
+			document.getElementById("duplicatevalue").innerHTML= document.getElementById("descId_" + rowCount).innerHTML;
+		}else{
+			document.getElementById("duplicatevalue").innerHTML= document.getElementById("descId_" + rowCount).innerHTML + " on " + document.getElementById("dateTimeId_" + rowCount).innerHTML;
+		}
+	}
+	function notificationPopup(obj,rowCount,notificationType)
+	{
+		document.getElementById("myModal").style.display = "block";	
+		if(notificationType=='1'){
+			document.getElementById("duplicatevalue").innerHTML= document.getElementById("descId_" + rowCount).innerHTML;
+		}else{
+			document.getElementById("duplicatevalue").innerHTML= document.getElementById("descId_" + rowCount).innerHTML + " on " + document.getElementById("dateTimeId_" + rowCount).innerHTML;
+		}
+	}
+function sideMenuClose(){
+	var sideMenuOpen = document.getElementById("sideMenuValue").value;	
+	if(sideMenuOpen == 0){
+		document.getElementById("sideMenuValue").value = 1;
+		document.getElementById("A_MENU").style.display = "none";
+		document.getElementById("B_CONTENT").style.marginLeft = "0px";		
+		document.getElementById("B_CONTENT").style.position = "relative";
+		document.getElementById("B_CONTENT").style.margin = "auto";
+		document.getElementById("B_CONTENT").style.width = "98%";
+	} else{
+		document.getElementById("sideMenuValue").value = 0;
+		document.getElementById("A_MENU").style.display = "";
+		document.getElementById("B_CONTENT").style.marginLeft = "105px";
+		document.getElementById("B_CONTENT").style.position = "absolute";
+		document.getElementById("B_CONTENT").style.margin = "";
+		document.getElementById("B_CONTENT").style.width = "93.4%";
+	}	
+}
+</script>
+	<script>
+	 function do_countdown(duration) {
+	 start_num = duration;
+	 var countdown_output = document.getElementById('countdown_div');
+	 if (start_num > 0) {
+	 countdown_output.innerHTML = format_as_time(start_num);
+	 var t=setTimeout("update_clock(\"countdown_div\", "+start_num+")", 1000);
+	 }
+	 return false;
+	 }
+	 function update_clock(countdown_div, new_value) {
+	 var countdown_output = document.getElementById(countdown_div);
+	 var new_value = new_value - 1;
+	 if (new_value > 0) {
+	 new_formatted_value = format_as_time(new_value);
+	 countdown_output.innerHTML = new_formatted_value;
+	 var t=setTimeout("update_clock(\"countdown_div\", "+new_value+")", 1000);
+	 } else {
+		countdown_output.innerHTML = "";
+		$('#countdown_box').hide();
+		$.uiUnlock();
+	 }
+	 }
+	 function format_as_time(seconds) {
+	 var minutes = parseInt(seconds/60);
+	 var seconds = seconds - (minutes*60);
+	 if (minutes < 10) {
+	 minutes = "0"+minutes;
+	 }
+	 if (seconds < 10) {
+	 seconds = "0"+seconds;
+	 }
+	 var return_var = minutes+':'+seconds;
+	 return return_var;
+	 }
+	 </script>
+	 <script>
+	  function view_blog_countdown(blog_url, duration) {
+				$.uiLock('');
+	  }
+	 </script>
+  <script>
+  calltimer(<%=displayHome%>);
+  </script>
+  
+  
+  
+  
+  
+  I WANT TO ASSIGN "applicantIdString" VALUE TO "CUST_ID"
