@@ -1,48 +1,76 @@
-// Inside your BankDashboard component
-useEffect(() => {
-    // Call loadPreviousMessages when page loads
-    loadPreviousMessages();
-}, []);
+[
+  {
+    "date": "2025-08-14 12:46:32",
+    "sender": "customer",
+    "custID1": "123123",
+    "message": "hello bank",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-14 12:50:16.22937",
+    "sender": "bank",
+    "custID1": "123123",
+    "message": "SADSDSD",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-14 15:23:47.457742",
+    "sender": "customer",
+    "custID1": "123123",
+    "message": "hello bank, iam karthik",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-14 15:24:23.241137",
+    "sender": "customer",
+    "custID1": "456456",
+    "message": "afdsfdf",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-14 15:24:29.847566",
+    "sender": "bank",
+    "custID1": "456456",
+    "message": "sdfsdfdsf",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-13 19:30:42",
+    "sender": "customer",
+    "custID1": "123123",
+    "message": "asdasdsadsad",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-13 19:32:13",
+    "sender": "customer",
+    "custID1": "123123",
+    "message": "dsasasf",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-13 19:32:43",
+    "sender": "bank",
+    "custID1": "123123",
+    "message": "asdasdasd",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-14 15:11:39.45056",
+    "sender": "bank",
+    "custID1": "123123",
+    "message": "sdfsdfdsf",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-14 15:24:59.742205",
+    "sender": "customer",
+    "custID1": "456456",
+    "message": "ima karthik",
+    "brCode": "09995"
+  }
+]
 
-const loadPreviousMessages = async () => {
-    try {
-        const custId = getUrlParameter('cust_id') || '00000';
-        const branchCode = getUrlParameter('branch_code') || '00000';
 
-        const response = await fetch(`./LoadPreviousMesgs?cust_id=${custId}&branch_code=${branchCode}`);
-        if (!response.ok) throw new Error('Failed to fetch previous messages');
 
-        let data = await response.json();
-
-        // Sort messages by date/time
-        data.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-        if (data.length > 0) {
-            const customerId = data[0].custID1;
-            const customerName = `Customer ${customerId}`; // You can change this if name is available
-
-            // Transform into your chat format
-            const formattedMessages = data.map(msg => ({
-                content: msg.message,
-                isCustomer: msg.sender.toLowerCase() === 'customer',
-                timestamp: msg.date
-            }));
-
-            const newCustomer = {
-                id: customerId,
-                name: customerName,
-                lastMessage: formattedMessages[formattedMessages.length - 1].content,
-                lastMessageTime: "Just now",
-                status: "online",
-                unreadCount: 0,
-                messages: formattedMessages
-            };
-
-            // Add customer to list and set as selected
-            setCustomers([newCustomer]);
-            setSelectedCustomer(newCustomer);
-        }
-    } catch (error) {
-        console.error('Error loading previous messages:', error);
-    }
-};
+the messages will be of different customers ,it should display seperately 
