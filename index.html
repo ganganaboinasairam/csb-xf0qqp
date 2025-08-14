@@ -1,242 +1,229 @@
-<!DOCTYPE html>
-<html lang="en">
+// Customer Chat Component with WebSocket
+const CustomerChat = () => {
+    const [messages, setMessages] = useState([]);
+    const [inputMessage, setInputMessage] = useState('');
+    const [connectionStatus, setConnectionStatus] = useState('connecting');
+    const [ws, setWs] = useState(null);
+    const [customerId, setCustomerId] = useState('');
+    const [branchCode, setBranchCode] = useState('');
+    const [userInfo, setUserInfo] = useState(null);
+    const messagesEndRef = useRef(null);
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Support Chat</title>
-    <link rel="stylesheet" href="custStyles.css">
-    <!-- React and Babel CDN -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
+    // Extract URL parameters on component mount
+    useEffect(() => {
+        const urlCustomerId = getUrlParameter('cust_id');
+        const urlBranchCode = getUrlParameter('branch_code');
+        const urlCustName = getUrlParameter('cust_name');
 
-<body>
-    <div id="root"></div>
+        setCustomerId(urlCustomerId);
+        setBranchCode(urlBranchCode);
+        setUserInfo({
+            customerId: urlCustomerId,
+            branchCode: urlBranchCode,
+            custName: urlCustName
+        });
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        console.log('URL Parameters extracted:', {
+            customerId: urlCustomerId,
+            branchCode: urlBranchCode
+        });
 
-        // Utility function to get URL parameters
-        const getUrlParameter = (name) => {
-            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-            const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-            const results = regex.exec(window.location.search);
-            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-        };
+        // Load previous messages from servlet
+        loadPreviousMessages(urlCustomerId, urlBranchCode);
 
-        // Customer Chat Component with WebSocket
-        const CustomerChat = () => {
-            const [messages, setMessages] = useState([
+    }, []);
+
+    const loadPreviousMessages = async (custId, brCode) => {
+        try {
+            const response = await fetch(`./LoadPreviousMesgs?cust_id=${custId}&branch_code=${brCode}`);
+            if (!response.ok) throw new Error('Failed to fetch previous messages');
+
+            let data = await response.json();
+
+            // Filter only messages for this customer
+            let filtered = data.filter(msg => msg.custID1 === custId);
+
+            // Sort by date/time ascending
+            filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Map to chat message format
+            const formattedMessages = filtered.map(msg => ({
+                content: msg.message,
+                isCustomer: msg.sender.toLowerCase() === 'customer',
+                timestamp: msg.date
+            }));
+
+            // Set to state (prepend welcome if you still want it)
+            setMessages([
                 {
                     content: "Welcome! How can we help you today?",
                     isCustomer: false,
                     timestamp: new Date().toISOString()
-                }
+                },
+                ...formattedMessages
             ]);
-            const [inputMessage, setInputMessage] = useState('');
-            const [connectionStatus, setConnectionStatus] = useState('connecting');
-            const [ws, setWs] = useState(null);
-            const [customerId, setCustomerId] = useState('');
-            const [branchCode, setBranchCode] = useState('');
-            const [userInfo, setUserInfo] = useState(null);
-            const messagesEndRef = useRef(null);
 
-            // Extract URL parameters on component mount
-            useEffect(() => {
-                const urlCustomerId = getUrlParameter('cust_id');
-                const urlBranchCode = getUrlParameter('branch_code');
-                const urlCustName = getUrlParameter('cust_name');
+        } catch (error) {
+            console.error('Error loading previous messages:', error);
+        }
+    };
 
-                setCustomerId(urlCustomerId);
-                setBranchCode(urlBranchCode);
-                setUserInfo({
-                    customerId: urlCustomerId,
-                    branchCode: urlBranchCode,
-                    custName: urlCustName
-                });
+    // WebSocket connection
+    useEffect(() => {
+        if (!customerId || !branchCode) return;
 
-                console.log('URL Parameters extracted:', {
-                    customerId: urlCustomerId,
-                    branchCode: urlBranchCode
-                });
-            }, []);
+        const connectWebSocket = () => {
+            try {
+                const websocket = new WebSocket(`wss://ce.uat.web:7002/ChatboxEECE/chat`);
+                websocket.onopen = () => {
+                    console.log('Customer WebSocket connected');
+                    setConnectionStatus('connected');
 
-            // WebSocket connection
-            useEffect(() => {
-                if (!customerId || !branchCode) return;
-
-                const connectWebSocket = () => {
-                    try {
-                        //const websocket = new WebSocket(`ws://localhost:8080/ChatboxEECE/chat`);
-                        const websocket = new WebSocket(`wss://ce.uat.web:7002/ChatboxEECE/chat`);
-
-                        websocket.onopen = () => {
-                            console.log('Customer WebSocket connected');
-                            console.log('Connection details:', { customerId, branchCode });
-                            setConnectionStatus('connected');
-
-                            websocket.send(JSON.stringify({
-                                type: 'register',
-                                role: 'customer',
-                                customerId: customerId,
-                                branchCode: branchCode,
-                                customerName: userInfo?.custName || ''
-                            }));
-                        };
-
-
-
-                        websocket.onmessage = (event) => {
-                            const message = JSON.parse(event.data);
-                            handleIncomingMessage(message);
-                        };
-
-                        websocket.onclose = () => {
-                            console.log('Customer WebSocket disconnected');
-                            setConnectionStatus('disconnected');
-                            setTimeout(connectWebSocket, 3000);
-                        };
-
-                        websocket.onerror = (error) => {
-                            console.error('Customer WebSocket error:', error);
-                            setConnectionStatus('error');
-                        };
-
-                        setWs(websocket);
-                    } catch (error) {
-                        console.error('Failed to create customer WebSocket:', error);
-                        setConnectionStatus('error');
-                    }
+                    websocket.send(JSON.stringify({
+                        type: 'register',
+                        role: 'customer',
+                        customerId: customerId,
+                        branchCode: branchCode,
+                        customerName: userInfo?.custName || ''
+                    }));
                 };
 
-                connectWebSocket();
-
-                return () => {
-                    if (ws) ws.close();
-                };
-            }, [customerId, branchCode]);
-
-            const handleIncomingMessage = (message) => {
-                if (message.customerId != customerId) {
-                    return false
-                };
-                if (message.type === 'message') {
-                    const newMessage = {
-                        content: message.content,
-                        isCustomer: message.sender === 'customer',
-                        timestamp: message.timestamp || new Date().toISOString()
-                    };
-
-                    setMessages(prev => [...prev, newMessage]);
-                }
-            };
-
-            const sendMessage = () => {
-                if (!inputMessage.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
-
-                const messageData = {
-                    type: 'message',
-                    content: inputMessage.trim(),
-                    customerId: customerId,
-                    branchCode: branchCode,
-                    sender: 'customer',
-                    timestamp: new Date().toISOString(),
-                    customerName: userInfo?.custName || ''    
-                    //customerEmail: userInfo?.customerId ? `${userInfo.customerId}@customer.com` : '' // <-- add this
+                websocket.onmessage = (event) => {
+                    const message = JSON.parse(event.data);
+                    handleIncomingMessage(message);
                 };
 
-                ws.send(JSON.stringify(messageData));
-
-                // Add message to local state
-                const newMessage = {
-                    content: inputMessage.trim(),
-                    isCustomer: true,
-                    timestamp: messageData.timestamp
+                websocket.onclose = () => {
+                    console.log('Customer WebSocket disconnected');
+                    setConnectionStatus('disconnected');
+                    setTimeout(connectWebSocket, 3000);
                 };
 
-                setMessages(prev => [...prev, newMessage]);
-                setInputMessage('');
-            };
+                websocket.onerror = (error) => {
+                    console.error('Customer WebSocket error:', error);
+                    setConnectionStatus('error');
+                };
 
-            const handleKeyPress = (e) => {
-                if (e.key === 'Enter') {
-                    sendMessage();
-                }
-            };
-
-            const scrollToBottom = () => {
-                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            };
-
-            useEffect(() => {
-                scrollToBottom();
-            }, [messages]);
-
-            return (
-                <div className="chat-container">
-                    <div className="chat-header">
-                        <h2>Customer Support Chat</h2>
-                        {userInfo && (
-                            <div className="user-info">
-                                Customer Name: {userInfo.custName} | Branch: SBIN00{userInfo.branchCode}
-                            </div>
-                        )}
-                        <div className={`connection-status status-${connectionStatus}`}>
-                            {connectionStatus === 'connected' && 'Connected to support'}
-                            {connectionStatus === 'disconnected' && 'Disconnected - Reconnecting...'}
-                            {connectionStatus === 'connecting' && 'Connecting...'}
-                            {connectionStatus === 'error' && 'Connection Error'}
-                        </div>
-                    </div>
-
-                    <div className="chat-messages">
-                        {messages.map((message, index) => (
-                            <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
-                                <div className="message-content">
-                                    {message.content}
-                                </div>
-                                <div className="message-time">
-                                    {new Date(message.timestamp).toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    })}
-                                </div>
-                            </div>
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    <div className="chat-input">
-                        <div className="input-container">
-                            <input
-                                type="text"
-                                className="message-input"
-                                name="message_input"
-                                value={inputMessage}
-                                onChange={(e) => setInputMessage(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Type your message..."
-                                maxLength="500"
-                                disabled={connectionStatus !== 'connected'}
-                            />
-                            <button
-                                className="send-button"
-                                onClick={sendMessage}
-                                disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
-                            >
-                                Send
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
+                setWs(websocket);
+            } catch (error) {
+                console.error('Failed to create customer WebSocket:', error);
+                setConnectionStatus('error');
+            }
         };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<CustomerChat />);
-    </script>
-</body>
+        connectWebSocket();
 
-</html>
+        return () => {
+            if (ws) ws.close();
+        };
+    }, [customerId, branchCode]);
+
+    const handleIncomingMessage = (message) => {
+        if (message.customerId != customerId) return;
+        if (message.type === 'message') {
+            const newMessage = {
+                content: message.content,
+                isCustomer: message.sender === 'customer',
+                timestamp: message.timestamp || new Date().toISOString()
+            };
+            setMessages(prev => [...prev, newMessage]);
+        }
+    };
+
+    const sendMessage = () => {
+        if (!inputMessage.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+        const messageData = {
+            type: 'message',
+            content: inputMessage.trim(),
+            customerId: customerId,
+            branchCode: branchCode,
+            sender: 'customer',
+            timestamp: new Date().toISOString(),
+            customerName: userInfo?.custName || ''
+        };
+
+        ws.send(JSON.stringify(messageData));
+
+        const newMessage = {
+            content: inputMessage.trim(),
+            isCustomer: true,
+            timestamp: messageData.timestamp
+        };
+
+        setMessages(prev => [...prev, newMessage]);
+        setInputMessage('');
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    };
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    return (
+        <div className="chat-container">
+            <div className="chat-header">
+                <h2>Customer Support Chat</h2>
+                {userInfo && (
+                    <div className="user-info">
+                        Customer Name: {userInfo.custName} | Branch: SBIN00{userInfo.branchCode}
+                    </div>
+                )}
+                <div className={`connection-status status-${connectionStatus}`}>
+                    {connectionStatus === 'connected' && 'Connected to support'}
+                    {connectionStatus === 'disconnected' && 'Disconnected - Reconnecting...'}
+                    {connectionStatus === 'connecting' && 'Connecting...'}
+                    {connectionStatus === 'error' && 'Connection Error'}
+                </div>
+            </div>
+
+            <div className="chat-messages">
+                {messages.map((message, index) => (
+                    <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
+                        <div className="message-content">
+                            {message.content}
+                        </div>
+                        <div className="message-time">
+                            {new Date(message.timestamp).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}
+                        </div>
+                    </div>
+                ))}
+                <div ref={messagesEndRef} />
+            </div>
+
+            <div className="chat-input">
+                <div className="input-container">
+                    <input
+                        type="text"
+                        className="message-input"
+                        value={inputMessage}
+                        onChange={(e) => setInputMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder="Type your message..."
+                        maxLength="500"
+                        disabled={connectionStatus !== 'connected'}
+                    />
+                    <button
+                        className="send-button"
+                        onClick={sendMessage}
+                        disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
+                    >
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
