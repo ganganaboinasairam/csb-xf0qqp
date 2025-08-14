@@ -1,128 +1,385 @@
-package com.chat;
+<!DOCTYPE html>
+<html lang="en">
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Queue;
-import java.util.LinkedList;
-import java.util.Set;
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Customer Support Dashboard</title>
+    <link rel="stylesheet" href="bankStyles.css">
 
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.RemoteEndpoint;
-import javax.websocket.Session;
-import javax.websocket.server.ServerEndpoint;
+    <!-- React and Babel CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
 
-import com.cs.core.dao.DSManager;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+<body>
+    <div id="root"></div>
 
-@ServerEndpoint("/chat")
-public class ChatServer {
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
 
-    // All connected sessions
-    private static final Set<Session> sessions = Collections.synchronizedSet(new HashSet<>());
+        // Utility function to get URL parameters
+        const getUrlParameter = (name) => {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            const results = regex.exec(window.location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        };
 
-    // Per-session message queues
-    private static final Map<Session, Queue<String>> messageQueues = Collections.synchronizedMap(new HashMap<>());
+        
 
-    // Sending lock per session
-    private static final Map<Session, Object> sendLocks = Collections.synchronizedMap(new HashMap<>());
+        // Bank Dashboard Component with WebSocket
+        const BankDashboard = () => {
+            const [customers, setCustomers] = useState([]);
+            const [selectedCustomer, setSelectedCustomer] = useState(null);
+            const [inputMessage, setInputMessage] = useState('');
+            const [connectionStatus, setConnectionStatus] = useState('connecting');
+            const [ws, setWs] = useState(null);
+            const messagesEndRef = useRef(null);
 
-    @OnOpen
-    public void onOpen(Session session) {
-        sessions.add(session);
-        messageQueues.put(session, new LinkedList<>());
-        sendLocks.put(session, new Object());
-        System.out.println("Client Connected: " + session.getId());
-    }
+            // WebSocket connection
+            useEffect(() => {
+                const connectWebSocket = () => {
+                    try {
+                        const websocket = new WebSocket(`ws://localhost:8080/ChatboxEECE/chat`);
+                        //const websocket = new WebSocket(`wss://ce.uat.web:7002/ChatboxEECE/chat`);
 
-    @OnMessage
-    public void onMessage(String message, Session senderSession) throws Exception {
-        System.out.println("Received: " + message);
+                        
+                       
 
-        // Handle keep-alive
-        if ("PING".equals(message)) {
-            System.out.println("WebSocket is idle connection re-established.");
-            return;
-        }
 
-        // Broadcast (queue-based)
-        synchronized (sessions) {
-            for (Session s : sessions) {
-                if (s.isOpen() && !s.equals(senderSession)) {
-                    enqueueMessage(s, message);
-                }
-            }
-        }
+                        websocket.onopen = () => {
+                            console.log('Bank WebSocket connected');
+                            setConnectionStatus('connected');
 
-        // Save to DB if needed
-        try {
-            JsonObject obj = JsonParser.parseString(message).getAsJsonObject();
-            String type = obj.get("type").getAsString();
+                            // Send initial connection message
+                            websocket.send(JSON.stringify({
+                                type: 'register',
+                                role: 'bank'
+                            }));
+                        };
 
-            if ("message".equalsIgnoreCase(type)) {
-                saveMessagesToDB(obj);
-            }
-        } catch (Exception e) {
-            System.err.println("Invalid message format: " + e.getMessage());
-        }
-    }
 
-    @OnClose
-    public void onClose(Session session) {
-        sessions.remove(session);
-        messageQueues.remove(session);
-        sendLocks.remove(session);
-        System.out.println("WebSocket Closed: " + session.getId());
-    }
 
-    @OnError
-    public void onError(Session session, Throwable throwable) {
-        System.out.println("WebSocket Error: " + session.getId());
-        throwable.printStackTrace();
-    }
+                        websocket.onmessage = (event) => {
+                            const message = JSON.parse(event.data);
+                            handleIncomingMessage(message);
+                        };
 
-    private void enqueueMessage(Session session, String message) {
-        Queue<String> queue = messageQueues.get(session);
-        synchronized (queue) {
-            boolean wasEmpty = queue.isEmpty();
-            queue.add(message);
-            if (wasEmpty) {
-                sendNextMessage(session);
-            }
-        }
-    }
+                        websocket.onclose = () => {
+                            console.log('Bank WebSocket disconnected');
+                            setConnectionStatus('disconnected');
+                            setTimeout(connectWebSocket, 3000);
+                        };
 
-    private void sendNextMessage(Session session) {
-        Queue<String> queue = messageQueues.get(session);
-        if (queue == null || queue.isEmpty()) return;
+                        websocket.onerror = (error) => {
+                            console.error('Bank WebSocket error:', error);
+                            setConnectionStatus('error');
+                        };
 
-        String message = queue.peek();
-        RemoteEndpoint.Async asyncRemote = session.getAsyncRemote();
-
-        asyncRemote.sendText(message, result -> {
-            synchronized (queue) {
-                if (result.isOK()) {
-                    queue.poll(); // remove sent message
-                    if (!queue.isEmpty()) {
-                        sendNextMessage(session);
+                        setWs(websocket);
+                    } catch (error) {
+                        console.error('Failed to create bank WebSocket:', error);
+                        setConnectionStatus('error');
                     }
-                } else {
-                    System.err.println("Failed to send to " + session.getId() + ": " + result.getException());
-                }
-            }
-        });
-    }
+                };
 
-    public void saveMessagesToDB(JsonObject obj) throws Exception {
-        System.out.println("obj   " + obj);
-        Connection conn = DSManager.getConnection("CET");
-        // TODO: Add your DB insert logic here
-    }
-}
+                connectWebSocket();
+
+                return () => {
+                    if (ws) ws.close();
+                };
+            }, []);
+
+            const handleIncomingMessage = (message) => {
+                if (message.type === 'message') {
+                    const customerId = message.customerId;
+                    const customerName = message.customerName || `Customer ${customerId}`;
+                    //const customerEmail = message.customerEmail || `${customerId}@customer.com`;
+
+                    setCustomers(prevCustomers => {
+                        const existingCustomerIndex = prevCustomers.findIndex(c => c.id === customerId);
+
+                        if (existingCustomerIndex !== -1) {
+                            // Update existing customer
+                            const updatedCustomers = [...prevCustomers];
+                            const customer = updatedCustomers[existingCustomerIndex];
+
+                            customer.messages = [...customer.messages, {
+                                content: message.content,
+                                isCustomer: true,
+                                timestamp: message.timestamp || new Date().toISOString()
+                            }];
+                            customer.lastMessage = message.content;
+                            customer.lastMessageTime = "Just now";
+
+                            // Move customer to top
+                            updatedCustomers.splice(existingCustomerIndex, 1);
+                            updatedCustomers.unshift(customer);
+
+                            return updatedCustomers;
+                        } else {
+                            // Add new customer
+                            const newCustomer = {
+                                id: customerId,
+                                name: customerName,
+                                //email: customerEmail,
+                                lastMessage: message.content,
+                                lastMessageTime: "Just now",
+                                status: "online",
+                                unreadCount: selectedCustomer?.id === customerId ? 0 : 1,
+                                messages: [{
+                                    content: message.content,
+                                    isCustomer: true,
+                                    timestamp: message.timestamp || new Date().toISOString()
+                                }]
+                            };
+
+                            return [newCustomer, ...prevCustomers];
+                        }
+                    });
+
+                    // Update selected customer if currently viewing
+                    if (selectedCustomer && message.customerId === selectedCustomer.id) {
+                        setSelectedCustomer(prev => {
+                            if (!prev) return null;
+                            return {
+                                ...prev,
+                                messages: [...prev.messages, {
+                                    content: message.content,
+                                    isCustomer: true,
+                                    timestamp: message.timestamp || new Date().toISOString()
+                                }],
+                                lastMessage: message.content,
+                                lastMessageTime: "Just now"
+                            };
+                        });
+                    }
+                }
+            };
+
+            const handleCustomerSelect = (customer) => {
+                setSelectedCustomer(customer);
+
+                // Mark messages as read
+                setCustomers(prevCustomers =>
+                    prevCustomers.map(c =>
+                        c.id === customer.id ? { ...c, unreadCount: 0 } : c
+                    )
+                );
+            };
+
+            const sendMessage = () => {
+                if (!inputMessage.trim() || !selectedCustomer || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+                 const branchCode = getUrlParameter('branch_code');
+
+                const messageData = {
+                    type: 'message',
+                    content: inputMessage.trim(),
+                    customerId: selectedCustomer.id,
+                    sender: 'bank',
+                    timestamp: new Date().toISOString(),
+                    customerName: selectedCustomer.name,
+                    branchCode: branchCode
+                };
+
+                ws.send(JSON.stringify(messageData));
+
+                // Add message to local state
+                const newMessage = {
+                    content: inputMessage.trim(),
+                    isCustomer: false,
+                    timestamp: messageData.timestamp
+                };
+
+                setSelectedCustomer(prev => {
+                    if (!prev) return null;
+                    return {
+                        ...prev,
+                        messages: [...prev.messages, newMessage],
+                        lastMessage: inputMessage.trim(),
+                        lastMessageTime: "Just now"
+                    };
+                });
+
+                // Update customers list
+                setCustomers(prevCustomers =>
+                    prevCustomers.map(c =>
+                        c.id === selectedCustomer.id
+                            ? { ...c, messages: [...c.messages, newMessage], lastMessage: inputMessage.trim(), lastMessageTime: "Just now" }
+                            : c
+                    )
+                );
+
+                setInputMessage('');
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            };
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [selectedCustomer?.messages]);
+
+            return (
+                <div className="bank-container">
+                    <div className="customer-list">
+                        <div className="customer-list-header">
+                            Bank Customer Support Dashboard
+                            <div style={{ fontSize: '0.8em', marginTop: '5px' }}>
+                                {customers.filter(c => c.status === 'online').length} Customers
+                            </div>
+                        </div>
+                        {customers.map(customer => (
+                            <div
+                                key={customer.id}
+                                className={`customer-item ${selectedCustomer?.id === customer.id ? 'active' : ''}`}
+                                onClick={() => handleCustomerSelect(customer)}
+                            >
+                                <div className="customer-name">
+                                    <span className={`customer-status status-${customer.status}`}></span>
+                                    {customer.name}
+                                </div>
+                                <div className="customer-preview">
+                                    {customer.lastMessage}
+                                </div>
+                                {customer.unreadCount > 0 && (
+                                    <span style={{
+                                        backgroundColor: '#dc3545',
+                                        color: 'white',
+                                        borderRadius: '50%',
+                                        padding: '2px 6px',
+                                        fontSize: '0.8em',
+                                        float: 'right'
+                                    }}>
+                                        {customer.unreadCount}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="chat-area">
+                        {selectedCustomer ? (
+                            <>
+                                <div className="chat-header">
+                                    <h2>{selectedCustomer.name}</h2>
+                                    <div style={{ fontSize: '0.9em', color: '#f8f9fa' }}>
+                                        {selectedCustomer.email}
+                                    </div>
+                                </div>
+
+                                <div className="chat-messages">
+                                    {selectedCustomer.messages.map((message, index) => (
+                                        <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
+                                            <div className="message-content">
+                                                {message.content}
+                                            </div>
+                                            <div className="message-time">
+                                                {new Date(message.timestamp).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} />
+                                </div>
+
+                                <div className="chat-input">
+                                    <div className="input-container">
+                                        <input
+                                            type="text"
+                                            className="message-input"
+                                            value={inputMessage}
+                                            onChange={(e) => setInputMessage(e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Type your response..."
+                                            maxLength="500"
+                                            disabled={connectionStatus !== 'connected'}
+                                        />
+                                        <button
+                                            className="send-button"
+                                            onClick={sendMessage}
+                                            disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
+                                        >
+                                            Send
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="no-customer-selected">
+                                Select a customer to start chatting
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={`connection-status status-${connectionStatus}`}>
+                        {connectionStatus === 'connected' ? 'Connected' :
+                            connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the bank dashboard
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<BankDashboard />);
+    </script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+add new function loadPreviousMessages  in onload of the page and the messages shoud get from the servlet "./LoadPreviousMesgs?cust_id=00000&branch_code=00000" , the response will come as "[
+  {
+    "date": "2025-08-14 12:46:32",
+    "sender": "customer",
+    "custID1": "123123",
+    "message": "hello bank",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-14 12:50:16.22937",
+    "sender": "bank",
+    "custID1": "123123",
+    "message": "SADSDSD",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-13 19:30:42",
+    "sender": "customer",
+    "custID1": "123123",
+    "message": "asdasdsadsad",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-13 19:32:13",
+    "sender": "customer",
+    "custID1": "123123",
+    "message": "dsasasf",
+    "brCode": "09995"
+  },
+  {
+    "date": "2025-08-13 19:32:43",
+    "sender": "bank",
+    "custID1": "123123",
+    "message": "asdasdasd",
+    "brCode": "09995"
+  }
+]" and the messages to be arranged based on the time and date 
