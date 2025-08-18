@@ -1,7 +1,9 @@
 function openIchatBoxframe() {
-			var brCode = document.getElementById('userDetails').innerHTML;
-		
-	var pageUrl = 'https://ce.uat.web:7002/ChatboxEECE/bank.html?branch_code='+brCode
-  	 var featurs = `width=800,height=600,top=100,left=200,resizable=yes,scrollbars=yes,status=yes`;
-	 window.open(pageUrl,"Chat Box EE to CE",featurs);
-		}
+    var brCode = document.getElementById('userDetails').innerHTML.trim();
+
+    var pageUrl = "https://ce.uat.web:7002/ChatboxEECE/bank.html?branch_code=" + encodeURIComponent(brCode);
+
+    var features = "width=800,height=600,top=100,left=200,resizable=yes,scrollbars=yes,status=yes";
+
+    window.open(pageUrl, "ChatBoxEECE", features);
+}
