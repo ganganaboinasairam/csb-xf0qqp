@@ -1,1 +1,7 @@
-chromewebdata/:1 Refused to display 'http://10.177.139.91:7001/' in a frame because it set multiple 'X-Frame-Options' headers with conflicting values ('DENY, SAMEORIGIN'). Falling back to 'deny'.
+function openIchatBoxframe() {
+			var brCode = document.getElementById('userDetails').innerHTML;
+		
+	var pageUrl = 'https://ce.uat.web:7002/ChatboxEECE/bank.html?branch_code='+brCode
+  	 var featurs = `width=800,height=600,top=100,left=200,resizable=yes,scrollbars=yes,status=yes`;
+	 window.open(pageUrl,"Chat Box EE to CE",featurs);
+		}
