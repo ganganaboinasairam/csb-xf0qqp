@@ -1,9 +1,36 @@
-function openIchatBoxframe() {
-    var brCode = document.getElementById('userDetails').innerHTML.trim();
+import javax.servlet.http.HttpSession;
+import javax.websocket.HandshakeResponse;
+import javax.websocket.server.HandshakeRequest;
+import javax.websocket.server.ServerEndpointConfig;
 
-    var pageUrl = "https://ce.uat.web:7002/ChatboxEECE/bank.html?branch_code=" + encodeURIComponent(brCode);
+public class ChatEndpointConfigurator extends ServerEndpointConfig.Configurator {
 
-    var features = "width=800,height=600,top=100,left=200,resizable=yes,scrollbars=yes,status=yes";
+    @Override
+    public void modifyHandshake(ServerEndpointConfig sec,
+                                HandshakeRequest request,
+                                HandshakeResponse response) {
+        // ✅ Get the HTTP session
+        HttpSession httpSession = (HttpSession) request.getHttpSession();
 
-    window.open(pageUrl, "ChatBoxEECE", features);
+        if (httpSession == null) {
+            throw new RuntimeException("No HTTP session. Rejecting WebSocket.");
+        }
+
+        // ✅ Validate CSRF
+        String csrfSession = (String) httpSession.getAttribute("_csrf");
+        String csrfClient = null;
+        if (request.getParameterMap().containsKey("_csrf")) {
+            csrfClient = request.getParameterMap().get("_csrf").get(0);
+        }
+
+        if (csrfClient == null || !csrfClient.equals(csrfSession)) {
+            throw new RuntimeException("CSRF validation failed. Rejecting WebSocket.");
+        }
+
+        // ✅ Put data in user properties for later use in endpoint
+        sec.getUserProperties().put("user", httpSession.getAttribute("username"));
+        if (request.getParameterMap().containsKey("branch_code")) {
+            sec.getUserProperties().put("branchCode", request.getParameterMap().get("branch_code").get(0));
+        }
+    }
 }
