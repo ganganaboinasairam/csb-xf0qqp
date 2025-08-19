@@ -1,36 +1,174 @@
-import javax.servlet.http.HttpSession;
-import javax.websocket.HandshakeResponse;
-import javax.websocket.server.HandshakeRequest;
-import javax.websocket.server.ServerEndpointConfig;
+package com.chat;
 
-public class ChatEndpointConfigurator extends ServerEndpointConfig.Configurator {
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
-    @Override
-    public void modifyHandshake(ServerEndpointConfig sec,
-                                HandshakeRequest request,
-                                HandshakeResponse response) {
-        // ✅ Get the HTTP session
-        HttpSession httpSession = (HttpSession) request.getHttpSession();
+import javax.websocket.OnClose;
+import javax.websocket.OnError;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.RemoteEndpoint;
+import javax.websocket.Session;
+import javax.websocket.server.ServerEndpoint;
 
-        if (httpSession == null) {
-            throw new RuntimeException("No HTTP session. Rejecting WebSocket.");
+import com.cs.core.dao.DSManager;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+//import db.DBConnection;
+
+@ServerEndpoint("/chat")
+public class ChatServer {
+	
+//	public static final CSLogger logger = ASCELog
+//			.getCELogger(CELogUtility.getLoggerWithClassName(ChatServer.class, "CELOG"));
+
+    // All connected sessions
+    private static final Set<Session> sessions = Collections.synchronizedSet(new HashSet<>());
+
+    // Per-session message queues
+    private static final Map<Session, Queue<String>> messageQueues = Collections.synchronizedMap(new HashMap<>());
+
+    // Sending lock per session
+    private static final Map<Session, Object> sendLocks = Collections.synchronizedMap(new HashMap<>());
+
+    @OnOpen
+    public void onOpen(Session session) {
+        sessions.add(session);
+        messageQueues.put(session, new LinkedList<>());
+        sendLocks.put(session, new Object());
+        System.out.println("Client Connected: " + session.getId());
+    }
+
+    @OnMessage
+    public void onMessage(String message, Session senderSession) throws Exception {
+        System.out.println("Received: " + message);
+
+        // Handle keep-alive
+        if ("PING".equals(message)) {
+            System.out.println("WebSocket is idle connection re-established.");
+            return;
         }
 
-        // ✅ Validate CSRF
-        String csrfSession = (String) httpSession.getAttribute("_csrf");
-        String csrfClient = null;
-        if (request.getParameterMap().containsKey("_csrf")) {
-            csrfClient = request.getParameterMap().get("_csrf").get(0);
+        // Broadcast (queue-based)
+        synchronized (sessions) {
+            for (Session s : sessions) {
+                if (s.isOpen() && !s.equals(senderSession)) {
+                    enqueueMessage(s, message);
+                }
+            }
         }
 
-        if (csrfClient == null || !csrfClient.equals(csrfSession)) {
-            throw new RuntimeException("CSRF validation failed. Rejecting WebSocket.");
-        }
+        // Save to DB if needed
+        try {
+        	System.out.println(message);
+            JsonObject obj = JsonParser.parseString(message).getAsJsonObject();
+            String type = obj.get("type").getAsString();
 
-        // ✅ Put data in user properties for later use in endpoint
-        sec.getUserProperties().put("user", httpSession.getAttribute("username"));
-        if (request.getParameterMap().containsKey("branch_code")) {
-            sec.getUserProperties().put("branchCode", request.getParameterMap().get("branch_code").get(0));
+            if ("message".equalsIgnoreCase(type)) {
+                saveMessagesToDB(obj);
+            }
+        } catch (Exception e) {
+        	e.printStackTrace();
+            System.err.println("Invalid message format: " + e);
         }
+    }
+
+    @OnClose
+    public void onClose(Session session) {
+        sessions.remove(session);
+        messageQueues.remove(session);
+        sendLocks.remove(session);
+        System.out.println("WebSocket Closed: " + session.getId());
+    }
+
+    @OnError
+    public void onError(Session session, Throwable throwable) {
+        System.out.println("WebSocket Error: " + session.getId());
+        throwable.printStackTrace();
+    }
+
+    private void enqueueMessage(Session session, String message) {
+        Queue<String> queue = messageQueues.get(session);
+        synchronized (queue) {
+            boolean wasEmpty = queue.isEmpty();
+            queue.add(message);
+            if (wasEmpty) {
+                sendNextMessage(session);
+            }
+        }
+    }
+
+    private void sendNextMessage(Session session) {
+        Queue<String> queue = messageQueues.get(session);
+        if (queue == null || queue.isEmpty()) return;
+
+        String message = queue.peek();
+        RemoteEndpoint.Async asyncRemote = session.getAsyncRemote();
+
+        asyncRemote.sendText(message, result -> {
+            synchronized (queue) {
+                if (result.isOK()) {
+                    queue.poll(); // remove sent message
+                    if (!queue.isEmpty()) {
+                        sendNextMessage(session);
+                    }
+                } else {
+                    System.err.println("Failed to send to " + session.getId() + ": " + result.getException());
+                }
+            }
+        });
+    }
+
+    public void saveMessagesToDB(JsonObject obj) throws Exception {
+    
+        Connection conn = DSManager.getConnection("CET");
+        // TODO: Add your DB insert logic here
+        
+        //DBConnection db = new DBConnection();
+        //Connection conn = db.getConnection();
+        PreparedStatement pstmt = null;
+        
+        String content = obj.get("content").getAsString();
+        String customerId = obj.get("customerId").getAsString();
+        String branchCode = obj.get("branchCode").getAsString();
+        String sender = obj.get("sender").getAsString();
+        String timestamp = obj.get("timestamp").getAsString();
+        String customerName = obj.get("customerName").getAsString();
+        
+        try {
+			String sql = "insert into CETRX.TF_CHAT_SUPPORT (MESSAGE,CUST_ID,BR_CODE,SENDER,T_RECV_DATE,CUST_NAME) VALUES (?,?,?,?,SYSTIMESTAMP,?)";
+			
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, content);
+			pstmt.setString(2, customerId);
+			pstmt.setString(3, branchCode);
+			pstmt.setString(4, sender);
+			//pstmt.setString(5, timestamp);
+			pstmt.setString(5, customerName);
+			
+			
+			//System.out.println(pstmt.toString());
+			
+			pstmt.execute();
+			//conn.commit();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			if (pstmt != null) pstmt.close();
+            if (conn != null) conn.close();
+		}
+        
+        
+        
+        
     }
 }
