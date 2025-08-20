@@ -10,29 +10,6 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>
-    .default-questions {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .default-question-btn {
-      background: #e6f0ff;
-      border: 1px solid #b3d1ff;
-      padding: 10px;
-      border-radius: 8px;
-      text-align: left;
-      cursor: pointer;
-      font-size: 14px;
-      transition: 0.2s;
-    }
-
-    .default-question-btn:hover {
-      background: #cce0ff;
-    }
-  </style>
 </head>
 
 <body>
@@ -41,6 +18,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
+    // Utility function to get URL parameters
     const getUrlParameter = (name) => {
       name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
       const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
@@ -48,6 +26,7 @@
       return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
     };
 
+    // Customer Chat Component with WebSocket
     const CustomerChat = () => {
       const [messages, setMessages] = useState([]);
       const [inputMessage, setInputMessage] = useState('');
@@ -56,16 +35,17 @@
       const [customerId, setCustomerId] = useState('');
       const [branchCode, setBranchCode] = useState('');
       const [userInfo, setUserInfo] = useState(null);
-      const [showDefaults, setShowDefaults] = useState(false);
+      const [showDefaultQuestions, setShowDefaultQuestions] = useState(false);
       const messagesEndRef = useRef(null);
 
       const defaultQuestions = [
-        "I have a query about my transaction",
-        "I want to check my account balance",
-        "I need help with loan details",
-        "I want to update my personal details"
+        "Check account balance",
+        "View last 5 transactions",
+        "Report an issue",
+        "Talk to customer support"
       ];
 
+      // Extract URL parameters on component mount
       useEffect(() => {
         const urlCustomerId = getUrlParameter('cust_id');
         const urlBranchCode = getUrlParameter('branch_code');
@@ -79,6 +59,7 @@
           custName: urlCustName
         });
 
+        // Load previous messages from servlet
         loadPreviousMessages(urlCustomerId, urlBranchCode);
       }, []);
 
@@ -86,6 +67,7 @@
         try {
           const response = await fetch(`./LoadPreviousMesgs?cust_id=${custId}&branch_code=${brCode}&req_from=customer`);
           if (!response.ok) throw new Error('Failed to fetch previous messages');
+
           let data = await response.json();
 
           let filtered = data.filter(msg => msg.custID1 === custId);
@@ -97,18 +79,25 @@
             timestamp: msg.date
           }));
 
-          setMessages(formattedMessages);
+          // Prepend welcome message
+          setMessages([
+            {
+              content: "Welcome! How can we help you today?",
+              isCustomer: false,
+              timestamp: new Date().toISOString()
+            },
+            ...formattedMessages
+          ]);
 
-          // Show default questions only if there is no conversation
-          if (formattedMessages.length === 0) {
-            setShowDefaults(true);
-          }
+          // 👉 show default questions only once after loading messages
+          setShowDefaultQuestions(true);
+
         } catch (error) {
           console.error('Error loading previous messages:', error);
-          setShowDefaults(true); // fallback
         }
       };
 
+      // WebSocket connection
       useEffect(() => {
         if (!customerId || !branchCode) return;
 
@@ -137,7 +126,8 @@
               setTimeout(connectWebSocket, 3000);
             };
 
-            websocket.onerror = () => {
+            websocket.onerror = (error) => {
+              console.error('Customer WebSocket error:', error);
               setConnectionStatus('error');
             };
 
@@ -164,17 +154,15 @@
             timestamp: message.timestamp || new Date().toISOString()
           };
           setMessages(prev => [...prev, newMessage]);
-          setShowDefaults(false);
         }
       };
 
-      const sendMessage = (msg = null) => {
-        const content = msg || inputMessage.trim();
-        if (!content || !ws || ws.readyState !== WebSocket.OPEN) return;
+      const sendMessage = (text) => {
+        if (!text.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
 
         const messageData = {
           type: 'message',
-          content: content,
+          content: text.trim(),
           customerId: customerId,
           branchCode: branchCode,
           sender: 'customer',
@@ -185,20 +173,17 @@
         ws.send(JSON.stringify(messageData));
 
         const newMessage = {
-          content: content,
+          content: text.trim(),
           isCustomer: true,
           timestamp: messageData.timestamp
         };
 
         setMessages(prev => [...prev, newMessage]);
         setInputMessage('');
-        setShowDefaults(false);
       };
 
       const handleKeyPress = (e) => {
-        if (e.key === 'Enter') {
-          sendMessage();
-        }
+        if (e.key === 'Enter') sendMessage(inputMessage);
       };
 
       const scrollToBottom = () => {
@@ -208,6 +193,11 @@
       useEffect(() => {
         scrollToBottom();
       }, [messages]);
+
+      const handleDefaultQuestionClick = (question) => {
+        sendMessage(question);
+        setShowDefaultQuestions(false); // remove buttons after selection
+      };
 
       return (
         <div className="chat-container">
@@ -236,15 +226,11 @@
               </div>
             ))}
 
-            {/* Default Questions */}
-            {showDefaults && (
+            {/* Default questions only on first load */}
+            {showDefaultQuestions && (
               <div className="default-questions">
                 {defaultQuestions.map((q, i) => (
-                  <button
-                    key={i}
-                    className="default-question-btn"
-                    onClick={() => sendMessage(q)}
-                  >
+                  <button key={i} className="question-btn" onClick={() => handleDefaultQuestionClick(q)}>
                     {q}
                   </button>
                 ))}
@@ -259,7 +245,6 @@
               <input
                 type="text"
                 className="message-input"
-                name="message_input"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -269,7 +254,7 @@
               />
               <button
                 className="send-button"
-                onClick={() => sendMessage()}
+                onClick={() => sendMessage(inputMessage)}
                 disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
               >
                 Send
@@ -283,5 +268,26 @@
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<CustomerChat />);
   </script>
+
+  <style>
+    .default-questions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .question-btn {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #0078d7;
+      color: white;
+      cursor: pointer;
+      text-align: left;
+    }
+    .question-btn:hover {
+      background: #005fa3;
+    }
+  </style>
 </body>
 </html>
