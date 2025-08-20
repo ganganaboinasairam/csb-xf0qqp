@@ -10,6 +10,29 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    .default-questions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .default-question-btn {
+      background: #e6f0ff;
+      border: 1px solid #b3d1ff;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 14px;
+      transition: 0.2s;
+    }
+
+    .default-question-btn:hover {
+      background: #cce0ff;
+    }
+  </style>
 </head>
 
 <body>
@@ -18,7 +41,6 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // Utility function to get URL parameters
     const getUrlParameter = (name) => {
       name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
       const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
@@ -26,31 +48,24 @@
       return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
     };
 
-    // Default starter questions
-    const defaultQuestions = [
-      "Check my transaction status",
-      "Update my account details",
-      "Speak to a support agent"
-    ];
-
     const CustomerChat = () => {
-      const [messages, setMessages] = useState([
-        {
-          content: "Welcome! How can we help you today?",
-          isCustomer: false,
-          timestamp: new Date().toISOString(),
-          options: defaultQuestions // show default questions on init
-        }
-      ]);
+      const [messages, setMessages] = useState([]);
       const [inputMessage, setInputMessage] = useState('');
       const [connectionStatus, setConnectionStatus] = useState('connecting');
       const [ws, setWs] = useState(null);
       const [customerId, setCustomerId] = useState('');
       const [branchCode, setBranchCode] = useState('');
       const [userInfo, setUserInfo] = useState(null);
+      const [showDefaults, setShowDefaults] = useState(false);
       const messagesEndRef = useRef(null);
 
-      // Extract URL params
+      const defaultQuestions = [
+        "I have a query about my transaction",
+        "I want to check my account balance",
+        "I need help with loan details",
+        "I want to update my personal details"
+      ];
+
       useEffect(() => {
         const urlCustomerId = getUrlParameter('cust_id');
         const urlBranchCode = getUrlParameter('branch_code');
@@ -64,11 +79,9 @@
           custName: urlCustName
         });
 
-        console.log('URL Parameters:', { urlCustomerId, urlBranchCode });
         loadPreviousMessages(urlCustomerId, urlBranchCode);
       }, []);
 
-      // Load previous messages
       const loadPreviousMessages = async (custId, brCode) => {
         try {
           const response = await fetch(`./LoadPreviousMesgs?cust_id=${custId}&branch_code=${brCode}&req_from=customer`);
@@ -84,58 +97,66 @@
             timestamp: msg.date
           }));
 
-          setMessages(prev => [
-            ...prev,
-            ...formattedMessages
-          ]);
+          setMessages(formattedMessages);
+
+          // Show default questions only if there is no conversation
+          if (formattedMessages.length === 0) {
+            setShowDefaults(true);
+          }
         } catch (error) {
           console.error('Error loading previous messages:', error);
+          setShowDefaults(true); // fallback
         }
       };
 
-      // WebSocket connection
       useEffect(() => {
         if (!customerId || !branchCode) return;
 
         const connectWebSocket = () => {
           try {
             const websocket = new WebSocket(`wss://ce.uat.web:7002/ChatBox/chatServer`);
+
             websocket.onopen = () => {
-              console.log('Connected');
               setConnectionStatus('connected');
               websocket.send(JSON.stringify({
                 type: 'register',
                 role: 'customer',
-                customerId,
-                branchCode,
+                customerId: customerId,
+                branchCode: branchCode,
                 customerName: userInfo?.custName || ''
               }));
             };
+
             websocket.onmessage = (event) => {
               const message = JSON.parse(event.data);
               handleIncomingMessage(message);
             };
+
             websocket.onclose = () => {
               setConnectionStatus('disconnected');
               setTimeout(connectWebSocket, 3000);
             };
-            websocket.onerror = (error) => {
-              console.error('WebSocket error:', error);
+
+            websocket.onerror = () => {
               setConnectionStatus('error');
             };
+
             setWs(websocket);
           } catch (error) {
-            console.error('WebSocket init failed:', error);
+            console.error('Failed to create customer WebSocket:', error);
             setConnectionStatus('error');
           }
         };
+
         connectWebSocket();
-        return () => { if (ws) ws.close(); };
+
+        return () => {
+          if (ws) ws.close();
+        };
       }, [customerId, branchCode]);
 
-      // Handle messages
       const handleIncomingMessage = (message) => {
-        if (message.customerId !== customerId) return;
+        if (message.customerId != customerId) return;
         if (message.type === 'message') {
           const newMessage = {
             content: message.content,
@@ -143,61 +164,50 @@
             timestamp: message.timestamp || new Date().toISOString()
           };
           setMessages(prev => [...prev, newMessage]);
+          setShowDefaults(false);
         }
       };
 
-      // Send message
-      const sendMessage = (msgText = inputMessage.trim()) => {
-        if (!msgText || !ws || ws.readyState !== WebSocket.OPEN) return;
+      const sendMessage = (msg = null) => {
+        const content = msg || inputMessage.trim();
+        if (!content || !ws || ws.readyState !== WebSocket.OPEN) return;
+
         const messageData = {
           type: 'message',
-          content: msgText,
-          customerId,
-          branchCode,
+          content: content,
+          customerId: customerId,
+          branchCode: branchCode,
           sender: 'customer',
           timestamp: new Date().toISOString(),
           customerName: userInfo?.custName || ''
         };
+
         ws.send(JSON.stringify(messageData));
-        setMessages(prev => [...prev, {
-          content: msgText,
+
+        const newMessage = {
+          content: content,
           isCustomer: true,
           timestamp: messageData.timestamp
-        }]);
+        };
+
+        setMessages(prev => [...prev, newMessage]);
         setInputMessage('');
+        setShowDefaults(false);
       };
 
-      // Handle Enter key
-      const handleKeyPress = (e) => { if (e.key === 'Enter') sendMessage(); };
-
-      // Scroll to bottom
-      const scrollToBottom = () => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); };
-      useEffect(() => { scrollToBottom(); }, [messages]);
-
-      // Handle option click
-      const handleOptionClick = (option) => {
-        sendMessage(option); // treat as customer input
-        // Optionally push a bank response immediately
-        if (option === "Check my transaction status") {
-          setMessages(prev => [...prev, {
-            content: "Please provide your transaction number.",
-            isCustomer: false,
-            timestamp: new Date().toISOString()
-          }]);
-        } else if (option === "Update my account details") {
-          setMessages(prev => [...prev, {
-            content: "Sure, what detail would you like to update?",
-            isCustomer: false,
-            timestamp: new Date().toISOString()
-          }]);
-        } else if (option === "Speak to a support agent") {
-          setMessages(prev => [...prev, {
-            content: "Connecting you to a support agent...",
-            isCustomer: false,
-            timestamp: new Date().toISOString()
-          }]);
+      const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+          sendMessage();
         }
       };
+
+      const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      };
+
+      useEffect(() => {
+        scrollToBottom();
+      }, [messages]);
 
       return (
         <div className="chat-container">
@@ -205,12 +215,12 @@
             <h2>Customer Support Chat</h2>
             {userInfo && (
               <div className="user-info">
-                Customer: {userInfo.custName} | Branch: SBIN00{userInfo.branchCode}
+                Customer Name: {userInfo.custName} | Branch: SBIN00{userInfo.branchCode}
               </div>
             )}
             <div className={`connection-status status-${connectionStatus}`}>
-              {connectionStatus === 'connected' && 'Connected'}
-              {connectionStatus === 'disconnected' && 'Reconnecting...'}
+              {connectionStatus === 'connected' && 'Connected to support'}
+              {connectionStatus === 'disconnected' && 'Disconnected - Reconnecting...'}
               {connectionStatus === 'connecting' && 'Connecting...'}
               {connectionStatus === 'error' && 'Connection Error'}
             </div>
@@ -219,23 +229,28 @@
           <div className="chat-messages">
             {messages.map((message, index) => (
               <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
-                <div className="message-content">
-                  {message.content}
-                  {message.options && (
-                    <div className="options">
-                      {message.options.map((opt, i) => (
-                        <button key={i} className="option-btn" onClick={() => handleOptionClick(opt)}>
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <div className="message-content">{message.content}</div>
                 <div className="message-time">
                   {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
             ))}
+
+            {/* Default Questions */}
+            {showDefaults && (
+              <div className="default-questions">
+                {defaultQuestions.map((q, i) => (
+                  <button
+                    key={i}
+                    className="default-question-btn"
+                    onClick={() => sendMessage(q)}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
 
@@ -244,6 +259,7 @@
               <input
                 type="text"
                 className="message-input"
+                name="message_input"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -251,7 +267,11 @@
                 maxLength="500"
                 disabled={connectionStatus !== 'connected'}
               />
-              <button className="send-button" onClick={() => sendMessage()} disabled={!inputMessage.trim() || connectionStatus !== 'connected'}>
+              <button
+                className="send-button"
+                onClick={() => sendMessage()}
+                disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
+              >
                 Send
               </button>
             </div>
@@ -263,27 +283,5 @@
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<CustomerChat />);
   </script>
-
-  <style>
-    /* Quick inline styling for options */
-    .options {
-      margin-top: 8px;
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .option-btn {
-      background: #0056b3;
-      color: white;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .option-btn:hover {
-      background: #00408d;
-    }
-  </style>
 </body>
 </html>
