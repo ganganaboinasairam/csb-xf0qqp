@@ -1,275 +1,135 @@
-<!DOCTYPE html>
-<html lang="en">
+.chat-container {
+  max-width: 100%;
+  margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: Arial, sans-serif;
+}
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customer Support Chat</title>
-  <link rel="stylesheet" href="custStyles.css">
-  <!-- React and Babel CDN -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
+.chat-header {
+  padding: 20px;
+  background: linear-gradient(to right, orange, tomato);
+  color: white;
+  text-align: center;
+}
 
-<body>
-  <div id="root"></div>
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: #f8f9fa;
+}
 
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+.message {
+  margin-bottom: 15px;
+  padding: 10px;
+  border-radius: 8px;
+  max-width: 70%;
+}
 
-    // Utility function to get URL parameters
-    const getUrlParameter = (name) => {
-      name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-      const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-      const results = regex.exec(window.location.search);
-      return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-    };
+.message.customer {
+  background-color: #e3f2fd;
+  margin-left: auto;
+}
 
-    // Customer Chat Component with WebSocket
-    const CustomerChat = () => {
-      const [messages, setMessages] = useState([]);
-      const [inputMessage, setInputMessage] = useState('');
-      const [connectionStatus, setConnectionStatus] = useState('connecting');
-      const [ws, setWs] = useState(null);
-      const [customerId, setCustomerId] = useState('');
-      const [branchCode, setBranchCode] = useState('');
-      const [userInfo, setUserInfo] = useState(null);
-      const [showDefaultQuestions, setShowDefaultQuestions] = useState(false);
-      const messagesEndRef = useRef(null);
+.message.bank {
+  background-color: #f1f1f1;
+  margin-right: auto;
+}
 
-      const defaultQuestions = [
-        "Check account balance",
-        "View last 5 transactions",
-        "Report an issue",
-        "Talk to customer support"
-      ];
+.message-content {
+  margin-bottom: 5px;
+}
 
-      // Extract URL parameters on component mount
-      useEffect(() => {
-        const urlCustomerId = getUrlParameter('cust_id');
-        const urlBranchCode = getUrlParameter('branch_code');
-        const urlCustName = getUrlParameter('cust_name');
+.message-time {
+  font-size: 0.8em;
+  color: #6c757d;
+}
 
-        setCustomerId(urlCustomerId);
-        setBranchCode(urlBranchCode);
-        setUserInfo({
-          customerId: urlCustomerId,
-          branchCode: urlBranchCode,
-          custName: urlCustName
-        });
+.chat-input {
+  padding: 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
 
-        // Load previous messages from servlet
-        loadPreviousMessages(urlCustomerId, urlBranchCode);
-      }, []);
+.input-container {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
 
-      const loadPreviousMessages = async (custId, brCode) => {
-        try {
-          const response = await fetch(`./LoadPreviousMesgs?cust_id=${custId}&branch_code=${brCode}&req_from=customer`);
-          if (!response.ok) throw new Error('Failed to fetch previous messages');
+.message-input {
+  flex: 1;
+  padding: 15px;
+  border: 1px solid #ced4da;
+  border-radius: 20px;
+  font-size: 16px;
+  min-height: 20px;
+}
 
-          let data = await response.json();
+.send-button {
+  padding: 15px 30px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 16px;
+  white-space: nowrap;
+  min-height: 20px;
+}
 
-          let filtered = data.filter(msg => msg.custID1 === custId);
-          filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+.send-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
 
-          const formattedMessages = filtered.map(msg => ({
-            content: msg.message,
-            isCustomer: msg.sender.toLowerCase() === 'customer',
-            timestamp: msg.date
-          }));
+.connection-status {
+  font-size: 0.9em;
+  margin-top: 5px;
+}
 
-          // Prepend welcome message
-          setMessages([
-            {
-              content: "Welcome! How can we help you today?",
-              isCustomer: false,
-              timestamp: new Date().toISOString()
-            },
-            ...formattedMessages
-          ]);
+.status-connected {
+  color: #28a745;
+}
 
-          // 👉 show default questions only once after loading messages
-          setShowDefaultQuestions(true);
+.status-disconnected {
+  color: #dc3545;
+}
 
-        } catch (error) {
-          console.error('Error loading previous messages:', error);
-        }
-      };
+.status-connecting {
+  color: #ffc107;
+}
 
-      // WebSocket connection
-      useEffect(() => {
-        if (!customerId || !branchCode) return;
+.status-error {
+  color: #dc3545;
+}
 
-        const connectWebSocket = () => {
-          try {
-            const websocket = new WebSocket(`wss://ce.uat.web:7002/ChatBox/chatServer`);
-
-            websocket.onopen = () => {
-              setConnectionStatus('connected');
-              websocket.send(JSON.stringify({
-                type: 'register',
-                role: 'customer',
-                customerId: customerId,
-                branchCode: branchCode,
-                customerName: userInfo?.custName || ''
-              }));
-            };
-
-            websocket.onmessage = (event) => {
-              const message = JSON.parse(event.data);
-              handleIncomingMessage(message);
-            };
-
-            websocket.onclose = () => {
-              setConnectionStatus('disconnected');
-              setTimeout(connectWebSocket, 3000);
-            };
-
-            websocket.onerror = (error) => {
-              console.error('Customer WebSocket error:', error);
-              setConnectionStatus('error');
-            };
-
-            setWs(websocket);
-          } catch (error) {
-            console.error('Failed to create customer WebSocket:', error);
-            setConnectionStatus('error');
-          }
-        };
-
-        connectWebSocket();
-
-        return () => {
-          if (ws) ws.close();
-        };
-      }, [customerId, branchCode]);
-
-      const handleIncomingMessage = (message) => {
-        if (message.customerId != customerId) return;
-        if (message.type === 'message') {
-          const newMessage = {
-            content: message.content,
-            isCustomer: message.sender === 'customer',
-            timestamp: message.timestamp || new Date().toISOString()
-          };
-          setMessages(prev => [...prev, newMessage]);
-        }
-      };
-
-      const sendMessage = (text) => {
-        if (!text.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
-
-        const messageData = {
-          type: 'message',
-          content: text.trim(),
-          customerId: customerId,
-          branchCode: branchCode,
-          sender: 'customer',
-          timestamp: new Date().toISOString(),
-          customerName: userInfo?.custName || ''
-        };
-
-        ws.send(JSON.stringify(messageData));
-
-        const newMessage = {
-          content: text.trim(),
-          isCustomer: true,
-          timestamp: messageData.timestamp
-        };
-
-        setMessages(prev => [...prev, newMessage]);
-        setInputMessage('');
-      };
-
-      const handleKeyPress = (e) => {
-        if (e.key === 'Enter') sendMessage(inputMessage);
-      };
-
-      const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      };
-
-      useEffect(() => {
-        scrollToBottom();
-      }, [messages]);
-
-      const handleDefaultQuestionClick = (question) => {
-        sendMessage(question);
-        setShowDefaultQuestions(false); // remove buttons after selection
-      };
-
-      return (
-        <div className="chat-container">
-          <div className="chat-header">
-            <h2>Customer Support Chat</h2>
-            {userInfo && (
-              <div className="user-info">
-                Customer Name: {userInfo.custName} | Branch: SBIN00{userInfo.branchCode}
-              </div>
-            )}
-            <div className={`connection-status status-${connectionStatus}`}>
-              {connectionStatus === 'connected' && 'Connected to support'}
-              {connectionStatus === 'disconnected' && 'Disconnected - Reconnecting...'}
-              {connectionStatus === 'connecting' && 'Connecting...'}
-              {connectionStatus === 'error' && 'Connection Error'}
-            </div>
-          </div>
-
-          <div className="chat-messages">
-            {messages.map((message, index) => (
-              <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
-                <div className="message-content">{message.content}</div>
-                <div className="message-time">
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
-            ))}
-
-            {/* Default questions only on first load */}
-            {showDefaultQuestions && (
-              <div className="default-questions">
-                {defaultQuestions.map((q, i) => (
-                  <button key={i} className="question-btn" onClick={() => handleDefaultQuestionClick(q)}>
-                    {q}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          <div className="chat-input">
-            <div className="input-container">
-              <input
-                type="text"
-                className="message-input"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
-                maxLength="500"
-                disabled={connectionStatus !== 'connected'}
-              />
-              <button
-                className="send-button"
-                onClick={() => sendMessage(inputMessage)}
-                disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
-              >
-                Send
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<CustomerChat />);
-  </script>
-
-  <style>
+.user-info {
+  font-size: 0.8em;
+  margin-top: 5px;
+  color: #e3f2fd;
+}
+.options {
+      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .option-btn {
+      background: #0056b3;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .option-btn:hover {
+      background: #00408d;
+    }
+    
     .default-questions {
       display: flex;
       flex-direction: column;
@@ -288,6 +148,3 @@
     .question-btn:hover {
       background: #005fa3;
     }
-  </style>
-</body>
-</html>
