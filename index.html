@@ -1,174 +1,287 @@
-package com.chat;
+<!DOCTYPE html>
+<html lang="en">
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Support Chat</title>
+    <link rel="stylesheet" href="custStyles.css">
+    <!-- React and Babel CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
 
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.RemoteEndpoint;
-import javax.websocket.Session;
-import javax.websocket.server.ServerEndpoint;
+<body>
+    <div id="root"></div>
 
-import com.cs.core.dao.DSManager;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
 
-//import db.DBConnection;
+        // Utility function to get URL parameters
+        const getUrlParameter = (name) => {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            const results = regex.exec(window.location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        };
 
-@ServerEndpoint("/chat")
-public class ChatServer {
-	
-//	public static final CSLogger logger = ASCELog
-//			.getCELogger(CELogUtility.getLoggerWithClassName(ChatServer.class, "CELOG"));
-
-    // All connected sessions
-    private static final Set<Session> sessions = Collections.synchronizedSet(new HashSet<>());
-
-    // Per-session message queues
-    private static final Map<Session, Queue<String>> messageQueues = Collections.synchronizedMap(new HashMap<>());
-
-    // Sending lock per session
-    private static final Map<Session, Object> sendLocks = Collections.synchronizedMap(new HashMap<>());
-
-    @OnOpen
-    public void onOpen(Session session) {
-        sessions.add(session);
-        messageQueues.put(session, new LinkedList<>());
-        sendLocks.put(session, new Object());
-        System.out.println("Client Connected: " + session.getId());
-    }
-
-    @OnMessage
-    public void onMessage(String message, Session senderSession) throws Exception {
-        System.out.println("Received: " + message);
-
-        // Handle keep-alive
-        if ("PING".equals(message)) {
-            System.out.println("WebSocket is idle connection re-established.");
-            return;
-        }
-
-        // Broadcast (queue-based)
-        synchronized (sessions) {
-            for (Session s : sessions) {
-                if (s.isOpen() && !s.equals(senderSession)) {
-                    enqueueMessage(s, message);
+        // Customer Chat Component with WebSocket
+        const CustomerChat = () => {
+            const [messages, setMessages] = useState([
+                {
+                    content: "Welcome! How can we help you today?",
+                    isCustomer: false,
+                    timestamp: new Date().toISOString()
                 }
-            }
-        }
+            ]);
+            const [inputMessage, setInputMessage] = useState('');
+            const [connectionStatus, setConnectionStatus] = useState('connecting');
+            const [ws, setWs] = useState(null);
+            const [customerId, setCustomerId] = useState('');
+            const [branchCode, setBranchCode] = useState('');
+            const [userInfo, setUserInfo] = useState(null);
+            const messagesEndRef = useRef(null);
 
-        // Save to DB if needed
-        try {
-        	System.out.println(message);
-            JsonObject obj = JsonParser.parseString(message).getAsJsonObject();
-            String type = obj.get("type").getAsString();
+            // Extract URL parameters on component mount
+            useEffect(() => {
+                const urlCustomerId = getUrlParameter('cust_id');
+                const urlBranchCode = getUrlParameter('branch_code');
+                const urlCustName = getUrlParameter('cust_name');
 
-            if ("message".equalsIgnoreCase(type)) {
-                saveMessagesToDB(obj);
-            }
-        } catch (Exception e) {
-        	e.printStackTrace();
-            System.err.println("Invalid message format: " + e);
-        }
-    }
+                setCustomerId(urlCustomerId);
+                setBranchCode(urlBranchCode);
+                setUserInfo({
+                    customerId: urlCustomerId,
+                    branchCode: urlBranchCode,
+                    custName: urlCustName
+                });
 
-    @OnClose
-    public void onClose(Session session) {
-        sessions.remove(session);
-        messageQueues.remove(session);
-        sendLocks.remove(session);
-        System.out.println("WebSocket Closed: " + session.getId());
-    }
+                console.log('URL Parameters extracted:', {
+                    customerId: urlCustomerId,
+                    branchCode: urlBranchCode
+                });
 
-    @OnError
-    public void onError(Session session, Throwable throwable) {
-        System.out.println("WebSocket Error: " + session.getId());
-        throwable.printStackTrace();
-    }
+                // Load previous messages from servlet
+                            loadPreviousMessages(urlCustomerId, urlBranchCode);
 
-    private void enqueueMessage(Session session, String message) {
-        Queue<String> queue = messageQueues.get(session);
-        synchronized (queue) {
-            boolean wasEmpty = queue.isEmpty();
-            queue.add(message);
-            if (wasEmpty) {
-                sendNextMessage(session);
-            }
-        }
-    }
+            }, []);
 
-    private void sendNextMessage(Session session) {
-        Queue<String> queue = messageQueues.get(session);
-        if (queue == null || queue.isEmpty()) return;
 
-        String message = queue.peek();
-        RemoteEndpoint.Async asyncRemote = session.getAsyncRemote();
+            const loadPreviousMessages = async (custId, brCode) => {
+                try {
+                    const response = await fetch(`./LoadPreviousMesgs?cust_id=${custId}&branch_code=${brCode}&req_from=customer`);
+                    if (!response.ok) throw new Error('Failed to fetch previous messages');
 
-        asyncRemote.sendText(message, result -> {
-            synchronized (queue) {
-                if (result.isOK()) {
-                    queue.poll(); // remove sent message
-                    if (!queue.isEmpty()) {
-                        sendNextMessage(session);
+                    let data = await response.json();
+
+                    // Filter only messages for this customer
+                    let filtered = data.filter(msg => msg.custID1 === custId);
+
+                    // Sort by date/time ascending
+                    filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                    // Map to chat message format
+                    const formattedMessages = filtered.map(msg => ({
+                        content: msg.message,
+                        isCustomer: msg.sender.toLowerCase() === 'customer',
+                        timestamp: msg.date
+                    }));
+
+                    // Set to state (prepend welcome if you still want it)
+                    setMessages([
+                        {
+                            content: "Welcome! How can we help you today?",
+                            isCustomer: false,
+                            timestamp: new Date().toISOString()
+                        },
+                        ...formattedMessages
+                    ]);
+
+                } catch (error) {
+                    console.error('Error loading previous messages:', error);
+                }
+            };
+
+            // WebSocket connection
+            useEffect(() => {
+                if (!customerId || !branchCode) return;
+
+                const connectWebSocket = () => {
+                    try {
+                        const urlCustomerId = getUrlParameter('cust_id');
+                        const urlBranchCode = getUrlParameter('branch_code');
+                        //const websocket = new WebSocket(`ws://localhost:8080/ChatboxEECE/chatServer`);
+                        const websocket = new WebSocket(`wss://ce.uat.web:7002/ChatBox/chatServer`);
+
+                        websocket.onopen = () => {
+                            console.log('Customer WebSocket connected');
+                            console.log('Connection details:', { customerId, branchCode });
+                            setConnectionStatus('connected');
+
+                            websocket.send(JSON.stringify({
+                                type: 'register',
+                                role: 'customer',
+                                customerId: customerId,
+                                branchCode: branchCode,
+                                customerName: userInfo?.custName || ''
+                            }));
+
+                            
+                            
+                        };
+
+
+
+                        websocket.onmessage = (event) => {
+                            const message = JSON.parse(event.data);
+                            handleIncomingMessage(message);
+                        };
+
+                        websocket.onclose = () => {
+                            console.log('Customer WebSocket disconnected');
+                            setConnectionStatus('disconnected');
+                            setTimeout(connectWebSocket, 3000);
+                        };
+
+                        websocket.onerror = (error) => {
+                            console.error('Customer WebSocket error:', error);
+                            setConnectionStatus('error');
+                        };
+
+                        setWs(websocket);
+                    } catch (error) {
+                        console.error('Failed to create customer WebSocket:', error);
+                        setConnectionStatus('error');
                     }
-                } else {
-                    System.err.println("Failed to send to " + session.getId() + ": " + result.getException());
-                }
-            }
-        });
-    }
+                };
 
-    public void saveMessagesToDB(JsonObject obj) throws Exception {
-    
-        Connection conn = DSManager.getConnection("CET");
-        // TODO: Add your DB insert logic here
-        
-        //DBConnection db = new DBConnection();
-        //Connection conn = db.getConnection();
-        PreparedStatement pstmt = null;
-        
-        String content = obj.get("content").getAsString();
-        String customerId = obj.get("customerId").getAsString();
-        String branchCode = obj.get("branchCode").getAsString();
-        String sender = obj.get("sender").getAsString();
-        String timestamp = obj.get("timestamp").getAsString();
-        String customerName = obj.get("customerName").getAsString();
-        
-        try {
-			String sql = "insert into CETRX.TF_CHAT_SUPPORT (MESSAGE,CUST_ID,BR_CODE,SENDER,T_RECV_DATE,CUST_NAME) VALUES (?,?,?,?,SYSTIMESTAMP,?)";
-			
-			pstmt = conn.prepareStatement(sql);
-			pstmt.setString(1, content);
-			pstmt.setString(2, customerId);
-			pstmt.setString(3, branchCode);
-			pstmt.setString(4, sender);
-			//pstmt.setString(5, timestamp);
-			pstmt.setString(5, customerName);
-			
-			
-			//System.out.println(pstmt.toString());
-			
-			pstmt.execute();
-			//conn.commit();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} finally {
-			if (pstmt != null) pstmt.close();
-            if (conn != null) conn.close();
-		}
-        
-        
-        
-        
-    }
-}
+                connectWebSocket();
+
+                return () => {
+                    if (ws) ws.close();
+                };
+            }, [customerId, branchCode]);
+
+            const handleIncomingMessage = (message) => {
+                if (message.customerId != customerId) {
+                    return false
+                };
+                if (message.type === 'message') {
+                    const newMessage = {
+                        content: message.content,
+                        isCustomer: message.sender === 'customer',
+                        timestamp: message.timestamp || new Date().toISOString()
+                    };
+
+                    setMessages(prev => [...prev, newMessage]);
+                }
+            };
+
+            const sendMessage = () => {
+                if (!inputMessage.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+                const messageData = {
+                    type: 'message',
+                    content: inputMessage.trim(),
+                    customerId: customerId,
+                    branchCode: branchCode,
+                    sender: 'customer',
+                    timestamp: new Date().toISOString(),
+                    customerName: userInfo?.custName || ''    
+                    //customerEmail: userInfo?.customerId ? `${userInfo.customerId}@customer.com` : '' // <-- add this
+                };
+
+                ws.send(JSON.stringify(messageData));
+
+                // Add message to local state
+                const newMessage = {
+                    content: inputMessage.trim(),
+                    isCustomer: true,
+                    timestamp: messageData.timestamp
+                };
+
+                setMessages(prev => [...prev, newMessage]);
+                setInputMessage('');
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            };
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages]);
+
+            return (
+                <div className="chat-container">
+                    <div className="chat-header">
+                        <h2>Customer Support Chat</h2>
+                        {userInfo && (
+                            <div className="user-info">
+                                Customer Name: {userInfo.custName} | Branch: SBIN00{userInfo.branchCode}
+                            </div>
+                        )}
+                        <div className={`connection-status status-${connectionStatus}`}>
+                            {connectionStatus === 'connected' && 'Connected to support'}
+                            {connectionStatus === 'disconnected' && 'Disconnected - Reconnecting...'}
+                            {connectionStatus === 'connecting' && 'Connecting...'}
+                            {connectionStatus === 'error' && 'Connection Error'}
+                        </div>
+                    </div>
+
+                    <div className="chat-messages">
+                        {messages.map((message, index) => (
+                            <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
+                                <div className="message-content">
+                                    {message.content}
+                                </div>
+                                <div className="message-time">
+                                    {new Date(message.timestamp).toLocaleTimeString([], {
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    <div className="chat-input">
+                        <div className="input-container">
+                            <input
+                                type="text"
+                                className="message-input"
+                                name="message_input"
+                                value={inputMessage}
+                                onChange={(e) => setInputMessage(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                                placeholder="Type your message..."
+                                maxLength="500"
+                                disabled={connectionStatus !== 'connected'}
+                            />
+                            <button
+                                className="send-button"
+                                onClick={sendMessage}
+                                disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
+                            >
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CustomerChat />);
+    </script>
+</body>
+
+</html>
