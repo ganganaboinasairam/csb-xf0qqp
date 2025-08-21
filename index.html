@@ -1,4 +1,71 @@
-.chat-container {
+return (
+        <div className="chat-container">
+          <div className="chat-header">
+            <h2 className="title">Customer Support</h2>
+            {userInfo && (
+              <div className="user-info">
+                Customer Name: {userInfo.custName} | Branch: SBIN00{userInfo.branchCode}
+              </div>
+            )}
+            <div className={`connection-status status-${connectionStatus}`}>
+              {connectionStatus === 'connected' && 'Connected to support'}
+              {connectionStatus === 'disconnected' && 'Disconnected - Reconnecting...'}
+              {connectionStatus === 'connecting' && 'Connecting...'}
+              {connectionStatus === 'error' && 'Connection Error'}
+            </div>
+          </div>
+
+          <div className="chat-messages">
+            {messages.map((message, index) => (
+              <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
+                <div className="message-content">{message.content}</div>
+                <div className="message-time">
+                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            ))}
+
+            {/* Default questions only on first load */}
+            {showDefaultQuestions && (
+              <div className="default-questions">
+                {defaultQuestions.map((q, i) => (
+                  <button key={i} className="question-btn" onClick={() => handleDefaultQuestionClick(q)}>
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="chat-input">
+            <div className="input-container">
+              <input
+                type="text"
+                className="message-input"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type your message..."
+                maxLength="500"
+                disabled={connectionStatus !== 'connected'}
+              />
+              <button
+                className="send-button"
+                onClick={() => sendMessage(inputMessage)}
+                disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+	  
+	  
+	  
+	  .chat-container {
   width: 100%;
   height: 100%;
   display: flex;
@@ -13,7 +80,7 @@
 
 .chat-header {
   padding: 10px 14px;
-  background: linear-gradient(to right, #0078d7, #005fa3);
+  background: linear-gradient(to right, orange, tomato);
   color: white;
   font-size: 15px;
   font-weight: 600;
@@ -89,13 +156,19 @@
 
 /* Default Questions Section */
 .default-questions {
+  width: 70%;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #dfdfdf;
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin: 10px 0;
+
 }
 
 .question-btn {
+      
   padding: 8px 12px;
   border: none;
   border-radius: 6px;
@@ -114,6 +187,13 @@
 .connection-status {
   font-size: 0.75em;
   margin-top: 3px;
+}
+
+.title{
+  	margin-block-start: 0.2em;
+    margin-block-end: 0.2em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
 }
 
 .status-connected { color: #28a745; }
