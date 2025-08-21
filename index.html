@@ -1,71 +1,4 @@
-return (
-        <div className="chat-container">
-          <div className="chat-header">
-            <h2 className="title">Customer Support</h2>
-            {userInfo && (
-              <div className="user-info">
-                Customer Name: {userInfo.custName} | Branch: SBIN00{userInfo.branchCode}
-              </div>
-            )}
-            <div className={`connection-status status-${connectionStatus}`}>
-              {connectionStatus === 'connected' && 'Connected to support'}
-              {connectionStatus === 'disconnected' && 'Disconnected - Reconnecting...'}
-              {connectionStatus === 'connecting' && 'Connecting...'}
-              {connectionStatus === 'error' && 'Connection Error'}
-            </div>
-          </div>
-
-          <div className="chat-messages">
-            {messages.map((message, index) => (
-              <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
-                <div className="message-content">{message.content}</div>
-                <div className="message-time">
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
-            ))}
-
-            {/* Default questions only on first load */}
-            {showDefaultQuestions && (
-              <div className="default-questions">
-                {defaultQuestions.map((q, i) => (
-                  <button key={i} className="question-btn" onClick={() => handleDefaultQuestionClick(q)}>
-                    {q}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          <div className="chat-input">
-            <div className="input-container">
-              <input
-                type="text"
-                className="message-input"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
-                maxLength="500"
-                disabled={connectionStatus !== 'connected'}
-              />
-              <button
-                className="send-button"
-                onClick={() => sendMessage(inputMessage)}
-                disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
-              >
-                Send
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-	  
-	  
-	  
-	  .chat-container {
+.chat-container {
   width: 100%;
   height: 100%;
   display: flex;
@@ -78,14 +11,20 @@ return (
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
+/* Header fixed at top */
 .chat-header {
+  flex-shrink: 0;
   padding: 10px 14px;
   background: linear-gradient(to right, orange, tomato);
   color: white;
   font-size: 15px;
   font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
+/* Scrollable messages section */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -93,36 +32,15 @@ return (
   background: #f5f6f7;
 }
 
-.message {
-  margin-bottom: 8px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  max-width: 75%;
-  font-size: 13px;
-  line-height: 1.3;
-}
-
-.message.customer {
-  background-color: #dbeafe;
-  margin-left: auto;
-}
-
-.message.bank {
-  background-color: #f1f1f1;
-  margin-right: auto;
-}
-
-.message-time {
-  font-size: 0.7em;
-  color: #888;
-  margin-top: 3px;
-  display: block;
-}
-
+/* Input fixed at bottom */
 .chat-input {
+  flex-shrink: 0;
   padding: 8px 10px;
   background: #fff;
   border-top: 1px solid #ddd;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 .input-container {
@@ -130,73 +48,3 @@ return (
   align-items: center;
   gap: 6px;
 }
-
-.message-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #ccc;
-  border-radius: 20px;
-  font-size: 13px;
-}
-
-.send-button {
-  padding: 8px 16px;
-  background: #0078d7;
-  color: white;
-  border: none;
-  border-radius: 20px;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.send-button:disabled {
-  background: #aaa;
-  cursor: not-allowed;
-}
-
-/* Default Questions Section */
-.default-questions {
-  width: 70%;
-  padding: 10px;
-  border-radius: 10px;
-  background-color: #dfdfdf;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 10px 0;
-
-}
-
-.question-btn {
-      
-  padding: 8px 12px;
-  border: none;
-  border-radius: 6px;
-  background: #0078d7;
-  color: white;
-  cursor: pointer;
-  text-align: left;
-  font-size: 13px;
-}
-
-.question-btn:hover {
-  background: #005fa3;
-}
-
-/* Connection status - subtle */
-.connection-status {
-  font-size: 0.75em;
-  margin-top: 3px;
-}
-
-.title{
-  	margin-block-start: 0.2em;
-    margin-block-end: 0.2em;
-    margin-inline-start: 0px;
-    margin-inline-end: 0px;
-}
-
-.status-connected { color: #28a745; }
-.status-disconnected { color: #dc3545; }
-.status-connecting { color: #ffc107; }
-.status-error { color: #dc3545; }
