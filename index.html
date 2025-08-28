@@ -1,323 +1,439 @@
 function doPageInit() {
-    console.log("doPageInit starts");
+  console.log("doPageInit starts");
 
-    // Utility functions to avoid repeating selectors
-    const enable = (selector) => $(selector).removeAttr("disabled");
-    const disable = (selector) => $(selector).attr("disabled", true);
-    const hide = (selector) => $(selector).hide();
-    const show = (selector) => $(selector).show();
-    const setVal = (fld, val) => setFldValue(fld, val);
+  // -------------------- Helpers --------------------
+  const ss = sessionStorage;
+  const $id = (sel) => $(sel);
+  const setText = (id, val) => setFldValue(id, val);
+  const getText = (id) => getFldValue(id);
+  const show = (sel) => $id(sel).show();
+  const hide = (sel) => $id(sel).hide();
+  const enable = (sel) => $id(sel).prop("disabled", false).removeAttr("disabled");
+  const disable = (sel) => $id(sel).prop("disabled", true).attr("disabled", "disabled");
+  const readonly = (sel) => $id(sel).attr("readonly", true);
+  const setChecked = (sel, val = true) => $id(sel).prop("checked", val);
+  const setDisplayInline = (sel, on = true) => $id(sel).css("display", on ? "inline" : "none");
+  const setDisplayNone = (sel) => $id(sel).css("display", "none");
+  const setBg = (sel, v) => $id(sel).css("background-color", v);
+  const setCss = (sel, prop, v) => $id(sel).css(prop, v);
+  const setTitle = (sel) => $id(sel).attr("title", $id(sel).val());
+  const exists = (id) => document.getElementById(id) != null;
+  const getVal = (id) => (exists(id) ? document.getElementById(id).value : "");
+  const setVal = (id, v) => exists(id) && (document.getElementById(id).value = v);
 
-    // Session helpers
-    const getSS = (key) => sessionStorage.getItem(key);
-    const setSS = (key, val) => sessionStorage.setItem(key, val);
+  const hideMany = (arr) => arr.forEach((s) => hide(s));
+  const showMany = (arr) => arr.forEach((s) => show(s));
+  const disableMany = (arr) => arr.forEach((s) => disable(s));
+  const enableMany = (arr) => arr.forEach((s) => enable(s));
+  const readonlyMany = (arr) => arr.forEach((s) => readonly(s));
 
-    // Initialize after a short delay for dynamic values
-    setTimeout(() => {
-        if (getSS('SingleAuthLC') === "Y") {
-            setSS('SingleAuthLC', 'N');
-            singleAuthorizeLC();
-            $("#issueLCMainDiv").show();
-        }
+  // -------------------- One-time UI tweaks --------------------
+  $(".buttonClass").css("font-weight", "bold");
+  $("option[value='']").hide();
+  $("#disableOctClass, #divMenu").addClass("disableOctClass");
+  hide("#vmPreview1");
+  $id("#exportMoreActions").attr("enabled", true);
+  hide("#confirmButtonid");
+  $("[id*='error_O']").hide();
 
-        // Applicant Setup
-        const applicantName = getFldValue("APPL_NM");
-        const applicantAddr = getFldValue("APPL_ADD");
-        setVal("CONSIGNEE_NM_ADD", applicantName + '\n' + applicantAddr);
+  // Defaults / titles / readonly fields
+  if (getVal("AVAL_WT_BK_NM_ADD") === "") setVal("AVAL_WT_BK_NM_ADD", "Any bank in India");
+  if (typeof FUNC_ID !== "undefined" && FUNC_ID !== "") setText("TEMP_ORG_FUNC_ID", FUNC_ID);
+  if (typeof APCL_DT !== "undefined" && typeof TRX_DT !== "undefined") setText(APCL_DT, TRX_DT);
 
-        rearrangeDo('CONSIGNEE_NM_ADD', 'INIS');
-        reRenderAmtNdTol();
-        checkMandatoryFieldsForSections();
-    }, 100);
+  // Titles for long bank fields
+  ["#ADV_THRU_BK_NM_ADD", "#AVAL_WT_BK_NM_ADD", "#CONFM_BNK_NM"].forEach(setTitle);
 
-    // Load dropdowns / UI elements state
-    changeIncoterms();
-    incotermsOnLoad();
-    changeAvalBy();
-    avalByOnload();
+  // Make IDs readonly
+  readonlyMany([
+    "#ADV_THRU_BK_ID",
+    "#CONFM_BNK_ID",
+    "#CONF_BNK_ID",
+    "#AVAL_WT_BK_ID",
+    "#ADV_BK_NM",
+    "#ADV_THRU_BK_NM_ADD",
+    "#ADV_THRU_BK_NM",
+    "#AVAL_WT_BK_NM_ADD",
+    "#AVAL_WT_BK_NM",
+    "#CONF_BNK_NM_ADD",
+    "#CONF_BNK_NM",
+    "#ADV_BK_ADD1",
+  ]);
 
-    // FUNC_ID mapping
-    if (typeof FUNC_ID !== 'undefined' && FUNC_ID !== '') {
-        setVal("TEMP_ORG_FUNC_ID", FUNC_ID);
+  // Background + layout polish
+  setBg("#B_CONTENT", "#e4e4e4");
+  ["#releaseitTd1", "#releaseitTd2", "#releaseitTd3", "#releaseitTd4"].forEach(setDisplayNone);
+  hide("#prim_template");
+  hide("#TrxSysBtnsDiv");
+
+  // Enable chat, menu, etc.
+  $("#chatmsg").removeAttr("disabled");
+
+  // -------------------- Delayed init (mirrors original setTimeout) --------------------
+  setTimeout(function () {
+    // Single Auth LC path
+    if (ss.getItem("SingleAuthLC") === "Y") {
+      ss.setItem("SingleAuthLC", "N");
+      singleAuthorizeLC();
+      show("#issueLCMainDiv");
     }
 
-    // Default values
-    if (!$("#AVAL_WT_BK_NM_ADD").val()) {
-        $("#AVAL_WT_BK_NM_ADD").val("Any bank in India");
-    }
-    setVal(APCL_DT, TRX_DT);
+    // Consignee name + address filled from applicant
+    const applicantName = getText("APPL_NM");
+    const applicantAddress = getText("APPL_ADD");
+    const consigneeAdd = `${applicantName}\n${applicantAddress}`;
+    setText("CONSIGNEE_NM_ADD", consigneeAdd);
+    rearrangeDo("CONSIGNEE_NM_ADD", "INIS");
 
-    // Generic UI state
-    $(".buttonClass").css("font-weight", "bold");
-    $("option[value='']").hide();
-    $("#disableOctClass, #divMenu").addClass("disableOctClass");
-    hide("#vmPreview1");
-    $("#exportMoreActions").attr("enabled", true);
-    hide("#confirmButtonid");
-    $("[id*='error_O']").hide();
+    // Amount render / validations
+    reRenderAmtNdTol();
+    checkMandatoryFieldsForSections();
+  }, 100);
 
-    // Session-based flag handling
-    if (ITEM_ID !== "ModifyTrx" || getSS('draftFlag') === 'P' || getSS('draftFlagset') === 'P') {
-        setSS('EditFlag', 'N');
-        $(".subbacbutton, #activepasttab, #btnMaker1").hide();
-        setSS('draftFlagset', '');
-    }
+  // Incoterms + Aval By on-load hooks
+  changeIncoterms();
+  incotermsOnLoad();
+  changeAvalBy();
+  avalByOnload();
 
-    // --- EditFlag based UI handling ---
-    if (getSS('EditFlag') === 'N') {
-        setSS('inModify', 'No');
-        $(".subbacbutton").hide();
-    }
+  // -------------------- Edit / Draft flags & role-gated UI --------------------
+  const ITEM_ID_SAFE = typeof ITEM_ID !== "undefined" ? ITEM_ID : "";
+  const draftFlag = ss.getItem("draftFlag");
+  const draftFlagset = ss.getItem("draftFlagset");
+  const editFlag = ss.getItem("EditFlag");
+  const role = ss.getItem("role");
+  const authStatus = ss.getItem("AuthStatus");
 
-    if (getSS('EditFlag') === 'Y' && getSS('draftFlag') !== 'P') {
-        editFlagHandler();
-    }
+  // Capture avblByDraft (was commented in original but later used)
+  const avblByDraft = getText("AVAL_BY");
 
-    // Draft mode
-    if (getSS('draftFlag') === 'P') {
-        setVal("AVAL_BY", avblByDraft);
-    }
+  if (ITEM_ID_SAFE !== "ModifyTrx" || draftFlag === "P" || draftFlagset === "P") {
+    ss.setItem("EditFlag", "N");
+    hideMany([".subbacbutton", "#activepasttab", "#btnMaker1"]);
+    ss.setItem("draftFlagset", "");
+  }
 
-    // Init modules
-    $('#TrxSysBtnsDiv').hide();
-    KYC();
-    Limit();
-    Margin();
+  if (editFlag === "N") {
+    ss.setItem("inModify", "No");
+    hide(".subbacbutton");
+  }
 
-    // Tabs adjustments
-    $("#TrxTabs").hide();
-    $('#lcDetails').click();
-    setVal('Special_License1', getFldValue('Special_License'));
+  // EditFlag = Y (and NOT draft 'P') => Checker review mode (locked inputs, etc.)
+  if (editFlag === "Y" && draftFlag !== "P") {
+    window.enabledFlag = false; // preserves original side-effect
+    ss.setItem("inModify", "Yes");
+    setText("enableAddGoods", "N");
 
-    enable("#exportMoreActions");
-    hide("#prim_next");
-    $('#prim_save').attr('onclick', 'smessage()');
+    hide(".sec_cancel"); // later re-enabled per role
+    hide("#tdconfirmChecker");
 
-    // Role based setup
-    if (getSS('role') === 'C') {
-        customerRoleHandler();
-    } else if (getSS('role') === 'M') {
-        makerRoleHandler();
-    }
-
-    // General UI unlock
-    $("#disableOctClass,#divMenu").removeClass("disableOctClass");
-    enable("#chatmsg");
-
-    $("#B_CONTENT").css("background-color", "#e4e4e4");
-    ["#releaseitTd1", "#releaseitTd2", "#releaseitTd3", "#releaseitTd4"].forEach(hide);
-
-    hide("#prim_template");
-
-    if (getSS('EditFlag') === 'Y' && getSS('draftFlag') !== 'P') {
-        $('#tabsForChecker, #useTemplateId').hide();
-    }
-
-    toggleTick5();
-
-    // Periodic updates
-    PCDAVar = setInterval(initPCDAChanges, 100);
-
-    // Loader remove
-    hide("#Octloader");
-    show("#mainDiv");
-
-    // Readonly fields
-    [
-        "#ADV_THRU_BK_ID", "#CONFM_BNK_ID", "#CONF_BNK_ID", "#AVAL_WT_BK_ID",
-        "#ADV_BK_NM", "#ADV_THRU_BK_NM_ADD", "#ADV_THRU_BK_NM", "#AVAL_WT_BK_NM_ADD", 
-        "#AVAL_WT_BK_NM", "#CONF_BNK_NM_ADD", "#CONF_BNK_NM", "#ADV_BK_ADD1"
-    ].forEach(fld => $(fld).attr("readonly", true));
-
-    // Enquiry screen adjustments
-    if (SYS_FUNCTION_SHORT_NAME === 'INIS_Master_Inq') {
-        enquiryScreenHandler();
-    }
-}
-
-// ---------------------- HELPER LOGIC -----------------------------
-
-function toggleTick5() {
-    if (document.getElementById("TEMP_ROW_COUNT").value > 0) {
-        document.getElementById("tick5").style.display = "inline";
-    } else {
-        document.getElementById("tick5").style.display = "none";
-    }
-}
-
-function editFlagHandler() {
-    let C_MAIN_REF = getFldValue("C_MAIN_REF");
-    let moduleProductCode = PRODUCT_ID;
-
-    // AJAX sync call to get status
-    $.ajax({
-        url: '../servlets/ActiveStatus',
-        type: 'get',
-        async: false,
-        dataType: 'json',
-        data: { refNumber: C_MAIN_REF, moduleProductCode },
-        success: (responseText) => {
-            let [statusCode, lastAction] = responseText.split("$");
-            $("#C_TRX_STATUS").val(statusCode);
-            $("#LastAction").val(lastAction);
-
-            let statusText = mapStatus(statusCode);
-            $("#makerrejstatus").val(statusText);
-
-            if (statusCode === 'A') {
-                $("#makerrejreason").val(getFldValue("NOTES1"));
-            } else {
-                $("#makerrejreason").val($("input[name='C_REFUSE_REASON']").val());
-            }
-
-            if (["A", "B", "C", "D", "E", "J", "M", "S"].includes(statusCode)) {
-                $("#editspan, #editid").hide();
-            }
-        },
-        error: (err) => console.log("Error STATUS " + err)
+    // Checkboxes states (lock both checked)
+    ["#checkBox2", "#checkBox1"].forEach((sel) => {
+      enable(sel);
+      setChecked(sel, true);
+      disable(sel);
     });
 
-    sessionStorage.setItem('inModify', 'Yes');
-    setFldValue("enableAddGoods", "N");
+    // Enable tab controls
+    enableMany(["#activeTab1", "#pastTab1", "#deleteTab1"]);
 
-    // UI states
-    $(".sec_cancel, #tdconfirmChecker, #TrxSysBtnsDiv1, #buttonContainer").hide();
+    // Lock all form inputs
     $("textarea, input, select, .search").attr("disabled", true);
-    $('#viewAndManageEdits').show();
-    $("#expportAsid").attr("disabled", false);
-    $("#btnMaker1").show();
-    $("#submitButtonid").show();
-}
+    show("#viewAndManageEdits");
+    $id("#expportAsid").attr("disabled", false);
 
-function mapStatus(code) {
-    const statuses = {
-        A: "Rejected by Bank",
-        B: "Pending Bank Authorisation",
-        C: "Processed",
-        D: "Incomplete",
-        E: "Modification",
-        J: "Rejected by Customer Checker",
-        M: "Authorised",
-        P: "Pending with Customer Checker",
-        R: "Rejected by Customer Checker",
-        S: "Pending with Bank",
-        T: "Pending with Customer Checker",
-        Z: "Saved as Draft"
-    };
-    return statuses[code] || "";
-}
+    // Primary action buttons
+    disable("#submitButtonid");
+    hideMany(["#prim_next", "#prim_save", "#TrxSysBtnsDiv1", "#buttonContainer", "#btnMaker"]);
+    show("#submitButtonid");
+    show("#btnMaker1");
 
-function customerRoleHandler() {
-    let tempCount = document.getElementById("TEMP_ROW_COUNT").value;
-    document.getElementById("tick5").style.display = tempCount > 0 ? "inline" : "none";
+    // Fetch Active Status
+    const C_MAIN_REF = getText("C_MAIN_REF");
+    const moduleProductCode = typeof PRODUCT_ID !== "undefined" ? PRODUCT_ID : "";
 
-    $('#COMMENT_BTN').hide();
-    $('#tabsForChecker').show();
-    $('#issuanceButton').css({ "background-color": "#0095da !important", "color": "white !important" }).prop("disabled", true);
-    enable('#authLCButton1');
-    $('[class^="DATE"]').attr("disabled", true);
-    disable("#margin_Marklien");
-
-    // Hide extra buttons
-    $('#PRE_BT, #TEMP_BT, #Id_DocUpload').hide();
-    ["#releaseitTd1", "#releaseitTd2", "#releaseitTd3", "#releaseitTd4"].forEach(id => $(id).hide());
-
-    // Set checkboxes locked
-    $("#checkBox1, #checkBox2").prop("checked", true).attr("disabled", true);
-
-    // Enable release related
-    $('.prim_release, #unlockLCButton, #viewLCButton1').removeAttr("disabled");
-    $("#Id_isMargin").attr("disabled", true);
-
-    // Auth / Rej visibility
-    if (sessionStorage.getItem('AuthStatus') === 'Auth') {
-        $("input[name=REJECT]").hide();
-    } else if (sessionStorage.getItem('AuthStatus') === 'Rej') {
-        $("input[name=AUTHORISE]").show();
-    }
-
-    // Doc fields
-    $("#LD_clause_tr, #btnMaker, #docsReqdMakerAdd, #docsReqdMaker, #DocsReqTable, #Id_AddDocUpload").hide();
-    $("#btnChecker, #docsReqdChecker, #addCondMaker, #addCondChecker, #Id_ImageTable, #TrxSysBtnsDivChecker").show();
-    $("#Id_renderIcon, #Id_renderName").css('display', 'table-row');
-
-    // UnderTakings section
-    setFldValue('DOCS_REQD_CHECKER', getFldValue('DOCS_REQD'));
-    setFldValue('ADD_COND_CHECKER', getFldValue('ADDIT_COND'));
-
-    // Append name & address
-    $('.underTakings2').append(getFldValue('APPL_NM')).append('<br>').append(getFldValue('APPL_ADD'));
-    setFldValue('underTakingsText1', $('.underTakings1').html());
-    setFldValue('underTakingsText2', $('.underTakings2').html());
-
-    // Tooltips
-    ["#ADV_THRU_BK_NM_ADD", "#AVAL_WT_BK_NM_ADD", "#CONFM_BNK_NM"].forEach(id => {
-        $(id).attr("title", $(id).val());
+    $.ajax({
+      url: "../servlets/ActiveStatus",
+      type: "get",
+      async: false,
+      dataType: "json",
+      data: { refNumber: C_MAIN_REF, moduleProductCode },
+      success: function (responseText) {
+        const pre = responseText.split("$");
+        const status = pre[0];
+        const lastAction = pre[1];
+        $("#C_TRX_STATUS").val(status);
+        $("#LastAction").val(lastAction);
+      },
+      error: function (err) {
+        console.log("Error STATUS", err);
+      },
     });
 
-    if (getSS('EditFlag') === 'Y') {
-        $("#tdconfirmChecker, #btnChecker, #deleteTab, #btnMaker1, #editid, #editspan, #submitButtonid, #confirmButtonid").hide();
-        $("#btnChecker1, #backButtonid, .subbacbutton").show();
-        ["#tick", "#tick1", "#tick2", "#tick3", "#tick4", "#tick5"].forEach(hide);
-        checkMandatoryFieldsForSections();
+    // Map status codes to labels + hide edit controls for most
+    const s = $("#C_TRX_STATUS").val();
+    const statusMap = {
+      A: "Rejected by Bank",
+      B: "Pending Bank Authorisation",
+      C: "Processed",
+      D: "Incomplete",
+      E: "Modification",
+      J: "Rejected by Customer Checker",
+      M: "Authorised",
+      P: "Pending with Customer Checker",
+      R: "Rejected by Customer Checker",
+      S: "Pending with Bank",
+      T: "Pending with Customer Checker",
+      Z: "Saved as Draft",
+    };
+    const statusLabel = statusMap[s] || "";
+
+    if (["A", "B", "C", "D", "E", "J", "M", "S"].includes(s)) {
+      hideMany(["#editspan", "#editid"]);
     }
-
-    $('#useTemplateId').hide();
-    NumberConv();
-}
-
-function makerRoleHandler() {
-    docsCheck();
-    if (getSS('template') === 'yes') goods_onload_templ();
-
-    $('#tabsForChecker').hide();
-    $('#prim_confirm').attr('onclick', 'smessagecon()').prop("disabled", true).css({
-        "background": "#d3d3d3", "border": "none", "color": "white"
-    }).hide();
-
-    $("#btnMaker, #docsReqdMakerAdd, #docsReqdMaker, #addCondMaker, #DocsReqTable").show();
-    $("#btnChecker, #docsReqdChecker, #addCondChecker").hide();
-
-    let insurNo = $('.insurPolicyNoEE').text();
-    let operCycle = $('.operatingCycleEE').text();
-
-    if (!$('#INSUR_POLICY_NO').val()) setFldValue('INSUR_POLICY_NO', insurNo);
-    setFldValue('OPERATING_CYCLE', operCycle);
-
-    setFldValue('underTakingsText1', $('.underTakings1').html());
-    setFldValue('underTakingsText2', $('.underTakings2').html());
-
-    NumberConv();
-
-    // Tick5 logic
-    if ($("#TEMP_ROW_COUNT").val() > 0 || getFldValue("DOCS_UPLOADED") === "yes") {
-        $('#tick5').show();
-        $('#number5').hide();
+    if (s === "A") {
+      setVal("makerrejreason", getText("NOTES1"));
     } else {
-        $('#tick5').hide();
-        $('#number5').show();
+      setVal("makerrejreason", $("input[name='C_REFUSE_REASON']").val());
     }
-}
+    setVal("makerrejstatus", statusLabel);
+  }
 
-function enquiryScreenHandler() {
-    setTimeout(() => {
-        SYS_FUNCTION_TYPE = 'EC';
-        console.log('enq scrn');
+  if (draftFlag === "P") {
+    setText("AVAL_BY", avblByDraft);
+  }
 
-        ["#prim_save", "#PRE_BT", "#NEXT_BT", "#TEMP_BT", "#useTemplateId", "#TrxSysBtnsDivChecker",
-         ".use-existing-template", ".step-by-step", ".cue-card", "#containerpreview", ".rejectdiv",
-         "#editspan1", "#editspan", "#editid", "#editid1", "#useTemplateIdTd", "#submitButtonid"
-        ].forEach(hide);
+  // System buttons & KYC/Limits/Margin flows
+  KYC();
+  Limit();
+  Margin();
 
-        $('#sec_cancel, #backButtonid').show();
-        DisableAllFields('issueLCMainDiv1');
-        $(".sec_cancel").attr("disabled", false);
-        $("#prim_view_historical").attr("disabled", false);
+  hide("#TrxTabs");
+  $("#lcDetails").click();
 
-        $("#checkBox2").prop("checked", true);
+  // Sync special license fields
+  setText("Special_License1", getText("Special_License"));
 
-        // Conversion / booking system mapping
-        setFldValue('CONVERSION_RATES', getFldValue('CONVERSION_RATES_TEMP'));
-        setFldValue('BOOKING_SYSTEM', getFldValue('BOOKING_SYSTEM_TEMP'));
+  // Export action enable (duplicated in original)
+  $id("#exportMoreActions").attr("enabled", true);
+
+  // Next/Save behaviors
+  hide("#prim_next");
+  $id("#prim_save").attr("onclick", "smessage()");
+
+  // -------------------- Role-specific: Checker (C) --------------------
+  if (role === "C") {
+    // Ticks
+    if (Number(getVal("TEMP_ROW_COUNT")) > 0) setDisplayInline("#tick5", true);
+    else setDisplayInline("#tick5", false);
+
+    // Buttons / Tabs visibility
+    hideMany(["#COMMENT_BTN", "#issuanceButton"]); // color + disabled set below
+    show("#tabsForChecker");
+
+    // Style/report for issuanceButton
+    $("#issuanceButton")
+      .css({ "background-color": "#0095da !important", color: "white !important" })
+      .prop("disabled", true);
+
+    // Checker controls
+    enableMany(["#authLCButton1", ".prim_release", "#unlockLCButton", "#viewLCButton1"]);
+    disable("#Id_isMargin");
+
+    // Margin button hard-disable & remove click
+    const marginBtn = document.getElementById("margin_Marklien");
+    if (marginBtn) {
+      marginBtn.disabled = true;
+      marginBtn.onclick = null;
+    }
+
+    hideMany(["#PRE_BT", "#TEMP_BT", "#Id_DocUpload"]);
+    ["#releaseitTd1", "#releaseitTd2", "#releaseitTd3", "#releaseitTd4"].forEach(setDisplayNone);
+
+    // Lock both checkboxes checked
+    ["#checkBox2", "#checkBox1"].forEach((sel) => {
+      enable(sel);
+      setChecked(sel, true);
+      disable(sel);
+    });
+
+    // Auth/Rej visibility based on AuthStatus
+    if (authStatus === "Auth") $("input[name=REJECT]").hide();
+    else if (authStatus === "Rej") $("input[name=AUTHORISE]").show();
+
+    // Hide LD clause row
+    hide("#LD_clause_tr");
+
+    // Maker/Checker sections
+    hideMany(["#btnMaker", "#docsReqdMakerAdd", "#docsReqdMaker"]);
+    showMany(["#btnChecker", "#docsReqdChecker", "#addCondMaker", "#addCondChecker", "#Id_ImageTable", "#Id_renderIcon", "#Id_renderName", "#TrxSysBtnsDivChecker"]);
+    hide("#DocsReqTable");
+    hide("#Id_AddDocUpload");
+    hide("#TrxSysBtnsDiv1");
+    hide(".subbacbutton");
+
+    // Mirror docs/conditions to checker fields
+    setText("DOCS_REQD_CHECKER", getText("DOCS_REQD"));
+    setText("ADD_COND_CHECKER", getText("ADDIT_COND"));
+
+    // Incoterms => show insurance policy fields for specific codes
+    const incoterms = Number(getText("INCOTERMS"));
+    const showInsFor = new Set([1, 2, 3, 4, 5, 7, 16, 8, 17, 6, 13]);
+    if (showInsFor.has(incoterms)) {
+      show("#insurancePolicyName");
+      show("#insurancePolicyField");
+    }
+
+    // Hide goods add/delete for checker
+    hideMany(["#addDeleteGoods", "#GOODS_BT"]);
+
+    // Rejection details
+    $("#rejectRefNoSet").append(getText("C_MAIN_REF"));
+
+    // UnderTakings text with name & addr
+    const name = getText("APPL_NM");
+    const addr = getText("APPL_ADD");
+    setText("underTakingsText2", $(".underTakings2").html());
+    $(".underTakings2").append(name).append("<br>").append(addr);
+    setText("underTakingsText1", $(".underTakings1").html());
+
+    // Tooltip titles
+    ["#ADV_THRU_BK_NM_ADD", "#AVAL_WT_BK_NM_ADD", "#CONFM_BNK_NM"].forEach(setTitle);
+
+    // If EditFlag 'Y' in checker context
+    if (editFlag === "Y") {
+      hide("#tdconfirmChecker");
+      $("#btnChecker").css("display", "none");
+      show("#btnChecker1");
+      show("#btnChecker");
+      hideMany(["#deleteTab", "#btnMaker1", "#submitButtonid", "#confirmButtonid", "#editid", "#editspan"]);
+      hideMany(["#tick3", "#tick", "#tick1", "#tick2", "#tick4", "#tick5"]);
+      show("#backButtonid");
+      show(".subbacbutton");
+      hide("#useTemplateId");
+      checkMandatoryFieldsForSections();
+    }
+
+    // Number formatting
+    NumberConv();
+  }
+
+  // -------------------- Role-specific: Maker (M) --------------------
+  if (role === "M") {
+    docsCheck();
+
+    if (ss.getItem("template") === "yes") {
+      goods_onload_templ();
+    }
+
+    hide("#tabsForChecker");
+
+    // Confirm button styling + hide
+    $id("#prim_confirm")
+      .attr("onclick", "smessagecon()")
+      .prop("disabled", true)
+      .css({ background: "#d3d3d3", border: "none", color: "white" });
+    hide("#prim_confirm");
+
+    // Maker/Checker section visibility
+    show("#btnMaker");
+    hide("#btnChecker");
+    showMany(["#docsReqdMakerAdd", "#docsReqdMaker", "#addCondMaker"]);
+    hideMany(["#docsReqdChecker", "#addCondChecker"]);
+    show("#DocsReqTable");
+
+    // Insurance policy & operating cycle defaults from labels
+    const insurPolicyNo = $(".insurPolicyNoEE").text();
+    const operatingCycle = $(".operatingCycleEE").text();
+    if ($("#INSUR_POLICY_NO").val() === "") setText("INSUR_POLICY_NO", insurPolicyNo);
+    setText("OPERATING_CYCLE", operatingCycle);
+
+    // Undertakings text (both)
+    setText("underTakingsText1", $(".underTakings1").html());
+    setText("underTakingsText2", $(".underTakings2").html());
+
+    // Number formatting
+    NumberConv();
+
+    // Ticks for docs uploaded / temp rows
+    const docsUpld = getVal("DOCS_UPLOADED");
+    if (typeof FUNC_ID !== "undefined" && FUNC_ID === "F05030701011" && docsUpld === "yes") {
+      show("#tick5");
+      hide("#number5");
+    }
+
+    if (Number(getVal("TEMP_ROW_COUNT")) > 0) {
+      show("#tick5");
+      hide("#number5");
+    } else {
+      hide("#tick5");
+      show("#number5");
+    }
+  }
+
+  // -------------------- Final layout unfreeze --------------------
+  $("#disableOctClass, #divMenu").removeClass("disableOctClass");
+
+  // TEMP_ROW_COUNT based tick display (duplicated check to match original)
+  if (Number(getVal("TEMP_ROW_COUNT")) > 0) setDisplayInline("#tick5", true);
+  else setDisplayInline("#tick5", false);
+
+  // PCDA polling
+  window.PCDAVar = setInterval(initPCDAChanges, 100);
+
+  // Loader / main show
+  hide("#Octloader");
+  show("#mainDiv");
+
+  // Draft+Edit combined case
+  if (editFlag === "Y" && draftFlag !== "P") {
+    hide("#tabsForChecker");
+    hide("#useTemplateId");
+  }
+
+  // PAST TRX view (inquiry) screen
+  if (typeof SYS_FUNCTION_SHORT_NAME !== "undefined" && SYS_FUNCTION_SHORT_NAME === "INIS_Master_Inq") {
+    // keep 'debugger' per source for dev parity
+    debugger;
+    setTimeout(function () {
+      window.SYS_FUNCTION_TYPE = "EC";
+      console.log("enq scrn");
+
+      hideMany([
+        "#prim_save",
+        "#PRE_BT",
+        "#NEXT_BT",
+        "#TEMP_BT",
+        "#useTemplateId",
+        "#TrxSysBtnsDivChecker",
+        ".use-existing-template",
+        ".step-by-step",
+        ".cue-card",
+        "#containerpreview",
+        "#SavedActTrx",
+        ".rejectdiv",
+      ]);
+
+      show("#sec_cancel");
+      show("#backButtonid");
+
+      // Disable all inputs in the main div as per original
+      // disableAllFields('issueLCMainDiv1');  // original commented
+      if (typeof DisableAllFields === "function") DisableAllFields("issueLCMainDiv1");
+
+      // Re-enable cancel, historical view
+      enable("#sec_cancel");
+      enable("#prim_view_historical");
+
+      setChecked("#checkBox2", true);
+
+      hideMany(["#editspan1", "#editspan", "#editid", "#editid1", "#editid"]);
+      hide("#useTemplateIdTd");
+      hide("#submitButtonid");
+
+      // Sync temp conversion & booking fields
+      setText("CONVERSION_RATES", getText("CONVERSION_RATES_TEMP"));
+      setText("BOOKING_SYSTEM", getText("BOOKING_SYSTEM_TEMP"));
     }, 500);
+  }
 }
