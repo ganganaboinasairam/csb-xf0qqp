@@ -1,44 +1,458 @@
-.chat-container {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  font-family: "Segoe UI", Arial, sans-serif;
-  font-size: 14px;
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
+function doPageInit(){
+      setTimeout(function(){
+	if(sessionStorage.getItem('SingleAuthLC') == "Y"){
+			sessionStorage.setItem('SingleAuthLC','N');			
+			singleAuthorizeLC();
+			$("#issueLCMainDiv").show();
+	}
+			var ApplicantName  = getFldValue("APPL_NM");
+			var ApplicantAddress = getFldValue("APPL_ADD");
+			var  ConsigneeAdd = ApplicantName+'\n'+ ApplicantAddress
+			setFldValue("CONSIGNEE_NM_ADD",ConsigneeAdd)
+			rearrangeDo('CONSIGNEE_NM_ADD','INIS');
+			reRenderAmtNdTol();
+			checkMandatoryFieldsForSections();
+	},100);
+	changeIncoterms();
+	incotermsOnLoad();
+	changeAvalBy();
+	avalByOnload();
+	if(FUNC_ID != ''){
+		setFldValue("TEMP_ORG_FUNC_ID", FUNC_ID);
+	}
+	if (document.getElementById('AVAL_WT_BK_NM_ADD').value == ''){
+	document.getElementById('AVAL_WT_BK_NM_ADD').value ='Any bank in India';
+	}
+	setFldValue(APCL_DT,TRX_DT)
+	console.log("doPageInit starts");
+	$('.buttonClass').css("font-weight","bold");
+	$("option[value='']").hide();
+	$("#disableOctClass").addClass("disableOctClass");
+	$("#divMenu").addClass("disableOctClass");
+	$("#vmPreview1").hide();
+	$("#exportMoreActions").attr("enabled",true);
+	$("#confirmButtonid").hide();
+	$("[id*='error_O']").hide();
+	/* var avblByDraft = getFldValue("AVAL_BY");
+	if(getFldValue('AVAL_BY') == ''){
+		hideTenorDays();
+	}
+	if(getFldValue('AVAL_BY') == '1'){
+		$('#AcceptanceDiv').hide();
+	$('#NegotiationDiv').hide();
+	$('#DeferredDiv').hide();
+	$('#PaymentDiv').show();
+		avalbyPayment();
+	}else if(getFldValue('AVAL_BY') == '2'){
+		avalbyNegotiation();
+	}else if(getFldValue('AVAL_BY') == '3'){
+		avalbyAcceptance();
+	}else if(getFldValue('AVAL_BY') == '4'){
+		avalbyDeferred();
+	} 
+		if(document.getElementById('Usance').checked){
+			showTenorDays(false);
+		}
+		if(document.getElementById('CNFM').checked){
+			showConfirmingBankID(true);
+		}
+		if(document.getElementById('MADD').checked){
+			showConfirmingBankID(true);
+		} */
+		if(ITEM_ID!="ModifyTrx" || sessionStorage.getItem('draftFlag')=='P' || sessionStorage.getItem('draftFlagset')=='P') {
+			sessionStorage.setItem('EditFlag','N')
+			{
+				$(".subbacbutton").hide();
+				$("#activepasttab").hide();
+				$("#btnMaker1").hide();
+			}
+			sessionStorage.setItem('draftFlagset','');
+		} 
+		if(sessionStorage.getItem('EditFlag') == 'N'){
+			sessionStorage.setItem('inModify','No');
+			$(".subbacbutton").hide();
+		}
+	if(sessionStorage.getItem('EditFlag')=='Y' && sessionStorage.getItem('draftFlag')!='P'){
+	    enabledFlag=false;
+			sessionStorage.setItem('inModify','Yes');
+			 setFldValue("enableAddGoods","N");
+            $('.sec_cancel').hide();
+			$('#tdconfirmChecker').hide();
+			$("#checkBox2").removeAttr("disabled");
+			$("#checkBox2").attr("disabled","disabled");
+			$("#checkBox1").removeAttr("disabled");
+			$("#checkBox1").attr("checked","checked");
+			$("#checkBox1").attr("disabled","disabled");
+			$("#activeTab1").removeAttr("disabled");
+			$("#pastTab1").removeAttr("disabled");
+			$("#deleteTab1").removeAttr("disabled");
+			$("textarea").attr("disabled",true); 
+			$("input").attr("disabled",true);
+			$("select").attr("disabled",true); 
+			$(".search").attr("disabled",true); 
+			$('#viewAndManageEdits').show();
+				$("#expportAsid").attr("disabled",false);
+			$("#submitButtonid").attr("disabled",true);
+			$("#prim_next").hide();
+			$('#prim_save').hide();
+			$("#submitButtonid").show();
+			$("#TrxSysBtnsDiv1").hide();
+			$("#btnMaker").remove();
+			$("#btnMaker1").show();
+			$("#buttonContainer").hide();
+			var C_MAIN_REF=getFldValue("C_MAIN_REF");
+			var moduleProductCode=PRODUCT_ID;
+			$.ajax({
+	url: '../servlets/ActiveStatus',
+		type: 'get',
+		async : false,
+		dataType : 'json',
+		data : {refNumber : C_MAIN_REF,moduleProductCode : moduleProductCode},
+		success: function(responseText)
+		{		
+		var pre=responseText.split("$");
+		var status=pre[0];
+		var lastAction=pre[1];
+			$("#C_TRX_STATUS").val(status);
+			  $("#LastAction").val(lastAction);
+		},
+		error: function(err){
+			console.log("Error STAUS"+err);
+		}
+		});
+		var s=$("#C_TRX_STATUS").val();
+			var status="";
+			if(s=='A')
+			{
+			status="Rejected by Bank";
+			$("#editspan").hide();
+			$("#editid").hide();
+			}
+			else if (s=='B')
+			{
+			status="Pending Bank Authorisation";
+			$("#editspan").hide();
+			$("#editid").hide();
+			}else if (s=='C')
+			{
+			status="Processed";
+			$("#editspan").hide();
+			$("#editid").hide();
+			}
+			else if (s=='D')
+			{
+			status="Incomplete";
+			$("#editspan").hide();
+			$("#editid").hide();
+			}
+			else if (s=='E')
+			{
+			status="Modification";
+			$("#editspan").hide();
+			$("#editid").hide();
+			}
+   else if (s=='J')
+			{
+			status="Rejected by Customer Checker";
+			$("#editspan").hide();
+			$("#editid").hide();
+			}
+    else if (s=='M')
+			{
+			status="Authorised";
+			$("#editspan").hide();
+			$("#editid").hide();
+			}
+			else if (s=='P')
+			{
+			status="Pending with Customer Checker";
+			}
+			else if (s=='R')
+			{
+			status="Rejected by Customer Checker";
+			}
+			else if (s=='S')
+			{
+			status="Pending with Bank";
+			$("#editspan").hide();
+			$("#editid").hide();
+			}
+			else if (s=='T')
+			{
+			status="Pending with Customer Checker";
+			}
+			else if (s=='Z')
+			{
+			status="Saved as Draft";
+			}
+			if(s=='A')
+			{
+				$("#makerrejreason").val(getFldValue("NOTES1"));
+			}else{
+			$("#makerrejreason").val($("input[name='C_REFUSE_REASON']").val());
+			}
+			$("#makerrejstatus").val(status);
+		}
+	if(sessionStorage.getItem('draftFlag')=='P'){
+			setFldValue("AVAL_BY",avblByDraft);
+	}
+	$('#TrxSysBtnsDiv').hide();
+	KYC();
+	Limit();
+	Margin();
+	$("#TrxTabs").hide();
+	$('#lcDetails').click();
+	setFldValue('Special_License1',getFldValue('Special_License'));
+	$("#exportMoreActions").attr("enabled",true);
+	$('#prim_next').hide();
+	$('#prim_save').attr('onclick','smessage()');
+	if(sessionStorage.getItem('role')=='C'){
+		if (document.getElementById("TEMP_ROW_COUNT").value > 0){
+			document.getElementById("tick5").style.display="inline";
+		}
+		else {
+		document.getElementById("tick5").style.display="none";
+		}
+		$('#COMMENT_BTN').hide();
+		$('#tabsForChecker').show();
+		$('#issuanceButton').css("background-color","#0095da !important");
+		$('#issuanceButton').css("color","white !important");
+		$('#issuanceButton').prop("disabled","true");
+		$('#authLCButton1').removeAttr('disabled');
+		$('[class^="DATE"]').attr('disabled','disabled');
+		$("#margin_Marklien").attr("disabled",true);
+		var margin_Button=document.getElementById("margin_Marklien");
+		margin_Button.disabled=true;
+		margin_Button.onclick=null;
+		$('#PRE_BT').hide();
+		$("#TEMP_BT").hide();
+		$('#Id_DocUpload').hide();
+		$("#releaseitTd1").css("display","none");
+		$("#releaseitTd2").css("display","none");
+		$("#releaseitTd3").css("display","none");
+		$("#releaseitTd4").css("display","none");
+		$("#checkBox2").removeAttr("disabled");
+		$("#checkBox2").attr("checked","checked");
+		$("#checkBox2").attr("disabled","disabled");
+		$("#checkBox1").removeAttr("disabled");
+		$("#checkBox1").attr("checked","checked");
+		$("#checkBox1").attr("disabled","disabled");
+		$('.prim_release').removeAttr("disabled");
+		$('#unlockLCButton').removeAttr("disabled");
+		$('#viewLCButton1').removeAttr("disabled");
+  	$("#Id_isMargin").attr("disabled","disabled");
+		$(".sec_cancel").prop("disabled","");
+		if(sessionStorage.getItem('AuthStatus')=='Auth'){
+			$("input[name=REJECT]").hide();
+		}else if(sessionStorage.getItem('AuthStatus')=='Rej'){
+						$("input[name=AUTHORISE]").show();
+		}
+		$('#LD_clause_tr').hide();
+		$("#btnMaker").hide();
+		$("#btnChecker").show();
+		$("#docsReqdMakerAdd").hide();
+		$("#docsReqdMaker").hide();
+		$("#docsReqdChecker").show();
+		$("#addCondMaker").show();
+		$("#addCondChecker").show();
+		$("#DocsReqTable").hide();
+		$("#Id_AddDocUpload").hide();
+		$("#Id_ImageTable").show();
+		$("#Id_renderIcon").css('display','table-row');
+		$("#Id_renderName").css('display','table-row');
+		$("#TrxSysBtnsDivChecker").show();
+		$("#TrxSysBtnsDiv1").hide();
+		$(".subbacbutton").hide();
+		setFldValue('DOCS_REQD_CHECKER',getFldValue('DOCS_REQD'));
+		setFldValue('ADD_COND_CHECKER',getFldValue('ADDIT_COND'));
+		/* if(getFldValue('AVAL_BY') == '1'){
+			avalbyPayment();
+		}else if(getFldValue('AVAL_BY') == '2'){
+			avalbyNegotiation();
+		}else if(getFldValue('AVAL_BY') == '3'){
+			avalbyAcceptance();
+		}else if(getFldValue('AVAL_BY') == '4'){
+			avalbyDeferred();
+		}
+		if(document.getElementById('Usance').checked){
+		showTenorDays(false);
+		}
+		if(document.getElementById('CNFM').checked){
+			showConfirmingBankID(true);
+		}
+		if(document.getElementById('MADD').checked){
+			showConfirmingBankID(true); 
+		} */
+		var incoterms = getFldValue("INCOTERMS");
+		if(incoterms == 1  || incoterms == 2  || incoterms == 3  || incoterms == 4  || incoterms == 5 || incoterms == 7  || incoterms == 16 || incoterms == 8 || incoterms == 17 || incoterms == 6 || incoterms == 13){
+			$('#insurancePolicyName').show();
+			$('#insurancePolicyField').show();
+		}
+		$('#addDeleteGoods').hide();
+		$('#GOODS_BT').hide();
+		$('#rejectRefNoSet').append(getFldValue('C_MAIN_REF'));
+		var name = getFldValue('APPL_NM');
+		var addr = getFldValue('APPL_ADD');
+		setFldValue('underTakingsText2',$('.underTakings2').html()); 
+		$('.underTakings2').append(name);
+		$('.underTakings2').append('<br>');
+		$('.underTakings2').append(addr); 
+		setFldValue('underTakingsText1',$('.underTakings1').html());
+		$("#ADV_THRU_BK_NM_ADD").attr("title",$("#ADV_THRU_BK_NM_ADD").val());
+		$("#AVAL_WT_BK_NM_ADD").attr("title",$("#AVAL_WT_BK_NM_ADD").val());
+		$("#CONFM_BNK_NM").attr("title",$("#CONFM_BNK_NM").val());
+		if(sessionStorage.getItem('EditFlag')=='Y')
+		{
+			$("#tdconfirmChecker").hide();	
+			$("#btnChecker").css("display","none");
+			$("#btnChecker1").show();
+				$("#btnChecker").show();
+			$("#deleteTab").hide();
+			$("#btnMaker1").hide();
+			$('#tick3').hide();
+			$('#tick').hide();
+			$('#tick1').hide();
+			$('#tick2').hide();
+			$('#tick4').hide();
+			$('#tick5').hide();
+			$("#editid").hide();
+			$("#editspan").hide();
+			$("#backButtonid").show();
+			$(".subbacbutton").show();
+			$("#submitButtonid").hide();
+			$("#confirmButtonid").hide();
+			 checkMandatoryFieldsForSections();
+		}
+		$('#useTemplateId').hide();
+		NumberConv();
+	}
+	if(sessionStorage.getItem('role')=='M'){
+		docsCheck();
+		if(sessionStorage.getItem('template')=='yes'){
+			goods_onload_templ();
+		}
+		$('#tabsForChecker').hide();
+		$('#prim_confirm').attr('onclick','smessagecon()');
+		document.getElementById("prim_confirm").disabled="disabled";
+		document.getElementById("prim_confirm").style.background="#d3d3d3";
+		document.getElementById("prim_confirm").style.border="none";
+		document.getElementById("prim_confirm").style.color="white";
+		$('#prim_confirm').hide();
+		$("#btnMaker").show();
+		$("#btnChecker").hide();
+		$("#docsReqdMakerAdd").show();
+		$("#docsReqdMaker").show();
+		$("#docsReqdChecker").hide();
+		$("#addCondMaker").show();
+		$("#addCondChecker").hide();
+		$("#DocsReqTable").show();
+		//document.getElementById('isRMYes').disabled=false;
+		//document.getElementById('isRMNo').disabled=false;
+		var insurPloicyNo=$('.insurPolicyNoEE').text();
+		var operatingCycle=$('.operatingCycleEE').text();
+		if($('#INSUR_POLICY_NO').val() == "" ){
+			setFldValue('INSUR_POLICY_NO',insurPloicyNo);
+		}
+		setFldValue('OPERATING_CYCLE',operatingCycle);
+		setFldValue('underTakingsText1',$('.underTakings1').html());
+		setFldValue('underTakingsText2',$('.underTakings2').html());
+		NumberConv();
+		if (FUNC_ID == 'F05030701011'){
+			var docsUpld = document.getElementById("DOCS_UPLOADED").value;
+			if (docsUpld == 'yes'){
+			$('#tick5').show();
+			$('#number5').hide();
+			}
+		}
+	if (document.getElementById("TEMP_ROW_COUNT").value > 0){
+		$('#tick5').show();
+		$('#number5').hide();
+		}
+		else 
+		{
+		$('#tick5').hide();
+		$('#number5').show();
+		}
+	}
+	$("#disableOctClass").removeClass("disableOctClass");
+	$("#divMenu").removeClass("disableOctClass");
+	$("#chatmsg").removeAttr("disabled");
+	$("#B_CONTENT").css("background-color","#e4e4e4");
+	$("#releaseitTd1").css("display","none");
+	$("#releaseitTd2").css("display","none");
+	$("#releaseitTd3").css("display","none");
+	$("#releaseitTd4").css("display","none");
+	$("#prim_template").hide();
+	if(sessionStorage.getItem('EditFlag')=='Y' && sessionStorage.getItem('draftFlag')!='P'){
+		$('#tabsForChecker').hide();
+		$('#useTemplateId').hide();
+	}
+	if (document.getElementById("TEMP_ROW_COUNT").value > 0){
+		document.getElementById("tick5").style.display="inline";
+	}
+	else {
+	document.getElementById("tick5").style.display="none";
+	}
+	PCDAVar = setInterval(initPCDAChanges,100);
+	$("#Octloader").hide();
+	$("#mainDiv").show();
+	$("#ADV_THRU_BK_ID").attr("readonly",true);
+	$("#CONFM_BNK_ID").attr("readonly",true);
+    $("#CONF_BNK_ID").attr("readonly",true);
+	$("#AVAL_WT_BK_ID").attr("readonly",true);
+	$("#ADV_BK_NM").attr("readonly",true);
+$("#ADV_THRU_BK_NM_ADD").attr("readonly",true);
+  $("#ADV_THRU_BK_NM").attr("readonly",true);
+$("#AVAL_WT_BK_NM_ADD").attr("readonly",true);
+  $("#AVAL_WT_BK_NM").attr("readonly",true);
+$("#CONF_BNK_NM_ADD").attr("readonly",true);
+  $("#CONF_BNK_NM").attr("readonly",true);
+$("#ADV_BK_ADD1").attr("readonly",true);
 
-/* Header stays fixed at top */
-.chat-header {
-  flex: 0 0 auto;   /* fixed height, no shrink */
-  padding: 10px 14px;
-  background: linear-gradient(to right, orange, tomato);
-  color: white;
-  font-size: 15px;
-  font-weight: 600;
-}
+//PAST TRX
+if(SYS_FUNCTION_SHORT_NAME == 'INIS_Master_Inq'){
+		debugger;
+		setTimeout(function(){
+		SYS_FUNCTION_TYPE = 'EC';
+		console.log('enq scrn')
+		$('#prim_save').hide();
+		$('#PRE_BT').hide();
+		$('#NEXT_BT').hide();
+		$('#TEMP_BT').hide();
+		$('#useTemplateId').hide();
+		$('#TrxSysBtnsDivChecker').hide();
+         $('.use-existing-template').hide();
+		$('.use-existing-template').hide();
+		$('.step-by-step').hide();
+		$('.cue-card').hide();
+		$('#containerpreview').hide();
+		$('#sec_cancel').show();
+		$("#backButtonid").show();
+		//disableAllFields('issueLCMainDiv1');
+		DisableAllFields('issueLCMainDiv1');
+		$(".sec_cancel").attr("disabled",false);
+		$("#prim_view_historical").attr("disabled",false);
+		//greenTickAll(['div1','div2','div10','div7','div6']);
+		$("#checkBox2").attr("checked",true);
+		//greenTick('div9','checkBox2');
+		//$('#SavedActTrx').show();
+		$('#SavedActTrx').hide();
+		$('.rejectdiv').hide();
+		$('#editspan1').hide();
+		
+			$('#editspan').hide();
+			$("#editid").hide();
+			
+		$('#editid1').hide();
+			$("#editid").hide();
+		$('#useTemplateIdTd').hide();
+			 $('#submitButtonid').hide();
+			setFldValue('CONVERSION_RATES',getFldValue('CONVERSION_RATES_TEMP'));
+			setFldValue('BOOKING_SYSTEM',getFldValue('BOOKING_SYSTEM_TEMP'));
+			//greenTickAll(['div1','div2','div3','div10','div7','div6'])
+			//greenTick('div9','checkBox2')
+			},500);
+		
+	}
 
-/* Messages fill remaining space and scroll */
-.chat-messages {
-  flex: 1 1 auto;    /* take available space */
-  overflow-y: auto;
-  padding: 10px;
-  background: #f5f6f7;
-}
-
-/* Input stays fixed at bottom */
-.chat-input {
-  flex: 0 0 auto;   /* fixed height, no shrink */
-  padding: 8px 10px;
-  background: #fff;
-  border-top: 1px solid #ddd;
-}
-
-.input-container {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
