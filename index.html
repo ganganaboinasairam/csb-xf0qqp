@@ -35,8 +35,10 @@
       const [customerId, setCustomerId] = useState('');
       const [branchCode, setBranchCode] = useState('');
       const [userInfo, setUserInfo] = useState(null);
+      const [isBrConnected, setIsBrConnected] = useState(false);
       const [showDefaultQuestions, setShowDefaultQuestions] = useState(false);
       const messagesEndRef = useRef(null);
+      const [connAlert,setConnAlert] = useState(false);
 
       const defaultQuestions = [
         "Check account balance",
@@ -59,8 +61,7 @@
           custName: urlCustName
         });
 
-        // Load previous messages from servlet
-        loadPreviousMessages(urlCustomerId, urlBranchCode);
+        
       }, []);
 
       const loadPreviousMessages = async (custId, brCode) => {
@@ -69,21 +70,32 @@
           if (!response.ok) throw new Error('Failed to fetch previous messages');
 
           let data = await response.json();
+          let formattedMessages =[];
+
+          if(data.error == 'Invalid Customer ID Please check'){
+            
+            handleConnAlert();
+          }else{
 
           let filtered = data.filter(msg => msg.custID1 === custId);
           filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
 
+          
+
           const formattedMessages = filtered.map(msg => ({
             content: msg.message,
             isCustomer: msg.sender.toLowerCase() === 'customer',
+            senderName:msg.sender =='bank'? msg.brCode : msg.custName ,
             timestamp: msg.date
           }));
+          }
 
           // Prepend welcome message
           setMessages([
             {
               content: "Welcome! How can we help you today?",
               isCustomer: false,
+              senderName:"System",
               timestamp: new Date().toISOString()
             },
             ...formattedMessages
@@ -97,11 +109,41 @@
         }
       };
 
+      const handleConnAlert = ()=> {
+
+        alert('in handleConnAlert');
+
+        connectWebSocket();
+          const messageData = {
+                    type: 'cust-alert',
+                    content: 'Hello Branch user, A customer ('+customerId+', '+userInfo?.custName+') is connected to the Chat support !',
+                    customerId: customerId,
+                    branchCode: branchCode,
+                    sender: 'system',
+                    timestamp: new Date().toISOString(),
+                    customerName: userInfo?.custName || ''    
+                };
+
+                ws.send(JSON.stringify(messageData));
+      }
+
       // WebSocket connection
       useEffect(() => {
         if (!customerId || !branchCode) return;
 
-        const connectWebSocket = () => {
+        connectWebSocket();
+
+        // Load previous messages from servlet
+        loadPreviousMessages(customerId, branchCode);
+
+        
+
+        return () => {
+          if (ws) ws.close();
+        };
+      }, [customerId, branchCode]);
+
+      const connectWebSocket = () => {
           try {
             //const websocket = new WebSocket(`ws://localhost:8080/ChatboxEECE/chatServer`);
 			const websocket = new WebSocket(`ws://10.177.141.86:7001/ChatboxEECE/chatServer`);
@@ -139,13 +181,6 @@
           }
         };
 
-        connectWebSocket();
-
-        return () => {
-          if (ws) ws.close();
-        };
-      }, [customerId, branchCode]);
-
       const handleIncomingMessage = (message) => {
         if (message.customerId != customerId) return;
         if (message.type === 'message') {
@@ -155,6 +190,7 @@
             timestamp: message.timestamp || new Date().toISOString()
           };
           setMessages(prev => [...prev, newMessage]);
+          setIsBrConnected(true);
         } else {
           handleBotResponse(message); // Handle bot responses
         }
@@ -165,6 +201,7 @@
         if (message.type === 'ANSWER') {
           const newMessage = {
             content: message.answer,
+            senderName : "System",
             isCustomer: false,
             timestamp: new Date().toISOString()
           };
@@ -178,12 +215,14 @@
           ));
           setMessages(prev => [...prev, {
             content: flowOptions,
+            senderName : "System",
             isCustomer: false,
             timestamp: new Date().toISOString()
           }]);
         } else if (message.type === 'HUMAN') {
           const newMessage = {
             content: message.answer,
+            senderName : "System",
             isCustomer: false,
             timestamp: new Date().toISOString()
           };
@@ -191,7 +230,34 @@
         }
       };
 
-      const sendMessage = async (text) => {
+
+      const handleOutGoingMsg = (text) => {
+                if (!text.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+                const messageData = {
+                    type: 'message',
+                    content: text.trim(),
+                    customerId: customerId,
+                    branchCode: branchCode,
+                    sender: 'customer',
+                    timestamp: new Date().toISOString(),
+                    customerName: userInfo?.custName || ''    
+                };
+
+                ws.send(JSON.stringify(messageData));
+
+                // Add message to local state
+                const newMessage = {
+                    content: text.trim(),
+                    isCustomer: true,
+                    timestamp: messageData.timestamp
+                };
+
+                setMessages(prev => [...prev, newMessage]);
+                setInputMessage('');
+            };
+
+      const handleOutGoingBotMsg = async (text) => {
         if (!text.trim()) return;
 
         try {
@@ -209,6 +275,7 @@
 
           const newMessage = {
             content: text.trim(),
+            senderName : userInfo.custName,
             isCustomer: true,
             timestamp: new Date().toISOString()
           };
@@ -216,8 +283,24 @@
           setMessages(prev => [...prev, newMessage]);
 
           const parsedMessage = JSON.parse(message);
+         
           handleBotResponse(parsedMessage);
+         
           setInputMessage('');
+        } catch (error) {
+          console.error('Error sending message:', error);
+        }
+      };
+
+       const sendMessage = async (text) => {
+        if (!text.trim()) return;
+
+        try {
+          if(!isBrConnected){
+			  handleOutGoingBotMsg(text);
+		  }else{
+			  handleOutGoingMsg(text);
+		  }
         } catch (error) {
           console.error('Error sending message:', error);
         }
@@ -260,6 +343,7 @@
           <div className="chat-messages">
             {messages.map((message, index) => (
               <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
+                <div className="message-sender">{message.senderName}</div>
                 <div className="message-content">{message.content}</div>
                 <div className="message-time">
                   {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
