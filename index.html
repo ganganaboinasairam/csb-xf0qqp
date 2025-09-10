@@ -1,483 +1,423 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Customer Support Chat</title>
-  <link rel="stylesheet" href="custStyles.css">
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Customer Support Dashboard</title>
+    <link rel="stylesheet" href="bankStyles.css">
+
+    <!-- React and Babel CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>
-    /* Minimal inline styles for quick preview - keep your custStyles.css for production */
-    .chat-container { max-width: 720px; margin: 12px auto; border: 1px solid #ddd; border-radius: 8px; overflow:hidden; display:flex; flex-direction:column; height:80vh; }
-    .chat-header { padding:12px; background:#f7f7f7; border-bottom:1px solid #eee; }
-    .chat-messages { padding:12px; flex:1; overflow:auto; background:#fff; }
-    .chat-input { padding:10px; border-top:1px solid #eee; background:#fafafa; }
-    .message { margin-bottom:10px; }
-    .message.customer { text-align:right; }
-    .message.bank { text-align:left; }
-    .message-sender { font-size:12px; color:#666; }
-    .message-content { display:inline-block; padding:8px 12px; border-radius:12px; margin-top:4px; max-width:70%; }
-    .customer .message-content { background:#d1ffd8; }
-    .bank .message-content { background:#eef2ff; }
-    .connection-status { font-size:12px; margin-top:6px; color:#444; }
-    .default-questions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-    .question-btn { padding:6px 10px; border-radius:6px; border:1px solid #ccc; background:#fff; cursor:pointer; }
-    .input-container { display:flex; gap:8px; }
-    .message-input { flex:1; padding:8px; border-radius:4px; border:1px solid #ccc; }
-    .send-button { padding:8px 12px; border-radius:4px; }
-  </style>
 </head>
+
 <body>
-  <div id="root"></div>
+    <div id="root"></div>
 
-  <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
 
-    // Utility: read query param
-    const getUrlParameter = (name) => {
-      name = name.replace(/[\\[]/, '\\[').replace(/[\\]]/, '\\]');
-      const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-      const results = regex.exec(window.location.search);
-      return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-    };
-
-    function CustomerChat() {
-      const [messages, setMessages] = useState([]);
-      const [inputMessage, setInputMessage] = useState('');
-      const [connectionStatus, setConnectionStatus] = useState('connecting'); // connecting | connected | disconnected | error
-      const [customerId, setCustomerId] = useState('');
-      const [branchCode, setBranchCode] = useState('');
-      const [userInfo, setUserInfo] = useState(null);
-      const [isBrConnected, setIsBrConnected] = useState(false);
-      const [showDefaultQuestions, setShowDefaultQuestions] = useState(false);
-
-      // refs
-      const wsRef = useRef(null);
-      const reconnectTimerRef = useRef(null);
-      const isMountedRef = useRef(false);
-      const messageQueueRef = useRef([]); // queue messages until socket open
-      const messagesEndRef = useRef(null);
-
-      const defaultQuestions = [
-        "Check account balance",
-        "View last 5 transactions",
-        "Report an issue",
-        "Talk to customer support"
-      ];
-
-      // extract params once on mount
-      useEffect(() => {
-        const urlCustomerId = getUrlParameter('cust_id');
-        const urlBranchCode = getUrlParameter('branch_code');
-        const urlCustName = getUrlParameter('cust_name');
-
-        setCustomerId(urlCustomerId);
-        setBranchCode(urlBranchCode);
-        setUserInfo({
-          customerId: urlCustomerId,
-          branchCode: urlBranchCode,
-          custName: urlCustName
-        });
-
-        isMountedRef.current = true;
-        return () => {
-          isMountedRef.current = false;
-          if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-          if (wsRef.current) {
-            try { wsRef.current.close(); } catch(e) {}
-            wsRef.current = null;
-          }
+        // Utility function to get URL parameters
+        const getUrlParameter = (name) => {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            const results = regex.exec(window.location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
         };
-      }, []);
 
-      // whenever we have customerId & branchCode, start websocket + load previous messages
-      useEffect(() => {
-        if (!customerId || !branchCode) return;
+        
 
-        connectWebSocket();
-        loadPreviousMessages(customerId, branchCode);
+        // Bank Dashboard Component with WebSocket
+        const BankDashboard = () => {
+            const [customers, setCustomers] = useState([]);
+            const [selectedCustomer, setSelectedCustomer] = useState(null);
+            const [inputMessage, setInputMessage] = useState('');
+            const [connectionStatus, setConnectionStatus] = useState('connecting');
+            const [ws, setWs] = useState(null);
+            const messagesEndRef = useRef(null);
 
-        // don't close ws here; cleanup handled in mount effect
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [customerId, branchCode]);
+            // WebSocket connection
+            useEffect(() => {
+                const connectWebSocket = () => {
+                    try {
+                        //const websocket = new WebSocket(`ws://localhost:8080/ChatboxEECE/chatServer`);
+                        const websocket = new WebSocket(`ws://10.177.141.86:7001/ChatboxEECE/chatServer`);
 
-      // scroll to bottom on messages change
-      useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, [messages]);
+                        
+                       
 
-      // --- WebSocket / messaging helpers ---
-      const WS_URL = `ws://10.177.141.86:7001/ChatboxEECE/chatServer`; // update for prod (use wss:// on https)
 
-      const connectWebSocket = () => {
-        try {
-          // avoid creating new socket if already connecting or open
-          if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
-            return;
-          }
+                        websocket.onopen = () => {
+                            console.log('Bank WebSocket connected');
+                            setConnectionStatus('connected');
+ 
+                            // Send initial connection message
+                            websocket.send(JSON.stringify({
+                                type: 'register',
+                                role: 'bank'
+                            }));
 
-          setConnectionStatus('connecting');
-          const websocket = new WebSocket(WS_URL);
+                            // Call loadPreviousMessages when page loads
+                            loadPreviousMessages();
+                        };
 
-          websocket.onopen = () => {
-            setConnectionStatus('connected');
-            // register user
-            const reg = {
-              type: 'register',
-              role: 'customer',
-              customerId,
-              branchCode,
-              customerName: userInfo?.custName || ''
-            };
-            safeSend(reg);
-            // flush any queued messages
-            flushQueue();
-          };
 
-          websocket.onmessage = (evt) => {
-            try {
-              const message = JSON.parse(evt.data);
-              handleIncomingMessage(message);
-            } catch (err) {
-              console.error('Invalid ws message', err);
-            }
-          };
 
-          websocket.onerror = (err) => {
-            console.error('Customer WebSocket error:', err);
-            setConnectionStatus('error');
-          };
+                        websocket.onmessage = (event) => {
+                            const message = JSON.parse(event.data);
+                            handleIncomingMessage(message);
+                        };
 
-          websocket.onclose = (ev) => {
-            console.info('WebSocket closed', ev);
-            setConnectionStatus('disconnected');
-            // reconnect after delay only if component still mounted
-            if (isMountedRef.current) {
-              if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-              reconnectTimerRef.current = setTimeout(() => {
+                        websocket.onclose = () => {
+                            console.log('Bank WebSocket disconnected');
+                            setConnectionStatus('disconnected');
+                            setTimeout(connectWebSocket, 3000);
+                        };
+
+                        websocket.onerror = (error) => {
+                            console.error('Bank WebSocket error:', error);
+                            setConnectionStatus('error');
+                        };
+
+                        setWs(websocket);
+                    } catch (error) {
+                        console.error('Failed to create bank WebSocket:', error);
+                        setConnectionStatus('error');
+                    }
+                };
+
                 connectWebSocket();
-              }, 3000);
-            }
-          };
 
-          wsRef.current = websocket;
-        } catch (error) {
-          console.error('Failed to create customer WebSocket:', error);
-          setConnectionStatus('error');
-        }
-      };
+                return () => {
+                    if (ws) ws.close();
+                };
+            }, []);
 
-      // safe send: stringifies & checks readyState
-      const safeSend = (obj) => {
-        const ws = wsRef.current;
-        try {
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify(obj));
-            return true;
-          } else {
-            // not open - push to queue
-            messageQueueRef.current.push(obj);
-            return false;
-          }
-        } catch (err) {
-          console.warn('safeSend failed, queued', err);
-          messageQueueRef.current.push(obj);
-          return false;
-        }
-      };
+           
 
-      const flushQueue = () => {
-        const ws = wsRef.current;
-        if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        while (messageQueueRef.current.length > 0) {
-          const obj = messageQueueRef.current.shift();
-          try { ws.send(JSON.stringify(obj)); } catch(e) { console.error('flush send failed', e); messageQueueRef.current.unshift(obj); break; }
-        }
-      };
+            const loadPreviousMessages = async () => {
+                try {
+                    const branchCode = getUrlParameter('branch_code');
 
-      const handleIncomingMessage = (message) => {
-        // ensure messages belong to this customer
-        if (message.customerId && String(message.customerId) !== String(customerId)) return;
+                    const response = await fetch(`./LoadPreviousMesgs?req_from=bank&branch_code=${branchCode}`);
+                    if (!response.ok) throw new Error('Failed to fetch previous messages');
 
-        if (message.type === 'message') {
-          const newMessage = {
-            content: message.content,
-            isCustomer: message.sender === 'customer',
-            senderName: message.sender === 'bank' ? (message.brCode || 'Branch') : (message.customerName || 'Customer'),
-            timestamp: message.timestamp || new Date().toISOString()
-          };
-          setMessages(prev => [...prev, newMessage]);
-          setIsBrConnected(true);
-        } else {
-          handleBotResponse(message);
-        }
-      };
+                    let data = await response.json();
 
-      const handleBotResponse = (message) => {
-        if (!message) return;
-        if (message.type === 'ANSWER') {
-          const newMessage = {
-            content: message.answer,
-            senderName: "System",
-            isCustomer: false,
-            timestamp: new Date().toISOString()
-          };
-          setMessages(prev => [...prev, newMessage]);
-        } else if (message.type === 'COUNTER_FLOW' && Array.isArray(message.flow)) {
-          // store buttons as text entries (rendered as buttons in message list)
-          const flowOptions = message.flow.map((opt, idx) => ({ id: `flow-${idx}-${Date.now()}`, option: opt }));
-          // we'll push a "system" message that contains the options array for special rendering
-          setMessages(prev => [...prev, {
-            content: flowOptions,
-            senderName: "System",
-            isCustomer: false,
-            timestamp: new Date().toISOString()
-          }]);
-        } else if (message.type === 'HUMAN') {
-          const newMessage = {
-            content: message.answer,
-            senderName: "System",
-            isCustomer: false,
-            timestamp: new Date().toISOString()
-          };
-          setMessages(prev => [...prev, newMessage]);
-        } else {
-          // fallback: push raw
-          setMessages(prev => [...prev, {
-            content: JSON.stringify(message),
-            senderName: "System",
-            isCustomer: false,
-            timestamp: new Date().toISOString()
-          }]);
-        }
-      };
+                    // Group messages by custID1
+                    const customerMap = {};
 
-      // load previous messages (fixed redeclaration & error handling)
-      const loadPreviousMessages = async (custId, brCode) => {
-        try {
-          const response = await fetch(`./LoadPreviousMesgs?cust_id=${custId}&branch_code=${brCode}&req_from=customer`);
-          if (!response.ok) throw new Error('Failed to fetch previous messages');
+                    data.forEach(msg => {
+                        const custId = msg.custID1;
+                        const custName = msg.custName;
+                        if (!customerMap[custId]) {
+                            customerMap[custId] = {
+                                id: custId,
+                                name: custName, // Change if name is available
+                                lastMessage: '',
+                                lastMessageTime: '',
+                                status: "online",
+                                unreadCount: 0,
+                                messages: []
+                            };
+                        }
 
-          const data = await response.json();
+                        customerMap[custId].messages.push({
+                            content: msg.message,
+                            type: msg.type,
+                            isCustomer: msg.sender.toLowerCase() === 'customer',
+                            timestamp: msg.date
+                        });
+                    });
 
-          let formattedMessages = [];
+                    // Sort messages inside each customer
+                    Object.values(customerMap).forEach(customer => {
+                        customer.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-          if (data && data.error === 'Invalid Customer ID Please check') {
-            // trigger connection alert to branch
-            handleConnAlert();
-          } else if (Array.isArray(data)) {
-            const filtered = data.filter(msg => String(msg.custID1) === String(custId));
-            filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
-            formattedMessages = filtered.map(msg => ({
-              content: msg.message,
-              isCustomer: String(msg.sender).toLowerCase() === 'customer',
-              senderName: msg.sender === 'bank' ? msg.brCode : msg.custName,
-              timestamp: msg.date
-            }));
-          }
+                        // Set last message details
+                        const lastMsg = customer.messages[customer.messages.length - 1];
+                        customer.lastMessage = lastMsg.content;
+                        customer.lastMessageTime = new Date(lastMsg.timestamp).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    });
 
-          setMessages(prev => ([
-            {
-              content: "Welcome! How can we help you today?",
-              isCustomer: false,
-              senderName: "System",
-              timestamp: new Date().toISOString()
-            },
-            ...formattedMessages,
-            ...prev
-          ]));
+                    // Convert to array and sort by last message time (desc)
+                    const customerList = Object.values(customerMap).sort((a, b) => {
+                        const timeA = new Date(a.messages[a.messages.length - 1].timestamp);
+                        const timeB = new Date(b.messages[b.messages.length - 1].timestamp);
+                        return timeB - timeA;
+                    });
 
-          // show default questions once
-          setShowDefaultQuestions(true);
+                    // Update state
+                    setCustomers(customerList);
 
-        } catch (error) {
-          console.error('Error loading previous messages:', error);
-        }
-      };
+                    // Optionally select the most recent customer automatically
+                    if (customerList.length > 0) {
+                        setSelectedCustomer(customerList[0]);
+                    }
 
-      // If branch not connected, we store message to call bot endpoint; if branch connected, send over ws
-      const handleOutGoingMsg = (text) => {
-        if (!text || !text.trim()) return;
+                } catch (error) {
+                    console.error('Error loading previous messages:', error);
+                }
+            };
 
-        const trimmed = text.trim();
+            const handleIncomingMessage = (message) => {
+                if (message.type === 'message' || message.type === 'cust-alert') {
+                    const customerId = message.customerId;
+                    const customerName = message.customerName || `Customer ${customerId}`;
+                    //const customerEmail = message.customerEmail || `${customerId}@customer.com`;
 
-        const messageData = {
-          type: 'message',
-          content: trimmed,
-          customerId,
-          branchCode,
-          sender: 'customer',
-          timestamp: new Date().toISOString(),
-          customerName: userInfo?.custName || ''
+                    setCustomers(prevCustomers => {
+                        const existingCustomerIndex = prevCustomers.findIndex(c => c.id === customerId);
+
+                        if (existingCustomerIndex !== -1) {
+                            // Update existing customer
+                            const updatedCustomers = [...prevCustomers];
+                            const customer = updatedCustomers[existingCustomerIndex];
+
+                            customer.messages = [...customer.messages, {
+                                content: message.content,
+                                isCustomer: true,
+                                type:message.type,
+                                timestamp: message.timestamp || new Date().toISOString()
+                            }];
+                            customer.lastMessage = message.content;
+                            customer.lastMessageTime = "Just now";
+
+                            // Move customer to top
+                            updatedCustomers.splice(existingCustomerIndex, 1);
+                            updatedCustomers.unshift(customer);
+
+                            return updatedCustomers;
+                        } else {
+                            // Add new customer
+                            const newCustomer = {
+                                id: customerId,
+                                name: customerName,
+                                //email: customerEmail,
+                                lastMessage: message.content,
+                                lastMessageTime: "Just now",
+                                status: "online",
+                                unreadCount: selectedCustomer?.id === customerId ? 0 : 1,
+                                messages: [{
+                                    content: message.content,
+                                    isCustomer: true,
+                                    type:message.type,
+                                    timestamp: message.timestamp || new Date().toISOString()
+                                }]
+                            };
+
+                            return [newCustomer, ...prevCustomers];
+                        }
+                    });
+
+                    // Update selected customer if currently viewing
+                    if (selectedCustomer && message.customerId === selectedCustomer.id) {
+                        setSelectedCustomer(prev => {
+                            if (!prev) return null;
+                            return {
+                                ...prev,
+                                messages: [...prev.messages, {
+                                    content: message.content,
+                                    isCustomer: true,
+                                    type:message.type,
+                                    timestamp: message.timestamp || new Date().toISOString()
+                                }],
+                                lastMessage: message.content,
+                                lastMessageTime: "Just now"
+                            };
+                        });
+                    }
+                }else if (message.type == 'cust-alert'){
+                    console.log("message is "+message.content)
+                    const customerId = message.customerId;
+                    const customerName = message.customerName || `Customer ${customerId}`;
+                }
+            };
+
+            const handleCustomerSelect = (customer) => {
+                setSelectedCustomer(customer);
+
+                // Mark messages as read
+                setCustomers(prevCustomers =>
+                    prevCustomers.map(c =>
+                        c.id === customer.id ? { ...c, unreadCount: 0 } : c
+                    )
+                );
+            };
+
+            const sendMessage = () => {
+                if (!inputMessage.trim() || !selectedCustomer || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+                 const branchCode = getUrlParameter('branch_code');
+
+                const messageData = {
+                    type: 'message',
+                    content: inputMessage.trim(),
+                    customerId: selectedCustomer.id,
+                    sender: 'bank',
+                    timestamp: new Date().toISOString(),
+                    customerName: selectedCustomer.name,
+                    branchCode: branchCode
+                };
+
+                ws.send(JSON.stringify(messageData));
+
+                // Add message to local state
+                const newMessage = {
+                    content: inputMessage.trim(),
+                    isCustomer: false,
+                    timestamp: messageData.timestamp
+                };
+
+                setSelectedCustomer(prev => {
+                    if (!prev) return null;
+                    return {
+                        ...prev,
+                        messages: [...prev.messages, newMessage],
+                        lastMessage: inputMessage.trim(),
+                        lastMessageTime: "Just now"
+                    };
+                });
+
+                // Update customers list
+                setCustomers(prevCustomers =>
+                    prevCustomers.map(c =>
+                        c.id === selectedCustomer.id
+                            ? { ...c, messages: [...c.messages, newMessage], lastMessage: inputMessage.trim(), lastMessageTime: "Just now" }
+                            : c
+                    )
+                );
+
+                setInputMessage('');
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            };
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [selectedCustomer?.messages]);
+
+            return (
+                <div className="bank-container">
+                    <div className="customer-list">
+                        <div className="customer-list-header">
+                            Bank Customer Support Dashboard
+                            <div style={{ fontSize: '0.8em', marginTop: '5px' }}>
+                                {customers.filter(c => c.status === 'online').length} Customers
+                            </div>
+                        </div>
+                        {customers.map(customer => (
+                            <div
+                                key={customer.id}
+                                className={`customer-item ${selectedCustomer?.id === customer.id ? 'active' : ''}`}
+                                onClick={() => handleCustomerSelect(customer)}
+                            >
+                                <div className="customer-name">
+                                    <span className={`customer-status status-${customer.status}`}></span>
+                                    {customer.name}
+                                </div>
+                                <div className="customer-preview">
+                                    {customer.lastMessage}
+                                </div>
+                                {customer.unreadCount > 0 && (
+                                    <span style={{
+                                        backgroundColor: '#dc3545',
+                                        color: 'white',
+                                        borderRadius: '50%',
+                                        padding: '2px 6px',
+                                        fontSize: '0.8em',
+                                        float: 'right'
+                                    }}>
+                                        {customer.unreadCount}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="chat-area">
+                        {selectedCustomer ? (
+                            <>
+                                <div className="chat-header">
+                                    <h2>{selectedCustomer.name}</h2>
+                                    <div style={{ fontSize: '0.9em', color: '#f8f9fa' }}>
+                                        {selectedCustomer.email}
+                                    </div>
+                                </div>
+
+                                <div className="chat-messages">
+                                    {selectedCustomer.messages.map((message, index) => (
+                                        <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
+                                            <div className={message.type === 'cust-alert' ? "cust-alert-band":"message-content"}>
+                                                {message.content}
+                                                {message.type === 'cust-alert' && (
+                                                    <span>{new Date(message.timestamp).toLocaleString("en-GB")}</span>
+                                                )}
+                                            </div>
+                                            {!message.type === 'cust-alert' && (
+                                            <div className="message-time">
+                                                {new Date(message.timestamp).toLocaleString("en-GB")}
+                                            </div>
+                                        )}
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} />
+                                </div>
+
+                                <div className="chat-input">
+                                    <div className="input-container">
+                                        <input
+                                            type="text"
+                                            className="message-input"
+                                            value={inputMessage}
+                                            onChange={(e) => setInputMessage(e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Type your response..."
+                                            maxLength="500"
+                                            disabled={connectionStatus !== 'connected'}
+                                        />
+                                        <button
+                                            className="send-button"
+                                            onClick={sendMessage}
+                                            disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
+                                        >
+                                            Send
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="no-customer-selected">
+                                Select a customer to start chatting
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={`connection-status status-${connectionStatus}`}>
+                        {connectionStatus === 'connected' ? 'Connected' :
+                            connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
+                    </div>
+                </div>
+            );
         };
 
-        // If branch connected, send via socket; else fallback to bot POST
-        if (isBrConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          safeSend(messageData);
-        } else if (isBrConnected) {
-          // branch considered connected but socket not ready: queue
-          safeSend(messageData);
-        } else {
-          // fallback to bot API
-          handleOutGoingBotMsg(trimmed);
-        }
-
-        // add local message
-        setMessages(prev => [...prev, {
-          content: trimmed,
-          isCustomer: true,
-          senderName: userInfo?.custName || 'You',
-          timestamp: messageData.timestamp
-        }]);
-        setInputMessage('');
-      };
-
-      // bot fallback POST
-      const handleOutGoingBotMsg = async (text) => {
-        if (!text.trim()) return;
-        try {
-          const response = await fetch('./getBotReply', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question: text.trim() })
-          });
-          if (!response.ok) throw new Error('Failed to fetch bot reply');
-          const parsedMessage = await response.json(); // already parsed
-          handleBotResponse(parsedMessage);
-        } catch (error) {
-          console.error('Error sending to bot:', error);
-          setMessages(prev => [...prev, {
-            content: 'Sorry, failed to contact the bot.',
-            isCustomer: false,
-            senderName: 'System',
-            timestamp: new Date().toISOString()
-          }]);
-        }
-      };
-
-      const sendMessage = (text) => {
-        if (!text || !text.trim()) return;
-        handleOutGoingMsg(text);
-      };
-
-      const handleKeyPress = (e) => {
-        if (e.key === 'Enter') sendMessage(inputMessage);
-      };
-
-      // handle alert to branch (ensures ws is created & message queued/sent)
-      const handleConnAlert = () => {
-        // prepare message
-        const messageData = {
-          type: 'cust-alert',
-          content: `Hello Branch user, A customer (${customerId}, ${userInfo?.custName || ''}) is connected to the Chat support !`,
-          customerId,
-          branchCode,
-          sender: 'system',
-          timestamp: new Date().toISOString(),
-          customerName: userInfo?.custName || ''
-        };
-
-        // ensure websocket exists (connect if required) and attempt to send (will queue if not open)
-        if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-          connectWebSocket();
-        }
-        safeSend(messageData);
-      };
-
-      // default question click
-      const handleDefaultQuestionClick = (q) => {
-        sendMessage(q);
-        setShowDefaultQuestions(false);
-      };
-
-      // small renderer helper: if content is array of flowOptions, render them as buttons
-      const renderMessageContent = (message) => {
-        if (Array.isArray(message.content) && message.content.length > 0 && typeof message.content[0] === 'object' && message.content[0].option) {
-          return (
-            <div className="flow-options">
-              {message.content.map((opt, idx) => (
-                <button key={opt.id || idx} className="question-btn" onClick={() => sendMessage(opt.option)}>
-                  {opt.option}
-                </button>
-              ))}
-            </div>
-          );
-        }
-        return <span>{message.content}</span>;
-      };
-
-      return (
-        <div className="chat-container" role="region" aria-label="Customer Support Chat">
-          <div className="chat-header">
-            <h2>Customer Support Chat</h2>
-            {userInfo && (
-              <div className="user-info">
-                Customer Name: {userInfo.custName || '-'} | Branch: {userInfo.branchCode ? `SBIN00${userInfo.branchCode}` : '-'}
-              </div>
-            )}
-            <div className="connection-status">
-              {connectionStatus === 'connected' && 'Connected to support'}
-              {connectionStatus === 'disconnected' && 'Disconnected - Reconnecting...'}
-              {connectionStatus === 'connecting' && 'Connecting...'}
-              {connectionStatus === 'error' && 'Connection Error'}
-            </div>
-          </div>
-
-          <div className="chat-messages" aria-live="polite">
-            {messages.map((message, index) => (
-              <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
-                <div className="message-sender">{message.senderName || (message.isCustomer ? userInfo?.custName || 'You' : 'Support')}</div>
-                <div className="message-content">
-                  {renderMessageContent(message)}
-                </div>
-                <div className="message-time">
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
-            ))}
-
-            {showDefaultQuestions && (
-              <div className="default-questions" aria-hidden={!showDefaultQuestions}>
-                {defaultQuestions.map((q, i) => (
-                  <button key={i} className="question-btn" onClick={() => handleDefaultQuestionClick(q)}>{q}</button>
-                ))}
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          <div className="chat-input">
-            <div className="input-container">
-              <input
-                type="text"
-                className="message-input"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
-                maxLength="500"
-                disabled={connectionStatus === 'error'}
-                aria-label="Message input"
-              />
-              <button
-                className="send-button"
-                onClick={() => sendMessage(inputMessage)}
-                disabled={!inputMessage.trim() || connectionStatus === 'error'}
-                aria-label="Send message"
-              >
-                Send
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<CustomerChat />);
-  </script>
+        // Render the bank dashboard
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<BankDashboard />);
+    </script>
 </body>
+
 </html>
