@@ -1,49 +1,142 @@
-/* Overlay that dims the background */
-.qa-modal-overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-}
+-- 1-10: Inland LC basics
+INSERT INTO chat_qa (question,answer) VALUES ("What is an Inland Letter of Credit?", "A bank's payment guarantee for domestic trade between buyer and seller.");
+INSERT INTO chat_qa (question,answer) VALUES ("Who issues an Inland LC?", "Typically the buyer's bank issues the Inland LC on buyer's request.");
+INSERT INTO chat_qa (question,answer) VALUES ("When is an Inland LC used?", "Used when buyer and seller require bank-backed payment assurance for domestic deals.");
+INSERT INTO chat_qa (question,answer) VALUES ("What parties are involved in an Inland LC?", "Applicant (buyer), beneficiary (seller), issuing bank, and confirming bank if any.");
+INSERT INTO chat_qa (question,answer) VALUES ("What documents are required under Inland LC?", "Invoice, transport receipt, packing list, inspection certificate if required by LC terms.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can Inland LCs be irrevocable?", "Yes, most Inland LCs are irrevocable unless the LC explicitly states otherwise.");
+INSERT INTO chat_qa (question,answer) VALUES ("How is payment made under an Inland LC?", "Payment is made by the issuing bank on presentation of compliant documents under LC terms.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is a sight Inland LC?", "A sight LC requires immediate payment upon presentation and acceptance of compliant documents.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is a usance Inland LC?", "A usance LC allows deferred payment after acceptance for a specified period (e.g., 60 days).");
+INSERT INTO chat_qa (question,answer) VALUES ("Can Inland LC terms be amended?", "Yes, amendments can be made with consent of parties and bank approval.");
 
-/* Modal container */
-.qa-modal {
-  background: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  min-width: 320px;
-  max-width: 500px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
+-- 11-20: Inland LC follow-ups
+INSERT INTO chat_qa (question,answer) VALUES ("How to apply for an Inland LC at SBI?", "Submit application, trade contract, KYC, and collateral details to bank branch.");
+INSERT INTO chat_qa (question,answer) VALUES ("What charges apply on Inland LC?", "LC issuance fee, commission, amendment fees, document handling and other bank charges.");
+INSERT INTO chat_qa (question,answer) VALUES ("How long does Inland LC processing take?", "Typically 1-3 working days depending on documentation and compliance checks.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can Inland LC be transferred to another seller?", "Transferability depends on LC terms; many Inland LCs are non-transferable.");
+INSERT INTO chat_qa (question,answer) VALUES ("Is insurance required for Inland LC shipments?", "Insurance depends on trade terms; bank may ask for insurance cover if cargo risk exists.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is a confirmed Inland LC?", "A confirmed LC includes a second bank's guarantee to pay the beneficiary in addition to issuing bank.");
+INSERT INTO chat_qa (question,answer) VALUES ("How to handle discrepancies in Inland LC documents?", "Bank notifies discrepancies; beneficiary can correct or buyer may accept discrepancies for payment.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can Inland LC be used for multiple shipments?", "Yes if LC specifies partial shipments or multiple drawings allowed.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is partial shipment under Inland LC?", "Partial shipment allows goods to be shipped in more than one consignment.");
+INSERT INTO chat_qa (question,answer) VALUES ("How to cancel an Inland LC?", "Cancellation requires mutual consent of applicant, beneficiary and bank; follow bank's procedure.");
 
-.qa-modal h3 {
-  margin-top: 0;
-}
+-- 21-40: Import LC essentials
+INSERT INTO chat_qa (question,answer) VALUES ("What is an Import Letter of Credit?", "A bank guarantee enabling importers to assure payment to overseas exporters on document compliance.");
+INSERT INTO chat_qa (question,answer) VALUES ("Who applies for an Import LC?", "The importer applies to their bank to open an LC in favor of the exporter.");
+INSERT INTO chat_qa (question,answer) VALUES ("What types of Import LCs exist?", "Sight LC, Usance/Deferred LC, Revolving LC, Transferable LC, Standby LC.");
+INSERT INTO chat_qa (question,answer) VALUES ("What documents are required for Import LC?", "Commercial invoice, bill of lading/airway bill, insurance, packing list, certificate of origin where applicable.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is a documentary LC?", "A documentary LC requires specific documents to be presented for payment rather than physical goods inspection.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can Import LC be confirmed by another bank?", "Yes, exporter may ask for confirmation by a reliable bank to reduce payment risk.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is a revolving LC?", "A revolving LC renews automatically for repeated shipments up to a set limit and period.");
+INSERT INTO chat_qa (question,answer) VALUES ("How are LC amendments handled?", "Amendments require agreement of all parties and the issuing bank will issue an amendment advice.");
+INSERT INTO chat_qa (question,answer) VALUES ("What are LC expiry rules?", "Presenting documents must fall within LC validity and expiry place; bank will not pay after expiry.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can Import LC be back-to-back?", "Yes, back-to-back LCs use an original LC as collateral to open another LC for suppliers.");
 
-.qa-modal label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 4px;
-}
+-- 41-60: Import LC follow-ups & charges
+INSERT INTO chat_qa (question,answer) VALUES ("What are common charges on Import LC?", "LC opening commission, negotiation charges, reimbursement fees, amendment fees, advising charges.");
+INSERT INTO chat_qa (question,answer) VALUES ("How long does it take to open an Import LC?", "Usually 2-5 working days depending on documentation and bank procedures.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is advising bank in Import LC?", "The advising bank authenticates and forwards the LC from issuing bank to the exporter.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is negotiating bank?", "A bank that examines documents and pays/accepts under LC, later claiming reimbursement from issuing bank.");
+INSERT INTO chat_qa (question,answer) VALUES ("What happens on discrepant documents for Import LC?", "Documents may be refused, paid on waiver, or require amendments — subject to buyer's acceptance.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is L/C confirmation cost?", "Cost varies by bank and risk; charged when confirming bank adds its guarantee to the LC.");
+INSERT INTO chat_qa (question,answer) VALUES ("Are import LCs subject to foreign exchange rules?", "Yes, cross-border LCs are subject to RBI/FEMA rules and FX documentation requirements.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can importer nominate a different shipper in LC?", "Only if LC permits changes or via amendment with exporter and banks' consent.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is a standby LC for imports?", "A standby LC acts as secondary payment method if primary obligation fails; often used as performance backup.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can LC liability be secured by collateral?", "Yes, banks often ask for security or margin to cover LC exposure.");
 
-.qa-modal input {
-  width: 100%;
-  padding: 6px 8px;
-  margin-bottom: 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+-- 61-80: LC Bills (Inland & Import) basics
+INSERT INTO chat_qa (question,answer) VALUES ("What is an LC bill?", "A bill of exchange or financial instrument drawn under an LC and presented for payment.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is presentment of LC bills?", "Submitting required LC documents and bill to the bank for payment/acceptance or negotiation.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is bill discounting under LC?", "Bank buys the bill before maturity at a discount and advances funds to seller/exporter.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can LC bills be negotiated?", "Yes, negotiating bank can pay the beneficiary and claim reimbursement from the issuing bank.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is acceptance in LC bills?", "Importer may accept a usance bill promising to pay at maturity, giving exporter acceptance credit.");
+INSERT INTO chat_qa (question,answer) VALUES ("What documents accompany LC bills?", "Documents like invoice, transport documents, insurance, certificates prescribed by the LC.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is 'sight' vs 'usance' bill?", "Sight bills payable immediately; usance bills payable at a future agreed date after acceptance.");
+INSERT INTO chat_qa (question,answer) VALUES ("When does bank discount LC bills?", "Banks discount when documents are compliant and credit/security terms are met.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is 'negotiation' of LC bills?", "Exporter sells documents to bank for immediate payment; bank later claims from issuing bank.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can LC bills be protested?", "Yes, unpaid or dishonored bills may be protested for legal evidence and claims.");
 
-.qa-modal button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
+-- 81-100: LC bills follow-ups & practicals
+INSERT INTO chat_qa (question,answer) VALUES ("How are discrepancies in LC bills resolved?", "Negotiation between buyer/seller; bank may await waiver or request amendment to documents.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is recourse vs non-recourse discounting?", "Recourse means exporter remains liable on default; non-recourse transfers credit risk to bank for a fee.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can bills be discounted in INR for import LC?", "Yes, subject to bank policy and regulatory compliance; settlement may be in foreign currency or INR.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is usance acceptance period?", "The agreed credit period after acceptance (e.g., 30/60/90 days) until payment is due.");
+INSERT INTO chat_qa (question,answer) VALUES ("What fees for LC bill discounting?", "Discount charges, commitment fees, interest, document handling and processing fees.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can exporters get pre-shipment finance under LC?", "Yes, pre-shipment finance may be available under LC-backed orders as working capital.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is clean vs documentary bill under LC?", "Clean bill has no supporting documents; under LC documentary bills require specified documents.");
+INSERT INTO chat_qa (question,answer) VALUES ("When does bank refuse an LC bill?", "If documents are non-compliant, beyond LC terms, or if LC expired or invalid.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is reimbursement undertaking in LC bills?", "Issuing bank's promise to reimburse negotiating/confirming bank upon document compliance.");
+INSERT INTO chat_qa (question,answer) VALUES ("Are LC bills insured?", "Banks may require insurance for shipment risk; bill itself is a financial instrument not insured separately.");
 
-.qa-modal button:hover {
-  opacity: 0.9;
-}
+-- 101-120: Bank Guarantees fundamentals
+INSERT INTO chat_qa (question,answer) VALUES ("What is a Bank Guarantee (BG)?", "A bank's promise to pay beneficiary if applicant fails contractual obligations.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is difference between BG and LC?", "LC ensures payment for trade documents; BG ensures compensation for non-performance or default.");
+INSERT INTO chat_qa (question,answer) VALUES ("What types of BGs exist?", "Performance, Financial, Advance Payment, Bid/Tender, Retention, Warranty guarantees.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is an Inland Bank Guarantee?", "A BG issued for obligations within India, governed by domestic laws and bank practices.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is a Foreign Bank Guarantee?", "A BG for cross-border contracts, may involve issuing bank or counter-guarantee from correspondent bank abroad.");
+INSERT INTO chat_qa (question,answer) VALUES ("How to apply for a BG at SBI?", "Submit application, contract details, security/collateral info and comply with bank's credit checks.");
+INSERT INTO chat_qa (question,answer) VALUES ("What collateral is required for BG?", "Security can be cash margin, fixed deposit lien, property, or other bank-acceptable collateral.");
+INSERT INTO chat_qa (question,answer) VALUES ("How long is a BG valid?", "Validity depends on contract terms; extensions require bank consent and may need fresh security.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can BG be invoked?", "Yes, beneficiary can invoke BG when applicant fails to meet obligations per guarantee terms.");
+
+-- 121-140: BG practicals & follow-ups
+INSERT INTO chat_qa (question,answer) VALUES ("What charges apply on Bank Guarantees?", "Issuance commission, renewal fees, amendment charges, claim handling fees and margin costs.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is performance guarantee?", "Guarantee ensuring contractor/supplier performs per contract; invoked on non-performance.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is advance payment guarantee?", "Protects buyer by ensuring seller returns advance payment if seller defaults.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is a bid bond guarantee?", "Guarantee supporting bid participation; ensures bidder honors contract if selected.");
+INSERT INTO chat_qa (question,answer) VALUES ("How to get BG extended?", "Apply before expiry with justification and provide renewed collateral; bank may levy extension fees.");
+INSERT INTO chat_qa (question,answer) VALUES ("What happens if BG invoked wrongly?", "Bank examines invocation; wrongful invocation may lead to legal dispute between parties.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can BG be transferable?", "Most BGs are not transferable unless explicitly allowed by terms.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is counter-guarantee?", "A bank other than issuer provides guarantee backing the issuer or in international BGs a correspondent bank provides counter-guarantee.");
+INSERT INTO chat_qa (question,answer) VALUES ("How to claim under a BG?", "Beneficiary presents invocation notice and documents as per BG; bank pays if claim meets terms.");
+INSERT INTO chat_qa (question,answer) VALUES ("Are BGs subject to UCP or ISP98?", "BGs often follow ISP98 (International Standby Practices) or local laws; LCs follow UCP600.");
+
+-- 141-160: Buyer’s Credit & finance products
+INSERT INTO chat_qa (question,answer) VALUES ("What is Buyer’s Credit?", "Short-term finance for importers arranged with overseas lenders and facilitated by domestic banks.");
+INSERT INTO chat_qa (question,answer) VALUES ("Who provides Buyer’s Credit?", "International banks or financial institutions provide funds; domestic bank arranges and routes the facility.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is supplier's credit?", "Credit directly extended by exporter to buyer, allowing deferred payment without bank-arranged external finance.");
+INSERT INTO chat_qa (question,answer) VALUES ("What tenor is available under Buyer’s Credit?", "Short to medium tenor, commonly 3 months to 1 year; depends on lender and transaction.");
+INSERT INTO chat_qa (question,answer) VALUES ("What documents needed for Buyer’s Credit?", "Loan application, import documents, LC/contract, KYC, financial statements and security documents.");
+INSERT INTO chat_qa (question,answer) VALUES ("What are advantages of Buyer’s Credit?", "Lower interest rates, extended payment terms, improved importer cash flow.");
+INSERT INTO chat_qa (question,answer) VALUES ("What are risks in Buyer’s Credit?", "FX risk, lender recall risk, documentation issues and regulatory or compliance exposure.");
+INSERT INTO chat_qa (question,answer) VALUES ("How is interest settled on Buyer’s Credit?", "Interest may be paid by importer to lender; bank facilitates settlement per agreement.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can Buyer’s Credit be in INR?", "Typically in foreign currency; conversion to INR depends on bank arrangement and regulatory rules.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is role of domestic bank in Buyer’s Credit?", "Domestic bank arranges facility, handles documentation, and liaises between importer and overseas lender.");
+
+-- 161-180: Outward & Inward Bills
+INSERT INTO chat_qa (question,answer) VALUES ("What is an outward bill of exchange?", "A bill sent by exporter’s bank to collect payment from buyer or buyer's bank abroad.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is an inward bill of exchange?", "A bill received by importer’s bank from exporter’s bank for collection or payment.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is collection route for bills?", "Outward bills can be sent 'documents against payment' (D/P) or 'documents against acceptance' (D/A).");
+INSERT INTO chat_qa (question,answer) VALUES ("What is D/P vs D/A?", "D/P: documents released on payment; D/A: documents released on acceptance to pay later (usance).");
+INSERT INTO chat_qa (question,answer) VALUES ("How are outward bills tracked?", "Through bank reference numbers, SWIFT messages and trade transaction portals.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can bills be sent through bank only?", "Yes, banks handle collection and negotiation of trade bills as authorized by exporters/importers.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is 'clean collection'?", "Collection of bills without trade documents; often less secure than documentary collection.");
+INSERT INTO chat_qa (question,answer) VALUES ("How long for inward bill clearance?", "Processing varies from same day to several days depending on document complexity and payment terms.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can bills be protested for non-payment?", "Yes, legal protest can be issued for unpaid bills to support recovery claims.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is role of presenting bank in collection?", "Presenting bank forwards documents to buyer, collects payment or acceptance per collection instruction.");
+
+-- 181-200: Outward/Inward follow-ups & trade FAQs
+INSERT INTO chat_qa (question,answer) VALUES ("How to convert an inward bill into a loan?", "Discounting or purchase by bank against security can convert accepted bills into loans for exporters.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is 'collection instruction' for outward bills?", "Exporter gives bank instructions whether D/P, D/A, or hold documents until further notice.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can outward bills be sent via SWIFT?", "Yes, banks use SWIFT for instructions and communication related to bills and collections.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is acceptance under bill of exchange?", "Buyer's signed promise on the bill to pay at a future date, converting it to an accepted bill.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is role of negotiating bank in outward bills?", "Pays exporter on presentment, then seeks reimbursement from issuing or correspondent bank.");
+INSERT INTO chat_qa (question,answer) VALUES ("How to check status of outward bill at SBI?", "Use SBI trade portal, contact your branch relationship manager, or use banking communication channels.");
+INSERT INTO chat_qa (question,answer) VALUES ("Are import/export bills covered by insurance?", "Insurance covers cargo risk; bill default risk is managed via credit, LC confirmation or insurance separately.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is documentary collection risk?", "Buyer may refuse documents or delay payment; collection is less secure than LC.");
+INSERT INTO chat_qa (question,answer) VALUES ("How to convert a D/A into a loan?", "Banks may discount accepted D/A bills if credit and security conditions are met.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can SBI act as collecting or paying bank for foreign bills?", "Yes, SBI’s international network can act as collecting/paying bank subject to policy and correspondent arrangements.");
+
+-- 201-210: Common FAQs, general & follow-ups
+INSERT INTO chat_qa (question,answer) VALUES ("What are trade finance products offered by SBI?", "LCs, BGs, bill discounting, buyer's credit, export finance and working capital solutions.");
+INSERT INTO chat_qa (question,answer) VALUES ("Who can apply for trade finance at SBI?", "Exporters, importers, corporates and MSMEs with valid KYC and required documents.");
+INSERT INTO chat_qa (question,answer) VALUES ("How to track an LC or BG application status?", "Contact branch RM, use SBI trade portal or track reference numbers provided by bank.");
+INSERT INTO chat_qa (question,answer) VALUES ("What documents are essential for trade finance?", "KYC, contract/LC copy, invoices, transport documents, insurance and security documents.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can trade finance be availed online?", "Many steps can be done online via trade portals but some documentation and signatures may need branch visits.");
+INSERT INTO chat_qa (question,answer) VALUES ("How to compute LC charges?", "Charges depend on transaction value, tenor, currency, credit risk and bank's fee schedule.");
+INSERT INTO chat_qa (question,answer) VALUES ("What is the typical margin for BGs?", "Banks may ask for cash margin or collateral, percentage varies by credit profile and product.");
+INSERT INTO chat_qa (question,answer) VALUES ("How to reduce trade finance cost?", "Negotiate margins, use confirmed LCs only when needed, optimize tenor and provide strong collateral.");
+INSERT INTO chat_qa (question,answer) VALUES ("Can trade finance be used for domestic suppliers?", "Yes, Inland LCs, guarantees and bills apply for domestic supplier transactions.");
+INSERT INTO chat_qa (question,answer) VALUES ("Where to get more help on trade finance at SBI?", "Contact your branch relationship manager or the bank's trade finance desk for detailed guidance.");
