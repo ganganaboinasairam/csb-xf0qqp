@@ -1,21 +1,48 @@
-<div className="chat-input">
-            <div className="input-container">
-              <input
-                type="text"
-                className="message-input"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
-                maxLength="500"
-                //disabled={connectionStatus !== 'connected'}
-              />
-              <button
-                className="send-button"
-                onClick={() => sendMessage(inputMessage)}
-                //disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
-              >
-                Send
-              </button>
-            </div>
-          </div>
+import { useState, useRef, useEffect } from "react";
+
+export default function ChatInput({ sendMessage }) {
+  const [inputMessage, setInputMessage] = useState("");
+  const textareaRef = useRef(null);
+
+  // Auto-resize on input
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"; // reset
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+    }
+  }, [inputMessage]);
+
+  return (
+    <div className="chat-input">
+      <div className="input-container">
+        <textarea
+          ref={textareaRef}
+          className="message-input"
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage(inputMessage);
+              setInputMessage(""); // clear after sending
+            }
+          }}
+          placeholder="Type your message..."
+          maxLength={500}
+          rows={1} // starts as one line
+          style={{ resize: "none", overflow: "hidden" }} // disable manual drag resize
+        />
+        <button
+          className="send-button"
+          onClick={() => {
+            sendMessage(inputMessage);
+            setInputMessage("");
+          }}
+          disabled={!inputMessage.trim()}
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
