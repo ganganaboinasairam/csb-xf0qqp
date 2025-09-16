@@ -1,48 +1,44 @@
-import { useState, useRef, useEffect } from "react";
+async function openIframe(custId, branchCode, custName) {
+                    	  try {
+                    	    // 1) request short-lived chat token from main app
+							
+							var csrfObj = csrfResolution('../servlets/create-chat-token');
+                    	    const resp = await fetch(csrfObj.url, {
+                    	      method: 'POST',
+                    	      credentials: 'include',
+                    	      headers: { 'Accept': 'application/json' },
+							  data: {CSRFTOKEN : csrfObj.csrf, REFRESH_TOKEN : csrfObj.refreshToken}
+                    	    });
+                    	    if (!resp.ok) throw new Error('Failed to create chat token');
 
-export default function ChatInput({ sendMessage }) {
-  const [inputMessage, setInputMessage] = useState("");
-  const textareaRef = useRef(null);
+                    	    const { chatToken } = await resp.json();
 
-  // Auto-resize on input
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto"; // reset
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
-    }
-  }, [inputMessage]);
+                    	    // 2) build a hidden form to POST into the chat app launch endpoint (token not in URL)
+                    	    const form = document.createElement('form');
+                    	    form.method = 'POST';
+                    	    form.target = 'iframeBox';
+                    	    // point at chatapp launch servlet (absolute or full URL)
+                    	    form.action = 'http://10.177.141.86:7001/ChatboxEECE/chat-init';
 
-  return (
-    <div className="chat-input">
-      <div className="input-container">
-        <textarea
-          ref={textareaRef}
-          className="message-input"
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              sendMessage(inputMessage);
-              setInputMessage(""); // clear after sending
-            }
-          }}
-          placeholder="Type your message..."
-          maxLength={500}
-          rows={1} // starts as one line
-          style={{ resize: "none", overflow: "hidden" }} // disable manual drag resize
-        />
-        <button
-          className="send-button"
-          onClick={() => {
-            sendMessage(inputMessage);
-            setInputMessage("");
-          }}
-          disabled={!inputMessage.trim()}
-        >
-          Send
-        </button>
-      </div>
-    </div>
-  );
-}
+                    	    // hidden fields
+                    	    function addField(name, value) {
+                    	      const i = document.createElement('input'); i.type = 'hidden'; i.name = name; i.value = value || '';
+                    	      form.appendChild(i);
+                    	    }
+                    	    addField('chatToken', chatToken);
+                    	    addField('custId', custId);
+                    	    addField('branchCode', branchCode);
+                    	    addField('custName', custName);
+
+                    	    document.body.appendChild(form);
+
+                    	    // show iframe and submit
+                    	    document.getElementById('iframeBox').style.display = 'block';
+                    	    form.submit();
+
+                    	    // cleanup
+                    	    setTimeout(() => document.body.removeChild(form), 1000);
+                    	  } catch (e) {
+                    	    alert('Cannot open chat: ' + e.message);
+                    	  }
+                    	}
