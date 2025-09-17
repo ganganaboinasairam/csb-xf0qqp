@@ -1,11 +1,6 @@
 package com.chat;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,96 +10,113 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.cs.core.dao.DSManager;
 import com.google.gson.Gson;
 
-
 @WebServlet("/LoadPreviousMesgs")
-public class LoadPreviousMesgs extends HttpServlet{
-	
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	
-//	public static final CSLogger logger = ASCELog
-//			.getCELogger(CELogUtility.getLoggerWithClassName(LoadPreviousMesgs.class, "CELOG"));
+public class LoadPreviousMesgs extends HttpServlet {
+    private static final long serialVersionUID = 1L;
 
-	public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException  {
-		try {
-			String custID = request.getParameter("cust_id");
-			String BrCode = request.getParameter("branch_code");
-			String reqFrom = request.getParameter("req_from");
-			String sql = null;
-			
-//			DBConnection db = new DBConnection();
-//			Connection conn = db.getConnection();
-			
-			Connection conn = DSManager.getConnection("CET");
-			PreparedStatement pstmt = null;
-			
-			try {
-				if("bank".equals(reqFrom)) {
-					 sql  = "SELECT * FROM CETRX.TF_CHAT_SUPPORT WHERE BR_CODE = '"+BrCode+"'";
-				}else if ("customer".equals(reqFrom)){
-					 sql  = "SELECT * FROM CETRX.TF_CHAT_SUPPORT WHERE CUST_ID = '"+custID+"' AND BR_CODE = '"+BrCode+"'";
-				}
-				
-//			logger.info("SQL is"+sql);
-				
-				pstmt = conn.prepareStatement(sql);
-//			
-//			pstmt.setString(1, custID);
-//			pstmt.setString(2, BrCode);
-				
-				try (ResultSet rs = pstmt.executeQuery()) {
-					List<Map<String, Object>> records = new ArrayList<>();
-				    while (rs.next()) {
-				        //JSONObject responseJson = new JSONObject();
-				        Map<String, Object> responseMap = new HashMap<>();
-				        responseMap.put("message", rs.getString("MESSAGE"));
-				        responseMap.put("custID1", rs.getString("CUST_ID"));
-				        responseMap.put("brCode", rs.getString("BR_CODE"));
-				        responseMap.put("sender", rs.getString("SENDER"));
-				        responseMap.put("date", rs.getString("T_RECV_DATE"));
-				        responseMap.put("custName", rs.getString("CUST_NAME"));
-				        responseMap.put("type", rs.getString("type"));
-				        
-				        records.add(responseMap);
-				    }
-				    
-				    if(!records.isEmpty()) {
-				        
-				        Gson gson = new Gson();
-				        String jsonResponse = gson.toJson(records);
-				        
+    // Optionally add a logger here (your environment's logging facility)
+    // private static final Logger logger = LoggerFactory.getLogger(LoadPreviousMesgs.class);
 
-				        //String jsonResponse = responseJson.toString();
-				        response.setContentType("application/json");
-				        response.getWriter().write(jsonResponse);
-				    } else {
-				    	sendErrorResponse(response,"Invalid Customer ID Please check");
-				    }
-				}
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}finally {
-				if (pstmt != null) pstmt.close();
-	            if (conn != null) conn.close();
-			}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        
-        
-        
-	}
-	
-	private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String custID = request.getParameter("cust_id");
+        String brCode = request.getParameter("branch_code");
+        String reqFrom = request.getParameter("req_from");
+
+        try {
+            List<Map<String, Object>> records = ChatSupportDAO.fetchMessages(custID, brCode, reqFrom);
+
+            if (records != null && !records.isEmpty()) {
+                Gson gson = new Gson();
+                String jsonResponse = gson.toJson(records);
+
+                response.setContentType("application/json");
+                response.getWriter().write(jsonResponse);
+            } else {
+                sendErrorResponse(response, "Invalid Customer ID Please check");
+            }
+        } catch (Exception e) {
+            // Log the exception appropriately; respond with an error
+            e.printStackTrace();
+            sendErrorResponse(response, "Server error while loading messages");
+        }
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
         response.setContentType("application/json");
         response.getWriter().write("{\"error\": \"" + errorMessage + "\"}");
     }
+}
 
+
+package com.chat;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.cs.core.dao.DSManager;
+
+public class ChatSupportDAO {
+
+    /**
+     * Fetch messages based on request source.
+     * 
+     * @param custID   customer id (may be null if reqFrom == "bank")
+     * @param brCode   branch code (required)
+     * @param reqFrom  either "bank" or "customer"
+     * @return list of maps representing rows (empty list when none)
+     * @throws Exception in case of DB errors (caller can log/handle)
+     */
+    public static List<Map<String, Object>> fetchMessages(String custID, String brCode, String reqFrom) throws Exception {
+        List<Map<String, Object>> records = new ArrayList<>();
+
+        String sql = null;
+
+        if ("bank".equalsIgnoreCase(reqFrom)) {
+            sql = "SELECT MESSAGE, CUST_ID, BR_CODE, SENDER, T_RECV_DATE, CUST_NAME, TYPE "
+                + "FROM CETRX.TF_CHAT_SUPPORT WHERE BR_CODE = ?";
+        } else if ("customer".equalsIgnoreCase(reqFrom)) {
+            sql = "SELECT MESSAGE, CUST_ID, BR_CODE, SENDER, T_RECV_DATE, CUST_NAME, TYPE "
+                + "FROM CETRX.TF_CHAT_SUPPORT WHERE CUST_ID = ? AND BR_CODE = ?";
+        } else {
+            // unknown reqFrom -> return empty list (or throw)
+            return records;
+        }
+
+        // get connection and execute
+        try (Connection conn = DSManager.getConnection("CET");
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            if ("bank".equalsIgnoreCase(reqFrom)) {
+                pstmt.setString(1, brCode);
+            } else {
+                pstmt.setString(1, custID);
+                pstmt.setString(2, brCode);
+            }
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> responseMap = new HashMap<>();
+                    responseMap.put("message", rs.getString("MESSAGE"));
+                    responseMap.put("custID1", rs.getString("CUST_ID"));
+                    responseMap.put("brCode", rs.getString("BR_CODE"));
+                    responseMap.put("sender", rs.getString("SENDER"));
+                    responseMap.put("date", rs.getString("T_RECV_DATE")); // consider rs.getTimestamp if needed
+                    responseMap.put("custName", rs.getString("CUST_NAME"));
+                    responseMap.put("type", rs.getString("TYPE"));
+
+                    records.add(responseMap);
+                }
+            }
+        }
+
+        return records;
+    }
 }
