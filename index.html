@@ -1,53 +1,36 @@
-async function openIframe(custId, branchCode, custName) {
-  try {
-    // 1) request short-lived chat token from main app
-    var csrfObj = csrfResolution('../servlets/create-chat-token');
 
-    $.ajax({
-      url: csrfObj.url,
-      method: 'POST',
-      dataType: 'json',
-      xhrFields: { withCredentials: true }, // same as fetch credentials: 'include'
-      data: {
-        CSRFTOKEN: csrfObj.csrf,
-        REFRESH_TOKEN: csrfObj.refreshToken
-      },
-      success: function (resp) {
-        const chatToken = resp.chatToken;
 
-        // 2) build a hidden form to POST into the chat app launch endpoint (token not in URL)
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.target = 'iframeBox';
-        form.action = 'http://10.177.141.86:7001/ChatboxEECE/chat-init';
-
-        // helper for hidden fields
-        function addField(name, value) {
-          const i = document.createElement('input');
-          i.type = 'hidden';
-          i.name = name;
-          i.value = value || '';
-          form.appendChild(i);
-        }
-        addField('chatToken', chatToken);
-        addField('custId', custId);
-        addField('branchCode', branchCode);
-        addField('custName', custName);
-
-        document.body.appendChild(form);
-
-        // show iframe and submit
-        $('#iframeBox').show();
-        form.submit();
-
-        // cleanup
-        setTimeout(() => document.body.removeChild(form), 1000);
-      },
-      error: function (xhr, status, err) {
-        alert('Cannot open chat: ' + err);
-      }
-    });
-  } catch (e) {
-    alert('Cannot open chat: ' + e.message);
-  }
-}
+Error 500--Internal Server Error
+java.lang.NoSuchMethodError: io.jsonwebtoken.lang.Classes.invokeStatic(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Class;[Ljava/lang/Object;)Ljava/lang/Object;
+	at io.jsonwebtoken.security.Keys.secretKeyFor(Keys.java:137)
+	at com.chat.JwtUtil.(JwtUtil.java:15)
+	at com.chat.JwtTokenServlet.doPost(JwtTokenServlet.java:36)
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:707)
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:790)
+	at weblogic.servlet.internal.StubSecurityHelper$ServletServiceAction.run(StubSecurityHelper.java:295)
+	at weblogic.servlet.internal.StubSecurityHelper$ServletServiceAction.run(StubSecurityHelper.java:260)
+	at weblogic.servlet.internal.StubSecurityHelper.invokeServlet(StubSecurityHelper.java:137)
+	at weblogic.servlet.internal.ServletStubImpl.execute(ServletStubImpl.java:353)
+	at weblogic.servlet.internal.TailFilter.doFilter(TailFilter.java:25)
+	at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
+	at weblogic.websocket.tyrus.TyrusServletFilter.doFilter(TyrusServletFilter.java:274)
+	at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
+	at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.wrapRun(WebAppServletContext.java:3800)
+	at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.run(WebAppServletContext.java:3766)
+	at weblogic.security.acl.internal.AuthenticatedSubject.doAs(AuthenticatedSubject.java:344)
+	at weblogic.security.service.SecurityManager.runAsForUserCode(SecurityManager.java:197)
+	at weblogic.servlet.provider.WlsSecurityProvider.runAsForUserCode(WlsSecurityProvider.java:203)
+	at weblogic.servlet.provider.WlsSubjectHandle.run(WlsSubjectHandle.java:71)
+	at weblogic.servlet.internal.WebAppServletContext.doSecuredExecute(WebAppServletContext.java:2454)
+	at weblogic.servlet.internal.WebAppServletContext.securedExecute(WebAppServletContext.java:2302)
+	at weblogic.servlet.internal.WebAppServletContext.execute(WebAppServletContext.java:2280)
+	at weblogic.servlet.internal.ServletRequestImpl.runInternal(ServletRequestImpl.java:1739)
+	at weblogic.servlet.internal.ServletRequestImpl.run(ServletRequestImpl.java:1699)
+	at weblogic.servlet.provider.ContainerSupportProviderImpl$WlsRequestExecutor.run(ContainerSupportProviderImpl.java:272)
+	at weblogic.invocation.ComponentInvocationContextManager._runAs(ComponentInvocationContextManager.java:352)
+	at weblogic.invocation.ComponentInvocationContextManager.runAs(ComponentInvocationContextManager.java:337)
+	at weblogic.work.LivePartitionUtility.doRunWorkUnderContext(LivePartitionUtility.java:57)
+	at weblogic.work.PartitionUtility.runWorkUnderContext(PartitionUtility.java:41)
+	at weblogic.work.SelfTuningWorkManagerImpl.runWorkUnderContext(SelfTuningWorkManagerImpl.java:655)
+	at weblogic.work.ExecuteThread.execute(ExecuteThread.java:420)
+	at weblogic.work.ExecuteThread.run(ExecuteThread.java:360)
