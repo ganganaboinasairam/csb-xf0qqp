@@ -1,71 +1,110 @@
 package com.chat;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Base64;
-import java.util.Date;
-import java.util.Properties;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class JwtUtil {
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-    private static final SecretKey SECRET_KEY;
-    private static final long TOKEN_VALIDITY = 3600_000L; // 1 hour
+import com.cs.core.dao.DSManager;
+import com.google.gson.Gson;
 
-    static {
-        SECRET_KEY = loadSecretKey();
+
+@WebServlet("/LoadPreviousMesgs")
+public class LoadPreviousMesgs extends HttpServlet{
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+//	public static final CSLogger logger = ASCELog
+//			.getCELogger(CELogUtility.getLoggerWithClassName(LoadPreviousMesgs.class, "CELOG"));
+
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException  {
+		try {
+			String custID = request.getParameter("cust_id");
+			String BrCode = request.getParameter("branch_code");
+			String reqFrom = request.getParameter("req_from");
+			String sql = null;
+			
+//			DBConnection db = new DBConnection();
+//			Connection conn = db.getConnection();
+			
+			Connection conn = DSManager.getConnection("CET");
+			PreparedStatement pstmt = null;
+			
+			try {
+				if("bank".equals(reqFrom)) {
+					 sql  = "SELECT * FROM CETRX.TF_CHAT_SUPPORT WHERE BR_CODE = '"+BrCode+"'";
+				}else if ("customer".equals(reqFrom)){
+					 sql  = "SELECT * FROM CETRX.TF_CHAT_SUPPORT WHERE CUST_ID = '"+custID+"' AND BR_CODE = '"+BrCode+"'";
+				}
+				
+//			logger.info("SQL is"+sql);
+				
+				pstmt = conn.prepareStatement(sql);
+//			
+//			pstmt.setString(1, custID);
+//			pstmt.setString(2, BrCode);
+				
+				try (ResultSet rs = pstmt.executeQuery()) {
+					List<Map<String, Object>> records = new ArrayList<>();
+				    while (rs.next()) {
+				        //JSONObject responseJson = new JSONObject();
+				        Map<String, Object> responseMap = new HashMap<>();
+				        responseMap.put("message", rs.getString("MESSAGE"));
+				        responseMap.put("custID1", rs.getString("CUST_ID"));
+				        responseMap.put("brCode", rs.getString("BR_CODE"));
+				        responseMap.put("sender", rs.getString("SENDER"));
+				        responseMap.put("date", rs.getString("T_RECV_DATE"));
+				        responseMap.put("custName", rs.getString("CUST_NAME"));
+				        responseMap.put("type", rs.getString("type"));
+				        
+				        records.add(responseMap);
+				    }
+				    
+				    if(!records.isEmpty()) {
+				        
+				        Gson gson = new Gson();
+				        String jsonResponse = gson.toJson(records);
+				        
+
+				        //String jsonResponse = responseJson.toString();
+				        response.setContentType("application/json");
+				        response.getWriter().write(jsonResponse);
+				    } else {
+				    	sendErrorResponse(response,"Invalid Customer ID Please check");
+				    }
+				}
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}finally {
+				if (pstmt != null) pstmt.close();
+	            if (conn != null) conn.close();
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+        
+        
+	}
+	
+	private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\": \"" + errorMessage + "\"}");
     }
 
-    private static SecretKey loadSecretKey() {
-        try (InputStream input = JwtUtil.class.getClassLoader().getResourceAsStream("secret.key")) {
-            if (input == null) {
-                throw new RuntimeException("secret.key file not found in classpath");
-            }
-            Properties props = new Properties();
-            props.load(input);
-
-            String secretBase64 = props.getProperty("jwt.secret");
-            if (secretBase64 == null || secretBase64.trim().isEmpty()) {
-                throw new RuntimeException("jwt.secret not found in secret.key file");
-            }
-
-            byte[] decodedKey = Base64.getDecoder().decode(secretBase64);
-            return new SecretKeySpec(decodedKey, SignatureAlgorithm.HS256.getJcaName());
-
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to load secret.key", e);
-        }
-    }
-
-    // Generate JWT token for a given subject
-    public static String generateToken(String subject) {
-        long nowMillis = System.currentTimeMillis();
-        Date now = new Date(nowMillis);
-        Date expiryDate = new Date(nowMillis + TOKEN_VALIDITY);
-
-        return Jwts.builder()
-                .setSubject(subject)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
-                .compact();
-    }
-
-    // Validate JWT token and return claims if valid
-    public static Claims validateToken(String token) {
-        try {
-            return Jwts.parser()
-                    .setSigningKey(SECRET_KEY)
-                    .parseClaimsJws(token)
-                    .getBody();
-        } catch (Exception e) {
-            System.err.println("Invalid JWT token: " + e.getMessage());
-            return null;
-        }
-    }
 }
