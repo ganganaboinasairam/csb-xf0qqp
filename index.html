@@ -1,7 +1,6 @@
 package com.chat;
 
 import java.io.IOException;
-
 import java.io.PrintWriter;
 
 import javax.servlet.ServletException;
@@ -45,24 +44,30 @@ public class JwtTokenServlet extends HttpServlet {
     }
 }
 
+
 package com.chat;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 
-import java.security.Key;
+import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
-
 
 public class JwtUtil {
 
-    // Secret key for signing tokens (in production, use environment variable or config)
-    private static final Key SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    // IMPORTANT: Replace this with a secure key and load it from env/config in production.
+    // HS256 requires a 256-bit (32 byte) key. Below is an example 32+ byte string.
+    private static final String SECRET_STRING = "ReplaceThisWithASecureRandom32ByteKey!!!!";
+    private static final byte[] SECRET_BYTES = SECRET_STRING.getBytes(StandardCharsets.UTF_8);
+
+    // Create SecretKeySpec for HS256
+    private static final SecretKey SECRET_KEY = new SecretKeySpec(SECRET_BYTES, SignatureAlgorithm.HS256.getJcaName());
 
     // Token validity in milliseconds (e.g., 1 hour)
-    private static final long TOKEN_VALIDITY = 3600000;
+    private static final long TOKEN_VALIDITY = 3600_000L; // 1 hour
 
     // Generate JWT token for a given subject (e.g., customerId)
     public static String generateToken(String subject) {
@@ -74,19 +79,21 @@ public class JwtUtil {
                 .setSubject(subject)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .signWith(SECRET_KEY)
+                // In jjwt 0.9.1, use signWith(SignatureAlgorithm, key)
+                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
                 .compact();
     }
 
     // Validate JWT token and return claims if valid, else null
     public static Claims validateToken(String token) {
         try {
-            return Jwts.parserBuilder()
+            // In jjwt 0.9.1 use Jwts.parser()
+            return Jwts.parser()
                     .setSigningKey(SECRET_KEY)
-                    .build()
                     .parseClaimsJws(token)
                     .getBody();
         } catch (Exception e) {
+            // logging only; in production use a proper logger
             System.err.println("Invalid JWT token: " + e.getMessage());
             return null;
         }
