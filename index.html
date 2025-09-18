@@ -1,122 +1,74 @@
 package com.chat;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.tcs.chat.util.ChatQADao;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
-@WebServlet("/LoadPreviousMesgs")
-public class LoadPreviousMesgs extends HttpServlet {
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+@WebServlet("/getBotReply")
+public class GetBotReply extends HttpServlet {
     private static final long serialVersionUID = 1L;
+    private Gson gson = new Gson();
+    ChatQADao dao = new ChatQADao();
 
-    // Optionally add a logger here (your environment's logging facility)
-    // private static final Logger logger = LoggerFactory.getLogger(LoadPreviousMesgs.class);
-
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String custID = request.getParameter("cust_id");
-        String brCode = request.getParameter("branch_code");
-        String reqFrom = request.getParameter("req_from");
-
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
-            List<Map<String, Object>> records = ChatSupportDAO.fetchMessages(custID, brCode, reqFrom);
+			// Set response type
+			response.setContentType("application/json");
+			PrintWriter out = response.getWriter();
 
-            if (records != null && !records.isEmpty()) {
-                Gson gson = new Gson();
-                String jsonResponse = gson.toJson(records);
+			// Read the request body
+			StringBuilder sb = new StringBuilder();
+			BufferedReader reader = request.getReader();
+			String line;
+			while ((line = reader.readLine()) != null) {
+			    sb.append(line);
+			}
 
-                response.setContentType("application/json");
-                response.getWriter().write(jsonResponse);
-            } else {
-                sendErrorResponse(response, "Invalid Customer ID Please check");
-            }
-        } catch (Exception e) {
-            // Log the exception appropriately; respond with an error
-            e.printStackTrace();
-            sendErrorResponse(response, "Server error while loading messages");
-        }
+			// Parse the incoming JSON
+			String jsonInput = sb.toString();
+			UserQuestion userQuestion = gson.fromJson(jsonInput, UserQuestion.class);
+
+			// Generate a response based on the question
+			String botResponse = null;
+			try {
+				botResponse = dao.findBestAnswer(userQuestion.getQuestion());
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			System.out.println("botResponse is :: "+botResponse);
+
+			// Send the response back to the client
+			out.print(gson.toJson(botResponse));
+			out.flush();
+		} catch (JsonSyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
-    private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
-        response.setContentType("application/json");
-        response.getWriter().write("{\"error\": \"" + errorMessage + "\"}");
-    }
-}
+    
 
+    private class UserQuestion {
+        private String question;
 
-package com.chat;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.cs.core.dao.DSManager;
-
-public class ChatSupportDAO {
-
-    /**
-     * Fetch messages based on request source.
-     * 
-     * @param custID   customer id (may be null if reqFrom == "bank")
-     * @param brCode   branch code (required)
-     * @param reqFrom  either "bank" or "customer"
-     * @return list of maps representing rows (empty list when none)
-     * @throws Exception in case of DB errors (caller can log/handle)
-     */
-    public static List<Map<String, Object>> fetchMessages(String custID, String brCode, String reqFrom) throws Exception {
-        List<Map<String, Object>> records = new ArrayList<>();
-
-        String sql = null;
-
-        if ("bank".equalsIgnoreCase(reqFrom)) {
-            sql = "SELECT MESSAGE, CUST_ID, BR_CODE, SENDER, T_RECV_DATE, CUST_NAME, TYPE "
-                + "FROM CETRX.TF_CHAT_SUPPORT WHERE BR_CODE = ?";
-        } else if ("customer".equalsIgnoreCase(reqFrom)) {
-            sql = "SELECT MESSAGE, CUST_ID, BR_CODE, SENDER, T_RECV_DATE, CUST_NAME, TYPE "
-                + "FROM CETRX.TF_CHAT_SUPPORT WHERE CUST_ID = ? AND BR_CODE = ?";
-        } else {
-            // unknown reqFrom -> return empty list (or throw)
-            return records;
+        public String getQuestion() {
+            return question;
         }
 
-        // get connection and execute
-        try (Connection conn = DSManager.getConnection("CET");
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            if ("bank".equalsIgnoreCase(reqFrom)) {
-                pstmt.setString(1, brCode);
-            } else {
-                pstmt.setString(1, custID);
-                pstmt.setString(2, brCode);
-            }
-
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    Map<String, Object> responseMap = new HashMap<>();
-                    responseMap.put("message", rs.getString("MESSAGE"));
-                    responseMap.put("custID1", rs.getString("CUST_ID"));
-                    responseMap.put("brCode", rs.getString("BR_CODE"));
-                    responseMap.put("sender", rs.getString("SENDER"));
-                    responseMap.put("date", rs.getString("T_RECV_DATE")); // consider rs.getTimestamp if needed
-                    responseMap.put("custName", rs.getString("CUST_NAME"));
-                    responseMap.put("type", rs.getString("TYPE"));
-
-                    records.add(responseMap);
-                }
-            }
-        }
-
-        return records;
+        
     }
+
+    
 }
