@@ -7,8 +7,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.tcs.chat.util.ChatQADao;
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
+
+import org.json.JSONObject;   // Use org.json instead of Gson
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,58 +17,49 @@ import java.io.PrintWriter;
 @WebServlet("/getBotReply")
 public class GetBotReply extends HttpServlet {
     private static final long serialVersionUID = 1L;
-    private Gson gson = new Gson();
     ChatQADao dao = new ChatQADao();
 
+    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
-			// Set response type
-			response.setContentType("application/json");
-			PrintWriter out = response.getWriter();
+            // Set response type
+            response.setContentType("application/json");
+            PrintWriter out = response.getWriter();
 
-			// Read the request body
-			StringBuilder sb = new StringBuilder();
-			BufferedReader reader = request.getReader();
-			String line;
-			while ((line = reader.readLine()) != null) {
-			    sb.append(line);
-			}
+            // Read the request body
+            StringBuilder sb = new StringBuilder();
+            BufferedReader reader = request.getReader();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
 
-			// Parse the incoming JSON
-			String jsonInput = sb.toString();
-			UserQuestion userQuestion = gson.fromJson(jsonInput, UserQuestion.class);
+            // Parse the incoming JSON using org.json
+            String jsonInput = sb.toString();
+            JSONObject jsonObj = new JSONObject(jsonInput);
 
-			// Generate a response based on the question
-			String botResponse = null;
-			try {
-				botResponse = dao.findBestAnswer(userQuestion.getQuestion());
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			System.out.println("botResponse is :: "+botResponse);
+            // Extract the question field
+            String question = jsonObj.optString("question", null);
 
-			// Send the response back to the client
-			out.print(gson.toJson(botResponse));
-			out.flush();
-		} catch (JsonSyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    }
+            // Generate a response based on the question
+            String botResponse = null;
+            try {
+                botResponse = dao.findBestAnswer(question);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
-    
+            System.out.println("botResponse is :: " + botResponse);
 
-    private class UserQuestion {
-        private String question;
+            // Send the response back as JSON
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put("answer", botResponse);
 
-        public String getQuestion() {
-            return question;
+            out.print(jsonResponse.toString());
+            out.flush();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        
     }
-
-    
 }
