@@ -1,164 +1,36 @@
-import java.sql.*;
-import java.util.*;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.JSONException;
-
-public class ChatActionDao {
-
-    /**
-     * Returns either:
-     *  - single module/status as: { "module":"INIS", "status":1 }
-     *  - or multiple: { "multiple": true, "pairs": [ {"module":"INIS","status":1}, ... ] }
-     *
-     * Uses DSManager.getConnection("CET")
-     */
-    public static JSONObject getStatusCodeAndModule(String cMainRef) throws Exception {
-        if (cMainRef == null) {
-            throw new IllegalArgumentException("cMainRef cannot be null");
-        }
-
-        String inboxSql = "SELECT c_module FROM trx_inbox WHERE c_main_ref = ?";
-        List<String> modules = new ArrayList<>();
-
-        try (Connection conn = DSManager.getConnection("CET");
-             PreparedStatement ps = conn.prepareStatement(inboxSql)) {
-
-            ps.setString(1, cMainRef);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String mod = rs.getString("c_module");
-                    if (mod != null) modules.add(mod.trim());
-                }
-            }
-
-            if (modules.isEmpty()) {
-                // No module found: return empty JSONObject or throw depending on your needs
-                return new JSONObject(); // empty
-            }
-
-            // Helper to safely fetch status from MODULE_MASTER table
-            List<JSONObject> pairs = new ArrayList<>();
-            for (String module : modules) {
-                // Basic sanitization: allow only letters, digits, underscore in module name to avoid injection
-                if (!module.matches("[A-Za-z0-9_]+")) {
-                    // skip unsafe module names or handle as you prefer
-                    continue;
-                }
-
-                String masterTable = module + "_MASTER";
-                String statusSql = "SELECT status FROM " + masterTable + " WHERE c_main_ref = ?";
-
-                try (PreparedStatement psStatus = conn.prepareStatement(statusSql)) {
-                    psStatus.setString(1, cMainRef);
-                    try (ResultSet rs2 = psStatus.executeQuery()) {
-                        // If there are multiple rows in master table for the same c_main_ref,
-                        // we will take the first row's status. You can modify to handle multiple statuses.
-                        if (rs2.next()) {
-                            int status = rs2.getInt("status");
-                            JSONObject obj = new JSONObject();
-                            obj.put("module", module);
-                            obj.put("status", status);
-                            pairs.add(obj);
-                        } else {
-                            // No status found for this module; put -1 or skip based on your needs
-                            JSONObject obj = new JSONObject();
-                            obj.put("module", module);
-                            obj.put("status", JSONObject.NULL); // sentinel for "no status"
-                            pairs.add(obj);
-                        }
-                    }
-                } catch (SQLException se) {
-                    // If table doesn't exist or query failed, add an entry with null status
-                    JSONObject obj = new JSONObject();
-                    obj.put("module", module);
-                    obj.put("status", JSONObject.NULL);
-                    pairs.add(obj);
-                }
-            }
-
-            // Build return JSON
-            if (pairs.size() == 1) {
-                // return single object as the user expects
-                return pairs.get(0);
-            } else {
-                JSONObject result = new JSONObject();
-                result.put("multiple", true);
-                JSONArray arr = new JSONArray();
-                for (JSONObject p : pairs) arr.put(p);
-                result.put("pairs", arr);
-                return result;
-            }
-
-        } // try-with-resources will close conn
-    }
-
-    /**
-     * Returns a display value for the given module and status.
-     *
-     * Assumptions:
-     *  - Tries to read a column named 'disp_value' (or 'status_desc' fallback) from MODULE_MASTER
-     *    where status = ?; if not present/found, falls back to String.valueOf(status).
-     *
-     * If your schema stores the display text somewhere else (e.g. MODULE_STATUS_LOOKUP),
-     * change the table/column names accordingly.
-     */
-    public static String getDispValue(String module, int status) {
-        if (module == null || !module.matches("[A-Za-z0-9_]+")) {
-            return String.valueOf(status);
-        }
-
-        String masterTable = module + "_MASTER";
-        // Prefer columns in order: disp_value, status_desc, label (adjust to your DB)
-        String[] candidateCols = {"disp_value", "status_desc", "label", "description"};
-
-        try (Connection conn = DSManager.getConnection("CET")) {
-            for (String col : candidateCols) {
-                // Check if column exists in that table (DB independent approach: try query)
-                String sql = "SELECT " + col + " FROM " + masterTable + " WHERE status = ? FETCH FIRST 1 ROWS ONLY";
-                try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    ps.setInt(1, status);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            String val = rs.getString(1);
-                            if (val != null && !val.trim().isEmpty()) {
-                                return val.trim();
-                            }
-                        }
-                    }
-                } catch (SQLException e) {
-                    // either column doesn't exist or query failed - try next candidate column
-                    continue;
-                }
-            }
-        } catch (SQLException e) {
-            // connection issues - ignore and fallback below
-        }
-
-        // fallback: return numeric status as string
-        return String.valueOf(status);
-    }
-
-    /* -------------------------
-       Example usage (caller side)
-       -------------------------
-       // For single result:
-       JSONObject statusAndModule = ChatActionDao.getStatusCodeAndModule(cMainRef);
-       if (statusAndModule.has("multiple")) {
-           JSONArray pairs = statusAndModule.getJSONArray("pairs");
-           for (int i=0;i<pairs.length();i++) {
-               JSONObject pair = pairs.getJSONObject(i);
-               String module = pair.getString("module");
-               Object statusObj = pair.opt("status"); // may be JSONObject.NULL
-               int status = statusObj==JSONObject.NULL ? -1 : pair.getInt("status");
-               String disp = ChatActionDao.getDispValue(module, status);
-               // use module, status, disp
-           }
-       } else {
-           String module = statusAndModule.getString("module");
-           int status = statusAndModule.isNull("status") ? -1 : statusAndModule.getInt("status");
-           String disp = ChatActionDao.getDispValue(module, status);
-           // use module, status, disp
-       }
-    */
-}
+	public static String getDispValue(String moduleName,int inputValue) throws Exception {
+		
+		try {
+			String configFilePath = ASPathConst.getUserDirPath() + File.separator + "PARAM" + File.separator + "Default" + File.separator + "FLDC" + File.separator + "CHAT_STATUS.xml";
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			
+			Document doc = builder.parse(new File(configFilePath));
+			doc.getDocumentElement().normalize();
+			
+			NodeList moduleList = doc.getElementsByTagName(moduleName);
+			
+			if (moduleList.getLength() == 0)return null;
+			
+			Element moduleElement = (Element)moduleList.item(0);
+			
+			NodeList setNodes = moduleElement.getElementsByTagName("set");
+			
+			for (int i = 0;i<setNodes.getLength();i++) {
+				Element element = (Element)setNodes.item(i);
+				String valueAttr = element.getAttribute("value");
+				
+				if (valueAttr.equals(String.valueOf(inputValue))) {
+					return element.getAttribute("disp");
+				}
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		
+		return "";
+	}
+	
+	
+	
+	this is the present getDispValue adjust it with the single and multiple statusdisp , if single return one status and for multiple return all the status in json 
