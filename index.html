@@ -1,48 +1,36 @@
-<div id="root"></div>
+i have an xml file like "<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <module>INIS</module>
+    <separater></separater>
+    <full_display>false</full_display>
+    <fld_name>STATUS</fld_name>
+    <type>V</type>
+    <settings>
+        <set default="" disp="Issue Application Sent" intfvalue="" value="1"></set>
+        <set default="" disp="Issue Appl Ack" intfvalue="" value="2"></set>
+        <set default="" disp="Issue Appl Rejected" intfvalue="" value="3"></set>
+        <set default="" disp="Issued" intfvalue="" value="4"></set>
+        <set default="" disp="Amend Application Sent" intfvalue="" value="5"></set>
+        <set default="" disp="Amend Appl Ack" intfvalue="" value="6"></set>
+        <set default="" disp="Amend Appl Rejected" intfvalue="" value="7"></set>
+        <set default="" disp="Amended" intfvalue="" value="8"></set>
+        <set default="" disp="Close Application Sent" intfvalue="" value="9"></set>
+        <set default="" disp="Close Appl Ack" intfvalue="" value="10"></set>
+        <set default="" disp="Close Appl Rejected" intfvalue="" value="11"></set>
+        <set default="" disp="Closed" intfvalue="" value="12"></set>
+        <set default="" disp="Template" intfvalue="" value="13"></set>
+        <set default="" disp="LC Registered By Bank" intfvalue="" value="14"></set>
+        <set default="" disp="Railway Issue Application Sent" intfvalue="" value="15"></set>
+		<set default="" disp="Railway Issue Appl Ack" intfvalue="" value="16"></set>
+		<set default="" disp="Railway Issue Appl Rejected" intfvalue="" value="17"></set>
+		<set default="" disp="Railway LC Issued" intfvalue="" value="18"></set>
+		<set default="" disp="Railway Amend Application Sent" intfvalue="" value="19"></set>
+        <set default="" disp="Railway Amend Appl Ack" intfvalue="" value="20"></set>
+        <set default="" disp="Railway Amend Appl Rejected" intfvalue="" value="21"></set>
+        <set default="" disp="Railway LC Amended" intfvalue="" value="22"></set>
+		<set default="" disp="Draft Review" intfvalue="" value="23"></set>
+    </settings>
+</root>"
 
-<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
-<script type="text/babel">
-
-function formatDate(dateStr) {
-  // Example input: "18-Sep-25 05.22.09.44683 PM +05:30"
-
-  // Convert dots in time part to colons (for Date parsing)
-  let normalized = dateStr.replace(/(\d+)\.(\d+)\.(\d+)/, "$1:$2:$3");
-
-  // Remove extra microseconds (".44683")
-  normalized = normalized.replace(/\.\d+/, "");
-
-  // Create Date object
-  let date = new Date(normalized);
-
-  if (isNaN(date)) {
-    return dateStr; // fallback
-  }
-
-  // Format -> dd/MM/yyyy, HH:mm:ss
-  let day = String(date.getDate()).padStart(2, "0");
-  let month = String(date.getMonth() + 1).padStart(2, "0");
-  let year = date.getFullYear();
-  let hours = String(date.getHours()).padStart(2, "0");
-  let minutes = String(date.getMinutes()).padStart(2, "0");
-  let seconds = String(date.getSeconds()).padStart(2, "0");
-
-  return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
-}
-
-function App() {
-  const rawDate = "18-Sep-25 05.22.09.44683 PM +05:30";
-  return (
-    <div>
-      <p>Original: {rawDate}</p>
-      <p>Formatted: {formatDate(rawDate)}</p>
-    </div>
-  );
-}
-
-ReactDOM.render(<App />, document.getElementById("root"));
-
-</script>
+write a java method which will take input as number and return the corresponding "disp" value 
