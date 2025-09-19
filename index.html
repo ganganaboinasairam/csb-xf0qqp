@@ -1,36 +1,10 @@
-i have an xml file like "<?xml version="1.0" encoding="UTF-8"?>
-<root>
-    <module>INIS</module>
-    <separater></separater>
-    <full_display>false</full_display>
-    <fld_name>STATUS</fld_name>
-    <type>V</type>
-    <settings>
-        <set default="" disp="Issue Application Sent" intfvalue="" value="1"></set>
-        <set default="" disp="Issue Appl Ack" intfvalue="" value="2"></set>
-        <set default="" disp="Issue Appl Rejected" intfvalue="" value="3"></set>
-        <set default="" disp="Issued" intfvalue="" value="4"></set>
-        <set default="" disp="Amend Application Sent" intfvalue="" value="5"></set>
-        <set default="" disp="Amend Appl Ack" intfvalue="" value="6"></set>
-        <set default="" disp="Amend Appl Rejected" intfvalue="" value="7"></set>
-        <set default="" disp="Amended" intfvalue="" value="8"></set>
-        <set default="" disp="Close Application Sent" intfvalue="" value="9"></set>
-        <set default="" disp="Close Appl Ack" intfvalue="" value="10"></set>
-        <set default="" disp="Close Appl Rejected" intfvalue="" value="11"></set>
-        <set default="" disp="Closed" intfvalue="" value="12"></set>
-        <set default="" disp="Template" intfvalue="" value="13"></set>
-        <set default="" disp="LC Registered By Bank" intfvalue="" value="14"></set>
-        <set default="" disp="Railway Issue Application Sent" intfvalue="" value="15"></set>
-		<set default="" disp="Railway Issue Appl Ack" intfvalue="" value="16"></set>
-		<set default="" disp="Railway Issue Appl Rejected" intfvalue="" value="17"></set>
-		<set default="" disp="Railway LC Issued" intfvalue="" value="18"></set>
-		<set default="" disp="Railway Amend Application Sent" intfvalue="" value="19"></set>
-        <set default="" disp="Railway Amend Appl Ack" intfvalue="" value="20"></set>
-        <set default="" disp="Railway Amend Appl Rejected" intfvalue="" value="21"></set>
-        <set default="" disp="Railway LC Amended" intfvalue="" value="22"></set>
-		<set default="" disp="Draft Review" intfvalue="" value="23"></set>
-    </settings>
-</root>"
+JSONObject statusAndModule = ChatActionDao.getStatusCodeAndModule(cMainRef);
 
+in "getStatusCodeAndModule" i will pass cMainRef , first the cMainRef will be queried '"select c_module from trx_inbox where c_main_ref=?' in "TRX_INBOX" , trx inbox can return single value or multiple value .
+1. if single value is returned then c_module (for example "INIS"), it should fetch (select status from inis_master where c_main_ref=?) STATUS from "INIS_MASTER" and return the value as json with keys ("module": "INIS","status":"1")
 
-write a java method which will take input as number and return the corresponding "disp" value 
+2. in case of multiple modules return from "TRX_INBOX" then the loop should run for all the modules and c_main_ref and return all the pairs of modules and status
+	        
+String statusValue = ChatActionDao.getDispValue(statusAndModule.getString("module"),statusAndModule.getInt("status"));
+
+use connection "Connection conn = DSManager.getConnection("CET");"
