@@ -1,38 +1,9 @@
-package com.chat;
+Subject: Frequent Server Connection Issues on CE Dev 10.177.141.86
 
-import org.json.JSONObject;
-import com.google.gson.Gson;
-import com.tcs.chat.util.ChatQADao;
+Dear GAPI Team,
 
-public class TestClass {
-	static ChatQADao dao = new ChatQADao();
-	 private static Gson gson = new Gson();
+We are experiencing frequent server connection losses on CE Dev server 10.177.141.86. This issue has been recurring and is significantly affecting our development activities.
 
-	public static void main(String[] args) {
-		String botResponse = null;
-        try {
-            botResponse = "{\r\n" + 
-            		"  \"type\": \"HUMAN\",\r\n" + 
-            		"  \"answer\": \"I donâ€™t have the exact answer right now. Iâ€™ll forward your query to a bank specialist who can help you further.\"\r\n" + 
-            		"}";
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+Request you to kindly look into this on priority and provide a resolution at the earliest.
 
-        System.out.println("botResponse is :: " + botResponse);
-
-        // Send the response back as JSON
-        JSONObject jsonResponse = new JSONObject();
-        jsonResponse.put("answer",botResponse);
-        
-        
-        
-        System.out.println(jsonResponse);
-        System.out.println(gson.toJson(botResponse));
-	}
-
-}
-
-
-1. for "System.out.println(gson.toJson(botResponse));" iam getting "{\r\n  \"type\": \"HUMAN\",\r\n  \"answer\": \"I donâ€™t have the exact answer right now. Iâ€™ll forward your query to a bank specialist who can help you further.\"\r\n}" ,this is correct
-2. for "System.out.println(jsonResponse);" iam getting {"":"{\r\n  \"type\": \"HUMAN\",\r\n  \"answer\": \"I donâ\u20ac™t have the exact answer right now. Iâ\u20ac™ll forward your query to a bank specialist who can help you further.\"\r\n}"} this is causing issue , i need this output as the output given by the gson 
+Thanks and Regards,
