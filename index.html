@@ -1,1 +1,25 @@
-String json = "{\r\"multiple\": true,\r\"pairs\": [\r{\r\"module\": \"INIS\",\r\"status\": 2,\r\"disp\": \"Processed\"\r},\r{\r\"module\": \"ABC\",\r\"status\": 6,\r\"disp\": \"Closed\"\r}\r]\r}";
+<textarea
+          ref={textareaRef}
+          className="message-input"
+          value={inputMessage}
+          onChange={(e) => {const value = e.target.value.replace(/[^a-zA-Z0-9 ]/g,"");setInputMessage(value);handleInputChange}} 
+          onKeyPress={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage(inputMessage);
+              setInputMessage(""); // clear after sending
+            }
+          }}
+          placeholder="Type your message..."
+          maxLength={500}
+          rows={1} // starts as one line
+          style={{ resize: "none", overflow: "hidden" }} // disable manual drag resize
+        />
+		
+		
+		
+		const handleInputChange = (e) => {
+        const value = e.target.value;
+        setInputMessage(value);
+        debouncedFetchSuggestions(value);
+      };
