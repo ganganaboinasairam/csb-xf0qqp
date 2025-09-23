@@ -1,523 +1,609 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%-- bankDashboard.jsp --%>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Bank Customer Support Dashboard</title>
-    <link rel="stylesheet" type="text/css" href="../theme/chatBankStyles.css">
-
-    <!-- React and Babel CDN -->
-    <script src="../resources/js/react/react.development.js"></script>
-  <script src="../resources/js/react/react-dom.development.js"></script>
-  <script src="../resources/js/react/babel.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="../theme/chatBankStyles.css"/>
+    <style>
+        /* minimal inline helpers used by JS-generated elements where needed */
+        .customer-item { cursor: pointer; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .customer-item.active { background: rgba(0,0,0,0.2); }
+        .chat-messages { overflow-y: auto; max-height: 60vh; padding: 12px; }
+        .message { margin-bottom: 8px; display:block; }
+        .message.customer { text-align: left; }
+        .message.bank { text-align: right; }
+        .cust-alert-band { background:#ffc; padding:8px; border-radius:4px; display:inline-block; }
+    </style>
 </head>
-
 <body>
-    
-    <div id="root"></div>
+<div id="bank-dashboard" class="bank-container">
+    <div class="customer-list">
+        <div class="customer-list-header">
+            Bank Customer Support Dashboard
+            <div id="online-count" style="font-size:0.8em;margin-top:5px;">0 Customers</div>
+            <div style="margin-top:8px;">
+                <button id="open-qa-btn">Add Q/A</button>
+            </div>
+        </div>
+        <div id="customer-list-inner"></div>
+    </div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+    <div class="chat-area">
+        <div id="chat-content">
+            <div class="no-customer-selected">Select a customer to start chatting</div>
+        </div>
+    </div>
 
-        // Utility function to get URL parameters
-        const getUrlParameter = (name) => {
-            name = name.replace(/[\[]/, '\[').replace(/[\]]/, '\]');
-            const regex = new RegExp('[\?&]' + name + '=([^&#]*)');
-            const results = regex.exec(window.location.search);
-            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-        };
+    <div id="connection-status" class="connection-status status-connecting">Connecting...</div>
 
-        // Bank Dashboard Component with WebSocket (using useRef)
-        const BankDashboard = () => {
-            const [customers, setCustomers] = useState([]);
-            const [selectedCustomer, setSelectedCustomer] = useState(null);
-            const [inputMessage, setInputMessage] = useState('');
-            const [connectionStatus, setConnectionStatus] = useState('connecting');
-            const wsRef = useRef(null); // <-- useRef for websocket
-            const reconnectTimerRef = useRef(null);
-            const messagesEndRef = useRef(null);
+    <!-- QA Modal (hidden until needed) -->
+    <div id="qa-modal-overlay" style="display:none; position:fixed; inset:0; align-items:center; justify-content:center; background-color:rgba(0,0,0,0.5);">
+        <div class="qa-modal" style="background:#fff; padding:16px; border-radius:8px; min-width:320px;">
+            <h3>Add Question & Answer</h3>
+            <div style="margin-bottom:8px;">
+                <label>Question</label>
+                <textarea id="new-question" rows="4" style="width:100%"></textarea>
+            </div>
+            <div style="margin-bottom:8px;">
+                <label>Answer</label>
+                <textarea id="new-answer" rows="4" style="width:100%"></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button id="qa-cancel-btn">Cancel</button>
+                <button id="qa-submit-btn">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-            // Modal state for adding new QA
-            const [showModal, setShowModal] = useState(false);
-            const [newQuestion, setNewQuestion] = useState('');
-            const [newAnswer, setNewAnswer] = useState('');
-            const branchCode = getUrlParameter('branch_code');
+<script type="text/javascript">
+    (function () {
+        // Branch code: from JSP request param (falls back to URL param)
+        const branchCode = '<%= request.getParameter("branch_code") != null ? request.getParameter("branch_code") : "" %>' || (function () {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('branch_code') || '';
+        })();
 
-            // Ref to ensure history loads only once
-            const historyLoadedRef = useRef(false);
+        // State
+        let customers = []; // array of customer objects {id,name,status,lastMessage,lastMessageTime,unreadCount,messages,email}
+        let selectedCustomer = null;
+        let ws = null;
+        let reconnectTimer = null;
+        let historyLoaded = false;
 
-            // WebSocket connection
-            useEffect(() => {
-                let mounted = true;
+        // DOM refs
+        const customerListInner = document.getElementById('customer-list-inner');
+        const chatContent = document.getElementById('chat-content');
+        const connectionStatusEl = document.getElementById('connection-status');
+        const onlineCountEl = document.getElementById('online-count');
 
-                const connectWebSocket = () => {
-                    if (!mounted) return;
+        // Modal elements
+        const qaModalOverlay = document.getElementById('qa-modal-overlay');
+        const openQaBtn = document.getElementById('open-qa-btn');
+        const qaCancelBtn = document.getElementById('qa-cancel-btn');
+        const qaSubmitBtn = document.getElementById('qa-submit-btn');
+        const newQuestionEl = document.getElementById('new-question');
+        const newAnswerEl = document.getElementById('new-answer');
 
-                    try {
-                        const socket = new WebSocket(`ws://10.177.141.86:7001/ChatboxEECE/chatServer`);
+        // Helpers
+        function formatTimeISO(isoString) {
+            try {
+                const d = new Date(isoString);
+                return d.toLocaleString('en-GB');
+            } catch (e) {
+                return isoString;
+            }
+        }
 
-                        wsRef.current = socket;
+        function setConnectionStatus(status) {
+            connectionStatusEl.className = 'connection-status status-' + status;
+            if (status === 'connected') {
+                connectionStatusEl.textContent = 'Connected';
+            } else if (status === 'connecting') {
+                connectionStatusEl.textContent = 'Connecting...';
+            } else {
+                connectionStatusEl.textContent = 'Disconnected';
+            }
+        }
 
-                        socket.onopen = () => {
-                            console.log('Bank WebSocket connected');
-                            setConnectionStatus('connected');
+        // Render functions
+        function renderCustomerList() {
+            customerListInner.innerHTML = '';
+            customers.forEach((c) => {
+                const item = document.createElement('div');
+                item.className = 'customer-item' + (selectedCustomer && selectedCustomer.id === c.id ? ' active' : '');
+                item.dataset.customerId = c.id;
 
-                            try {
-                                socket.send(JSON.stringify({
-                                    type: 'register',
-                                    role: 'bank'
-                                }));
-                            } catch (e) {
-                                console.warn('Could not send register message', e);
-                            }
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'customer-name';
+                const statusSpan = document.createElement('span');
+                statusSpan.className = 'customer-status status-' + (c.status || 'offline');
+                nameDiv.appendChild(statusSpan);
+                nameDiv.appendChild(document.createTextNode(' ' + (c.name || ('Customer ' + c.id))));
 
-                            // NOTE: don't load history here — load only once on mount (see separate effect)
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'customer-preview';
+                previewDiv.textContent = c.lastMessage || '';
 
-                            if (reconnectTimerRef.current) {
-                                clearTimeout(reconnectTimerRef.current);
-                                reconnectTimerRef.current = null;
-                            }
-                        };
+                item.appendChild(nameDiv);
+                item.appendChild(previewDiv);
 
-                        socket.onmessage = (event) => {
-                            try {
-                                const message = JSON.parse(event.data);
-                                handleIncomingMessage(message);
-                            } catch (e) {
-                                console.error('Invalid WS message', e);
-                            }
-                        };
-
-                        socket.onclose = () => {
-                            console.log('Bank WebSocket disconnected');
-                            setConnectionStatus('disconnected');
-
-                            if (!reconnectTimerRef.current) {
-                                reconnectTimerRef.current = setTimeout(() => {
-                                    reconnectTimerRef.current = null;
-                                    connectWebSocket();
-                                }, 3000);
-                            }
-                        };
-
-                        socket.onerror = (error) => {
-                            console.error('Bank WebSocket error:', error);
-                            setConnectionStatus('error');
-                        };
-
-                    } catch (error) {
-                        console.error('Failed to create bank WebSocket:', error);
-                        setConnectionStatus('error');
-
-                        if (!reconnectTimerRef.current) {
-                            reconnectTimerRef.current = setTimeout(() => {
-                                reconnectTimerRef.current = null;
-                                connectWebSocket();
-                            }, 5000);
-                        }
-                    }
-                };
-
-                connectWebSocket();
-
-                return () => {
-                    mounted = false;
-                    if (wsRef.current) {
-                        try { wsRef.current.close(); } catch (e) { }
-                        wsRef.current = null;
-                    }
-                    if (reconnectTimerRef.current) {
-                        clearTimeout(reconnectTimerRef.current);
-                        reconnectTimerRef.current = null;
-                    }
-                };
-            }, []);
-
-            // Load message history once when component mounts
-            useEffect(() => {
-                if (!historyLoadedRef.current) {
-                    loadPreviousMessages();
-                    historyLoadedRef.current = true;
-                }
-            }, []);
-
-            const loadPreviousMessages = async () => {
-                try {
-                    const response = await fetch(`./LoadPreviousMesgs?req_from=bank&branch_code=${branchCode}`);
-                    if (!response.ok) throw new Error('Failed to fetch previous messages');
-
-                    let data = await response.json();
-
-                    const customerMap = {};
-
-                    data.forEach(msg => {
-                        const custId = msg.custID1;
-                        const custName = msg.custName || `Customer ${custId}`;
-                        if (!customerMap[custId]) {
-                            customerMap[custId] = {
-                                id: custId,
-                                name: custName,
-                                lastMessage: '',
-                                lastMessageTime: '',
-                                status: "online",
-                                unreadCount: 0,
-                                messages: []
-                            };
-                        }
-
-                        customerMap[custId].messages.push({
-                            content: msg.message,
-                            type: msg.type,
-                            isCustomer: (msg.sender || '').toLowerCase() === 'customer',
-                            timestamp: msg.date
-                        });
-                    });
-
-                    Object.values(customerMap).forEach(customer => {
-                        customer.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-                        const lastMsg = customer.messages[customer.messages.length - 1];
-                        if (lastMsg) {
-                            customer.lastMessage = lastMsg.content;
-                            customer.lastMessageTime = new Date(lastMsg.timestamp).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            });
-                        }
-
-                        const lastAgentIndex = customer.messages.map(m => m.isCustomer ? 0 : 1).lastIndexOf(1);
-                        if (lastAgentIndex === -1) {
-                            customer.unreadCount = customer.messages.filter(m => m.isCustomer).length;
-                        } else {
-                            const after = customer.messages.slice(lastAgentIndex + 1);
-                            customer.unreadCount = after.filter(m => m.isCustomer).length;
-                        }
-                    });
-
-                    const customerList = Object.values(customerMap).sort((a, b) => {
-                        const timeA = new Date(a.messages[a.messages.length - 1].timestamp);
-                        const timeB = new Date(b.messages[b.messages.length - 1].timestamp);
-                        return timeB - timeA;
-                    });
-
-                    setCustomers(customerList);
-
-                    if (customerList.length > 0) {
-                        setSelectedCustomer(customerList[0]);
-
-                        setCustomers(prev => prev.map((c, i) => i === 0 ? { ...c, unreadCount: 0 } : c));
-                    }
-
-                } catch (error) {
-                    console.error('Error loading previous messages:', error);
-                }
-            };
-
-            const handleIncomingMessage = (message) => {
-                if (message.type === 'message' || message.type === 'cust-alert') {
-                    const customerId = message.customerId;
-                    const customerName = message.customerName || `Customer ${customerId}`;
-
-                    // Append message to customers array (only update the affected customer)
-                    setCustomers(prevCustomers => {
-                        const existingCustomerIndex = prevCustomers.findIndex(c => c.id === customerId);
-
-                        if (existingCustomerIndex !== -1) {
-                            const updatedCustomers = [...prevCustomers];
-                            const origCustomer = updatedCustomers[existingCustomerIndex];
-                            const customer = { ...origCustomer };
-
-                            customer.messages = [...(customer.messages || []), {
-                                content: message.content,
-                                isCustomer: true,
-                                type: message.type,
-                                timestamp: message.timestamp || new Date().toISOString()
-                            }];
-                            customer.lastMessage = message.content;
-                            customer.lastMessageTime = "Just now";
-
-                            const isSelected = selectedCustomer?.id === customerId;
-                            customer.unreadCount = isSelected ? 0 : (customer.unreadCount || 0) + 1;
-
-                            // Replace and move to top
-                            updatedCustomers.splice(existingCustomerIndex, 1);
-                            updatedCustomers.unshift(customer);
-
-                            return updatedCustomers;
-                        } else {
-                            const newCustomer = {
-                                id: customerId,
-                                name: customerName,
-                                lastMessage: message.content,
-                                lastMessageTime: "Just now",
-                                status: "online",
-                                unreadCount: selectedCustomer?.id === customerId ? 0 : 1,
-                                messages: [{
-                                    content: message.content,
-                                    isCustomer: true,
-                                    type: message.type,
-                                    timestamp: message.timestamp || new Date().toISOString()
-                                }]
-                            };
-
-                            return [newCustomer, ...prevCustomers];
-                        }
-                    });
-
-                    // If selected customer is the recipient, append to selectedCustomer messages only
-                    setSelectedCustomer(prev => {
-                        if (!prev) return prev;
-                        if (prev.id !== message.customerId) return prev;
-
-                        return {
-                            ...prev,
-                            messages: [...prev.messages, {
-                                content: message.content,
-                                isCustomer: true,
-                                type: message.type,
-                                timestamp: message.timestamp || new Date().toISOString()
-                            }],
-                            lastMessage: message.content,
-                            lastMessageTime: 'Just now',
-                            unreadCount: 0
-                        };
-                    });
-                }
-            };
-
-            const handleCustomerSelect = (customer) => {
-                setSelectedCustomer(customer);
-                setCustomers(prevCustomers =>
-                    prevCustomers.map(c =>
-                        c.id === customer.id ? { ...c, unreadCount: 0 } : c
-                    )
-                );
-            };
-
-            const sendMessage = () => {
-                if (!inputMessage.trim() || !selectedCustomer || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-
-                const messageData = {
-                    type: 'message',
-                    content: inputMessage.trim(),
-                    customerId: selectedCustomer.id,
-                    sender: 'bank',
-                    timestamp: new Date().toISOString(),
-                    customerName: selectedCustomer.name,
-                    branchCode: branchCode
-                };
-
-                try {
-                    wsRef.current.send(JSON.stringify(messageData));
-                } catch (e) {
-                    console.error('Failed to send message', e);
+                if (c.unreadCount && c.unreadCount > 0) {
+                    const badge = document.createElement('span');
+                    badge.style.backgroundColor = '#dc3545';
+                    badge.style.color = 'white';
+                    badge.style.borderRadius = '50%';
+                    badge.style.padding = '2px 6px';
+                    badge.style.fontSize = '0.8em';
+                    badge.style.float = 'right';
+                    badge.textContent = c.unreadCount;
+                    item.appendChild(badge);
                 }
 
-                const newMessage = {
-                    content: inputMessage.trim(),
-                    isCustomer: false,
-                    timestamp: messageData.timestamp
-                };
-
-                // Append locally to selectedCustomer and customers list
-                setSelectedCustomer(prev => {
-                    if (!prev) return null;
-                    return {
-                        ...prev,
-                        messages: [...prev.messages, newMessage],
-                        lastMessage: inputMessage.trim(),
-                        lastMessageTime: "Just now"
-                    };
+                item.addEventListener('click', function () {
+                    const id = this.dataset.customerId;
+                    const cust = customers.find(x => x.id === id);
+                    if (cust) {
+                        handleCustomerSelect(cust);
+                    }
                 });
 
-                setCustomers(prevCustomers =>
-                    prevCustomers.map(c =>
-                        c.id === selectedCustomer.id
-                            ? { ...c, messages: [...c.messages, newMessage], lastMessage: inputMessage.trim(), lastMessageTime: "Just now", unreadCount: 0 }
-                            : c
-                    )
-                );
+                customerListInner.appendChild(item);
+            });
 
-                setInputMessage('');
-            };
+            const onlineCount = customers.filter(c => c.status === 'online').length;
+            onlineCountEl.textContent = onlineCount + ' Customers';
+        }
 
-            const handleKeyPress = (e) => {
+        function renderChatArea() {
+            if (!selectedCustomer) {
+                chatContent.innerHTML = '<div class="no-customer-selected">Select a customer to start chatting</div>';
+                return;
+            }
+
+            chatContent.innerHTML = ''; // clear
+
+            // header
+            const header = document.createElement('div');
+            header.className = 'chat-header';
+            const h2 = document.createElement('h2');
+            h2.textContent = selectedCustomer.name || ('Customer ' + selectedCustomer.id);
+            header.appendChild(h2);
+            const emailDiv = document.createElement('div');
+            emailDiv.style.fontSize = '0.9em';
+            emailDiv.style.color = '#f8f9fa';
+            emailDiv.textContent = selectedCustomer.email || '';
+            header.appendChild(emailDiv);
+            chatContent.appendChild(header);
+
+            // messages container
+            const messagesContainer = document.createElement('div');
+            messagesContainer.className = 'chat-messages';
+            messagesContainer.id = 'chat-messages-container';
+
+            (selectedCustomer.messages || []).forEach((message, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'message ' + (message.isCustomer ? 'customer' : 'bank');
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = (message.type === 'cust-alert') ? 'cust-alert-band' : 'message-content';
+                contentDiv.textContent = message.content || '';
+
+                wrapper.appendChild(contentDiv);
+
+                if (message.type === 'cust-alert') {
+                    const span = document.createElement('span');
+                    span.style.display = 'block';
+                    span.textContent = formatTimeISO(message.timestamp || new Date().toISOString());
+                    contentDiv.appendChild(span);
+                } else {
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'message-time';
+                    timeDiv.textContent = formatTimeISO(message.timestamp || new Date().toISOString());
+                    wrapper.appendChild(timeDiv);
+                }
+
+                messagesContainer.appendChild(wrapper);
+            });
+
+            // end anchor for scrolling
+            const endAnchor = document.createElement('div');
+            endAnchor.id = 'messages-end';
+            messagesContainer.appendChild(endAnchor);
+
+            chatContent.appendChild(messagesContainer);
+
+            // chat input area
+            const chatInput = document.createElement('div');
+            chatInput.className = 'chat-input';
+            const inputContainer = document.createElement('div');
+            inputContainer.className = 'input-container';
+
+            const inputEl = document.createElement('input');
+            inputEl.type = 'text';
+            inputEl.className = 'message-input';
+            inputEl.placeholder = 'Type your response...';
+            inputEl.maxLength = 500;
+            inputEl.value = '';
+            inputEl.disabled = (ws && ws.readyState === WebSocket.OPEN) ? false : true;
+
+            inputEl.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
-                    sendMessage();
+                    e.preventDefault();
+                    sendMessageFromInput(inputEl);
                 }
-            };
+            });
 
-            const scrollToBottom = () => {
-                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            };
+            const sendBtn = document.createElement('button');
+            sendBtn.className = 'send-button';
+            sendBtn.textContent = 'Send';
+            sendBtn.disabled = true;
 
-            useEffect(() => {
-                scrollToBottom();
-            }, [selectedCustomer?.messages]);
+            inputEl.addEventListener('input', function () {
+                sendBtn.disabled = !inputEl.value.trim() || !(ws && ws.readyState === WebSocket.OPEN);
+            });
 
-            const submitNewQA = async () => {
-                if (!newQuestion.trim() || !newAnswer.trim()) return;
+            sendBtn.addEventListener('click', function () {
+                sendMessageFromInput(inputEl);
+            });
 
-                const payload = new URLSearchParams();
-                payload.append('question', newQuestion.trim());
-                payload.append('answer', newAnswer.trim());
-                payload.append('branch_code', branchCode);
+            // enable/disable send button when connection status changes
+            function updateInputState() {
+                const connected = (ws && ws.readyState === WebSocket.OPEN);
+                inputEl.disabled = !connected;
+                sendBtn.disabled = !connected || !inputEl.value.trim();
+            }
 
-                try {
-                    const resp = await fetch('./addNewQA', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: payload.toString()
+            // observe WS state changes by replacing updateInputState on window (called from connect code)
+            window._updateChatInputState = updateInputState;
+
+            inputContainer.appendChild(inputEl);
+            inputContainer.appendChild(sendBtn);
+            chatInput.appendChild(inputContainer);
+            chatContent.appendChild(chatInput);
+
+            // scroll to bottom
+            setTimeout(() => {
+                const end = document.getElementById('messages-end');
+                if (end) end.scrollIntoView({ behavior: 'smooth' });
+            }, 50);
+        }
+
+        // Select customer
+        function handleCustomerSelect(customer) {
+            selectedCustomer = customer;
+            // mark unread count reset
+            customers = customers.map(c => c.id === customer.id ? Object.assign({}, c, { unreadCount: 0 }) : c);
+            renderCustomerList();
+            renderChatArea();
+        }
+
+        // Incoming message handling: message object expected with keys similar to original code
+        function handleIncomingMessage(message) {
+            if (!message) return;
+            if (message.type === 'message' || message.type === 'cust-alert') {
+                const customerId = message.customerId;
+                const customerName = message.customerName || ('Customer ' + customerId);
+
+                // Update customers list (find or create)
+                let foundIndex = customers.findIndex(c => c.id === customerId);
+
+                if (foundIndex !== -1) {
+                    const orig = customers[foundIndex];
+                    const updated = JSON.parse(JSON.stringify(orig));
+                    updated.messages = updated.messages || [];
+                    updated.messages.push({
+                        content: message.content,
+                        isCustomer: true,
+                        type: message.type,
+                        timestamp: message.timestamp || new Date().toISOString()
                     });
+                    updated.lastMessage = message.content;
+                    updated.lastMessageTime = 'Just now';
+                    // unread count
+                    const isSelected = selectedCustomer && selectedCustomer.id === customerId;
+                    updated.unreadCount = isSelected ? 0 : ((updated.unreadCount || 0) + 1);
 
-                    if (!resp.ok) throw new Error('Failed to submit QA');
-
-                    setShowModal(false);
-                    setNewQuestion('');
-                    setNewAnswer('');
-
-                    console.log('QA added successfully');
-                } catch (e) {
-                    console.error('Error adding QA', e);
-                    alert('Failed to add QA');
+                    // move to top
+                    customers.splice(foundIndex, 1);
+                    customers.unshift(updated);
+                } else {
+                    const newCustomer = {
+                        id: customerId,
+                        name: customerName,
+                        lastMessage: message.content,
+                        lastMessageTime: 'Just now',
+                        status: 'online',
+                        unreadCount: (selectedCustomer && selectedCustomer.id === customerId) ? 0 : 1,
+                        messages: [{
+                            content: message.content,
+                            isCustomer: true,
+                            type: message.type,
+                            timestamp: message.timestamp || new Date().toISOString()
+                        }]
+                    };
+                    customers.unshift(newCustomer);
                 }
+
+                // if the message is for currently selected customer, append to selectedCustomer.messages too
+                if (selectedCustomer && selectedCustomer.id === customerId) {
+                    selectedCustomer.messages = selectedCustomer.messages || [];
+                    selectedCustomer.messages.push({
+                        content: message.content,
+                        isCustomer: true,
+                        type: message.type,
+                        timestamp: message.timestamp || new Date().toISOString()
+                    });
+                    selectedCustomer.lastMessage = message.content;
+                    selectedCustomer.lastMessageTime = 'Just now';
+                    selectedCustomer.unreadCount = 0;
+                }
+
+                renderCustomerList();
+                if (selectedCustomer && selectedCustomer.id === customerId) {
+                    renderChatArea();
+                }
+            }
+        }
+
+        // Send message function
+        function sendMessageFromInput(inputEl) {
+            if (!inputEl || !inputEl.value.trim() || !selectedCustomer) return;
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+            const content = inputEl.value.trim();
+            const messageData = {
+                type: 'message',
+                content: content,
+                customerId: selectedCustomer.id,
+                sender: 'bank',
+                timestamp: new Date().toISOString(),
+                customerName: selectedCustomer.name,
+                branchCode: branchCode
             };
 
-            return (
-                <div className="bank-container">
-                    <div className="customer-list">
-                        <div className="customer-list-header">
-                            Bank Customer Support Dashboard
-                            <div style={{ fontSize: '0.8em', marginTop: '5px' }}>
-                                {customers.filter(c => c.status === 'online').length} Customers
-                            </div>
-                            <div style={{ marginTop: '8px' }}>
-                                <button onClick={() => setShowModal(true)}>
-                                    Add Q/A
-                                </button>
-                            </div>
-                        </div>
+            try {
+                ws.send(JSON.stringify(messageData));
+            } catch (e) {
+                console.error('Failed to send message', e);
+            }
 
-                        {customers.map(customer => (
-                            <div
-                                key={customer.id}
-                                className={`customer-item ${selectedCustomer?.id === customer.id ? 'active' : ''}`}
-                                onClick={() => handleCustomerSelect(customer)}
-                            >
-                                <div className="customer-name">
-                                    <span className={`customer-status status-${customer.status}`}></span>
-                                    {customer.name}
-                                </div>
-                                <div className="customer-preview">
-                                    {customer.lastMessage}
-                                </div>
-                                {customer.unreadCount > 0 && (
-                                    <span style={{
-                                        backgroundColor: '#dc3545',
-                                        color: 'white',
-                                        borderRadius: '50%',
-                                        padding: '2px 6px',
-                                        fontSize: '0.8em',
-                                        float: 'right'
-                                    }}>
-                                        {customer.unreadCount}
-                                    </span>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+            // Append locally
+            const newMessage = { content: content, isCustomer: false, timestamp: messageData.timestamp, type: 'message' };
+            // update selectedCustomer
+            if (selectedCustomer) {
+                selectedCustomer.messages = selectedCustomer.messages || [];
+                selectedCustomer.messages.push(newMessage);
+                selectedCustomer.lastMessage = content;
+                selectedCustomer.lastMessageTime = "Just now";
+            }
+            // update customers list
+            customers = customers.map(c => {
+                if (c.id === (selectedCustomer && selectedCustomer.id)) {
+                    const copy = JSON.parse(JSON.stringify(c));
+                    copy.messages = copy.messages || [];
+                    copy.messages.push(newMessage);
+                    copy.lastMessage = content;
+                    copy.lastMessageTime = 'Just now';
+                    copy.unreadCount = 0;
+                    return copy;
+                }
+                return c;
+            });
 
-                    <div className="chat-area">
-                        {selectedCustomer ? (
-                            <>
-                                <div className="chat-header">
-                                    <h2>{selectedCustomer.name}</h2>
-                                    <div style={{ fontSize: '0.9em', color: '#f8f9fa' }}>
-                                        {selectedCustomer.email}
-                                    </div>
-                                </div>
+            inputEl.value = '';
+            renderCustomerList();
+            renderChatArea();
+        }
 
-                                <div className="chat-messages">
-                                    {selectedCustomer.messages.map((message, index) => (
-                                        <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
-                                            <div className={message.type === 'cust-alert' ? "cust-alert-band" : "message-content"}>
-                                                {message.content}
-                                                {message.type === 'cust-alert' && (
-                                                    <span>{new Date(message.timestamp).toLocaleString("en-GB")}</span>
-                                                )}
-                                            </div>
-                                            {message.type !== 'cust-alert' && (
-                                                <div className="message-time">
-                                                    {new Date(message.timestamp).toLocaleString("en-GB")}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                    <div ref={messagesEndRef} />
-                                </div>
+        // Load previous messages once
+        async function loadPreviousMessages() {
+            try {
+                const resp = await fetch('./LoadPreviousMesgs?req_from=bank&branch_code=' + encodeURIComponent(branchCode));
+                if (!resp.ok) throw new Error('Failed to fetch previous messages');
+                const data = await resp.json();
 
-                                <div className="chat-input">
-                                    <div className="input-container">
-                                        <input
-                                            type="text"
-                                            className="message-input"
-                                            value={inputMessage}
-                                            onChange={(e) => setInputMessage(e.target.value)}
-                                            onKeyPress={handleKeyPress}
-                                            placeholder="Type your response..."
-                                            maxLength="500"
-                                            disabled={connectionStatus !== 'connected'}
-                                        />
-                                        <button
-                                            className="send-button"
-                                            onClick={sendMessage}
-                                            disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
-                                        >
-                                            Send
-                                        </button>
-                                    </div>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="no-customer-selected">
-                                Select a customer to start chatting
-                            </div>
-                        )}
-                    </div>
+                const customerMap = {};
 
-                    <div className={`connection-status status-${connectionStatus}`}>
-                        {connectionStatus === 'connected' ? 'Connected' :
-                            connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
-                    </div>
+                data.forEach(msg => {
+                    const custId = msg.custID1;
+                    const custName = msg.custName || ('Customer ' + custId);
+                    if (!customerMap[custId]) {
+                        customerMap[custId] = {
+                            id: custId,
+                            name: custName,
+                            lastMessage: '',
+                            lastMessageTime: '',
+                            status: 'online',
+                            unreadCount: 0,
+                            messages: [],
+                            email: msg.custEmail || ''
+                        };
+                    }
 
-                    {showModal && (
-                        <div className="qa-modal-overlay" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                            <div className="qa-modal" style={{ background: '#fff', padding: '16px', borderRadius: '8px', minWidth: '320px' }}>
-                                <h3>Add Question & Answer</h3>
-                                <div style={{ marginBottom: '8px' }}>
-                                    <label>Question</label>
-                                    <textarea value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} rows={4} style={{ width: '100%' }} />
-                                </div>
-                                <div style={{ marginBottom: '8px' }}>
-                                    <label>Answer</label>
-                                    <textarea value={newAnswer} onChange={(e) => setNewAnswer(e.target.value)} rows={4} style={{ width: '100%' }} />
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                                    <button onClick={() => { setShowModal(false); }}>Cancel</button>
-                                    <button onClick={submitNewQA}>Submit</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
+                    customerMap[custId].messages.push({
+                        content: msg.message,
+                        type: msg.type,
+                        isCustomer: (msg.sender || '').toLowerCase() === 'customer',
+                        timestamp: msg.date
+                    });
+                });
 
-        // Render the bank dashboard
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<BankDashboard />);
-    </script>
+                Object.values(customerMap).forEach(cust => {
+                    cust.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    const lastMsg = cust.messages[cust.messages.length - 1];
+                    if (lastMsg) {
+                        cust.lastMessage = lastMsg.content;
+                        cust.lastMessageTime = (new Date(lastMsg.timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }
+
+                    const lastAgentIndex = cust.messages.map(m => m.isCustomer ? 0 : 1).lastIndexOf(1);
+                    if (lastAgentIndex === -1) {
+                        cust.unreadCount = cust.messages.filter(m => m.isCustomer).length;
+                    } else {
+                        const after = cust.messages.slice(lastAgentIndex + 1);
+                        cust.unreadCount = after.filter(m => m.isCustomer).length;
+                    }
+                });
+
+                const customerList = Object.values(customerMap).sort((a, b) => {
+                    const timeA = new Date(a.messages[a.messages.length - 1].timestamp);
+                    const timeB = new Date(b.messages[b.messages.length - 1].timestamp);
+                    return timeB - timeA;
+                });
+
+                customers = customerList;
+                if (customers.length > 0) {
+                    selectedCustomer = customers[0];
+                    // reset unread for selected
+                    customers[0].unreadCount = 0;
+                }
+
+                renderCustomerList();
+                renderChatArea();
+            } catch (e) {
+                console.error('Error loading previous messages:', e);
+            }
+        }
+
+        // WebSocket connect
+        function connectWebSocket() {
+            setConnectionStatus('connecting');
+
+            try {
+                // Use the same WS address as original (adjust host if needed)
+                ws = new WebSocket('ws://10.177.141.86:7001/ChatboxEECE/chatServer');
+
+                ws.onopen = function () {
+                    console.log('Bank WebSocket connected');
+                    setConnectionStatus('connected');
+
+                    try {
+                        ws.send(JSON.stringify({ type: 'register', role: 'bank' }));
+                    } catch (e) {
+                        console.warn('Could not send register message', e);
+                    }
+
+                    if (reconnectTimer) {
+                        clearTimeout(reconnectTimer);
+                        reconnectTimer = null;
+                    }
+
+                    // update chat input state
+                    if (typeof window._updateChatInputState === 'function') window._updateChatInputState();
+                };
+
+                ws.onmessage = function (evt) {
+                    try {
+                        const message = JSON.parse(evt.data);
+                        handleIncomingMessage(message);
+                    } catch (e) {
+                        console.error('Invalid WS message', e);
+                    }
+                };
+
+                ws.onclose = function () {
+                    console.log('Bank WebSocket disconnected');
+                    setConnectionStatus('disconnected');
+
+                    if (!reconnectTimer) {
+                        reconnectTimer = setTimeout(function () {
+                            reconnectTimer = null;
+                            connectWebSocket();
+                        }, 3000);
+                    }
+
+                    if (typeof window._updateChatInputState === 'function') window._updateChatInputState();
+                };
+
+                ws.onerror = function (err) {
+                    console.error('Bank WebSocket error:', err);
+                    setConnectionStatus('error');
+
+                    if (!reconnectTimer) {
+                        reconnectTimer = setTimeout(function () {
+                            reconnectTimer = null;
+                            connectWebSocket();
+                        }, 5000);
+                    }
+                    if (typeof window._updateChatInputState === 'function') window._updateChatInputState();
+                };
+            } catch (e) {
+                console.error('Failed to create bank WebSocket:', e);
+                setConnectionStatus('error');
+
+                if (!reconnectTimer) {
+                    reconnectTimer = setTimeout(function () {
+                        reconnectTimer = null;
+                        connectWebSocket();
+                    }, 5000);
+                }
+            }
+        }
+
+        // QA submit
+        async function submitNewQA() {
+            const q = newQuestionEl.value.trim();
+            const a = newAnswerEl.value.trim();
+            if (!q || !a) return;
+
+            const payload = new URLSearchParams();
+            payload.append('question', q);
+            payload.append('answer', a);
+            payload.append('branch_code', branchCode);
+
+            try {
+                const resp = await fetch('./addNewQA', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: payload.toString()
+                });
+                if (!resp.ok) throw new Error('Failed to submit QA');
+
+                qaModalOverlay.style.display = 'none';
+                newQuestionEl.value = '';
+                newAnswerEl.value = '';
+                console.log('QA added successfully');
+            } catch (e) {
+                console.error('Error adding QA', e);
+                alert('Failed to add QA');
+            }
+        }
+
+        // Wire up modal buttons
+        openQaBtn.addEventListener('click', function () {
+            qaModalOverlay.style.display = 'flex';
+        });
+        qaCancelBtn.addEventListener('click', function () {
+            qaModalOverlay.style.display = 'none';
+        });
+        qaSubmitBtn.addEventListener('click', submitNewQA);
+
+        // On unload, cleanup WS
+        window.addEventListener('beforeunload', function () {
+            if (ws) {
+                try { ws.close(); } catch (e) { /* ignore */ }
+                ws = null;
+            }
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+        });
+
+        // Init
+        (function init() {
+            connectWebSocket();
+            if (!historyLoaded) {
+                loadPreviousMessages();
+                historyLoaded = true;
+            }
+        })();
+
+    })();
+</script>
 </body>
-
 </html>
