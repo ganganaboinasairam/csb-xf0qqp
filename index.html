@@ -251,3 +251,321 @@ const DefaultQuestions = ({ questions, onSelect }) => (
 window.DefaultQuestions = DefaultQuestions;
 
 chatinput.jsx
+
+// src/components/ChatInput.jsx
+const { useRef, useEffect, useState } = React;
+
+const ChatInput = ({ value, onChange, onSend, suggestions, onSuggestionClick }) => {
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    if (!textareaRef.current) return;
+    textareaRef.current.style.height = 'auto';
+    textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+  }, [value]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onSend(value);
+    }
+  };
+
+  return (
+    <div className="chat-input">
+      <div className="input-container" style={{ position: "relative" }}>
+        <textarea
+          ref={textareaRef}
+          className="message-input"
+          value={value}
+          onChange={(e) => onChange(e)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type your message..."
+          maxLength={500}
+          rows={1}
+          style={{ resize: "none", overflow: "hidden" }}
+        />
+        <button
+          className="send-button"
+          onClick={() => onSend(value)}
+          disabled={!value.trim()}
+        >
+          Send
+        </button>
+
+        {suggestions && suggestions.length > 0 && (
+          <ul className="suggestions-list" style={{
+            position: "fixed", bottom: "60px", left: "10px", right: "10px",
+            backgroundColor: "white", border: "1px solid #ccc", zIndex: 9999, margin:0, padding:0
+          }}>
+            {suggestions.map((s, i) => (
+              <li key={i} onMouseDown={(e) => e.preventDefault()} onClick={() => onSuggestionClick(s)} style={{padding:'8px', cursor:'pointer', borderBottom:'1px solid #eee'}}>
+                {s}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+window.ChatInput = ChatInput;
+
+app.jsx
+
+// src/App.jsx
+const { useEffect, useState, useRef } = React;
+
+const App = () => {
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [customerId, setCustomerId] = useState('');
+  const [branchCode, setBranchCode] = useState('');
+  const [userInfo, setUserInfo] = useState(null);
+  const [jwtToken, setJwtToken] = useState(null);
+  const [isBrConnected, setIsBrConnected] = useState(false);
+  const [showDefaultQuestions, setShowDefaultQuestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [waitingForTrxnNumber, setWaitingForTrxnNumber] = useState(false);
+
+  // useWebSocket hook
+  const wsHandler = useWebSocket({
+    jwtToken, customerId, branchCode,
+    onMessage: (msg) => handleIncomingMessage(msg),
+    onStatusChange: setConnectionStatus
+  });
+
+  const messagesEndRef = useRef(null);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // init: read URL/INIT and fetch token
+  useEffect(() => {
+    const urlCustomerId = window.INIT?.custId || '';
+    const urlBranchCode = window.INIT?.branchCode || '';
+    const urlCustName = window.INIT?.custName || '';
+    const urlCustRole = (sessionStorage.getItem('role') == 'M') ? "Maker" : "Checker";
+
+    setCustomerId(urlCustomerId);
+    setBranchCode(urlBranchCode);
+    setUserInfo({ customerId: urlCustomerId, branchCode: urlBranchCode, custName: urlCustName, custRole: urlCustRole });
+
+    // fetch jwt
+    (async () => {
+      try {
+        const data = await window.API.fetchJwtToken(urlCustomerId, urlBranchCode);
+        setJwtToken(data.token);
+      } catch (e) {
+        console.error(e);
+        setConnectionStatus('error');
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!customerId || !branchCode) return;
+    (async () => {
+      try {
+        const prev = await window.API.loadPreviousMessages(customerId, branchCode);
+        let formattedMessages = [];
+        if (Array.isArray(prev)) {
+          const filtered = prev.filter(m => m.custID1 === customerId).sort((a,b) => new Date(a.date) - new Date(b.date));
+          formattedMessages = filtered.filter(m=>m.type === 'message').map(msg => ({
+            content: msg.message,
+            isCustomer: msg.sender.toLowerCase() === 'customer',
+            senderName: msg.sender === 'bank' ? msg.brCode : msg.custName,
+            timestamp: msg.date
+          }));
+        }
+        setMessages([ ...formattedMessages, {content:"Welcome! How can I help you today?", isCustomer:false, senderName:"System", timestamp: new Date().toISOString()} ]);
+        setShowDefaultQuestions(true);
+      } catch (e) {
+        console.error('Error loading previous messages', e);
+      }
+    })();
+  }, [customerId, branchCode]);
+
+  // Incoming message dispatcher
+  const handleIncomingMessage = (message) => {
+    if (message.customerId && message.customerId !== customerId) return;
+    if (message.type === 'message') {
+      const newMessage = {
+        content: message.content,
+        senderName: message.sender === 'bank' ? message.branchCode : message.customerName,
+        isCustomer: message.sender === 'customer',
+        timestamp: message.timestamp || new Date().toISOString()
+      };
+      setMessages(prev => [...prev, newMessage]);
+      setIsBrConnected(true);
+      setShowDefaultQuestions(false);
+    } else {
+      handleBotResponse(message);
+    }
+  };
+
+  const handleBotResponse = (message) => {
+    if (message.type === 'ANSWER') {
+      if (message.answer.split(':')[0] === 'ACTION') {
+        handleAction(message.answer);
+        return;
+      }
+      setMessages(prev => [...prev, { content: message.answer, senderName: "System", isCustomer: false, timestamp: new Date().toISOString() }]);
+    } else if (message.type === 'COUNTER_FLOW') {
+      const flowOptions = message.flow.map((option, idx) => ({ content: option, isCustomer:false, senderName:"System", timestamp: new Date().toISOString(), jsx:true }));
+      setMessages(prev => [...prev, ...flowOptions]);
+    } else if (message.type === 'HUMAN') {
+      setMessages(prev => [...prev, { content: "I'am unable to answer your query at the moment. Would you like me to connect you to a bank representative?", isCustomer: false, msgType: 'HUMAN', senderName: "System", timestamp: new Date().toISOString() }]);
+    }
+  };
+
+  // ACTION handler (like TRXN_STATUS)
+  const handleAction = (actionString) => {
+    const parts = actionString.split(":");
+    const type = parts[1];
+    if (type === 'TRXN_STATUS') {
+      setMessages(prev => [...prev, { content: "Please provide your transaction number to check the status.", isCustomer:false, senderName:"System", timestamp: new Date().toISOString() }]);
+      setWaitingForTrxnNumber(true);
+    }
+  };
+
+  // process when a customer enters a trxn number as plain message
+  const processCustomerMessage = (text) => {
+    if (waitingForTrxnNumber) {
+      setWaitingForTrxnNumber(false);
+      (async () => {
+        try {
+          const resp = await window.API.getTrxnStatus(text.trim());
+          let statusMessage = '';
+          if (resp.error) statusMessage = `Error: ${resp.error}`;
+          else if (resp.statusValue) statusMessage = `Transaction Status: ${resp.statusValue}`;
+          else if (resp.isMultiple) {
+            const moduleMap = { INIS: 'Inland LC', IMIS: 'Import LC' };
+            statusMessage = resp.statusValues.map((itm, i) => {
+              const [statusPart, code] = itm.split(':');
+              return `${i+1}. Transaction from ${moduleMap[code] || code} : Status is ${statusPart}.`;
+            }).join('\n');
+          } else statusMessage = 'Transaction status not found or unable to retrieve status.';
+          setMessages(prev => [...prev, { content: statusMessage, isCustomer:false, senderName:"System", timestamp: new Date().toISOString() }]);
+        } catch(e) {
+          console.error(e);
+          setMessages(prev => [...prev, { content: "Sorry, there was an error checking the transaction status. Please try again later.", isCustomer:false, senderName:"System", timestamp: new Date().toISOString() }]);
+        }
+      })();
+      return true;
+    }
+    return false;
+  };
+
+  // outgoing
+  const handleSend = async (text) => {
+    if (!text.trim()) return;
+    const handled = processCustomerMessage(text.trim());
+    if (handled) {
+      setMessages(prev => [...prev, { content: text.trim(), isCustomer:true, senderName: userInfo?.custName, timestamp: new Date().toISOString() }]);
+      setInputMessage('');
+      return;
+    }
+
+    if (!isBrConnected) {
+      try {
+        const botResp = await window.API.getBotReply(text.trim());
+        // add customer message
+        setMessages(prev => [...prev, { content: text.trim(), isCustomer:true, senderName: userInfo?.custName, timestamp: new Date().toISOString() }]);
+        handleBotResponse(botResp);
+        setInputMessage('');
+      } catch(e) {
+        console.error(e);
+      }
+    } else {
+      // send via ws
+      const messageData = {
+        type: 'message',
+        content: text.trim(),
+        customerId,
+        branchCode,
+        sender: 'customer',
+        msgSrc: 'CE',
+        role: userInfo?.custRole,
+        timestamp: new Date().toISOString(),
+        customerName: userInfo?.custName || ''
+      };
+      if (!wsHandler.wsRef?.current || wsHandler.wsRef.current.readyState === WebSocket.CLOSED) {
+        // attempt reconnect by re-initializing (useWebSocket will attempt reconnection)
+      }
+      wsHandler.send(messageData);
+      setMessages(prev => [...prev, { content: text.trim(), senderName: userInfo?.custName, isCustomer:true, timestamp: messageData.timestamp }]);
+      setInputMessage('');
+    }
+  };
+
+  // suggestions
+  const debouncedFetch = (() => {
+    let timer;
+    return (q) => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        if (!q.trim()) { setSuggestions([]); return; }
+        try {
+          const res = await window.API.getSuggestions(q.trim());
+          setSuggestions(res);
+        } catch (e) {
+          console.error(e);
+          setSuggestions([]);
+        }
+      }, 300);
+    };
+  })();
+
+  const handleInputChange = (e) => {
+    const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, "");
+    setInputMessage(val);
+    debouncedFetch(val);
+  };
+
+  const handleSuggestionClick = (s) => {
+    setInputMessage(s);
+    setSuggestions([]);
+  };
+
+  const handleHumanConfirm = (opt) => {
+    if (opt === 'YES') {
+      setIsBrConnected(true);
+      // send system alert etc.
+      const messageData = {
+        type: 'cust-alert',
+        content: `Customer (${customerId}, ${userInfo?.custName}) is connected to the Chat support on `,
+        customerId, branchCode, sender:'system', timestamp: new Date().toISOString(), customerName: userInfo?.custName || ''
+      };
+      wsHandler.send(messageData);
+      setMessages(prev => [...prev, { content: "Bank user from Branch is connected to the chat support", senderName: "System", isCustomer:false, timestamp: new Date().toISOString() }]);
+    }
+  };
+
+  const defaultQuestions = [
+    "Know transaction status.",
+    "View last 5 transactions.",
+    "Report an issue.",
+    "Talk to customer support."
+  ];
+
+  return (
+    <div className="chat-container">
+      <ChatHeader userInfo={userInfo} connectionStatus={connectionStatus} />
+      <MessageList messages={messages} isBrConnected={isBrConnected} onHumanConfirm={handleHumanConfirm} />
+      {showDefaultQuestions && <DefaultQuestions questions={defaultQuestions} onSelect={(q)=>{ setShowDefaultQuestions(false); handleSend(q); }} />}
+      <div ref={messagesEndRef} />
+      <ChatInput
+        value={inputMessage}
+        onChange={handleInputChange}
+        onSend={handleSend}
+        suggestions={suggestions}
+        onSuggestionClick={handleSuggestionClick}
+      />
+    </div>
+  );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
