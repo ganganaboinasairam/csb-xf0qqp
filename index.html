@@ -1,571 +1,523 @@
-index.html 
+<!DOCTYPE html>
+<html lang="en">
 
-<!doctype html>
-<html>
 <head>
-  <meta charset="utf-8" />
-  <title>Customer Support Chat</title>
-  <link rel="stylesheet" href="styles/custStyles.css" />
-  <!-- React CDNs -->
-  <script src="react/react.development.js"></script>
-  <script src="react/react-dom.development.js"></script>
-  <script src="react/babel.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Customer Support Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="../theme/chatBankStyles.css">
 
-  <!-- Your helper scripts (if needed) -->
-  <script type="text/babel" src="src/helpers/ActionHandle.jsx"></script>
-  <script type="text/babel" src="src/helpers/ChatHelper.jsx"></script>
-  <!-- App and components (order matters) -->
-  <script type="text/babel" src="src/utils/formatDate.js"></script>
-  <script type="text/babel" src="src/services/api.js"></script>
-  <script type="text/babel" src="src/hooks/useWebSocket.jsx"></script>
-  <script type="text/babel" src="src/components/ChatHeader.jsx"></script>
-  <script type="text/babel" src="src/components/MessageItem.jsx"></script>
-  <script type="text/babel" src="src/components/MessageList.jsx"></script>
-  <script type="text/babel" src="src/components/DefaultQuestions.jsx"></script>
-  <script type="text/babel" src="src/components/ChatInput.jsx"></script>
-  <script type="text/babel" src="src/App.jsx"></script>
+    <!-- React and Babel CDN -->
+    <script src="../resources/js/react/react.development.js"></script>
+  <script src="../resources/js/react/react-dom.development.js"></script>
+  <script src="../resources/js/react/babel.min.js"></script>
 </head>
+
 <body>
-  <div id="root"></div>
+    
+    <div id="root"></div>
 
-  <script>
-    if (!window.INIT) {
-      document.addEventListener('DOMContentLoaded', function () {
-        document.body.innerHTML = '<h2>Access denied</h2><p>This chat must be opened from the authorized application.</p>';
-      });
-    } else {
-      // App will use window.INIT
-    }
-  </script>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Utility function to get URL parameters
+        const getUrlParameter = (name) => {
+            name = name.replace(/[\[]/, '\[').replace(/[\]]/, '\]');
+            const regex = new RegExp('[\?&]' + name + '=([^&#]*)');
+            const results = regex.exec(window.location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        };
+
+        // Bank Dashboard Component with WebSocket (using useRef)
+        const BankDashboard = () => {
+            const [customers, setCustomers] = useState([]);
+            const [selectedCustomer, setSelectedCustomer] = useState(null);
+            const [inputMessage, setInputMessage] = useState('');
+            const [connectionStatus, setConnectionStatus] = useState('connecting');
+            const wsRef = useRef(null); // <-- useRef for websocket
+            const reconnectTimerRef = useRef(null);
+            const messagesEndRef = useRef(null);
+
+            // Modal state for adding new QA
+            const [showModal, setShowModal] = useState(false);
+            const [newQuestion, setNewQuestion] = useState('');
+            const [newAnswer, setNewAnswer] = useState('');
+            const branchCode = getUrlParameter('branch_code');
+
+            // Ref to ensure history loads only once
+            const historyLoadedRef = useRef(false);
+
+            // WebSocket connection
+            useEffect(() => {
+                let mounted = true;
+
+                const connectWebSocket = () => {
+                    if (!mounted) return;
+
+                    try {
+                        const socket = new WebSocket(`ws://10.177.141.86:7001/ChatboxEECE/chatServer`);
+
+                        wsRef.current = socket;
+
+                        socket.onopen = () => {
+                            console.log('Bank WebSocket connected');
+                            setConnectionStatus('connected');
+
+                            try {
+                                socket.send(JSON.stringify({
+                                    type: 'register',
+                                    role: 'bank'
+                                }));
+                            } catch (e) {
+                                console.warn('Could not send register message', e);
+                            }
+
+                            // NOTE: don't load history here — load only once on mount (see separate effect)
+
+                            if (reconnectTimerRef.current) {
+                                clearTimeout(reconnectTimerRef.current);
+                                reconnectTimerRef.current = null;
+                            }
+                        };
+
+                        socket.onmessage = (event) => {
+                            try {
+                                const message = JSON.parse(event.data);
+                                handleIncomingMessage(message);
+                            } catch (e) {
+                                console.error('Invalid WS message', e);
+                            }
+                        };
+
+                        socket.onclose = () => {
+                            console.log('Bank WebSocket disconnected');
+                            setConnectionStatus('disconnected');
+
+                            if (!reconnectTimerRef.current) {
+                                reconnectTimerRef.current = setTimeout(() => {
+                                    reconnectTimerRef.current = null;
+                                    connectWebSocket();
+                                }, 3000);
+                            }
+                        };
+
+                        socket.onerror = (error) => {
+                            console.error('Bank WebSocket error:', error);
+                            setConnectionStatus('error');
+                        };
+
+                    } catch (error) {
+                        console.error('Failed to create bank WebSocket:', error);
+                        setConnectionStatus('error');
+
+                        if (!reconnectTimerRef.current) {
+                            reconnectTimerRef.current = setTimeout(() => {
+                                reconnectTimerRef.current = null;
+                                connectWebSocket();
+                            }, 5000);
+                        }
+                    }
+                };
+
+                connectWebSocket();
+
+                return () => {
+                    mounted = false;
+                    if (wsRef.current) {
+                        try { wsRef.current.close(); } catch (e) { }
+                        wsRef.current = null;
+                    }
+                    if (reconnectTimerRef.current) {
+                        clearTimeout(reconnectTimerRef.current);
+                        reconnectTimerRef.current = null;
+                    }
+                };
+            }, []);
+
+            // Load message history once when component mounts
+            useEffect(() => {
+                if (!historyLoadedRef.current) {
+                    loadPreviousMessages();
+                    historyLoadedRef.current = true;
+                }
+            }, []);
+
+            const loadPreviousMessages = async () => {
+                try {
+                    const response = await fetch(`./LoadPreviousMesgs?req_from=bank&branch_code=${branchCode}`);
+                    if (!response.ok) throw new Error('Failed to fetch previous messages');
+
+                    let data = await response.json();
+
+                    const customerMap = {};
+
+                    data.forEach(msg => {
+                        const custId = msg.custID1;
+                        const custName = msg.custName || `Customer ${custId}`;
+                        if (!customerMap[custId]) {
+                            customerMap[custId] = {
+                                id: custId,
+                                name: custName,
+                                lastMessage: '',
+                                lastMessageTime: '',
+                                status: "online",
+                                unreadCount: 0,
+                                messages: []
+                            };
+                        }
+
+                        customerMap[custId].messages.push({
+                            content: msg.message,
+                            type: msg.type,
+                            isCustomer: (msg.sender || '').toLowerCase() === 'customer',
+                            timestamp: msg.date
+                        });
+                    });
+
+                    Object.values(customerMap).forEach(customer => {
+                        customer.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+                        const lastMsg = customer.messages[customer.messages.length - 1];
+                        if (lastMsg) {
+                            customer.lastMessage = lastMsg.content;
+                            customer.lastMessageTime = new Date(lastMsg.timestamp).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                        }
+
+                        const lastAgentIndex = customer.messages.map(m => m.isCustomer ? 0 : 1).lastIndexOf(1);
+                        if (lastAgentIndex === -1) {
+                            customer.unreadCount = customer.messages.filter(m => m.isCustomer).length;
+                        } else {
+                            const after = customer.messages.slice(lastAgentIndex + 1);
+                            customer.unreadCount = after.filter(m => m.isCustomer).length;
+                        }
+                    });
+
+                    const customerList = Object.values(customerMap).sort((a, b) => {
+                        const timeA = new Date(a.messages[a.messages.length - 1].timestamp);
+                        const timeB = new Date(b.messages[b.messages.length - 1].timestamp);
+                        return timeB - timeA;
+                    });
+
+                    setCustomers(customerList);
+
+                    if (customerList.length > 0) {
+                        setSelectedCustomer(customerList[0]);
+
+                        setCustomers(prev => prev.map((c, i) => i === 0 ? { ...c, unreadCount: 0 } : c));
+                    }
+
+                } catch (error) {
+                    console.error('Error loading previous messages:', error);
+                }
+            };
+
+            const handleIncomingMessage = (message) => {
+                if (message.type === 'message' || message.type === 'cust-alert') {
+                    const customerId = message.customerId;
+                    const customerName = message.customerName || `Customer ${customerId}`;
+
+                    // Append message to customers array (only update the affected customer)
+                    setCustomers(prevCustomers => {
+                        const existingCustomerIndex = prevCustomers.findIndex(c => c.id === customerId);
+
+                        if (existingCustomerIndex !== -1) {
+                            const updatedCustomers = [...prevCustomers];
+                            const origCustomer = updatedCustomers[existingCustomerIndex];
+                            const customer = { ...origCustomer };
+
+                            customer.messages = [...(customer.messages || []), {
+                                content: message.content,
+                                isCustomer: true,
+                                type: message.type,
+                                timestamp: message.timestamp || new Date().toISOString()
+                            }];
+                            customer.lastMessage = message.content;
+                            customer.lastMessageTime = "Just now";
+
+                            const isSelected = selectedCustomer?.id === customerId;
+                            customer.unreadCount = isSelected ? 0 : (customer.unreadCount || 0) + 1;
+
+                            // Replace and move to top
+                            updatedCustomers.splice(existingCustomerIndex, 1);
+                            updatedCustomers.unshift(customer);
+
+                            return updatedCustomers;
+                        } else {
+                            const newCustomer = {
+                                id: customerId,
+                                name: customerName,
+                                lastMessage: message.content,
+                                lastMessageTime: "Just now",
+                                status: "online",
+                                unreadCount: selectedCustomer?.id === customerId ? 0 : 1,
+                                messages: [{
+                                    content: message.content,
+                                    isCustomer: true,
+                                    type: message.type,
+                                    timestamp: message.timestamp || new Date().toISOString()
+                                }]
+                            };
+
+                            return [newCustomer, ...prevCustomers];
+                        }
+                    });
+
+                    // If selected customer is the recipient, append to selectedCustomer messages only
+                    setSelectedCustomer(prev => {
+                        if (!prev) return prev;
+                        if (prev.id !== message.customerId) return prev;
+
+                        return {
+                            ...prev,
+                            messages: [...prev.messages, {
+                                content: message.content,
+                                isCustomer: true,
+                                type: message.type,
+                                timestamp: message.timestamp || new Date().toISOString()
+                            }],
+                            lastMessage: message.content,
+                            lastMessageTime: 'Just now',
+                            unreadCount: 0
+                        };
+                    });
+                }
+            };
+
+            const handleCustomerSelect = (customer) => {
+                setSelectedCustomer(customer);
+                setCustomers(prevCustomers =>
+                    prevCustomers.map(c =>
+                        c.id === customer.id ? { ...c, unreadCount: 0 } : c
+                    )
+                );
+            };
+
+            const sendMessage = () => {
+                if (!inputMessage.trim() || !selectedCustomer || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+                const messageData = {
+                    type: 'message',
+                    content: inputMessage.trim(),
+                    customerId: selectedCustomer.id,
+                    sender: 'bank',
+                    timestamp: new Date().toISOString(),
+                    customerName: selectedCustomer.name,
+                    branchCode: branchCode
+                };
+
+                try {
+                    wsRef.current.send(JSON.stringify(messageData));
+                } catch (e) {
+                    console.error('Failed to send message', e);
+                }
+
+                const newMessage = {
+                    content: inputMessage.trim(),
+                    isCustomer: false,
+                    timestamp: messageData.timestamp
+                };
+
+                // Append locally to selectedCustomer and customers list
+                setSelectedCustomer(prev => {
+                    if (!prev) return null;
+                    return {
+                        ...prev,
+                        messages: [...prev.messages, newMessage],
+                        lastMessage: inputMessage.trim(),
+                        lastMessageTime: "Just now"
+                    };
+                });
+
+                setCustomers(prevCustomers =>
+                    prevCustomers.map(c =>
+                        c.id === selectedCustomer.id
+                            ? { ...c, messages: [...c.messages, newMessage], lastMessage: inputMessage.trim(), lastMessageTime: "Just now", unreadCount: 0 }
+                            : c
+                    )
+                );
+
+                setInputMessage('');
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            };
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [selectedCustomer?.messages]);
+
+            const submitNewQA = async () => {
+                if (!newQuestion.trim() || !newAnswer.trim()) return;
+
+                const payload = new URLSearchParams();
+                payload.append('question', newQuestion.trim());
+                payload.append('answer', newAnswer.trim());
+                payload.append('branch_code', branchCode);
+
+                try {
+                    const resp = await fetch('./addNewQA', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: payload.toString()
+                    });
+
+                    if (!resp.ok) throw new Error('Failed to submit QA');
+
+                    setShowModal(false);
+                    setNewQuestion('');
+                    setNewAnswer('');
+
+                    console.log('QA added successfully');
+                } catch (e) {
+                    console.error('Error adding QA', e);
+                    alert('Failed to add QA');
+                }
+            };
+
+            return (
+                <div className="bank-container">
+                    <div className="customer-list">
+                        <div className="customer-list-header">
+                            Bank Customer Support Dashboard
+                            <div style={{ fontSize: '0.8em', marginTop: '5px' }}>
+                                {customers.filter(c => c.status === 'online').length} Customers
+                            </div>
+                            <div style={{ marginTop: '8px' }}>
+                                <button onClick={() => setShowModal(true)}>
+                                    Add Q/A
+                                </button>
+                            </div>
+                        </div>
+
+                        {customers.map(customer => (
+                            <div
+                                key={customer.id}
+                                className={`customer-item ${selectedCustomer?.id === customer.id ? 'active' : ''}`}
+                                onClick={() => handleCustomerSelect(customer)}
+                            >
+                                <div className="customer-name">
+                                    <span className={`customer-status status-${customer.status}`}></span>
+                                    {customer.name}
+                                </div>
+                                <div className="customer-preview">
+                                    {customer.lastMessage}
+                                </div>
+                                {customer.unreadCount > 0 && (
+                                    <span style={{
+                                        backgroundColor: '#dc3545',
+                                        color: 'white',
+                                        borderRadius: '50%',
+                                        padding: '2px 6px',
+                                        fontSize: '0.8em',
+                                        float: 'right'
+                                    }}>
+                                        {customer.unreadCount}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="chat-area">
+                        {selectedCustomer ? (
+                            <>
+                                <div className="chat-header">
+                                    <h2>{selectedCustomer.name}</h2>
+                                    <div style={{ fontSize: '0.9em', color: '#f8f9fa' }}>
+                                        {selectedCustomer.email}
+                                    </div>
+                                </div>
+
+                                <div className="chat-messages">
+                                    {selectedCustomer.messages.map((message, index) => (
+                                        <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
+                                            <div className={message.type === 'cust-alert' ? "cust-alert-band" : "message-content"}>
+                                                {message.content}
+                                                {message.type === 'cust-alert' && (
+                                                    <span>{new Date(message.timestamp).toLocaleString("en-GB")}</span>
+                                                )}
+                                            </div>
+                                            {message.type !== 'cust-alert' && (
+                                                <div className="message-time">
+                                                    {new Date(message.timestamp).toLocaleString("en-GB")}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} />
+                                </div>
+
+                                <div className="chat-input">
+                                    <div className="input-container">
+                                        <input
+                                            type="text"
+                                            className="message-input"
+                                            value={inputMessage}
+                                            onChange={(e) => setInputMessage(e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Type your response..."
+                                            maxLength="500"
+                                            disabled={connectionStatus !== 'connected'}
+                                        />
+                                        <button
+                                            className="send-button"
+                                            onClick={sendMessage}
+                                            disabled={!inputMessage.trim() || connectionStatus !== 'connected'}
+                                        >
+                                            Send
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="no-customer-selected">
+                                Select a customer to start chatting
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={`connection-status status-${connectionStatus}`}>
+                        {connectionStatus === 'connected' ? 'Connected' :
+                            connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
+                    </div>
+
+                    {showModal && (
+                        <div className="qa-modal-overlay" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                            <div className="qa-modal" style={{ background: '#fff', padding: '16px', borderRadius: '8px', minWidth: '320px' }}>
+                                <h3>Add Question & Answer</h3>
+                                <div style={{ marginBottom: '8px' }}>
+                                    <label>Question</label>
+                                    <textarea value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} rows={4} style={{ width: '100%' }} />
+                                </div>
+                                <div style={{ marginBottom: '8px' }}>
+                                    <label>Answer</label>
+                                    <textarea value={newAnswer} onChange={(e) => setNewAnswer(e.target.value)} rows={4} style={{ width: '100%' }} />
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                    <button onClick={() => { setShowModal(false); }}>Cancel</button>
+                                    <button onClick={submitNewQA}>Submit</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Render the bank dashboard
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<BankDashboard />);
+    </script>
 </body>
+
 </html>
-
-formatdate.js
-
-// src/utils/formatDate.js
-function formatDate(timestamp){
-  if(!timestamp) return '';
-  const d = new Date(timestamp);
-  const pad = (n) => n.toString().padStart(2,'0');
-  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-// expose globally (for CDN usage)
-window.formatDate = formatDate;
-
-api.js
-
-// src/services/api.js
-const API = {
-  fetchJwtToken: async (custId, branchCode) => {
-    const resp = await fetch('./getJwtToken', {
-      method: 'POST',
-      headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
-      body:`customerId=${encodeURIComponent(custId)}&branchCode=${encodeURIComponent(branchCode)}`
-    });
-    if(!resp.ok) throw new Error('Failed to fetch JWT token');
-    return resp.json();
-  },
-
-  loadPreviousMessages: async (custId, branchCode) => {
-    const resp = await fetch(`./LoadPreviousMesgs?cust_id=${custId}&branch_code=${branchCode}&req_from=customer`);
-    if(!resp.ok) throw new Error('Failed to fetch previous messages');
-    return resp.json();
-  },
-
-  getBotReply: async (question) => {
-    const resp = await fetch('./getBotReply', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ question })
-    });
-    if(!resp.ok) throw new Error('Failed to fetch bot reply');
-    const text = await resp.text();
-    return JSON.parse(text);
-  },
-
-  getSuggestions: async (query) => {
-    const params = new URLSearchParams({ query });
-    const resp = await fetch(`./GetQuestionSuggestions?${params.toString()}`, { method: 'GET' });
-    if(!resp.ok) throw new Error('Failed to fetch suggestions');
-    return resp.json();
-  },
-
-  getTrxnStatus: async (trxnNumber) => {
-    const params = new URLSearchParams({ cMainRef: trxnNumber });
-    const resp = await fetch(`./getTrxnStatus?${params.toString()}`);
-    if(!resp.ok) throw new Error('Failed to fetch transaction status');
-    return resp.json();
-  }
-};
-
-window.API = API;
-
-useWebSocket.jsx 
-
-// src/hooks/useWebSocket.jsx
-const { useRef, useEffect, useState } = React;
-
-function useWebSocket({ jwtToken, customerId, branchCode, onMessage, onStatusChange }) {
-  const wsRef = useRef(null);
-  const queueRef = useRef([]);
-
-  const flushQueue = () => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    while (queueRef.current.length) {
-      wsRef.current.send(JSON.stringify(queueRef.current.shift()));
-    }
-  };
-
-  const safeSend = (obj) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(obj));
-      return true;
-    }
-    queueRef.current.push(obj);
-    return false;
-  };
-
-  useEffect(() => {
-    if (!jwtToken || !customerId || !branchCode) return;
-
-    let ws;
-    try {
-      ws = new WebSocket(`ws://10.177.141.86:7001/ChatboxEECE/chatServer?token=${encodeURIComponent(jwtToken)}`);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        onStatusChange && onStatusChange('connected');
-        ws.send(JSON.stringify({
-          type: 'register',
-          role: 'customer',
-          customerId,
-          branchCode,
-          customerName: window.INIT?.custName || ''
-        }));
-        flushQueue();
-      };
-
-      ws.onmessage = (evt) => {
-        const msg = JSON.parse(evt.data);
-        onMessage && onMessage(msg);
-      };
-
-      ws.onclose = () => {
-        onStatusChange && onStatusChange('disconnected');
-        // auto reconnect after short delay
-        setTimeout(() => {
-          // re-run effect by changing key? but here rely on outer effect re-run when token changes
-          if (wsRef.current && wsRef.current.readyState === WebSocket.CLOSED) {
-            // attempt reconnection by recreating WebSocket:
-            useWebSocket({ jwtToken, customerId, branchCode, onMessage, onStatusChange });
-          }
-        }, 3000);
-      };
-
-      ws.onerror = (err) => {
-        console.error('WebSocket error', err);
-        onStatusChange && onStatusChange('error');
-      };
-    } catch (e) {
-      console.error('Failed to open websocket', e);
-      onStatusChange && onStatusChange('error');
-    }
-
-    return () => {
-      try { ws && ws.close(); } catch(e) {}
-    };
-  }, [jwtToken, customerId, branchCode]);
-
-  return { send: safeSend, flushQueue, wsRef };
-}
-
-window.useWebSocket = useWebSocket;
-
-chatheader.jsx
-
-// src/components/ChatHeader.jsx
-const ChatHeader = ({ userInfo, connectionStatus }) => {
-  return (
-    <div className="chat-header">
-      <h2>TF Support Chat</h2>
-      {userInfo && (
-        <div className="user-info">
-          Customer Name: {userInfo.custName} | Role: {userInfo.custRole} | Branch: {userInfo.branchCode}
-        </div>
-      )}
-      <div className={`connection-status status-${connectionStatus}`}>
-        {connectionStatus === 'connected' && 'Connected to support'}
-        {connectionStatus === 'disconnected' && 'Disconnected - Reconnecting...'}
-        {connectionStatus === 'connecting' && 'Connecting...'}
-        {connectionStatus === 'error' && 'Connection Error'}
-      </div>
-    </div>
-  );
-};
-window.ChatHeader = ChatHeader;
-
-messageitem.jsx
-
-// src/components/MessageItem.jsx
-const MessageItem = ({ message, isBrConnected, onHumanConfirm }) => {
-  return (
-    <div className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
-      <div className="message-sender">{message.senderName}</div>
-      <div className="message-content">{message.content}</div>
-      <div className="message-time">{window.formatDate(message.timestamp)}</div>
-      {message.msgType === 'HUMAN' && !isBrConnected && (
-        <div className="human-confirm">
-          <button onClick={() => onHumanConfirm('YES')} className="btn-type1">Yes</button>
-          <button onClick={() => onHumanConfirm('NO')} className="btn-type1">No</button>
-        </div>
-      )}
-    </div>
-  );
-};
-window.MessageItem = MessageItem;
-
-messagelist
-// src/components/MessageList.jsx
-const MessageList = ({ messages, isBrConnected, onHumanConfirm }) => {
-  return (
-    <div className="chat-messages">
-      {messages.map((m, i) => (
-        <MessageItem key={i} message={m} isBrConnected={isBrConnected} onHumanConfirm={onHumanConfirm} />
-      ))}
-      <div style={{height: '1px'}} id="messages-end" />
-    </div>
-  );
-};
-window.MessageList = MessageList;
-
-defaultquestions.jsx
-
-// src/components/DefaultQuestions.jsx
-const DefaultQuestions = ({ questions, onSelect }) => (
-  <div className="default-questions">
-    {questions.map((q, idx) => (
-      <button key={idx} className="question-btn" onClick={() => onSelect(q)}>{q}</button>
-    ))}
-  </div>
-);
-window.DefaultQuestions = DefaultQuestions;
-
-chatinput.jsx
-
-// src/components/ChatInput.jsx
-const { useRef, useEffect, useState } = React;
-
-const ChatInput = ({ value, onChange, onSend, suggestions, onSuggestionClick }) => {
-  const textareaRef = useRef(null);
-
-  useEffect(() => {
-    if (!textareaRef.current) return;
-    textareaRef.current.style.height = 'auto';
-    textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-  }, [value]);
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      onSend(value);
-    }
-  };
-
-  return (
-    <div className="chat-input">
-      <div className="input-container" style={{ position: "relative" }}>
-        <textarea
-          ref={textareaRef}
-          className="message-input"
-          value={value}
-          onChange={(e) => onChange(e)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type your message..."
-          maxLength={500}
-          rows={1}
-          style={{ resize: "none", overflow: "hidden" }}
-        />
-        <button
-          className="send-button"
-          onClick={() => onSend(value)}
-          disabled={!value.trim()}
-        >
-          Send
-        </button>
-
-        {suggestions && suggestions.length > 0 && (
-          <ul className="suggestions-list" style={{
-            position: "fixed", bottom: "60px", left: "10px", right: "10px",
-            backgroundColor: "white", border: "1px solid #ccc", zIndex: 9999, margin:0, padding:0
-          }}>
-            {suggestions.map((s, i) => (
-              <li key={i} onMouseDown={(e) => e.preventDefault()} onClick={() => onSuggestionClick(s)} style={{padding:'8px', cursor:'pointer', borderBottom:'1px solid #eee'}}>
-                {s}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-};
-window.ChatInput = ChatInput;
-
-app.jsx
-
-// src/App.jsx
-const { useEffect, useState, useRef } = React;
-
-const App = () => {
-  const [messages, setMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState('connecting');
-  const [customerId, setCustomerId] = useState('');
-  const [branchCode, setBranchCode] = useState('');
-  const [userInfo, setUserInfo] = useState(null);
-  const [jwtToken, setJwtToken] = useState(null);
-  const [isBrConnected, setIsBrConnected] = useState(false);
-  const [showDefaultQuestions, setShowDefaultQuestions] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [waitingForTrxnNumber, setWaitingForTrxnNumber] = useState(false);
-
-  // useWebSocket hook
-  const wsHandler = useWebSocket({
-    jwtToken, customerId, branchCode,
-    onMessage: (msg) => handleIncomingMessage(msg),
-    onStatusChange: setConnectionStatus
-  });
-
-  const messagesEndRef = useRef(null);
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // init: read URL/INIT and fetch token
-  useEffect(() => {
-    const urlCustomerId = window.INIT?.custId || '';
-    const urlBranchCode = window.INIT?.branchCode || '';
-    const urlCustName = window.INIT?.custName || '';
-    const urlCustRole = (sessionStorage.getItem('role') == 'M') ? "Maker" : "Checker";
-
-    setCustomerId(urlCustomerId);
-    setBranchCode(urlBranchCode);
-    setUserInfo({ customerId: urlCustomerId, branchCode: urlBranchCode, custName: urlCustName, custRole: urlCustRole });
-
-    // fetch jwt
-    (async () => {
-      try {
-        const data = await window.API.fetchJwtToken(urlCustomerId, urlBranchCode);
-        setJwtToken(data.token);
-      } catch (e) {
-        console.error(e);
-        setConnectionStatus('error');
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (!customerId || !branchCode) return;
-    (async () => {
-      try {
-        const prev = await window.API.loadPreviousMessages(customerId, branchCode);
-        let formattedMessages = [];
-        if (Array.isArray(prev)) {
-          const filtered = prev.filter(m => m.custID1 === customerId).sort((a,b) => new Date(a.date) - new Date(b.date));
-          formattedMessages = filtered.filter(m=>m.type === 'message').map(msg => ({
-            content: msg.message,
-            isCustomer: msg.sender.toLowerCase() === 'customer',
-            senderName: msg.sender === 'bank' ? msg.brCode : msg.custName,
-            timestamp: msg.date
-          }));
-        }
-        setMessages([ ...formattedMessages, {content:"Welcome! How can I help you today?", isCustomer:false, senderName:"System", timestamp: new Date().toISOString()} ]);
-        setShowDefaultQuestions(true);
-      } catch (e) {
-        console.error('Error loading previous messages', e);
-      }
-    })();
-  }, [customerId, branchCode]);
-
-  // Incoming message dispatcher
-  const handleIncomingMessage = (message) => {
-    if (message.customerId && message.customerId !== customerId) return;
-    if (message.type === 'message') {
-      const newMessage = {
-        content: message.content,
-        senderName: message.sender === 'bank' ? message.branchCode : message.customerName,
-        isCustomer: message.sender === 'customer',
-        timestamp: message.timestamp || new Date().toISOString()
-      };
-      setMessages(prev => [...prev, newMessage]);
-      setIsBrConnected(true);
-      setShowDefaultQuestions(false);
-    } else {
-      handleBotResponse(message);
-    }
-  };
-
-  const handleBotResponse = (message) => {
-    if (message.type === 'ANSWER') {
-      if (message.answer.split(':')[0] === 'ACTION') {
-        handleAction(message.answer);
-        return;
-      }
-      setMessages(prev => [...prev, { content: message.answer, senderName: "System", isCustomer: false, timestamp: new Date().toISOString() }]);
-    } else if (message.type === 'COUNTER_FLOW') {
-      const flowOptions = message.flow.map((option, idx) => ({ content: option, isCustomer:false, senderName:"System", timestamp: new Date().toISOString(), jsx:true }));
-      setMessages(prev => [...prev, ...flowOptions]);
-    } else if (message.type === 'HUMAN') {
-      setMessages(prev => [...prev, { content: "I'am unable to answer your query at the moment. Would you like me to connect you to a bank representative?", isCustomer: false, msgType: 'HUMAN', senderName: "System", timestamp: new Date().toISOString() }]);
-    }
-  };
-
-  // ACTION handler (like TRXN_STATUS)
-  const handleAction = (actionString) => {
-    const parts = actionString.split(":");
-    const type = parts[1];
-    if (type === 'TRXN_STATUS') {
-      setMessages(prev => [...prev, { content: "Please provide your transaction number to check the status.", isCustomer:false, senderName:"System", timestamp: new Date().toISOString() }]);
-      setWaitingForTrxnNumber(true);
-    }
-  };
-
-  // process when a customer enters a trxn number as plain message
-  const processCustomerMessage = (text) => {
-    if (waitingForTrxnNumber) {
-      setWaitingForTrxnNumber(false);
-      (async () => {
-        try {
-          const resp = await window.API.getTrxnStatus(text.trim());
-          let statusMessage = '';
-          if (resp.error) statusMessage = `Error: ${resp.error}`;
-          else if (resp.statusValue) statusMessage = `Transaction Status: ${resp.statusValue}`;
-          else if (resp.isMultiple) {
-            const moduleMap = { INIS: 'Inland LC', IMIS: 'Import LC' };
-            statusMessage = resp.statusValues.map((itm, i) => {
-              const [statusPart, code] = itm.split(':');
-              return `${i+1}. Transaction from ${moduleMap[code] || code} : Status is ${statusPart}.`;
-            }).join('\n');
-          } else statusMessage = 'Transaction status not found or unable to retrieve status.';
-          setMessages(prev => [...prev, { content: statusMessage, isCustomer:false, senderName:"System", timestamp: new Date().toISOString() }]);
-        } catch(e) {
-          console.error(e);
-          setMessages(prev => [...prev, { content: "Sorry, there was an error checking the transaction status. Please try again later.", isCustomer:false, senderName:"System", timestamp: new Date().toISOString() }]);
-        }
-      })();
-      return true;
-    }
-    return false;
-  };
-
-  // outgoing
-  const handleSend = async (text) => {
-    if (!text.trim()) return;
-    const handled = processCustomerMessage(text.trim());
-    if (handled) {
-      setMessages(prev => [...prev, { content: text.trim(), isCustomer:true, senderName: userInfo?.custName, timestamp: new Date().toISOString() }]);
-      setInputMessage('');
-      return;
-    }
-
-    if (!isBrConnected) {
-      try {
-        const botResp = await window.API.getBotReply(text.trim());
-        // add customer message
-        setMessages(prev => [...prev, { content: text.trim(), isCustomer:true, senderName: userInfo?.custName, timestamp: new Date().toISOString() }]);
-        handleBotResponse(botResp);
-        setInputMessage('');
-      } catch(e) {
-        console.error(e);
-      }
-    } else {
-      // send via ws
-      const messageData = {
-        type: 'message',
-        content: text.trim(),
-        customerId,
-        branchCode,
-        sender: 'customer',
-        msgSrc: 'CE',
-        role: userInfo?.custRole,
-        timestamp: new Date().toISOString(),
-        customerName: userInfo?.custName || ''
-      };
-      if (!wsHandler.wsRef?.current || wsHandler.wsRef.current.readyState === WebSocket.CLOSED) {
-        // attempt reconnect by re-initializing (useWebSocket will attempt reconnection)
-      }
-      wsHandler.send(messageData);
-      setMessages(prev => [...prev, { content: text.trim(), senderName: userInfo?.custName, isCustomer:true, timestamp: messageData.timestamp }]);
-      setInputMessage('');
-    }
-  };
-
-  // suggestions
-  const debouncedFetch = (() => {
-    let timer;
-    return (q) => {
-      clearTimeout(timer);
-      timer = setTimeout(async () => {
-        if (!q.trim()) { setSuggestions([]); return; }
-        try {
-          const res = await window.API.getSuggestions(q.trim());
-          setSuggestions(res);
-        } catch (e) {
-          console.error(e);
-          setSuggestions([]);
-        }
-      }, 300);
-    };
-  })();
-
-  const handleInputChange = (e) => {
-    const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, "");
-    setInputMessage(val);
-    debouncedFetch(val);
-  };
-
-  const handleSuggestionClick = (s) => {
-    setInputMessage(s);
-    setSuggestions([]);
-  };
-
-  const handleHumanConfirm = (opt) => {
-    if (opt === 'YES') {
-      setIsBrConnected(true);
-      // send system alert etc.
-      const messageData = {
-        type: 'cust-alert',
-        content: `Customer (${customerId}, ${userInfo?.custName}) is connected to the Chat support on `,
-        customerId, branchCode, sender:'system', timestamp: new Date().toISOString(), customerName: userInfo?.custName || ''
-      };
-      wsHandler.send(messageData);
-      setMessages(prev => [...prev, { content: "Bank user from Branch is connected to the chat support", senderName: "System", isCustomer:false, timestamp: new Date().toISOString() }]);
-    }
-  };
-
-  const defaultQuestions = [
-    "Know transaction status.",
-    "View last 5 transactions.",
-    "Report an issue.",
-    "Talk to customer support."
-  ];
-
-  return (
-    <div className="chat-container">
-      <ChatHeader userInfo={userInfo} connectionStatus={connectionStatus} />
-      <MessageList messages={messages} isBrConnected={isBrConnected} onHumanConfirm={handleHumanConfirm} />
-      {showDefaultQuestions && <DefaultQuestions questions={defaultQuestions} onSelect={(q)=>{ setShowDefaultQuestions(false); handleSend(q); }} />}
-      <div ref={messagesEndRef} />
-      <ChatInput
-        value={inputMessage}
-        onChange={handleInputChange}
-        onSend={handleSend}
-        suggestions={suggestions}
-        onSuggestionClick={handleSuggestionClick}
-      />
-    </div>
-  );
-};
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
