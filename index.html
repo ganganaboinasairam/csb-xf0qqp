@@ -53,3 +53,201 @@ function formatDate(timestamp){
 window.formatDate = formatDate;
 
 api.js
+
+// src/services/api.js
+const API = {
+  fetchJwtToken: async (custId, branchCode) => {
+    const resp = await fetch('./getJwtToken', {
+      method: 'POST',
+      headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
+      body:`customerId=${encodeURIComponent(custId)}&branchCode=${encodeURIComponent(branchCode)}`
+    });
+    if(!resp.ok) throw new Error('Failed to fetch JWT token');
+    return resp.json();
+  },
+
+  loadPreviousMessages: async (custId, branchCode) => {
+    const resp = await fetch(`./LoadPreviousMesgs?cust_id=${custId}&branch_code=${branchCode}&req_from=customer`);
+    if(!resp.ok) throw new Error('Failed to fetch previous messages');
+    return resp.json();
+  },
+
+  getBotReply: async (question) => {
+    const resp = await fetch('./getBotReply', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ question })
+    });
+    if(!resp.ok) throw new Error('Failed to fetch bot reply');
+    const text = await resp.text();
+    return JSON.parse(text);
+  },
+
+  getSuggestions: async (query) => {
+    const params = new URLSearchParams({ query });
+    const resp = await fetch(`./GetQuestionSuggestions?${params.toString()}`, { method: 'GET' });
+    if(!resp.ok) throw new Error('Failed to fetch suggestions');
+    return resp.json();
+  },
+
+  getTrxnStatus: async (trxnNumber) => {
+    const params = new URLSearchParams({ cMainRef: trxnNumber });
+    const resp = await fetch(`./getTrxnStatus?${params.toString()}`);
+    if(!resp.ok) throw new Error('Failed to fetch transaction status');
+    return resp.json();
+  }
+};
+
+window.API = API;
+
+useWebSocket.jsx 
+
+// src/hooks/useWebSocket.jsx
+const { useRef, useEffect, useState } = React;
+
+function useWebSocket({ jwtToken, customerId, branchCode, onMessage, onStatusChange }) {
+  const wsRef = useRef(null);
+  const queueRef = useRef([]);
+
+  const flushQueue = () => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    while (queueRef.current.length) {
+      wsRef.current.send(JSON.stringify(queueRef.current.shift()));
+    }
+  };
+
+  const safeSend = (obj) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(obj));
+      return true;
+    }
+    queueRef.current.push(obj);
+    return false;
+  };
+
+  useEffect(() => {
+    if (!jwtToken || !customerId || !branchCode) return;
+
+    let ws;
+    try {
+      ws = new WebSocket(`ws://10.177.141.86:7001/ChatboxEECE/chatServer?token=${encodeURIComponent(jwtToken)}`);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        onStatusChange && onStatusChange('connected');
+        ws.send(JSON.stringify({
+          type: 'register',
+          role: 'customer',
+          customerId,
+          branchCode,
+          customerName: window.INIT?.custName || ''
+        }));
+        flushQueue();
+      };
+
+      ws.onmessage = (evt) => {
+        const msg = JSON.parse(evt.data);
+        onMessage && onMessage(msg);
+      };
+
+      ws.onclose = () => {
+        onStatusChange && onStatusChange('disconnected');
+        // auto reconnect after short delay
+        setTimeout(() => {
+          // re-run effect by changing key? but here rely on outer effect re-run when token changes
+          if (wsRef.current && wsRef.current.readyState === WebSocket.CLOSED) {
+            // attempt reconnection by recreating WebSocket:
+            useWebSocket({ jwtToken, customerId, branchCode, onMessage, onStatusChange });
+          }
+        }, 3000);
+      };
+
+      ws.onerror = (err) => {
+        console.error('WebSocket error', err);
+        onStatusChange && onStatusChange('error');
+      };
+    } catch (e) {
+      console.error('Failed to open websocket', e);
+      onStatusChange && onStatusChange('error');
+    }
+
+    return () => {
+      try { ws && ws.close(); } catch(e) {}
+    };
+  }, [jwtToken, customerId, branchCode]);
+
+  return { send: safeSend, flushQueue, wsRef };
+}
+
+window.useWebSocket = useWebSocket;
+
+chatheader.jsx
+
+// src/components/ChatHeader.jsx
+const ChatHeader = ({ userInfo, connectionStatus }) => {
+  return (
+    <div className="chat-header">
+      <h2>TF Support Chat</h2>
+      {userInfo && (
+        <div className="user-info">
+          Customer Name: {userInfo.custName} | Role: {userInfo.custRole} | Branch: {userInfo.branchCode}
+        </div>
+      )}
+      <div className={`connection-status status-${connectionStatus}`}>
+        {connectionStatus === 'connected' && 'Connected to support'}
+        {connectionStatus === 'disconnected' && 'Disconnected - Reconnecting...'}
+        {connectionStatus === 'connecting' && 'Connecting...'}
+        {connectionStatus === 'error' && 'Connection Error'}
+      </div>
+    </div>
+  );
+};
+window.ChatHeader = ChatHeader;
+
+messageitem.jsx
+
+// src/components/MessageItem.jsx
+const MessageItem = ({ message, isBrConnected, onHumanConfirm }) => {
+  return (
+    <div className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
+      <div className="message-sender">{message.senderName}</div>
+      <div className="message-content">{message.content}</div>
+      <div className="message-time">{window.formatDate(message.timestamp)}</div>
+      {message.msgType === 'HUMAN' && !isBrConnected && (
+        <div className="human-confirm">
+          <button onClick={() => onHumanConfirm('YES')} className="btn-type1">Yes</button>
+          <button onClick={() => onHumanConfirm('NO')} className="btn-type1">No</button>
+        </div>
+      )}
+    </div>
+  );
+};
+window.MessageItem = MessageItem;
+
+messagelist
+// src/components/MessageList.jsx
+const MessageList = ({ messages, isBrConnected, onHumanConfirm }) => {
+  return (
+    <div className="chat-messages">
+      {messages.map((m, i) => (
+        <MessageItem key={i} message={m} isBrConnected={isBrConnected} onHumanConfirm={onHumanConfirm} />
+      ))}
+      <div style={{height: '1px'}} id="messages-end" />
+    </div>
+  );
+};
+window.MessageList = MessageList;
+
+defaultquestions.jsx
+
+// src/components/DefaultQuestions.jsx
+const DefaultQuestions = ({ questions, onSelect }) => (
+  <div className="default-questions">
+    {questions.map((q, idx) => (
+      <button key={idx} className="question-btn" onClick={() => onSelect(q)}>{q}</button>
+    ))}
+  </div>
+);
+window.DefaultQuestions = DefaultQuestions;
+
+chatinput.jsx
