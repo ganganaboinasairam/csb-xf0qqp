@@ -1,55 +1,44 @@
-import org.w3c.dom.*;
-import javax.xml.parsers.*;
-import java.io.File;
-import java.util.*;
+package com.tcs.sbi.chat;
 
-public class ProductModuleExtractor {
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
 
-    public static void main(String[] args) {
-        try {
-            // Sample product IDs to search
-            String[] productIds = {"P05101000006", "P08080400000", "P05122400001"};
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-            // Parse XML file
-            File xmlFile = new File("products.xml"); // <-- put your XML file path
-            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-            Document doc = dBuilder.parse(xmlFile);
+import org.json.JSONObject;
 
-            doc.getDocumentElement().normalize();
+import com.tcs.sbi.chat.util.ChatQADao;
 
-            // Get all <product> elements
-            NodeList productList = doc.getElementsByTagName("product");
 
-            // Convert to Set for faster lookup
-            Set<String> searchIds = new HashSet<>(Arrays.asList(productIds));
-            List<String> moduleList = new ArrayList<>();
+public class GetQuestionSuggestions extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+    private ChatQADao dao = new ChatQADao();
+    private Gson gson = new Gson();
 
-            for (int i = 0; i < productList.getLength(); i++) {
-                Node productNode = productList.item(i);
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String query = request.getParameter("query");
+        response.setContentType("application/json");
+        PrintWriter out = response.getWriter();
 
-                if (productNode.getNodeType() == Node.ELEMENT_NODE) {
-                    Element productElement = (Element) productNode;
-
-                    // Extract <id> value
-                    String id = productElement.getElementsByTagName("id").item(0).getTextContent();
-
-                    // If this product's ID matches input array, get <module>
-                    if (searchIds.contains(id)) {
-                        String module = productElement.getElementsByTagName("module").item(0).getTextContent();
-                        moduleList.add(module);
-                    }
-                }
-            }
-
-            // Convert to array
-            String[] modulesArray = moduleList.toArray(new String[0]);
-
-            // Print result
-            System.out.println("Modules found: " + Arrays.toString(modulesArray));
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        if ((query == null) || (query.trim().isEmpty())) {
+          out.print(this.gson.toJson(new String[0]));
+          out.flush();
+          return;
         }
-    }
+
+        List suggestions = null;
+        try {
+          suggestions = this.dao.findQuestionsByPartial(query.trim());
+        }
+        catch (Exception e) {
+          e.printStackTrace();
+        }
+
+        out.print(this.gson.toJson(suggestions));
+        out.flush();
+      }
 }
