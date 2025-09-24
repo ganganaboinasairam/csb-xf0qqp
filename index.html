@@ -9,36 +9,42 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.json.JSONObject;
+import org.json.JSONArray;
 
 import com.tcs.sbi.chat.util.ChatQADao;
-
 
 public class GetQuestionSuggestions extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private ChatQADao dao = new ChatQADao();
-    private Gson gson = new Gson();
 
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        
         String query = request.getParameter("query");
         response.setContentType("application/json");
         PrintWriter out = response.getWriter();
 
-        if ((query == null) || (query.trim().isEmpty())) {
-          out.print(this.gson.toJson(new String[0]));
-          out.flush();
-          return;
+        if (query == null || query.trim().isEmpty()) {
+            // Return empty JSON array
+            out.print(new JSONArray().toString());
+            out.flush();
+            return;
         }
 
-        List suggestions = null;
         try {
-          suggestions = this.dao.findQuestionsByPartial(query.trim());
-        }
-        catch (Exception e) {
-          e.printStackTrace();
+            List<String> suggestions = this.dao.findQuestionsByPartial(query.trim());
+
+            // Convert List to JSONArray
+            JSONArray jsonArray = new JSONArray(suggestions);
+
+            out.print(jsonArray.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Return empty array in case of error
+            out.print(new JSONArray().toString());
         }
 
-        out.print(this.gson.toJson(suggestions));
         out.flush();
-      }
+    }
 }
