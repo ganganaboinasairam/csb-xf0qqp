@@ -1,72 +1,77 @@
+// Parse "26-SEP-25 11.53.32.212779 AM +05:30" -> Date
+function parseBankTimestamp(ts) {
+  // DD-MON-YY HH.mm.ss.SSSSSS AM/PM ±HH:MM
+  const re = /^(\d{2})-([A-Z]{3})-(\d{2})\s+(\d{1,2})\.(\d{2})\.(\d{2})\.(\d{3,6})\s+(AM|PM)\s+([+-]\d{2}:\d{2})$/i;
+  const m = ts.match(re);
+  if (!m) return new Date(NaN);
+
+  const [, dd, monStr, yy, h12, mm, ss, frac, ampm, tz] = m;
+
+  const months = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 };
+  const month = months[monStr.toUpperCase()];
+  const year = 2000 + parseInt(yy, 10); // "25" -> 2025 (adjust if your backend uses 1900s)
+
+  let hour = parseInt(h12, 10) % 12;
+  if (ampm.toUpperCase() === 'PM') hour += 12;
+
+  const minute = parseInt(mm, 10);
+  const second = parseInt(ss, 10);
+
+  // frac can be microseconds (6) or milliseconds (3). Keep only ms.
+  const ms = Math.floor(parseInt(frac.padEnd(6, '0').slice(0, 6), 10) / 1000); // micro -> milli
+
+  // timezone offset
+  const [sign, th, tm] = [tz[0], tz.slice(1,3), tz.slice(4,6)];
+  const offsetMinutes = (parseInt(th, 10) * 60 + parseInt(tm, 10)) * (sign === '-' ? -1 : 1);
+
+  // Build UTC milliseconds: local-with-tz -> UTC
+  const utcMs = Date.UTC(year, month, parseInt(dd, 10), hour, minute, second, ms) - offsetMinutes * 60_000;
+  return new Date(utcMs);
+}
+
 const loadPreviousMessages = async (custId, brCode) => {
-        try {
-          const response = await fetch(`../servlets/LoadPreviousMesgs?cust_id=${custId}&branch_code=${brCode}&req_from=customer`);
-          if (!response.ok) throw new Error('Failed to fetch previous messages');
+  try {
+    const response = await fetch(`../servlets/LoadPreviousMesgs?cust_id=${custId}&branch_code=${brCode}&req_from=customer`);
+    if (!response.ok) throw new Error('Failed to fetch previous messages');
 
-          let data = await response.json();
-          let formattedMessages = [];
+    const data = await response.json();
+    let formattedMessages = [];
 
-          if (data.error == 'Invalid Customer ID Please check') {
-            console.log(data.error);
-          } else {
-            let filtered = data.filter(msg => msg.custID1 === custId);
-            filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+    if (data.error === 'Invalid Customer ID Please check') {
+      console.log(data.error);
+    } else {
+      const filtered = data.filter(msg => String(msg.custID1) === String(custId));
 
-            formattedMessages = filtered
-              .filter(msg => msg.type === 'message')
-              .map(msg => ({
-                content: msg.message,
-                isCustomer: msg.sender.toLowerCase() === 'customer',
-                senderName: msg.sender == 'bank' ? msg.brCode : msg.custName,
-                timestamp: msg.date
-              }));
-          }
+      filtered.sort((a, b) => {
+        const da = parseBankTimestamp(a.date).getTime();
+        const db = parseBankTimestamp(b.date).getTime();
+        return da - db;
+      });
 
-          setMessages([
-            ...formattedMessages,
-            {
-              content: "Welcome! How can I help you today?",
-              isCustomer: false,
-              senderName: "System",
-              timestamp: new Date().toISOString()
-            }
-          ]);
+      formattedMessages = filtered
+        .filter(msg => msg.type === 'message')
+        .map(msg => ({
+          content: msg.message,
+          isCustomer: String(msg.sender).toLowerCase() === 'customer',
+          senderName: String(msg.sender).toLowerCase() === 'bank' ? msg.brCode : msg.custName,
+          // store a normalized ISO string
+          timestamp: parseBankTimestamp(msg.date).toISOString()
+        }));
+    }
 
-          setShowDefaultQuestions(true);
+    setMessages([
+      ...formattedMessages,
+      {
+        content: "Welcome! How can I help you today?",
+        isCustomer: false,
+        senderName: "System",
+        // if you want a 5 ms future offset:
+        timestamp: new Date(Date.now() + 5).toISOString()
+      }
+    ]);
 
-        } catch (error) {
-          console.error('Error loading previous messages:', error);
-        }
-      };
-
-
-      the filter process by date adn time  is not happening properly the msg obj will come as "brCode
-: 
-"09995"
-custID1
-: 
-"00000095001484507"
-custName
-: 
-"UAT TESTING HYDERABAD 123345"
-date
-: 
-"26-SEP-25 11.53.32.212779 AM +05:30"
-isRead
-: 
-"N "
-message
-: 
-"4"
-msgSrc
-: 
-"CE"
-role
-: 
-"Maker"
-sender
-: 
-"customer"
-type
-: 
-"message"" 
+    setShowDefaultQuestions(true);
+  } catch (error) {
+    console.error('Error loading previous messages:', error);
+  }
+};
