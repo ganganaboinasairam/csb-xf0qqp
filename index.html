@@ -1,50 +1,11 @@
-
-<Sep 30, 2025 1:41:19,786 PM IST> <Error> <HTTP> <BEA-101267> <Failed while destroying filter: WebSocket filter.
-java.lang.NullPointerException
-        at weblogic.websocket.tyrus.TyrusServletFilter.destroy(TyrusServletFilter.java:305)
-        at weblogic.servlet.internal.FilterManager$FilterDestroyAction.run(FilterManager.java:416)
-        at weblogic.security.acl.internal.AuthenticatedSubject.doAs(AuthenticatedSubject.java:344)
-        at weblogic.security.service.SecurityManager.runAsForUserCode(SecurityManager.java:197)
-        at weblogic.servlet.provider.WlsSecurityProvider.runAsForUserCode(WlsSecurityProvider.java:203)
-        Truncated.
->
-<Sep 30, 2025 1:41:19,789 PM IST> <Warning> <javax.enterprise.resource.webcontainer.jsf.config> <BEA-000000> <Unexpected state during contextDestroyed: no ConfigManager instance in current ServletContext but one is expected to exist.>
-<Sep 30, 2025 1:41:19,789 PM IST> <Error> <javax.faces> <BEA-000000> <Unable to obtain InjectionProvider from init time FacesContext. Does this container implement the Mojarra Injection SPI?>
-<Sep 30, 2025 1:41:19,790 PM IST> <Error> <javax.faces> <BEA-000000> <Unable to call @PreDestroy annotated methods because no InjectionProvider can be found. Does this container implement the Mojarra Injection SPI?>
-<Sep 30, 2025 1:41:19,891 PM IST> <Error> <Deployer> <BEA-149265> <Failure occurred in the execution of deployment request with ID "966149519171056" for task "0" on [partition-name: DOMAIN]. Error is: "weblogic.application.ModuleException: java.lang.ClassNotFoundException: com.fasterxml.jackson.module.paramnames.ParameterNamesModule"
-weblogic.application.ModuleException: java.lang.ClassNotFoundException: com.fasterxml.jackson.module.paramnames.ParameterNamesModule
-        at weblogic.application.internal.ExtensibleModuleWrapper.start(ExtensibleModuleWrapper.java:140)
-        at weblogic.application.internal.flow.ModuleListenerInvoker.start(ModuleListenerInvoker.java:124)
-        at weblogic.application.internal.flow.ModuleStateDriver$3.next(ModuleStateDriver.java:233)
-        at weblogic.application.internal.flow.ModuleStateDriver$3.next(ModuleStateDriver.java:228)
-        at weblogic.application.utils.StateMachineDriver.nextState(StateMachineDriver.java:45)
-        Truncated.
-Caused By: java.lang.ClassNotFoundException: com.fasterxml.jackson.module.paramnames.ParameterNamesModule
-        at weblogic.utils.classloaders.GenericClassLoader.findLocalClass(GenericClassLoader.java:1029)
-        at weblogic.utils.classloaders.GenericClassLoader.findClass(GenericClassLoader.java:990)
-        at weblogic.utils.classloaders.GenericClassLoader.doFindClass(GenericClassLoader.java:611)
-        at weblogic.utils.classloaders.GenericClassLoader.loadClass(GenericClassLoader.java:543)
-        at weblogic.utils.classloaders.GenericClassLoader.loadClass(GenericClassLoader.java:496)
-        Truncated.
->
-<Sep 30, 2025 1:41:19,895 PM IST> <Error> <Deployer> <BEA-149202> <Encountered an exception while attempting to commit the 1 task for the application "chat-server" on [partition-name: DOMAIN].>
-<Sep 30, 2025 1:41:19,901 PM IST> <Warning> <Deployer> <BEA-149004> <Failures were detected while initiating deploy task for application "chat-server".>
-<Sep 30, 2025 1:41:19,902 PM IST> <Warning> <Deployer> <BEA-149078> <Stack trace for message 149004
-weblogic.application.ModuleException: java.lang.ClassNotFoundException: com.fasterxml.jackson.module.paramnames.ParameterNamesModule
-        at weblogic.application.internal.ExtensibleModuleWrapper.start(ExtensibleModuleWrapper.java:140)
-        at weblogic.application.internal.flow.ModuleListenerInvoker.start(ModuleListenerInvoker.java:124)
-        at weblogic.application.internal.flow.ModuleStateDriver$3.next(ModuleStateDriver.java:233)
-        at weblogic.application.internal.flow.ModuleStateDriver$3.next(ModuleStateDriver.java:228)
-        at weblogic.application.utils.StateMachineDriver.nextState(StateMachineDriver.java:45)
-        Truncated.
-Caused By: java.lang.ClassNotFoundException: com.fasterxml.jackson.module.paramnames.ParameterNamesModule
-        at weblogic.utils.classloaders.GenericClassLoader.findLocalClass(GenericClassLoader.java:1029)
-        at weblogic.utils.classloaders.GenericClassLoader.findClass(GenericClassLoader.java:990)
-        at weblogic.utils.classloaders.GenericClassLoader.doFindClass(GenericClassLoader.java:611)
-        at weblogic.utils.classloaders.GenericClassLoader.loadClass(GenericClassLoader.java:543)
-        at weblogic.utils.classloaders.GenericClassLoader.loadClass(GenericClassLoader.java:496)
-        Truncated.
->
-<Sep 30, 2025 1:41:19,933 PM IST> <Error> <Console> <BEA-240003> <Administration Console encountered the following error: weblogic.application.ModuleException: java.lang.ClassNotFoundException: com.fasterxml.jackson.module.paramnames.ParameterNamesModule>
-<Sep 30, 2025 1:42:09,955 PM IST> <Warning> <Socket> <BEA-000449> <Closing the socket, as no data read from it on 10.243.0.108:63,795 during the configured idle timeout of 5 seconds.>
-<Sep 30, 2025 1:44:14,954 PM IST> <Warning> <Socket> <BEA-000449> <Closing the socket, as no data read from it on 10.243.0.108:63,848 during the configured idle timeout of 5 seconds.>
+<?xml version="1.0" encoding="UTF-8"?>
+<weblogic-web-app xmlns="http://xmlns.oracle.com/weblogic/weblogic-web-app">
+  <container-descriptor>
+    <!-- Force WebLogic to prefer classes inside your WAR -->
+    <prefer-application-packages>
+      <package-name>com.fasterxml.jackson.*</package-name>
+      <package-name>org.springframework.*</package-name>
+      <package-name>javax.validation.*</package-name>
+    </prefer-application-packages>
+  </container-descriptor>
+</weblogic-web-app>
