@@ -21,48 +21,37 @@ import org.springframework.stereotype.Component;
 @Configuration
 public class CorsConfig {
 
-    @Value("${cors.allowed-origins}")
-    private String allowedOrigins;
-
     @Component
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public class SimpleCorsFilter implements Filter {
 
-        private final List<String> allowedOriginsList = Arrays.asList(allowedOrigins.split(","));
+        @Value("${cors.allowed-origins}")
+        private String allowedOrigins;
 
         @Override
-        public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
+        public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain)
+                throws IOException, ServletException {
             HttpServletResponse response = (HttpServletResponse) res;
             HttpServletRequest request = (HttpServletRequest) req;
-            String origin = request.getHeader("Origin");
 
-            if (origin != null && allowedOriginsList.contains(origin.trim())) {
-                response.setHeader("Access-Control-Allow-Origin", origin);
-                response.setHeader("Access-Control-Allow-Credentials", "true");
-                response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-                response.setHeader("Access-Control-Allow-Headers", "*");
+            String origin = request.getHeader("Origin");
+            if (origin != null) {
+                List<String> allowedOriginsList = Arrays.asList(allowedOrigins.split(","));
+                if (allowedOriginsList.contains(origin.trim())) {
+                    response.setHeader("Access-Control-Allow-Origin", origin);
+                    response.setHeader("Access-Control-Allow-Credentials", "true");
+                    response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                    response.setHeader("Access-Control-Allow-Headers",
+                            request.getHeader("Access-Control-Request-Headers"));
+                }
             }
 
             if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
                 response.setStatus(HttpServletResponse.SC_OK);
-                return;
+                return; // stop filter chain for preflight
             }
 
             chain.doFilter(req, res);
         }
     }
 }
-
-
-
-            <?xml version="1.0" encoding="UTF-8"?>
-<weblogic-web-app xmlns="http://xmlns.oracle.com/weblogic/weblogic-web-app">
-  <container-descriptor>
-    <!-- Force WebLogic to prefer classes inside your WAR -->
-    <prefer-application-packages>
-      <package-name>com.fasterxml.jackson.*</package-name>
-      <package-name>org.springframework.*</package-name>
-      <package-name>javax.validation.*</package-name>
-    </prefer-application-packages>
-  </container-descriptor>
-</weblogic-web-app>
