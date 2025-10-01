@@ -1,3 +1,48 @@
-curl -i -H "Origin: http://10.177.139.86:7001" \
-     -H "Access-Control-Request-Method: POST" \
-     -X OPTIONS http://10.177.141.86:7001/ChatServer/generateToken
+<!-- in topframe HTML -->
+<button id="infoBtn">i</button>
+<script>
+  const createOrShowOverlay = () => {
+    const topDoc = window.top.document;
+
+    let overlay = topDoc.getElementById('globalInfoOverlay');
+    if (!overlay) {
+      overlay = topDoc.createElement('div');
+      overlay.id = 'globalInfoOverlay';
+      overlay.style.cssText = `
+        position: fixed; inset: 0; 
+        background: rgba(0,0,0,.35);
+        z-index: 2147483647;           /* max-ish */
+        display: flex; align-items: start; justify-content: end; padding: 72px 24px;
+      `;
+
+      const panel = topDoc.createElement('div');
+      panel.style.cssText = `
+        width: 420px; height: 320px; background: #fff; border: 1px solid #ccc;
+        border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,.25); position: relative;
+        overflow: hidden;
+      `;
+
+      const close = topDoc.createElement('button');
+      close.textContent = '×';
+      close.setAttribute('aria-label', 'Close');
+      close.style.cssText = `
+        position: absolute; top: 8px; right: 10px; font-size: 20px; 
+        background: transparent; border: 0; cursor: pointer;
+      `;
+      close.onclick = () => overlay.remove();
+
+      const frame = topDoc.createElement('iframe');
+      frame.src = '/yourpage.html';     // your info page
+      frame.style.cssText = `border:0; width:100%; height:100%; display:block;`;
+
+      panel.appendChild(close);
+      panel.appendChild(frame);
+      overlay.appendChild(panel);
+      topDoc.body.appendChild(overlay);
+    } else {
+      overlay.style.display = 'flex';
+    }
+  };
+
+  document.getElementById('infoBtn').addEventListener('click', createOrShowOverlay);
+</script>
