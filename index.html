@@ -52,3 +52,17 @@ public class CorsConfig {
         }
     }
 }
+
+
+
+            <?xml version="1.0" encoding="UTF-8"?>
+<weblogic-web-app xmlns="http://xmlns.oracle.com/weblogic/weblogic-web-app">
+  <container-descriptor>
+    <!-- Force WebLogic to prefer classes inside your WAR -->
+    <prefer-application-packages>
+      <package-name>com.fasterxml.jackson.*</package-name>
+      <package-name>org.springframework.*</package-name>
+      <package-name>javax.validation.*</package-name>
+    </prefer-application-packages>
+  </container-descriptor>
+</weblogic-web-app>
