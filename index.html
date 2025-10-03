@@ -1,34 +1,31 @@
-<!-- inside topframe.html -->
-<button id="infoBtn">i</button>
-
-<script>
-document.getElementById("infoBtn").addEventListener("click", function() {
-  // Get reference to mainframe window
-  let mainFrameWin = parent.frames["mainframe"];
-
-  // Access its document
-  let mainDoc = mainFrameWin.document;
-
-  // Check if iframe already exists
-  let popup = mainDoc.getElementById("infoFrame");
-  if (!popup) {
-    popup = mainDoc.createElement("iframe");
-    popup.id = "infoFrame";
-    popup.src = "yourpage.html";
-    popup.style.cssText = `
-      position: fixed;
-      top: 60px;
-      right: 20px;
-      width: 400px;
-      height: 300px;
-      border: 1px solid #ccc;
-      background: white;
-      z-index: 9999;
-    `;
-    mainDoc.body.appendChild(popup);
-  } else {
-    // Toggle visibility
-    popup.style.display = popup.style.display === "none" ? "block" : "none";
-  }
-});
-</script>
+Sr.No	Emp ID	Emp Name	Present/Absent	Task Details working on	Working since <date>	Completed on <date>	CR Number/ Description	Task Status ( WIP / Hold / Completed )	Remarks
+1	2334964	Mr. Srinath Muddala	Absent						
+2	2200389	Ms. Shaik Karima Shahid	Absent						
+3	2167777	Ms. Harika Lakshmi Kamala Bangaru	Absent						
+4	2585177	Mr. Sri Hari Sai Koturu							
+5	2270002	Mr. Ponnam Raviteja							
+6	2313795	Mr. Mahesh Chinnaboska							
+7	2276689	Mr. Guna Naga Durga Rao Bokka							
+8	2359220	Mr. Tejeswara Reddy Thirumalareddy	Present						
+9	2269618	Mr. Karthik Arukonda	Absent						
+10	2254519	Mr. Rahul Nerella							
+11	2317498	Mr. U Mahesh							
+12	2372804	Mr. Jithendra Kolusu							
+13	2296749	Ms. Saideepa Pendyala							
+14	2249634	Ms. Bhanu Tejaswi Mogilipaka							
+15	2294778	Mr. Ganganaboina Sairam	Present	Working on ChatBox Development Session managment	9/2/2025			WIP	
+16	2745386	Ms. Gade Lakshmi Sowjanya							
+17	2560993	Ms. Ramya Somisetti							
+18	2326306	Mr. Suresh Kumar Jadi							
+19	2457579	Mr. Shashank Kokkula							
+20	2277070	Ms. Vinaya Sri Ellangi	Absent						
+21	2729907	Mr. Naga Ganesh Kothagundla							
+22	2139054	Mr. Nagendra Madu							
+23	2246343	Mr. Akhil Kumar Moparthy	Present	FAC EPCM defects solving in ST					
+24	2242444	Ms. Vani Yedumulla	Present	working on import bills direct payment 					
+25	2217851	Mr. Siddamsetty Pavan Kalyan	Present	Working on Import collection payment  defects in ST					
+26	2243422	Mr. Amadabakula Vivek	Absent						
+27	2283149	Mr. Sravankumar Rajoju	Absent						
+28	2236863	Mr. Mohan Boddupally	Absent						
+29	2224162	Miss Allu Divya	Present	Working on SLA 					
+30	2096755	Ms. Lakshmi Prasanna Kasindala	Present	Working on zipcode length issue and resolved IMCC,IINE,EXBL scores and EXBL live excel sheet issues					
