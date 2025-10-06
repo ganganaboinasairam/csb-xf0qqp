@@ -1,31 +1,703 @@
-Sr.No	Emp ID	Emp Name	Present/Absent	Task Details working on	Working since <date>	Completed on <date>	CR Number/ Description	Task Status ( WIP / Hold / Completed )	Remarks
-1	2334964	Mr. Srinath Muddala	Absent						
-2	2200389	Ms. Shaik Karima Shahid	Absent						
-3	2167777	Ms. Harika Lakshmi Kamala Bangaru	Absent						
-4	2585177	Mr. Sri Hari Sai Koturu							
-5	2270002	Mr. Ponnam Raviteja							
-6	2313795	Mr. Mahesh Chinnaboska							
-7	2276689	Mr. Guna Naga Durga Rao Bokka							
-8	2359220	Mr. Tejeswara Reddy Thirumalareddy	Present						
-9	2269618	Mr. Karthik Arukonda	Absent						
-10	2254519	Mr. Rahul Nerella							
-11	2317498	Mr. U Mahesh							
-12	2372804	Mr. Jithendra Kolusu							
-13	2296749	Ms. Saideepa Pendyala							
-14	2249634	Ms. Bhanu Tejaswi Mogilipaka							
-15	2294778	Mr. Ganganaboina Sairam	Present	Working on ChatBox Development Session managment	9/2/2025			WIP	
-16	2745386	Ms. Gade Lakshmi Sowjanya							
-17	2560993	Ms. Ramya Somisetti							
-18	2326306	Mr. Suresh Kumar Jadi							
-19	2457579	Mr. Shashank Kokkula							
-20	2277070	Ms. Vinaya Sri Ellangi	Absent						
-21	2729907	Mr. Naga Ganesh Kothagundla							
-22	2139054	Mr. Nagendra Madu							
-23	2246343	Mr. Akhil Kumar Moparthy	Present	FAC EPCM defects solving in ST					
-24	2242444	Ms. Vani Yedumulla	Present	working on import bills direct payment 					
-25	2217851	Mr. Siddamsetty Pavan Kalyan	Present	Working on Import collection payment  defects in ST					
-26	2243422	Mr. Amadabakula Vivek	Absent						
-27	2283149	Mr. Sravankumar Rajoju	Absent						
-28	2236863	Mr. Mohan Boddupally	Absent						
-29	2224162	Miss Allu Divya	Present	Working on SLA 					
-30	2096755	Ms. Lakshmi Prasanna Kasindala	Present	Working on zipcode length issue and resolved IMCC,IINE,EXBL scores and EXBL live excel sheet issues					
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Customer Support Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="../theme/chatBankStyles.css"/>
+
+    <!-- React and Babel CDN -->
+    <script crossorigin src="../resources/js/react/react.development.js"></script>
+    <script crossorigin src="../resources/js/react/react-dom.development.js"></script>
+    <script src="../resources/js/react/babel.min.js"></script>
+
+    <!-- Bank WebSocket Singleton -->
+    <script src="BANK_webSocketConn.jsx"></script>
+</head>
+
+<body onload="disableRightClick();">
+    <div id="root"></div>
+	
+	<script>
+	function disableRightClick() {
+	if (document.layers) {
+		//Capture the MouseDown event.
+		document.captureEvents(Event.MOUSEDOWN);
+
+		//Disable the OnMouseDown event handler.
+		document.onmousedown = function () {
+			return false;
+		};
+	}
+	else {
+		//Disable the OnMouseUp event handler.
+		document.onmouseup = function (e) {
+			if (e != null && e.type == "mouseup") {
+				//Check the Mouse Button which is clicked.
+				if (e.which == 2 || e.which == 3) {
+					//If the Button is middle or right then disable.
+					return false;
+				}
+			}
+		};
+	}
+
+	//Disable the Context Menu event.
+	/*document.oncontextmenu = function () {
+		return true;
+	};*/
+	
+	document.onkeydown = function(evt) {
+		var evt = (evt) ? evt : ((event) ? event : null);
+		var node = (evt.target) ? evt.target : ((evt.srcElement) ? evt.srcElement : null);
+		//alert(node.type);
+		if(node.type == 'undefined') {
+			evt.preventDefault();
+			return false;
+		}
+		else if ((evt.keyCode == 8) && ((node.type!="text" && node.type!="textarea" && node.type!="number") || node.readOnly || document.getElementById(node.id).disabled)) {
+			evt.preventDefault();
+			return false;
+		}
+		if(evt.ctrlKey) {
+			if((evt.shiftKey && (evt.keyCode == 73 || evt.keyCode == 74)) || evt.keyCode == 82 || evt.keyCode == 85) {
+				evt.preventDefault();
+				return false;
+			}
+		}
+		if(evt.keyCode == 115 || evt.keyCode == 116 || evt.keyCode == 117  || evt.keyCode == 123) {
+			evt.preventDefault();
+			return false;
+		}
+	}
+}
+	</script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Utility function to get URL parameters
+        const getUrlParameter = (name) => {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            const results = regex.exec(window.location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        };
+
+        // Utility functions for timestamp parsing and formatting
+        function parseBankTimestamp(ts) {
+            // DD-MON-YY HH.mm.ss.SSSSSS AM/PM ±HH:MM
+            const re = /^(\d{2})-([A-Z]{3})-(\d{2})\s+(\d{1,2})\.(\d{2})\.(\d{2})\.(\d{3,6})\s+(AM|PM)\s+([+-]\d{2}:\d{2})$/i;
+            const m = ts.match(re);
+            if (!m) return new Date(NaN);
+
+            const [, dd, monStr, yy, h12, mm, ss, frac, ampm, tz] = m;
+
+            const months = { JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11 };
+            const month = months[monStr.toUpperCase()];
+            const year = 2000 + parseInt(yy, 10); // "25" -> 2025 (adjust if your backend uses 1900s)
+
+            let hour = parseInt(h12, 10) % 12;
+            if (ampm.toUpperCase() === 'PM') hour += 12;
+
+            const minute = parseInt(mm, 10);
+            const second = parseInt(ss, 10);
+
+            // frac can be microseconds (6) or milliseconds (3). Keep only ms.
+            const ms = Math.floor(parseInt(frac.padEnd(6, '0').slice(0, 6), 10) / 1000); // micro -> milli
+
+            // timezone offset
+            const [sign, th, tm] = [tz[0], tz.slice(1, 3), tz.slice(4, 6)];
+            const offsetMinutes = (parseInt(th, 10) * 60 + parseInt(tm, 10)) * (sign === '-' ? -1 : 1);
+
+            // Build UTC milliseconds: local-with-tz -> UTC
+            const utcMs = Date.UTC(year, month, parseInt(dd, 10), hour, minute, second, ms) - offsetMinutes * 60_000;
+            return new Date(utcMs);
+        }
+
+
+        const formatDate = (dateStr) => {
+            // Example input: "18-Sep-25 05.22.09.44683 PM +05:30"
+
+            // Convert dots in time part to colons (for Date parsing)
+            let normalized = dateStr.replace(/(\d+)\.(\d+)\.(\d+)/, "$1:$2:$3");
+
+            // Remove extra microseconds (".44683")
+            normalized = normalized.replace(/\.\d+/, "");
+
+            // Create Date object
+            let date = new Date(normalized);
+
+            if (isNaN(date)) {
+                return dateStr; // fallback
+            }
+
+            // Format -> dd/MM/yyyy, HH:mm:ss
+            let day = String(date.getDate()).padStart(2, "0");
+            let month = String(date.getMonth() + 1).padStart(2, "0");
+            let year = date.getFullYear();
+            let hours = String(date.getHours()).padStart(2, "0");
+            let minutes = String(date.getMinutes()).padStart(2, "0");
+            let seconds = String(date.getSeconds()).padStart(2, "0");
+
+            return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
+        }
+
+        // Extract URL parameters outside component for stability
+        const branchCode = getUrlParameter('branch_code');
+        const tellerId = getUrlParameter('teller_id');
+
+
+
+        // Bank Dashboard Component with WebSocket
+        const BankDashboard = () => {
+            const [customers, setCustomers] = useState([]);
+            const [selectedCustomer, setSelectedCustomer] = useState(null);
+            const [inputMessage, setInputMessage] = useState('');
+            const [connectionStatus, setConnectionStatus] = useState('connecting');
+            const messagesEndRef = useRef(null);
+            const [showModal, setShowModal] = useState(false);
+            const [newQuestion, setNewQuestion] = useState('');
+            const [newAnswer, setNewAnswer] = useState('');
+            const [lastTimestamp, setLastTimestamp] = useState(null);
+
+
+			useEffect(() => {
+				loadPreviousMessages();
+			}, []);
+			
+            // WebSocket connection with JWT and bankWebSocket singleton
+            useEffect(() => {
+                const fetchJwtTokenAndInit = async () => {
+                    if (!tellerId || !branchCode) {
+                        console.error('Missing tellerId or branchCode');
+                        setConnectionStatus('error');
+                        return;
+                    }
+
+                    try {
+                        /*const response = await fetch('http://10.177.141.86:7001/ChatServer/generateToken', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: `customerId=${encodeURIComponent(tellerId)}&branchCode=${encodeURIComponent(branchCode)}`
+                        });
+
+                        if (!response.ok) throw new Error('Failed to fetch JWT token');
+
+                        const data = await response.json();
+                        setJwtToken(data.token);*/
+
+                        // Initialize bankWebSocket singleton
+                        if (!window.bankWebSocket || typeof window.bankWebSocket.init !== 'function') {
+                            console.error('window.bankWebSocket.init not found. Ensure BANK_webSocketConn.jsx is loaded.');
+                            setConnectionStatus('error');
+                            return;
+                        }
+
+                        window.bankWebSocket.init({
+                            urlBase: 'ws://10.177.141.86:7001',
+                            //token: data.token,
+							token: "",
+                            tellerId: tellerId,
+                            branchCode: branchCode,
+                            onOpen: () => {
+                                console.log('Bank WebSocket connected');
+                                setConnectionStatus('connected');
+                                // Call loadPreviousMessages when connected
+                                //loadPreviousMessages();
+                            },
+                            onClose: () => {
+                                console.log('Bank WebSocket disconnected');
+                                setConnectionStatus('disconnected');
+                            },
+                            onError: (error) => {
+                                console.error('Bank WebSocket error:', error);
+                                setConnectionStatus('error');
+                            },
+                            //onMessage: (message) => handleIncomingMessage(message)
+                        });
+
+                    } catch (error) {
+                        console.error('Error fetching JWT token or initializing WebSocket:', error);
+                        setConnectionStatus('error');
+                    }
+                };
+
+                fetchJwtTokenAndInit();
+
+                // Cleanup on unmount
+                return () => {
+                    if (window.bankWebSocket && typeof window.bankWebSocket.close === 'function') {
+                        window.bankWebSocket.close();
+                    }
+                };
+				
+				
+            }, []);
+			
+			
+
+
+
+            const loadPreviousMessages = async () => {
+                try {
+                    const response = await fetch(`http://10.177.141.86:7001/ChatServer/loadPreviousMessages?custId=${tellerId}&reqFrom=bank&branchCode=${branchCode}`);
+                    if (!response.ok) throw new Error('Failed to fetch previous messages');
+
+                    let data = await response.json();
+
+                    // Group messages by custID1
+                    const customerMap = {};
+
+                    data.forEach(msg => {
+                        const custId = msg.custID1;
+                        const custName = msg.custName;
+                        if (!customerMap[custId]) {
+                            customerMap[custId] = {
+                                id: custId,
+                                name: custName, // Change if name is available
+                                lastMessage: '',
+                                lastMessageTime: '',
+                                status: "online",
+                                unreadCount: 0,
+                                messages: []
+                            };
+                        }
+
+                        customerMap[custId].messages.push({
+                            content: msg.message,
+                            type: msg.type,
+                            isCustomer: msg.sender.toLowerCase() === 'customer',
+                            timestamp: parseBankTimestamp(msg.date).toISOString()
+                        });
+                    });
+
+                    // Sort messages inside each customer
+                    Object.values(customerMap).forEach(customer => {
+                        customer.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+                        // Set last message details
+                        const lastMsg = customer.messages[customer.messages.length - 1];
+                        customer.lastMessage = lastMsg.content;
+                        customer.lastMessageTime = formatDate(lastMsg.timestamp);
+                    });
+
+                    // Convert to array and sort by last message time (desc)
+                    const customerList = Object.values(customerMap).sort((a, b) => {
+                        const timeA = new Date(a.messages[a.messages.length - 1].timestamp);
+                        const timeB = new Date(b.messages[b.messages.length - 1].timestamp);
+                        return timeB - timeA;
+                    });
+
+                    // Update state
+                    setCustomers(customerList);
+
+                    // Set lastTimestamp to the latest message timestamp
+                    const allTimestamps = customerList.flatMap(c => c.messages.map(m => m.timestamp));
+                    const latestTimestamp = allTimestamps.length > 0 ? allTimestamps.sort().pop() : null;
+                    setLastTimestamp(latestTimestamp);
+
+                    // Optionally select the most recent customer automatically
+                    if (customerList.length > 0) {
+                        setSelectedCustomer(customerList[0]);
+                    }
+
+                } catch (error) {
+                    console.error('Error loading previous messages:', error);
+                }
+            };
+
+            const fetchNewMessages = async () => {
+                if (!lastTimestamp) return;
+                try {
+                    const response = await fetch(`http://10.177.141.86:7001/ChatServer/loadPreviousMessages?custId=${tellerId}&reqFrom=bank&branchCode=${branchCode}&lastTimestamp=${encodeURIComponent(lastTimestamp)}`);
+                    if (!response.ok) throw new Error('Failed to fetch new messages');
+
+                    const data = await response.json();
+                    if (data.error) return;
+					if(data.message == "No previous messages for customer") return;
+
+                    // Group new messages by custID1
+                    const newCustomerMap = {};
+
+                    data.forEach(msg => {
+                        if (msg.type !== 'message') return;
+                        const parsedTime = parseBankTimestamp(msg.date).toISOString();
+                        if (parsedTime <= lastTimestamp) return;
+
+                        const custId = msg.custID1;
+                        const custName = msg.custName;
+                        if (!newCustomerMap[custId]) {
+                            newCustomerMap[custId] = [];
+                        }
+                        newCustomerMap[custId].push({
+                            content: msg.message,
+                            isCustomer: msg.sender.toLowerCase() === 'customer',
+                            timestamp: parseBankTimestamp(msg.date).toISOString()
+                        });
+                    });
+
+                    // Update customers with new messages
+                    setCustomers(prevCustomers => {
+                        const updatedCustomers = [...prevCustomers];
+                        Object.keys(newCustomerMap).forEach(custId => {
+                            const existingIndex = updatedCustomers.findIndex(c => c.id === custId);
+                            if (existingIndex !== -1) {
+                                const customer = updatedCustomers[existingIndex];
+                                customer.messages = [...customer.messages, ...newCustomerMap[custId]];
+                                customer.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                                const lastMsg = customer.messages[customer.messages.length - 1];
+                                customer.lastMessage = lastMsg.content;
+                                customer.lastMessageTime = formatDate(lastMsg.timestamp);
+                                // Move to top
+                                updatedCustomers.splice(existingIndex, 1);
+                                updatedCustomers.unshift(customer);
+                            } else {
+                                // New customer
+                                const messages = newCustomerMap[custId];
+                                const newCustomer = {
+                                    id: custId,
+                                    name: custName,
+                                    lastMessage: messages[messages.length - 1].content,
+                                    lastMessageTime: formatDate(messages[messages.length - 1].timestamp),
+                                    status: "online",
+                                    unreadCount: selectedCustomer?.id === custId ? 0 : messages.length,
+                                    messages: messages
+                                };
+                                updatedCustomers.unshift(newCustomer);
+                            }
+                        });
+                        return updatedCustomers;
+                    });
+
+                    // Update lastTimestamp
+                    const allNewTimestamps = Object.values(newCustomerMap).flat().map(m => m.timestamp);
+                    if (allNewTimestamps.length > 0) {
+                        const newLatest = allNewTimestamps.sort().pop();
+                        setLastTimestamp(newLatest);
+                    }
+                } catch (error) {
+                    console.error('Error fetching new messages:', error);
+                }
+            };
+
+            const handleIncomingMessage = (message) => {
+                if (message.type === 'message' || message.type === 'cust-alert') {
+                    const customerId = message.customerId;
+                    const customerName = message.customerName || `Customer ${customerId}`;
+                    //const customerEmail = message.customerEmail || `${customerId}@customer.com`;
+
+                    setCustomers(prevCustomers => {
+                        const existingCustomerIndex = prevCustomers.findIndex(c => c.id === customerId);
+
+                        if (existingCustomerIndex !== -1) {
+                            // Update existing customer
+                            const updatedCustomers = [...prevCustomers];
+                            const customer = updatedCustomers[existingCustomerIndex];
+
+                            customer.messages = [...customer.messages, {
+                                content: message.content,
+                                isCustomer: true,
+                                type: message.type,
+                                timestamp: message.timestamp || new Date().toISOString()
+                            }];
+                            customer.lastMessage = message.content;
+                            customer.lastMessageTime = formatDate(message.timestamp || new Date().toISOString());
+
+                            // Move customer to top
+                            updatedCustomers.splice(existingCustomerIndex, 1);
+                            updatedCustomers.unshift(customer);
+
+                            return updatedCustomers;
+                        } else {
+                            // Add new customer
+                            const newCustomer = {
+                                id: customerId,
+                                name: customerName,
+                                //email: customerEmail,
+                                lastMessage: message.content,
+                                lastMessageTime: formatDate(message.timestamp || new Date().toISOString()),
+                                status: "online",
+                                unreadCount: selectedCustomer?.id === customerId ? 0 : 1,
+                                messages: [{
+                                    content: message.content,
+                                    isCustomer: true,
+                                    type: message.type,
+                                    timestamp: message.timestamp || new Date().toISOString()
+                                }]
+                            };
+
+                            return [newCustomer, ...prevCustomers];
+                        }
+                    });
+
+                    // Update selected customer if currently viewing
+                    if (selectedCustomer && message.customerId === selectedCustomer.id) {
+                        setSelectedCustomer(prev => {
+                            if (!prev) return null;
+                            return {
+                                ...prev,
+                                messages: [...prev.messages, {
+                                    content: message.content,
+                                    isCustomer: true,
+                                type: message.type,
+                                    timestamp: message.timestamp || new Date().toISOString()
+                                }],
+                                lastMessage: message.content,
+                                lastMessageTime: formatDate(message.timestamp || new Date().toISOString())
+                            };
+                        });
+                    }
+                }
+            };
+
+            const handleCustomerSelect = (customer) => {
+                setSelectedCustomer(customer);
+
+                // Mark messages as read
+                setCustomers(prevCustomers =>
+                    prevCustomers.map(c =>
+                        c.id === customer.id ? { ...c, unreadCount: 0 } : c
+                    )
+                );
+            };
+
+            const sendMessage = () => {
+                if (!inputMessage.trim() || !selectedCustomer) return;
+
+                const messageData = {
+                    type: 'message',
+                    content: inputMessage.trim(),
+                    customerId: selectedCustomer.id,
+                    sender: 'bank',
+                    timestamp: new Date().toISOString(),
+                    customerName: selectedCustomer.name,
+                    branchCode: branchCode,
+                    role: 'banker',
+                    msgSrc: 'EE-CE'
+                };
+
+                const success = window.bankWebSocket.safeSend(messageData);
+                if (!success) {
+                    console.warn('Failed to send message - queued or connection issue');
+                }
+
+                // Add message to local state
+                const newMessage = {
+                    content: inputMessage.trim(),
+                    isCustomer: false,
+                    timestamp: messageData.timestamp
+                };
+
+                setSelectedCustomer(prev => {
+                    if (!prev) return null;
+                    return {
+                        ...prev,
+                        messages: [...prev.messages, newMessage],
+                        lastMessage: inputMessage.trim(),
+                        lastMessageTime: formatDate(messageData.timestamp)
+                    };
+                });
+
+                // Update customers list
+                setCustomers(prevCustomers =>
+                    prevCustomers.map(c =>
+                        c.id === selectedCustomer.id
+                            ? { ...c, messages: [...c.messages, newMessage], lastMessage: inputMessage.trim(), lastMessageTime: formatDate(messageData.timestamp) }
+                            : c
+                    )
+                );
+
+                setInputMessage('');
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            };
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            // Polling for new messages
+            useEffect(() => {
+                if (!lastTimestamp || !tellerId || !branchCode) return;
+
+                const interval = setInterval(() => {
+                    fetchNewMessages();
+                }, 10000); // Poll every 10 seconds
+
+                return () => clearInterval(interval);
+            }, [lastTimestamp, tellerId, branchCode]);
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [selectedCustomer?.messages]);
+            const submitNewQA = async () => {
+                if (!newQuestion.trim() || !newAnswer.trim()) return;
+
+                const payload = new URLSearchParams();
+                payload.append('question', newQuestion.trim());
+                payload.append('answer', newAnswer.trim());
+                payload.append('branch_code', branchCode);
+
+                try {
+                    const resp = await fetch('http://10.177.141.86:7001/ChatServer/addNewQA', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: payload.toString()
+                    });
+
+                    if (!resp.ok) throw new Error('Failed to submit QA');
+
+                    setShowModal(false);
+                    setNewQuestion('');
+                    setNewAnswer('');
+
+                    console.log('QA added successfully');
+                } catch (e) {
+                    console.error('Error adding QA', e);
+                    alert('Failed to add QA');
+                }
+            };
+
+            return (
+                <div className="bank-container">
+                    <div className="customer-list">
+                        <div className="customer-list-header">
+                            Bank Customer Support Dashboard
+                            <div style={{ fontSize: '0.8em', marginTop: '5px' }}>
+                                {customers.filter(c => c.status === 'online').length} Customers
+                            </div>
+                            <div style={{ marginTop: '8px' }}>
+                                <button onClick={() => setShowModal(true)}>
+                                    Add Q/A
+                                </button>
+                            </div>
+                        </div>
+                        {customers.map(customer => (
+                            <div
+                                key={customer.id}
+                                className={`customer-item ${selectedCustomer?.id === customer.id ? 'active' : ''}`}
+                                onClick={() => handleCustomerSelect(customer)}
+                            >
+                                <div className="customer-name">
+                                    <span className={`customer-status status-${customer.status}`}></span>
+                                    {customer.name}
+                                </div>
+                                <div className="customer-preview">
+                                    {customer.lastMessage}
+                                </div>
+                                {customer.unreadCount > 0 && (
+                                    <span style={{
+                                        backgroundColor: '#dc3545',
+                                        color: 'white',
+                                        borderRadius: '50%',
+                                        padding: '2px 6px',
+                                        fontSize: '0.8em',
+                                        float: 'right'
+                                    }}>
+                                        {customer.unreadCount}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="chat-area">
+                        {selectedCustomer ? (
+                            <>
+                                <div className="chat-header">
+                                    <h2>{selectedCustomer.name} ({selectedCustomer.role})</h2>
+                                    <div style={{ fontSize: '0.9em', color: '#f8f9fa' }}>
+                                        {selectedCustomer.email}
+                                    </div>
+                                </div>
+
+                                <div className="chat-messages">
+                                    {selectedCustomer.messages.map((message, index) => (
+                                        <div key={index} className={`message ${message.isCustomer ? 'customer' : 'bank'}`}>
+                                            <div className={message.type === 'cust-alert' ? "cust-alert-band" : "message-content"}>
+                                                {message.content}
+                                                {message.type === 'cust-alert' && (
+                                                    <span>{new Date(message.timestamp).toLocaleString("en-GB")}</span>
+                                                )}
+                                            </div>
+                                            {message.type !== 'cust-alert' && (
+                                            <div className="message-time">
+                                                {formatDate(message.timestamp)}
+                                            </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} />
+                                </div>
+
+                                <div className="chat-input">
+                                    <div className="input-container">
+                                        <input
+                                            type="text"
+                                            className="message-input"
+                                            value={inputMessage}
+                                            onChange={(e) => setInputMessage(e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                            placeholder="Type your response..."
+                                            maxLength="500"
+                                        />
+                                        <button
+                                            className="send-button"
+                                            onClick={sendMessage}
+                                        >
+                                            Send
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="no-customer-selected">
+                                Select a customer to start chatting
+                            </div>
+                        )}
+                    </div>
+
+                    {showModal && (
+                        <div className="qa-modal-overlay" style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                            <div className="qa-modal" style={{ background: '#fff', padding: '16px', borderRadius: '8px', minWidth: '320px' }}>
+                                <h3>Add Question & Answer</h3>
+                                <div style={{ marginBottom: '8px' }}>
+                                    <label>Question</label>
+                                    <textarea value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} rows={4} style={{ width: '98%' }} />
+                                </div>
+                                <div style={{ marginBottom: '8px' }}>
+                                    <label>Answer</label>
+                                    <textarea value={newAnswer} onChange={(e) => setNewAnswer(e.target.value)} rows={4} style={{ width: '98%' }} />
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                    <button onClick={() => { setShowModal(false); }}>Cancel</button>
+                                    <button onClick={submitNewQA}>Submit</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Render the bank dashboard
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<BankDashboard />);
+    </script>
+</body>
+
+</html>
+
+
+
+make the below changes :
+1. implement the message unread count for every customer, api for getting the message count is "http://10.177.141.86:7001/ChatServer/getUnreadMsgCount?branchCode=branchCode&custId=custId`" . update for every customer on opening
+2. show the customer name upto 20 words and after that show "..." 
+3. when the customer opens the chat and read the message then update the message read status by "http://10.177.141.86:7001/ChatServer/updateMsgReadStatus?custId=custId&branchCode=branchCode&reqFrom=bank".
