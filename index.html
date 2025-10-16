@@ -1,27 +1,11 @@
-Here’s a clear and professional draft for your email:
+message.flow = [Know about last Transaction ?, Know about last 5 Transaction ?]
 
 
----
 
-Subject: Request for Permanent Resolution of Folder Permission Issue for Logs
-
-Dear Server Team,
-
-We are facing repeated issues with folder permissions for the logs. Currently, we have to request access permissions almost every day, which is affecting our regular work and application monitoring.
-
-Kindly look into this and help us with a permanent resolution so that the folder permissions remain consistent and do not require daily intervention.
-
-Please let us know if any details or approvals are needed from our side to proceed.
-
-Thank you for your support.
-
-Best regards,
-[Your Name]
-[Your Team/Project Name]
-[Your Contact (if applicable)]
+const flowOptions = message.flow.map((option, index) => (
+              <button key={index} className="question-btn" onClick={() => sendMessage(option)}>{option}</button>
+            ));
 
 
----
 
-Would you like me to make it slightly more formal or short and direct for an internal email (like between IT teams)?
-
+            WILL THIS WORK ?
