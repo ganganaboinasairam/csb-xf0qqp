@@ -1,11 +1,10 @@
-message.flow = [Know about last Transaction ?, Know about last 5 Transaction ?]
+const flowArray = message.flow
+  .replace(/^\[|\]$/g, '') // remove square brackets
+  .split(',')               // split by commas
+  .map(item => item.trim()); // trim extra spaces
 
-
-
-const flowOptions = message.flow.map((option, index) => (
-              <button key={index} className="question-btn" onClick={() => sendMessage(option)}>{option}</button>
-            ));
-
-
-
-            WILL THIS WORK ?
+const flowOptions = flowArray.map((option, index) => (
+  <button key={index} className="question-btn" onClick={() => sendMessage(option)}>
+    {option}
+  </button>
+));
