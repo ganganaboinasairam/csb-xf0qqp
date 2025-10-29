@@ -1,10 +1,128 @@
-const flowArray = message.flow
-  .replace(/^\[|\]$/g, '') // remove square brackets
-  .split(',')               // split by commas
-  .map(item => item.trim()); // trim extra spaces
+✅ Most Important Topics From Each Java Feature
 
-const flowOptions = flowArray.map((option, index) => (
-  <button key={index} className="question-btn" onClick={() => sendMessage(option)}>
-    {option}
-  </button>
-));
+1. OOP (Object-Oriented Programming)
+
+• Class vs Object
+• Encapsulation (private fields + getters/setters)
+• Inheritance (extends)
+• Polymorphism (method overriding)
+• Abstraction (interface, abstract class)
+
+
+---
+
+2. Collections Framework
+
+• List, Set, Map
+• ArrayList vs LinkedList
+• HashSet vs TreeSet
+• HashMap vs TreeMap
+• Sorting with Comparator / Comparable
+• Iteration (forEach, iterator)
+
+
+---
+
+3. Exception Handling
+
+• try, catch, finally
+• Checked vs Unchecked exceptions
+• throw vs throws
+• Custom exception creation
+
+
+---
+
+4. Java 8 (Streams & Lambda)
+
+• Lambda basics
+• Stream API: map, filter, reduce
+• Method references
+• Optional
+• Functional Interfaces: Consumer, Supplier, Predicate, Function
+
+
+---
+
+5. Generics
+
+• Generic class / method syntax
+• Type safety
+• Wildcards: ? extends, ? super
+
+
+---
+
+6. Multithreading & Concurrency
+
+• Thread vs Runnable
+• Executor framework
+• Synchronization & Locks
+• CompletableFuture (very useful)
+• Concurrent collections
+
+
+---
+
+7. I/O & NIO
+
+• File read/write
+• InputStream / OutputStream
+• BufferedReader / BufferedWriter
+• NIO Path, Files
+
+
+---
+
+8. Annotations
+
+• @Override
+• @FunctionalInterface
+• Custom annotations
+• Retention & Target
+
+
+---
+
+9. JDBC / Database
+
+• JDBC connection basics
+• PreparedStatement
+• ResultSet
+• Transaction handling
+
+
+---
+
+10. Enums
+
+• Enum basics
+• Enum with fields & methods
+• Enum in switch
+
+
+---
+
+11. Functional Interfaces
+
+• Core ones:
+
+Predicate
+
+Consumer
+
+Supplier
+
+Function
+• Use with Streams
+
+
+
+---
+
+12. Records (Newer Java)
+
+• Syntax: record Person(...)
+• Auto-generated methods
+• When to use records
+
