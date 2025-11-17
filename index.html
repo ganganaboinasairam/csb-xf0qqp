@@ -1,95 +1,70 @@
-String jsonStr = "{"
-        + "\"EIS_RESPONSE\":{"
-        + "\"statusCode\":200,"
-        + "\"statusFlag\":true,"
-        + "\"status\":\"SUCCESS\","
-        + "\"version\":null,"
-        + "\"errorDetails\":null,"
-        + "\"trackHeader\":{"
-        + "\"strShipmentNo\":\"V80755564\","
-        + "\"strRefNo\":\"3175524BC0B00073\","
-        + "\"strCNType\":\"DP\","
-        + "\"strCNTypeCode\":\"GL6771\","
-        + "\"strCNActCustCode\":\"GL6771\","
-        + "\"strCNTypeName\":\"STATE BANK OF INDIA\","
-        + "\"strCNProduct\":\"PREMIUM\","
-        + "\"strModeCode\":\"AR\","
-        + "\"strMode\":\"AIR\","
-        + "\"strCNProdCODFOD\":\"\","
-        + "\"strOrigin\":\"MEHSANA\","
-        + "\"strOriginRemarks\":\"Booked By\","
-        + "\"strBookedDate\":\"06122024\","
-        + "\"strBookedTime\":\"20:33:17\","
-        + "\"strPieces\":\"1\","
-        + "\"strWeightUnit\":\"KG\","
-        + "\"strWeight\":\"0.2\","
-        + "\"strDestination\":\"PUNE\","
-        + "\"strStatus\":\"Delivered\","
-        + "\"strStatusTransOn\":\"09122024\","
-        + "\"strStatusTransTime\":\"154844\","
-        + "\"strStatusRelCode\":\"REC\","
-        + "\"strStatusRelName\":\"\","
-        + "\"strRemarks\":\"tt\","
-        + "\"strNoOfAttempts\":\"1\","
-        + "\"strRtoNumber\":\"\","
-        + "\"strComplaintNo\":\"\","
-        + "\"strActualServiceType\":\"PREMIUM\","
-        + "\"strExpectedAgent\":\"\","
-        + "\"strActualAgent\":\"\","
-        + "\"strConnectionDateTime\":\"\","
-        + "\"strAltReferenceNumber\":\"\","
-        + "\"strAgentConnectionLocation\":\"\","
-        + "\"strBookingType\":\"DOM\","
-        + "\"strExpectedDeliveryDate\":\"09122024\","
-        + "\"strRevExpectedDeliveryDate\":\"09122024\""
-        + "},"
-        + "\"trackDetails\":["
-        + "{"
-        + "\"strCode\":\"DLV\","
-        + "\"strAction\":\"Delivered\","
-        + "\"strManifestNo\":\"5063862897\","
-        + "\"strOrigin\":\"PUNE SHIVAJI NAGAR BRANCH,PUNE\","
-        + "\"strDestination\":\"\","
-        + "\"strOriginCode\":\"P12\","
-        + "\"strDestinationCode\":\"\","
-        + "\"strActionDate\":\"09122024\","
-        + "\"strActionTime\":\"154844\","
-        + "\"sTrRemarks\":\"tt\","
-        + "\"strSCDOTP\":\"N\","
-        + "\"strLatitude\":\"18.52909740\","
-        + "\"strLongitude\":\"73.82965400\""
-        + "},"
-        + "{"
-        + "\"strCode\":\"OUTDLV\","
-        + "\"strAction\":\"Out For Delivery\","
-        + "\"strManifestNo\":\"390393971065PE\","
-        + "\"strOrigin\":\"PUNE SHIVAJI NAGAR BRANCH,PUNE\","
-        + "\"strDestination\":\"\","
-        + "\"strOriginCode\":\"P12\","
-        + "\"strDestinationCode\":\"\","
-        + "\"strActionDate\":\"09122024\","
-        + "\"strActionTime\":\"115833\","
-        + "\"sTrRemarks\":\"\","
-        + "\"strLatitude\":\"18.5290914\","
-        + "\"strLongitude\":\"73.8296607\""
-        + "},"
-        + "{"
-        + "\"strCode\":\"INSCAN\","
-        + "\"strAction\":\"Reached At Destination\","
-        + "\"strManifestNo\":\"V1011666984\","
-        + "\"strOrigin\":\"PUNE APEX,PUNE\","
-        + "\"strDestination\":\"PUNE SHIVAJI NAGAR BRANCH,PUNE\","
-        + "\"strOriginCode\":\"P01\","
-        + "\"strDestinationCode\":\"\","
-        + "\"strActionDate\":\"09122024\","
-        + "\"strActionTime\":\"081803\","
-        + "\"sTrRemarks\":\"\","
-        + "\"strLatitude\":\"\","
-        + "\"strLongitude\":\"\""
-        + "}"
-        + "]"
-        + "},"
-        + "\"ERROR_CODE\":\"\","
-        + "\"ERROR_DESCRIPTION\":\"\","
-        + "\"RESPONSE_STATUS\":\"0\""
-        + "}";
+package com.chat.helper;
+
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Base64;
+
+public class SaltedBase64Helper {
+	private static final int SALT_LENGTH = 8;
+
+	public static EncryptionResult encrypt(String message) {
+		String salt = generateRandomSalt(SALT_LENGTH);
+		String combined = message + salt;
+		String encoded = Base64.getEncoder().encodeToString(combined.getBytes(StandardCharsets.UTF_8));
+
+		return new EncryptionResult(encoded, salt);
+	}
+
+	public static String decrypt(String encryptedText, String salt) throws Exception {
+		byte[] decodedBytes = Base64.getDecoder().decode(encryptedText);
+		String decoded = new String(decodedBytes, StandardCharsets.UTF_8);
+		if (decoded.endsWith(salt)) {
+			return decoded.substring(0, decoded.length() - salt.length());
+		} else {
+			throw new IllegalArgumentException("Invalid salt or corrupted data."); 
+		}
+	}
+
+	public static String generateRandomSalt(int length) {
+		String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+		SecureRandom random = new SecureRandom();
+		StringBuilder salt = new StringBuilder();
+		for (int i = 0; i < length; i++) {
+			salt.append(characters.charAt(random.nextInt(characters.length())));
+		}
+		return salt.toString();
+
+	}
+	
+	public static class EncryptionResult {
+		private final String encryptedText;
+		private final String salt;
+
+		public EncryptionResult(String encryptedText, String salt) {
+			this.encryptedText = encryptedText;
+			this.salt = salt;
+		}
+
+		public String getEncryptedText() {
+			return encryptedText;
+		}
+
+		public String getSalt() {
+			return salt;
+		}
+
+	}
+	
+	
+	public static void main(String[] args) throws Exception {
+		
+		
+		System.out.println(SaltedBase64Helper.encrypt("hello").encryptedText);
+		System.out.println(SaltedBase64Helper.encrypt("hello").salt);
+		
+		System.out.println(SaltedBase64Helper.decrypt("aGVsbG81ZlppaDBZRA==", "gd7YiJiD"));
+	}
+
+}
+
+
