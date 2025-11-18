@@ -1,70 +1,256 @@
-package com.chat.helper;
+package com.chat.client;
 
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class SaltedBase64Helper {
-	private static final int SALT_LENGTH = 8;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.websocket.ClientEndpoint;
+import javax.websocket.CloseReason;
+import javax.websocket.ContainerProvider;
+import javax.websocket.OnClose;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.Session;
+import javax.websocket.WebSocketContainer;
 
-	public static EncryptionResult encrypt(String message) {
-		String salt = generateRandomSalt(SALT_LENGTH);
-		String combined = message + salt;
-		String encoded = Base64.getEncoder().encodeToString(combined.getBytes(StandardCharsets.UTF_8));
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-		return new EncryptionResult(encoded, salt);
-	}
+import com.chat.config.AsymmetricSignatureUtil;
 
-	public static String decrypt(String encryptedText, String salt) throws Exception {
-		byte[] decodedBytes = Base64.getDecoder().decode(encryptedText);
-		String decoded = new String(decodedBytes, StandardCharsets.UTF_8);
-		if (decoded.endsWith(salt)) {
-			return decoded.substring(0, decoded.length() - salt.length());
-		} else {
-			throw new IllegalArgumentException("Invalid salt or corrupted data."); 
-		}
-	}
+/**
+ * Example servlet that mediates between HTML frontend and chat server.
+ * Handles signed HTTP requests and WebSocket connections.
+ * Assumes private key in keys/example-client.pem.
+ */
+@WebServlet("/chatClient/*")
+public class ChatClientServlet extends HttpServlet {
 
-	public static String generateRandomSalt(int length) {
-		String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-		SecureRandom random = new SecureRandom();
-		StringBuilder salt = new StringBuilder();
-		for (int i = 0; i < length; i++) {
-			salt.append(characters.charAt(random.nextInt(characters.length())));
-		}
-		return salt.toString();
+    private static final Logger log = LoggerFactory.getLogger(ChatClientServlet.class);
 
-	}
-	
-	public static class EncryptionResult {
-		private final String encryptedText;
-		private final String salt;
+    private static final String CLIENT_ID = "example-client";
+    private static final String PRIVATE_KEY_PATH = "keys/example-client.pem";
+    private static final String CHAT_SERVER_BASE_URL = "http://localhost:8080"; // Adjust as needed
+    private static final String CHAT_SERVER_WS_URL = "ws://localhost:8080/chatServer"; // Adjust as needed
 
-		public EncryptionResult(String encryptedText, String salt) {
-			this.encryptedText = encryptedText;
-			this.salt = salt;
-		}
+    private String privateKeyBase64;
+    private final Map<String, Session> wsSessions = new ConcurrentHashMap<>();
 
-		public String getEncryptedText() {
-			return encryptedText;
-		}
+    @Override
+    public void init() throws ServletException {
+        try {
+            // Load private key
+            String privateKeyPem = new String(Files.readAllBytes(Paths.get(PRIVATE_KEY_PATH)))
+                    .replaceAll("\\n", "")
+                    .replaceAll("\\r", "")
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .trim();
+            privateKeyBase64 = privateKeyPem;
+            log.info("Loaded private key for client: {}", CLIENT_ID);
+        } catch (Exception e) {
+            throw new ServletException("Failed to load private key", e);
+        }
+    }
 
-		public String getSalt() {
-			return salt;
-		}
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String pathInfo = req.getPathInfo();
+        if (pathInfo == null || pathInfo.equals("/")) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid path");
+            return;
+        }
 
-	}
-	
-	
-	public static void main(String[] args) throws Exception {
-		
-		
-		System.out.println(SaltedBase64Helper.encrypt("hello").encryptedText);
-		System.out.println(SaltedBase64Helper.encrypt("hello").salt);
-		
-		System.out.println(SaltedBase64Helper.decrypt("aGVsbG81ZlppaDBZRA==", "gd7YiJiD"));
-	}
+        String endpoint = pathInfo.substring(1); // Remove leading /
 
+        if ("connectWS".equals(endpoint)) {
+            // Handle WebSocket connection request
+            handleWebSocketConnection(req, resp);
+        } else {
+            // Handle HTTP GET request
+            handleHttpRequest("GET", endpoint, req, resp);
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String pathInfo = req.getPathInfo();
+        if (pathInfo == null || pathInfo.equals("/")) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid path");
+            return;
+        }
+
+        String endpoint = pathInfo.substring(1);
+        handleHttpRequest("POST", endpoint, req, resp);
+    }
+
+    private void handleHttpRequest(String method, String endpoint, HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            // Read request body if POST
+            String body = null;
+            if ("POST".equals(method)) {
+                BufferedReader reader = req.getReader();
+                body = reader.lines().reduce("", (a, b) -> a + b);
+            }
+
+            // Generate timestamp
+            String timestamp = String.valueOf(System.currentTimeMillis());
+
+            // Create canonical string
+            String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, "/" + endpoint, body, timestamp);
+
+            // Sign the canonical string
+            String signature = AsymmetricSignatureUtil.sign(canonicalString, privateKeyBase64);
+
+            // Forward request to chat server
+            URL url = new URL(CHAT_SERVER_BASE_URL + "/" + endpoint + "?" + req.getQueryString());
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod(method);
+            conn.setRequestProperty("X-Timestamp", timestamp);
+            conn.setRequestProperty("X-Signature", signature);
+            conn.setRequestProperty("X-Client-ID", CLIENT_ID);
+
+            if (body != null) {
+                conn.setDoOutput(true);
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(body.getBytes("UTF-8"));
+                }
+            }
+
+            // Read response
+            int responseCode = conn.getResponseCode();
+            resp.setStatus(responseCode);
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(
+                    responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream()));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            resp.getWriter().write(response.toString());
+
+        } catch (Exception e) {
+            log.error("Error handling HTTP request", e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Request failed");
+        }
+    }
+
+    private void handleWebSocketConnection(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            // Generate timestamp
+            String timestamp = String.valueOf(System.currentTimeMillis());
+
+            // Create canonical string for WebSocket handshake (GET /chatServer)
+            String canonicalString = AsymmetricSignatureUtil.createCanonicalString("GET", "/chatServer", null, timestamp);
+
+            // Sign
+            String signature = AsymmetricSignatureUtil.sign(canonicalString, privateKeyBase64);
+
+            // Create WebSocket client endpoint
+            WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+            String wsUrl = CHAT_SERVER_WS_URL + "?X-Timestamp=" + timestamp + "&X-Signature=" + signature + "&X-Client-ID=" + CLIENT_ID;
+
+            // Generate session ID for this connection
+            String sessionId = req.getSession().getId();
+
+            // Connect to WebSocket
+            Session wsSession = container.connectToServer(new ChatWebSocketClient(sessionId), new URL(wsUrl).toURI());
+            wsSessions.put(sessionId, wsSession);
+
+            // Return session ID to client
+            JSONObject response = new JSONObject();
+            response.put("sessionId", sessionId);
+            response.put("status", "connected");
+            resp.getWriter().write(response.toString());
+
+        } catch (Exception e) {
+            log.error("Error establishing WebSocket connection", e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "WebSocket connection failed");
+        }
+    }
+
+    // Handle WebSocket messages from HTML client
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String sessionId = req.getParameter("sessionId");
+        String message = req.getParameter("message");
+
+        if (sessionId == null || message == null) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing sessionId or message");
+            return;
+        }
+
+        Session wsSession = wsSessions.get(sessionId);
+        if (wsSession != null && wsSession.isOpen()) {
+            try {
+                wsSession.getBasicRemote().sendText(message);
+                resp.getWriter().write("{\"status\":\"sent\"}");
+            } catch (Exception e) {
+                log.error("Error sending WebSocket message", e);
+                resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Send failed");
+            }
+        } else {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid session");
+        }
+    }
+
+    @ClientEndpoint
+    public class ChatWebSocketClient {
+
+        private final String sessionId;
+
+        public ChatWebSocketClient(String sessionId) {
+            this.sessionId = sessionId;
+        }
+
+        @OnOpen
+        public void onOpen(Session session) {
+            log.info("WebSocket connected for session: {}", sessionId);
+        }
+
+        @OnMessage
+        public void onMessage(String message) {
+            // In a real implementation, you might store messages or notify the HTML client via Server-Sent Events or polling
+            log.info("Received WebSocket message for session {}: {}", sessionId, message);
+        }
+
+        @OnClose
+        public void onClose(Session session, CloseReason reason) {
+            log.info("WebSocket closed for session: {}", sessionId);
+            wsSessions.remove(sessionId);
+        }
+    }
 }
 
 
+***js function 
+
+function makeAuthFetch(getTokenFn){
+      return async function authFetch(input, init = {}){
+        const token = getTokenFn?.();
+        const headers = new Headers(init.headers || {});
+        if(token) headers.set('Authorization',`Bearer ${token}`);
+        return fetch(input, {...init, headers, mode:'cors'});
+      }
+    }
+	
+modify the js function to send every request to chatClient with all nessary parametrs
+	
