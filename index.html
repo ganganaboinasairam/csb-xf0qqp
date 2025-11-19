@@ -129,3 +129,64 @@ public class ChatClientServlet extends HttpServlet {
             }
 
             // Read response
+            int responseCode = conn.getResponseCode();
+            resp.setStatus(responseCode);
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(
+                    responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream()));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            resp.getWriter().write(response.toString());
+
+        } catch (Exception e) {
+            log.error("Error handling HTTP request", e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Request failed");
+        }
+    }
+
+    /**
+     * Return a signed WebSocket URL for the browser to connect directly.
+     * Response JSON: { "wsUrl": "...", "expiresAt": 123456789 }
+     */
+    private void handleGetSignedWsUrl(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            // Create timestamp and canonical string for GET /chatServer (no body)
+            String timestamp = String.valueOf(System.currentTimeMillis());
+
+            // NOTE: canonical string format must match what chat server expects.
+            String canonicalString = AsymmetricSignatureUtil.createCanonicalString("GET", "/chatServer", null, timestamp);
+
+            // Sign with server private key
+            String signature = AsymmetricSignatureUtil.sign(canonicalString, privateKeyBase64);
+
+            // URLEncode signature (safe for URL)
+            String signatureEncoded = URLEncoder.encode(signature, "UTF-8");
+
+            // Build WS URL (use the configured CHAT_SERVER_WS_URL)
+            String wsUrl = CHAT_SERVER_WS_URL + "?X-Timestamp=" + timestamp + "&X-Signature=" + signatureEncoded + "&X-Client-ID=" + URLEncoder.encode(CLIENT_ID, "UTF-8");
+
+            // Set an expiry time (milliseconds). Choose appropriate TTL for your server's policy.
+            long ttlMs = 2 * 60 * 1000; // 2 minutes
+            long expiresAt = System.currentTimeMillis() + ttlMs;
+
+            JSONObject json = new JSONObject();
+            json.put("wsUrl", wsUrl);
+            json.put("expiresAt", expiresAt);
+
+            resp.setContentType("application/json");
+            resp.setStatus(HttpServletResponse.SC_OK);
+            resp.getWriter().write(json.toString());
+
+            log.info("Issued signed wsUrl for client, expiresAt={}", expiresAt);
+
+        } catch (Exception e) {
+            log.error("Failed to create signed wsUrl", e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to create signed wsUrl");
+        }
+    }
+}
