@@ -1,16 +1,252 @@
-// 1) request signed URL
-fetch('/chatClient/getSignedWsUrl', { credentials: 'same-origin' })
-  .then(r => r.json())
-  .then(json => {
-    console.log('signed', json);
-    // 2) create a WebSocket from returned wsUrl
-    const ws = new WebSocket(json.wsUrl);
-    ws.onopen = () => console.log('ws open');
-    ws.onmessage = (ev) => console.log('msg', ev.data);
-    ws.onclose = () => console.log('closed');
-    ws.onerror = (e) => console.error('ws error', e);
+/*
+  chat-websocket.jsx (signed-url flow)
+  - Requests signed URL from server endpoint (default: /chatClient/getSignedWsUrl)
+  - Opens browser WebSocket to returned wsUrl
+  - Exposes: init({ signedUrlEndpoint, ... }), send, safeSend, close, getSignedInfo
+*/
 
-    // 3) send after open
-    // ws.send(JSON.stringify({ type: 'register', ... }));
-  })
-  .catch(err => console.error(err));
+(function () {
+  // --- internal state ---
+  let ws = null;
+  let opts = null;
+  let queue = [];
+  let reconnectTimer = null;
+  let explicitlyClosed = false;
+  let signedWsUrl = null;
+  let signedExpiresAt = 0;
+  let reconnectAttempt = 0;
+  const BASE_BACKOFF = 500; // ms
+  const MAX_BACKOFF = 15000; // ms
+  const HEARTBEAT_INTERVAL = 25000; // ms
+  let heartbeatTimer = null;
+
+  // --- logging helper ---
+  function log(...args) {
+    if (opts && opts.debug) {
+      console.debug('[chat-ws]', ...args);
+    }
+  }
+
+  // --- utility helpers ---
+  function now() { return Date.now(); }
+  function backoffDelay() {
+    const delay = Math.min(MAX_BACKOFF, BASE_BACKOFF * Math.pow(2, Math.max(0, reconnectAttempt - 1)));
+    // add small jitter
+    return delay + Math.floor(Math.random() * 300);
+  }
+
+  // --- fetch signed URL from server ---
+  async function fetchSignedWsUrl() {
+    const endpoint = opts.signedUrlEndpoint || '/chatClient/getSignedWsUrl';
+    log('fetchSignedWsUrl ->', endpoint);
+    const resp = await fetch(endpoint, {
+      method: 'GET',
+      credentials: opts.credentials || 'same-origin',
+      headers: opts.signedUrlHeaders || {}
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`Failed to get signed ws url: ${resp.status} ${txt}`);
+    }
+
+    const json = await resp.json();
+    if (!json.wsUrl) throw new Error('signed url response missing wsUrl');
+
+    signedWsUrl = json.wsUrl;
+    signedExpiresAt = json.expiresAt ? Number(json.expiresAt) : 0;
+    log('received signed url, expiresAt=', signedExpiresAt);
+    return { wsUrl: signedWsUrl, expiresAt: signedExpiresAt };
+  }
+
+  // --- heartbeat ---
+  function startHeartbeat() {
+    stopHeartbeat();
+    heartbeatTimer = setInterval(() => {
+      try {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          // send lightweight ping object — adjust to server expectations
+          ws.send(JSON.stringify({ type: 'ping', ts: now() }));
+        }
+      } catch (e) {
+        log('heartbeat send error', e);
+      }
+    }, HEARTBEAT_INTERVAL);
+  }
+  function stopHeartbeat() {
+    if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+  }
+
+  // --- queue flush ---
+  function flushQueue() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    while (queue.length) {
+      const msg = queue.shift();
+      try {
+        ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      } catch (e) {
+        // push back and stop
+        queue.unshift(msg);
+        log('flush send failed', e);
+        break;
+      }
+    }
+  }
+
+  // --- open socket ---
+  function openSocket(url) {
+    try {
+      log('opening ws ->', url);
+      ws = new WebSocket(url);
+
+      ws.onopen = function (ev) {
+        reconnectAttempt = 0;
+        log('ws.onopen');
+        startHeartbeat();
+        flushQueue();
+        if (opts.onOpen) opts.onOpen(ev);
+      };
+
+      ws.onmessage = function (ev) {
+        try {
+          const data = JSON.parse(ev.data);
+          if (opts.onMessage) opts.onMessage(data);
+        } catch (e) {
+          // If message isn't JSON, pass raw string
+          if (opts.onMessage) opts.onMessage(ev.data);
+        }
+      };
+
+      ws.onclose = function (ev) {
+        log('ws.onclose', ev);
+        stopHeartbeat();
+        ws = null;
+        if (opts.onClose) opts.onClose(ev);
+        if (!explicitlyClosed) scheduleReconnect();
+      };
+
+      ws.onerror = function (err) {
+        log('ws.onerror', err);
+        if (opts.onError) opts.onError(err);
+      };
+
+    } catch (e) {
+      log('openSocket error', e);
+      if (opts.onError) opts.onError(e);
+      scheduleReconnect();
+    }
+  }
+
+  // --- reconnect logic ---
+  function scheduleReconnect() {
+    clearTimeout(reconnectTimer);
+    reconnectAttempt++;
+    const delay = backoffDelay();
+    log('scheduling reconnect in', delay, 'ms');
+    reconnectTimer = setTimeout(async () => {
+      if (explicitlyClosed) return;
+      try {
+        // if signed URL expired or near expiry, fetch a fresh one
+        const expirySoon = signedExpiresAt && (signedExpiresAt - now() < 10000); // 10s threshold
+        if (!signedWsUrl || expirySoon) {
+          await fetchSignedWsUrl();
+        }
+        if (signedWsUrl) openSocket(signedWsUrl);
+      } catch (e) {
+        log('reconnect fetch or open failed', e);
+        // try again with increased attempt
+        scheduleReconnect();
+      }
+    }, delay);
+  }
+
+  // --- public API: init ---
+  async function init(initOpts = {}) {
+    opts = Object.assign({
+      signedUrlEndpoint: '/chatClient/getSignedWsUrl',
+      credentials: 'same-origin',
+      debug: false
+    }, initOpts);
+
+    explicitlyClosed = false;
+    queue = [];
+    clearTimeout(reconnectTimer);
+    stopHeartbeat();
+    reconnectAttempt = 0;
+
+    try {
+      await fetchSignedWsUrl();
+      openSocket(signedWsUrl);
+    } catch (e) {
+      log('initial fetchSignedWsUrl failed', e);
+      if (opts.onError) opts.onError(e);
+      // schedule reconnect which will attempt to fetch signed url again
+      scheduleReconnect();
+    }
+  }
+
+  // --- public API: send / safeSend ---
+  function send(obj) {
+    // if ws is open — send immediately
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        const payload = typeof obj === 'string' ? obj : JSON.stringify(obj);
+        ws.send(payload);
+        return true;
+      } catch (e) {
+        log('send failed', e);
+        queue.push(obj);
+        return false;
+      }
+    }
+
+    // not open: queue and attempt reconnect
+    queue.push(obj);
+    if (!ws && !explicitlyClosed) {
+      scheduleReconnect();
+    }
+    return false;
+  }
+
+  function safeSend(obj) {
+    return send(obj);
+  }
+
+  // --- public API: close ---
+  function close() {
+    explicitlyClosed = true;
+    clearTimeout(reconnectTimer);
+    stopHeartbeat();
+    if (ws) {
+      try { ws.close(); } catch (e) { /* ignore */ }
+      ws = null;
+    }
+  }
+
+  // --- helpers to inspect signed info ---
+  function getSignedInfo() {
+    return { wsUrl: signedWsUrl, expiresAt: signedExpiresAt };
+  }
+  function getQueue() { return queue.slice(); }
+  function getSocketState() { return ws ? ws.readyState : null; }
+
+  // --- expose API on window ---
+  window.webSocket = {
+    init,
+    send,
+    safeSend,
+    close,
+    getSignedInfo,
+    _internal: {
+      _getQueue: getQueue,
+      _getSocketState: getSocketState
+    }
+  };
+
+  // --- optional: auto-close on page unload to avoid dangling sockets ---
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('beforeunload', () => {
+      try { close(); } catch (_) { /* ignore */ }
+    });
+  }
+})();
