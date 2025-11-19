@@ -1,13 +1,20 @@
-// Initialize (example)
-window.webSocket.init({
-  signedUrlEndpoint: '/chatClient/getSignedWsUrl', // default
-  credentials: 'same-origin',                      // include cookies if needed
-  debug: true,
-  onOpen: () => console.log('WS opened'),
-  onMessage: (m) => console.log('WS message:', m),
-  onClose: (ev) => console.log('WS closed', ev),
-  onError: (err) => console.error('WS error', err)
-});
-
-// Send a message (queued if not connected)
-window.webSocket.send({ type: 'register', role: 'customer', customerId: 'C123' });
+async function  getChatMsgCount(){
+		try{
+		var custId = document.getElementById('CUST_ID').value;
+		
+		const response = await fetch(`${window.location.origin}/ChatServer/getUnreadMsgCount?custID=${custId}&reqFrom=customer`);
+		if (!response.ok) throw new Error('Failed to fetch previous messages');
+		
+		const data = await response.json();
+		
+		if(data.msgCount > 0){
+			document.getElementById('chatMsgCount').innerHTML=data.msgCount;
+			$('#chatMsgCount').show();
+		}else{
+			$('#chatMsgCount').hide();
+		}
+		}catch (error) {
+			console.error('Error loading previous messages:', error);
+		}
+	
+	}
