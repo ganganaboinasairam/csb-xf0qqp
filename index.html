@@ -1,20 +1,36 @@
-async function  getChatMsgCount(){
-		try{
-		var custId = document.getElementById('CUST_ID').value;
-		
-		const response = await fetch(`${window.location.origin}/ChatServer/getUnreadMsgCount?custID=${custId}&reqFrom=customer`);
-		if (!response.ok) throw new Error('Failed to fetch previous messages');
-		
-		const data = await response.json();
-		
-		if(data.msgCount > 0){
-			document.getElementById('chatMsgCount').innerHTML=data.msgCount;
-			$('#chatMsgCount').show();
-		}else{
-			$('#chatMsgCount').hide();
-		}
-		}catch (error) {
-			console.error('Error loading previous messages:', error);
-		}
-	
-	}
+async function getChatMsgCount() {
+    try {
+        const custId = document.getElementById('CUST_ID').value;
+
+        // 1️⃣ Get signed HTTP URL from servlet
+        const signedResp = await fetch(
+            `${window.location.origin}/chatClient/getSignedHttpUrl?endpoint=getUnreadMsgCount&custID=${encodeURIComponent(custId)}&reqFrom=customer`,
+            { credentials: "same-origin" }
+        );
+
+        if (!signedResp.ok) {
+            throw new Error('Failed to get signed API url');
+        }
+
+        const signedData = await signedResp.json();
+        const signedUrl = signedData.signedUrl;
+        if (!signedUrl) throw new Error("Invalid signed URL returned from servlet");
+
+        // 2️⃣ Call the chat-server signed URL
+        const response = await fetch(signedUrl);
+        if (!response.ok) throw new Error('Failed to fetch unread messages');
+        
+        const data = await response.json();
+
+        // 3️⃣ Update UI
+        if (data.msgCount > 0) {
+            document.getElementById('chatMsgCount').innerHTML = data.msgCount;
+            $('#chatMsgCount').show();
+        } else {
+            $('#chatMsgCount').hide();
+        }
+
+    } catch (error) {
+        console.error('Error getting unread messages:', error);
+    }
+}
