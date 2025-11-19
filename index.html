@@ -9,24 +9,12 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.websocket.ClientEndpoint;
-import javax.websocket.CloseReason;
-import javax.websocket.ContainerProvider;
-import javax.websocket.OnClose;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
-import javax.websocket.WebSocketContainer;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -35,9 +23,11 @@ import org.slf4j.LoggerFactory;
 import com.chat.config.AsymmetricSignatureUtil;
 
 /**
- * Example servlet that mediates between HTML frontend and chat server.
- * Handles signed HTTP requests and WebSocket connections.
- * Assumes private key in keys/example-client.pem.
+ * ChatClientServlet
+ * - Proxies signed HTTP requests to the chat server
+ * - Offers GET /chatClient/getSignedWsUrl to return a signed WebSocket URL for direct browser connections
+ *
+ * NOTE: server-side WebSocket proxying (connectWS) REMOVED.
  */
 @WebServlet("/chatClient/*")
 public class ChatClientServlet extends HttpServlet {
@@ -50,7 +40,6 @@ public class ChatClientServlet extends HttpServlet {
     private static final String CHAT_SERVER_WS_URL = "ws://localhost:8080/chatServer"; // Adjust as needed
 
     private String privateKeyBase64;
-    private final Map<String, Session> wsSessions = new ConcurrentHashMap<>();
 
     @Override
     public void init() throws ServletException {
@@ -79,14 +68,11 @@ public class ChatClientServlet extends HttpServlet {
 
         String endpoint = pathInfo.substring(1); // Remove leading /
 
-        if ("connectWS".equals(endpoint)) {
-            // existing behavior: open a server-side websocket to chat server
-            handleWebSocketConnection(req, resp);
-        } else if ("getSignedWsUrl".equals(endpoint)) {
-            // NEW: return a signed WebSocket URL for the browser to connect directly
+        if ("getSignedWsUrl".equals(endpoint)) {
+            // Return a signed WebSocket URL for the browser to connect directly
             handleGetSignedWsUrl(req, resp);
         } else {
-            // Handle HTTP GET request proxying
+            // Proxy other GET requests to chat server (signed)
             handleHttpRequest("GET", endpoint, req, resp);
         }
     }
@@ -100,14 +86,19 @@ public class ChatClientServlet extends HttpServlet {
         }
 
         String endpoint = pathInfo.substring(1);
+        // Proxy POSTs to chat server (signed)
         handleHttpRequest("POST", endpoint, req, resp);
     }
 
+    /**
+     * Proxy signed HTTP request to chat server.
+     * Supports GET and POST (reads body for POST).
+     */
     private void handleHttpRequest(String method, String endpoint, HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             // Read request body if POST
             String body = null;
-            if ("POST".equals(method)) {
+            if ("POST".equalsIgnoreCase(method)) {
                 BufferedReader reader = req.getReader();
                 body = reader.lines().reduce("", (a, b) -> a + b);
             }
@@ -138,152 +129,3 @@ public class ChatClientServlet extends HttpServlet {
             }
 
             // Read response
-            int responseCode = conn.getResponseCode();
-            resp.setStatus(responseCode);
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(
-                    responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream()));
-            String inputLine;
-            StringBuilder response = new StringBuilder();
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-
-            resp.getWriter().write(response.toString());
-
-        } catch (Exception e) {
-            log.error("Error handling HTTP request", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Request failed");
-        }
-    }
-
-    /**
-     * NEW: Return a signed ws URL so the browser can open the WebSocket directly.
-     *
-     * Response: { "wsUrl": "ws://host/chatServer?X-Timestamp=...&X-Signature=...&X-Client-ID=example-client", "expiresAt": 123456789 }
-     */
-    private void handleGetSignedWsUrl(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        try {
-            // Create timestamp and canonical string for GET /chatServer (no body)
-            String timestamp = String.valueOf(System.currentTimeMillis());
-
-            // NOTE: canonical string format must match what chat server expects.
-            String canonicalString = AsymmetricSignatureUtil.createCanonicalString("GET", "/chatServer", null, timestamp);
-
-            // Sign with server private key
-            String signature = AsymmetricSignatureUtil.sign(canonicalString, privateKeyBase64);
-
-            // URLEncode signature (safe for URL)
-            String signatureEncoded = URLEncoder.encode(signature, "UTF-8");
-
-            // Build WS URL (use the configured CHAT_SERVER_WS_URL)
-            String wsUrl = CHAT_SERVER_WS_URL + "?X-Timestamp=" + timestamp + "&X-Signature=" + signatureEncoded + "&X-Client-ID=" + URLEncoder.encode(CLIENT_ID, "UTF-8");
-
-            // Set an expiry time (milliseconds). Choose appropriate TTL for your server's policy.
-            long ttlMs = 2 * 60 * 1000; // 2 minutes
-            long expiresAt = System.currentTimeMillis() + ttlMs;
-
-            JSONObject json = new JSONObject();
-            json.put("wsUrl", wsUrl);
-            json.put("expiresAt", expiresAt);
-
-            resp.setContentType("application/json");
-            resp.setStatus(HttpServletResponse.SC_OK);
-            resp.getWriter().write(json.toString());
-
-            log.info("Issued signed wsUrl for client, expiresAt={}", expiresAt);
-
-        } catch (Exception e) {
-            log.error("Failed to create signed wsUrl", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to create signed wsUrl");
-        }
-    }
-
-    private void handleWebSocketConnection(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        try {
-            // existing server-side WS open behavior (unchanged)
-            // Generate timestamp
-            String timestamp = String.valueOf(System.currentTimeMillis());
-
-            // Create canonical string for WebSocket handshake (GET /chatServer)
-            String canonicalString = AsymmetricSignatureUtil.createCanonicalString("GET", "/chatServer", null, timestamp);
-
-            // Sign
-            String signature = AsymmetricSignatureUtil.sign(canonicalString, privateKeyBase64);
-
-            // Create WebSocket client endpoint
-            WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-            String wsUrl = CHAT_SERVER_WS_URL + "?X-Timestamp=" + timestamp + "&X-Signature=" + signature + "&X-Client-ID=" + CLIENT_ID;
-
-            // Generate session ID for this connection
-            String sessionId = req.getSession().getId();
-
-            // Connect to WebSocket
-            Session wsSession = container.connectToServer(new ChatWebSocketClient(sessionId), new URL(wsUrl).toURI());
-            wsSessions.put(sessionId, wsSession);
-
-            // Return session ID to client
-            JSONObject response = new JSONObject();
-            response.put("sessionId", sessionId);
-            response.put("status", "connected");
-            resp.getWriter().write(response.toString());
-
-        } catch (Exception e) {
-            log.error("Error establishing WebSocket connection", e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "WebSocket connection failed");
-        }
-    }
-
-    // Handle WebSocket messages from HTML client
-    @Override
-    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String sessionId = req.getParameter("sessionId");
-        String message = req.getParameter("message");
-
-        if (sessionId == null || message == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing sessionId or message");
-            return;
-        }
-
-        Session wsSession = wsSessions.get(sessionId);
-        if (wsSession != null && wsSession.isOpen()) {
-            try {
-                wsSession.getBasicRemote().sendText(message);
-                resp.getWriter().write("{\"status\":\"sent\"}");
-            } catch (Exception e) {
-                log.error("Error sending WebSocket message", e);
-                resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Send failed");
-            }
-        } else {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid session");
-        }
-    }
-
-    @ClientEndpoint
-    public class ChatWebSocketClient {
-
-        private final String sessionId;
-
-        public ChatWebSocketClient(String sessionId) {
-            this.sessionId = sessionId;
-        }
-
-        @OnOpen
-        public void onOpen(Session session) {
-            log.info("WebSocket connected for session: {}", sessionId);
-        }
-
-        @OnMessage
-        public void onMessage(String message) {
-            // In a real implementation, you might store messages or notify the HTML client via Server-Sent Events or polling
-            log.info("Received WebSocket message for session {}: {}", sessionId, message);
-        }
-
-        @OnClose
-        public void onClose(Session session, CloseReason reason) {
-            log.info("WebSocket closed for session: {}", sessionId);
-            wsSessions.remove(sessionId);
-        }
-    }
-}
