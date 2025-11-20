@@ -1,36 +1,37 @@
-async function getChatMsgCount() {
-    try {
-        const custId = document.getElementById('CUST_ID').value;
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpgIBAAKCAQEA5DRYoJ7XN5s78GveZVxeSLVEBlNtk7pIBl+u2yKsLXrIye+K
+uwL7kraCoNaCWn/o71wNfxkThMDb0heAMraq/Z0/2THNotr/Elh2sa3HcMWorTQD
+HfTmh+BKgEPs1uHnGcsj6tRgHMuD6mKXyP8n8U/5QGveQocPjfdbkRVMZmqUnzKb
+WpnTPMfdDoJy/VTT3MgLsH1CjBxhQje+oJlpEq6aGaT023SRb6t9RoQIj1amZhXF
+l1aksa3LrR3ZsogLvMtfQUaQpsPv1wAZTMUOdFeweGeb55YD792eb9gn/qqapbtR
+wAbMB9IEDwO3v1mPNMWv0U639WRRYf2aSoQ1bwIDAQABAoIBAQCQth0ppfCGY5tL
+56t9DWkApGoBtO/8yRkZaZ3BeqhCouUnIQ8Rbl/H9pK5ma3J4+j7uJ0aZvV4rq/2
+904lWq7t6sTtX2auij9MC+sg2zlo6v7+7se3PHDf4zx7QBe1YEWjlq0tIgXc3LXH
+cUQdgqh6nyNJVd34xBr6BMz9IMt0+Zi+vuOmd0NFLkz+J1vq3KaOJ+Xvvc47hdas
+rcqbMhkTpd8V0oXnfXFlCPJ+hPj4BUHgifSHJs/hxncwqfSdIarzTp2q7gkGayAr
+wPv4Cvx6AkxdHr9T91FekHW6LJgVTreZQjxhzG9MFgO6wKtLYWo2QNT0QfuIOw0P
+3uRr31xpAoGBAPLUklE5/BQCYpQ96JIT3pbJDRgcwW5WbXvwxgyEsHWsEBMaE5WD
+wJd0wvlcQLpZDnNh6QMsk1JC5BTUZXWZji/kJeypkgI2twfMTjGUQ3SdhILREnOb
+G4TzbYNqDNzHOdd2d9l0ogbNeIs61QirRSIentCFNiGQ0MJrKyA8zbndAoGBAPCU
+teu2UKatmEsr2hhjBjrw1nR2l7z3YAwwsGCWuNin859AdXap+QYRr37vXEZaHnj+
+hWTiWw2JYM+iHiz/HwCoeOSiSjSpB1pKXnoZQqZIP7UmmIm5y2kgEWONP6vqYZKZ
+/DIaHyA06h7MAwjQ2JjsK/cZPw61Ak5JFpETGqW7AoGBAMXaOZWBH0jWYKfUgWh0
+VAqbqdWZqGlUdkRj+5o7iuN13GsT9hz+iq9c7XfrmLm80i9k+Uwix65g3iGypTBa
+eyW+SMA5scOn/R2Xc6al3QhpR4ym+NfE63k6NmK6x9wjX5eU6TX+9/1+8NbQir9T
+fTK9rDzOLTrQGagvVaYgpKbpAoGBAOLb6DwwPBcgZRalcFBEuHBGAIPr/KP1RP3Z
+v8gk+INcxI8sMlfGagt+C9YPkhzJCCkiINmD1UaLf93rSrc1j5+IPg+itYS4yzUq
+IbLTNRUl1eVVUsu0hopH8f3FCQBs0Lt0Nutr1GQDYa3OxSHABi8VrVOh2+NbbqQx
+qXT95cfXAoGBAJpwmnGfTuflDCY4OYSMi9goJqJNB8ExqSnQJuCljGN3hmwsmggk
+tFrfG9Xa7u9PFMOAAS3JExXuEsoQsLXHMPjl4YsyfrFIMYTvLDhaSsW+QbN37OCi
+RVt9LMQ7jH++47KisCdYFW9xeD7SowrdC6T3WLDl1eoqzdUhhDqtRq3k
+-----END RSA PRIVATE KEY-----
 
-        // 1️⃣ Get signed HTTP URL from servlet
-        const signedResp = await fetch(
-            `${window.location.origin}/chatClient/getSignedHttpUrl?endpoint=getUnreadMsgCount&custID=${encodeURIComponent(custId)}&reqFrom=customer`,
-            { credentials: "same-origin" }
-        );
-
-        if (!signedResp.ok) {
-            throw new Error('Failed to get signed API url');
-        }
-
-        const signedData = await signedResp.json();
-        const signedUrl = signedData.signedUrl;
-        if (!signedUrl) throw new Error("Invalid signed URL returned from servlet");
-
-        // 2️⃣ Call the chat-server signed URL
-        const response = await fetch(signedUrl);
-        if (!response.ok) throw new Error('Failed to fetch unread messages');
-        
-        const data = await response.json();
-
-        // 3️⃣ Update UI
-        if (data.msgCount > 0) {
-            document.getElementById('chatMsgCount').innerHTML = data.msgCount;
-            $('#chatMsgCount').show();
-        } else {
-            $('#chatMsgCount').hide();
-        }
-
-    } catch (error) {
-        console.error('Error getting unread messages:', error);
-    }
-}
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5DRYoJ7XN5s78GveZVxe
+SLVEBlNtk7pIBl+u2yKsLXrIye+KuwL7kraCoNaCWn/o71wNfxkThMDb0heAMraq
+/Z0/2THNotr/Elh2sa3HcMWorTQDHfTmh+BKgEPs1uHnGcsj6tRgHMuD6mKXyP8n
+8U/5QGveQocPjfdbkRVMZmqUnzKbWpnTPMfdDoJy/VTT3MgLsH1CjBxhQje+oJlp
+Eq6aGaT023SRb6t9RoQIj1amZhXFl1aksa3LrR3ZsogLvMtfQUaQpsPv1wAZTMUO
+dFeweGeb55YD792eb9gn/qqapbtRwAbMB9IEDwO3v1mPNMWv0U639WRRYf2aSoQ1
+bwIDAQAB
+-----END PUBLIC KEY-----
