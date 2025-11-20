@@ -1,43 +1,13 @@
-package com.chat.config;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Base64;
-
-public class TestKeyPair {
-    public static void main(String[] args) throws Exception {
-        // Load private key from file
-        String privateKeyPEM = new String(Files.readAllBytes(Paths.get("keys/private.pem")))
-                .replaceAll("\\n", "")
-                .replaceAll("\\r", "")
-                .replace("-----BEGIN RSA PRIVATE KEY-----", "")
-                .replace("-----END RSA PRIVATE KEY-----", "")
-                .trim();
-        String privateKeyBase64 = privateKeyPEM;
-
-        // Load public key from file
-        String publicKeyPEM = new String(Files.readAllBytes(Paths.get("keys/public.pem")))
-                .replaceAll("\\n", "")
-                .replaceAll("\\r", "")
-                .replace("-----BEGIN PUBLIC KEY-----", "")
-                .replace("-----END PUBLIC KEY-----", "")
-                .trim();
-        String publicKeyBase64 = publicKeyPEM;
-
-        // Sample data to sign
-        String data = "Hello, this is a test message for RSA signing.";
-
-        // Sign the data
-        String signature = AsymmetricSignatureUtil.sign(data, privateKeyBase64);
-        System.out.println("Generated Signature: " + signature);
-
-        // Verify the signature
-        boolean isValid = AsymmetricSignatureUtil.verify(data, signature, publicKeyBase64);
-        System.out.println("Signature Verification: " + (isValid ? "SUCCESS" : "FAILED"));
-
-        // Test with tampered data
-        String tamperedData = data + " tampered";
-        boolean isValidTampered = AsymmetricSignatureUtil.verify(tamperedData, signature, publicKeyBase64);
-        System.out.println("Tampered Data Verification: " + (isValidTampered ? "SUCCESS" : "FAILED"));
-    }
-}
+Exception in thread "main" java.security.spec.InvalidKeySpecException: java.security.InvalidKeyException: IOException : algid parse error, not a sequence
+	at sun.security.rsa.RSAKeyFactory.engineGeneratePrivate(RSAKeyFactory.java:217)
+	at java.security.KeyFactory.generatePrivate(KeyFactory.java:372)
+	at com.chat.config.AsymmetricSignatureUtil.sign(AsymmetricSignatureUtil.java:30)
+	at com.chat.config.TestKeyPair.main(TestKeyPair.java:38)
+Caused by: java.security.InvalidKeyException: IOException : algid parse error, not a sequence
+	at sun.security.pkcs.PKCS8Key.decode(PKCS8Key.java:351)
+	at sun.security.pkcs.PKCS8Key.decode(PKCS8Key.java:356)
+	at sun.security.rsa.RSAPrivateCrtKeyImpl.<init>(RSAPrivateCrtKeyImpl.java:91)
+	at sun.security.rsa.RSAPrivateCrtKeyImpl.newKey(RSAPrivateCrtKeyImpl.java:75)
+	at sun.security.rsa.RSAKeyFactory.generatePrivate(RSAKeyFactory.java:316)
+	at sun.security.rsa.RSAKeyFactory.engineGeneratePrivate(RSAKeyFactory.java:213)
+	... 3 more
