@@ -1,5 +1,86 @@
 package com.chat.config;
 
+import java.io.IOException;
+import java.util.Collections;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingRequestWrapper;
+
+@Component
+public class SignatureVerificationFilter extends OncePerRequestFilter {
+
+    private final KeyManager keyManager;
+
+    public SignatureVerificationFilter(KeyManager keyManager) {
+        this.keyManager = keyManager;
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request0, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+
+        // wrap so we can read body and allow downstream to read it too
+        ContentCachingRequestWrapper request = new ContentCachingRequestWrapper(request0);
+
+        try {
+            String method = request.getMethod();
+            String uri = request.getRequestURI();
+            String timestamp = request.getHeader("X-Timestamp");
+            String signature = request.getHeader("X-Signature");
+            String clientId = request.getHeader("X-Client-ID");
+
+            if (timestamp == null || signature == null || clientId == null) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing signature headers");
+                return;
+            }
+
+            String publicKeyBase64 = keyManager.getPublicKey(clientId);
+            if (publicKeyBase64 == null) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unknown client");
+                return;
+            }
+
+            String body = null;
+            if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
+                byte[] content = request.getContentAsByteArray();
+                body = content.length == 0 ? "" : new String(content, request.getCharacterEncoding() == null ? "UTF-8" : request.getCharacterEncoding());
+            }
+
+            String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, uri, body, timestamp);
+
+            boolean isValid = AsymmetricSignatureUtil.verify(canonicalString, signature, publicKeyBase64);
+
+            if (!isValid) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid signature");
+                return;
+            }
+
+            // Create an Authentication so Spring's authorization will pass
+            UsernamePasswordAuthenticationToken auth =
+                    new UsernamePasswordAuthenticationToken(clientId, null, Collections.emptyList());
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            // continue the chain with the wrapped request
+            filterChain.doFilter(request, response);
+
+        } catch (Exception e) {
+            SecurityContextHolder.clearContext();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Signature verification failed");
+        }
+    }
+}
+
+
+package com.chat.config;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,95 +106,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
-                // Allow CORS preflight requests
                 .antMatchers("/ping").permitAll()
-                // Require signature verification for all requests including WebSocket
                 .anyRequest().authenticated()
             .and()
             .addFilterBefore(signatureVerificationFilter, UsernamePasswordAuthenticationFilter.class);
-         
-    }
-}
-
-
-package com.chat.config;
-
-import java.io.IOException;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import com.cs.base.log.CSLogger;
-import com.cs.eximap.log.ASCELog;
-import com.cs.eximap.log.CELogUtility;
-
-@Component
-public class SignatureVerificationFilter extends OncePerRequestFilter {
-
-	public static final CSLogger log = ASCELog.getCELogger(CELogUtility.getLoggerWithClassName(KeyManager.class, "CELOG"));
-
-    @Autowired
-    private KeyManager keyManager;
-
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-
-        try {
-            String method = request.getMethod();
-            String uri = request.getRequestURI();
-            String timestamp = request.getHeader("X-Timestamp");
-            String signature = request.getHeader("X-Signature");
-            String clientId = request.getHeader("X-Client-ID");
-            
-            log.info("method :"+method+" uri :"+uri+" timestamp :"+timestamp+" signature :"+signature+" clientId :"+clientId);
-
-            if (timestamp == null || signature == null || clientId == null) {
-                log.warn("Missing required headers: X-Timestamp, X-Signature, or X-Client-ID for request: {} {}"+ method+ uri);
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing signature headers");
-                return;
-            }
-
-            // Get the public key for this client
-            String publicKeyBase64 = keyManager.getPublicKey(clientId);
-            if (publicKeyBase64 == null) {
-                log.info("Unknown client ID: {} for request: {} {}"+clientId+" "+ method+" "+ uri);
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unknown client");
-                return;
-            }
-
-            // Read request body for POST/PUT requests
-            String body = null;
-            if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
-                body = request.getReader().lines().reduce("", (accumulator, actual) -> accumulator + actual);
-            }
-
-            // Create canonical string
-            String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, uri, body, timestamp);
-            
-            log.info("canonicalString from SignatureVerificationFilter is "+canonicalString);
-
-            // Verify signature
-            boolean isValid = AsymmetricSignatureUtil.verify(canonicalString, signature, publicKeyBase64);
-
-            if (!isValid) {
-                log.info("Invalid signature for client: {} request: {} {}"+ clientId+" "+ method+" "+ uri);
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid signature");
-                return;
-            }
-
-            log.debug("Signature verified successfully for client: {} request: {} {}"+ clientId+" "+ method+" "+ uri);
-           // filterChain.doFilter(request, response);
-
-        } catch (Exception e) {
-            log.error("Error during signature verification"+ e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Signature verification failed");
-        }
     }
 }
