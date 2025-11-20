@@ -1,300 +1,119 @@
 package com.chat.config;
 
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.Signature;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.RSAPrivateCrtKeySpec;
-import java.security.spec.RSAPublicKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-public class AsymmetricSignatureUtil {
+@SuppressWarnings("deprecation")
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-    private static final String ALGORITHM = "SHA256withRSA";
+    private final SignatureVerificationFilter signatureVerificationFilter;
 
-    /**
-     * Signs the given data using the private key (supports PKCS#8 and PKCS#1 RSA private keys).
-     *
-     * @param data The data to sign
-     * @param privateKeyBase64 Base64 encoded private key (DER) or base64 of a PEM-stripped block
-     * @return Base64 encoded signature
-     * @throws Exception if signing fails
-     */
-    public static String sign(String data, String privateKeyBase64) throws Exception {
-        byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyBase64);
-
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PrivateKey privateKey;
-
-        // First try PKCS#8
-        try {
-            PKCS8EncodedKeySpec pkcs8Spec = new PKCS8EncodedKeySpec(privateKeyBytes);
-            privateKey = keyFactory.generatePrivate(pkcs8Spec);
-        } catch (Exception ex) {
-            // Try PKCS#1 (raw RSA) parsing -> convert to RSAPrivateCrtKeySpec
-            RSAPrivateCrtKeySpec crtSpec = parsePkcs1PrivateKey(privateKeyBytes);
-            privateKey = keyFactory.generatePrivate(crtSpec);
-        }
-
-        Signature signature = Signature.getInstance(ALGORITHM);
-        signature.initSign(privateKey);
-        signature.update(data.getBytes(StandardCharsets.UTF_8));
-        byte[] signedBytes = signature.sign();
-
-        return Base64.getEncoder().encodeToString(signedBytes);
+    public SecurityConfig(SignatureVerificationFilter signatureVerificationFilter) {
+        this.signatureVerificationFilter = signatureVerificationFilter;
     }
 
-    /**
-     * Verifies the signature of the given data using the public key (supports X.509 and PKCS#1 RSA public keys).
-     *
-     * @param data The original data
-     * @param signatureBase64 Base64 encoded signature
-     * @param publicKeyBase64 Base64 encoded public key (subjectPublicKeyInfo or raw RSAPublicKey)
-     * @return true if signature is valid, false otherwise
-     * @throws Exception if verification fails
-     */
-    public static boolean verify(String data, String signatureBase64, String publicKeyBase64) throws Exception {
-        byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyBase64);
-
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PublicKey publicKey;
-
-        // Try X.509 SubjectPublicKeyInfo first
-        try {
-            X509EncodedKeySpec x509Spec = new X509EncodedKeySpec(publicKeyBytes);
-            publicKey = keyFactory.generatePublic(x509Spec);
-        } catch (Exception ex) {
-            // Try PKCS#1 raw RSA public key (modulus+exponent)
-            RSAPublicKeySpec pubSpec = parsePkcs1PublicKey(publicKeyBytes);
-            publicKey = keyFactory.generatePublic(pubSpec);
-        }
-
-        Signature signature = Signature.getInstance(ALGORITHM);
-        signature.initVerify(publicKey);
-        signature.update(data.getBytes(StandardCharsets.UTF_8));
-        byte[] signatureBytes = Base64.getDecoder().decode(signatureBase64);
-
-        return signature.verify(signatureBytes);
-    }
-
-    /**
-     * Creates canonical string for signing
-     */
-    public static String createCanonicalString(String method, String uri, String body, String timestamp) {
-        StringBuilder canonical = new StringBuilder();
-        canonical.append(method.toUpperCase()).append("\n");
-        canonical.append(uri).append("\n");
-        if (body != null && !body.trim().isEmpty()) {
-            canonical.append(body.trim()).append("\n");
-        }
-        canonical.append(timestamp);
-        return canonical.toString();
-    }
-
-    // ----------------------------------------------------------
-    // Minimal ASN.1 DER parser helpers for PKCS#1 (no external libs)
-    // ----------------------------------------------------------
-
-    private static RSAPrivateCrtKeySpec parsePkcs1PrivateKey(byte[] pkcs1) throws Exception {
-        // PKCS#1 PrivateKey ::= SEQUENCE { version, n, e, d, p, q, dP, dQ, qInv }
-        DERParser p = new DERParser(pkcs1);
-        DERParser.DERObject seq = p.readObject(); // sequence
-        // sequence contains multiple INTEGERs
-        seq.readInteger(); // version
-        BigInteger n = seq.readInteger();
-        BigInteger e = seq.readInteger();
-        BigInteger d = seq.readInteger();
-        BigInteger pVal = seq.readInteger();
-        BigInteger qVal = seq.readInteger();
-        BigInteger dP = seq.readInteger();
-        BigInteger dQ = seq.readInteger();
-        BigInteger qInv = seq.readInteger();
-
-        return new RSAPrivateCrtKeySpec(n, e, d, pVal, qVal, dP, dQ, qInv);
-    }
-
-    private static RSAPublicKeySpec parsePkcs1PublicKey(byte[] pkcs1) throws Exception {
-        // PKCS#1 PublicKey ::= SEQUENCE { n, e }
-        DERParser p = new DERParser(pkcs1);
-        DERParser.DERObject seq = p.readObject();
-        BigInteger n = seq.readInteger();
-        BigInteger e = seq.readInteger();
-        return new RSAPublicKeySpec(n, e);
-    }
-
-    /**
-     * Very small ASN.1 DER reader that supports sequences and integers.
-     * Not a full ASN.1 implementation — only what is necessary for PKCS#1.
-     */
-    private static class DERParser {
-        private final byte[] data;
-        private int pos;
-
-        DERParser(byte[] data) {
-            this.data = data;
-            this.pos = 0;
-        }
-
-        DERObject readObject() throws Exception {
-            if (pos >= data.length) throw new IllegalArgumentException("Invalid DER: out of data");
-            int tag = data[pos++] & 0xFF;
-            if (tag != 0x30) { // expecting SEQUENCE
-                throw new IllegalArgumentException("Invalid DER: expected SEQUENCE (tag 0x30) but found: 0x" + Integer.toHexString(tag));
-            }
-            int length = readLength();
-            int start = pos;
-            int end = pos + length;
-            if (end > data.length) throw new IllegalArgumentException("Invalid DER: length out of range");
-            byte[] content = new byte[length];
-            System.arraycopy(data, start, content, 0, length);
-            pos = end;
-            return new DERObject(content);
-        }
-
-        private int readLength() throws Exception {
-            int length = data[pos++] & 0xFF;
-            if ((length & 0x80) == 0) {
-                // short form
-                return length;
-            }
-            int numBytes = length & 0x7F;
-            if (numBytes > 4) throw new IllegalArgumentException("Invalid DER length");
-            int val = 0;
-            for (int i = 0; i < numBytes; i++) {
-                val = (val << 8) + (data[pos++] & 0xFF);
-            }
-            return val;
-        }
-
-        class DERObject {
-            private final byte[] buf;
-            private int p;
-
-            DERObject(byte[] buf) {
-                this.buf = buf;
-                this.p = 0;
-            }
-
-            BigInteger readInteger() throws Exception {
-                if (p >= buf.length) throw new IllegalArgumentException("Invalid DER integer: out of data");
-                int tag = buf[p++] & 0xFF;
-                if (tag != 0x02) throw new IllegalArgumentException("Invalid DER integer: expected tag 0x02 but found: 0x" + Integer.toHexString(tag));
-                int length = readLengthInternal();
-                if (length < 0 || p + length > buf.length) throw new IllegalArgumentException("Invalid DER integer length");
-                byte[] intBytes = new byte[length];
-                System.arraycopy(buf, p, intBytes, 0, length);
-                p += length;
-                return new BigInteger(1, intBytes); // positive integer
-            }
-
-            private int readLengthInternal() throws Exception {
-                int length = buf[p++] & 0xFF;
-                if ((length & 0x80) == 0) {
-                    return length;
-                }
-                int numBytes = length & 0x7F;
-                if (numBytes > 4) throw new IllegalArgumentException("Invalid DER length");
-                int val = 0;
-                for (int i = 0; i < numBytes; i++) {
-                    val = (val << 8) + (buf[p++] & 0xFF);
-                }
-                return val;
-            }
-        }
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+            .csrf().disable()
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
+            .authorizeRequests()
+                // Allow CORS preflight requests
+                .antMatchers("/ping").permitAll()
+                // Require signature verification for all requests including WebSocket
+                .anyRequest().authenticated()
+            .and()
+            .addFilterBefore(signatureVerificationFilter, UsernamePasswordAuthenticationFilter.class);
+         
     }
 }
 
 
 package com.chat.config;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
 
-import javax.annotation.PostConstruct;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.cs.base.log.CSLogger;
+import com.cs.eximap.log.ASCELog;
+import com.cs.eximap.log.CELogUtility;
 
 @Component
-public class KeyManager {
+public class SignatureVerificationFilter extends OncePerRequestFilter {
 
-    private static final Logger log = LoggerFactory.getLogger(KeyManager.class);
+	public static final CSLogger log = ASCELog.getCELogger(CELogUtility.getLoggerWithClassName(KeyManager.class, "CELOG"));
 
-    @Value("${security.keys-directory:keys}")
-    private String keysDirectory;
+    @Autowired
+    private KeyManager keyManager;
 
-    private Map<String, String> publicKeys = new HashMap<>();
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-    @PostConstruct
-    public void loadKeys() {
         try {
-            File keysDir = new File(keysDirectory);
-            if (!keysDir.exists()) {
-                log.warn("Keys directory does not exist: {}", keysDirectory);
+            String method = request.getMethod();
+            String uri = request.getRequestURI();
+            String timestamp = request.getHeader("X-Timestamp");
+            String signature = request.getHeader("X-Signature");
+            String clientId = request.getHeader("X-Client-ID");
+            
+            log.info("method :"+method+" uri :"+uri+" timestamp :"+timestamp+" signature :"+signature+" clientId :"+clientId);
+
+            if (timestamp == null || signature == null || clientId == null) {
+                log.warn("Missing required headers: X-Timestamp, X-Signature, or X-Client-ID for request: {} {}"+ method+ uri);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing signature headers");
                 return;
             }
 
-            File[] keyFiles = keysDir.listFiles((dir, name) -> name.endsWith(".pub") || name.endsWith(".pem"));
-            if (keyFiles == null) {
-                log.warn("No public key files found in directory: {}", keysDirectory);
+            // Get the public key for this client
+            String publicKeyBase64 = keyManager.getPublicKey(clientId);
+            if (publicKeyBase64 == null) {
+                log.info("Unknown client ID: {} for request: {} {}"+clientId+" "+ method+" "+ uri);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unknown client");
                 return;
             }
 
-            for (File keyFile : keyFiles) {
-                String clientId = keyFile.getName().replace(".pub", "").replace(".pem", "");
-                try {
-                    String content = new String(Files.readAllBytes(Paths.get(keyFile.getAbsolutePath()))).trim();
-
-                    // Normalize and strip PEM armor if present.
-                    String base64;
-                    if (content.contains("-----BEGIN PUBLIC KEY-----")) {
-                        base64 = content.replace("-----BEGIN PUBLIC KEY-----", "")
-                                        .replace("-----END PUBLIC KEY-----", "")
-                                        .replaceAll("\\s+", "");
-                    } else if (content.contains("-----BEGIN RSA PUBLIC KEY-----")) {
-                        // Raw PKCS#1 public key
-                        base64 = content.replace("-----BEGIN RSA PUBLIC KEY-----", "")
-                                        .replace("-----END RSA PUBLIC KEY-----", "")
-                                        .replaceAll("\\s+", "");
-                    } else {
-                        // Assume file is just base64 DER content already
-                        base64 = content.replaceAll("\\s+", "");
-                    }
-
-                    publicKeys.put(clientId, base64);
-                    log.info("Loaded public key for client: {}", clientId);
-                } catch (IOException e) {
-                    log.error("Failed to load public key for client: {}", clientId, e);
-                }
+            // Read request body for POST/PUT requests
+            String body = null;
+            if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
+                body = request.getReader().lines().reduce("", (accumulator, actual) -> accumulator + actual);
             }
 
-            log.info("Loaded {} public keys from directory: {}", publicKeys.size(), keysDirectory);
+            // Create canonical string
+            String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, uri, body, timestamp);
+            
+            log.info("canonicalString from SignatureVerificationFilter is "+canonicalString);
+
+            // Verify signature
+            boolean isValid = AsymmetricSignatureUtil.verify(canonicalString, signature, publicKeyBase64);
+
+            if (!isValid) {
+                log.info("Invalid signature for client: {} request: {} {}"+ clientId+" "+ method+" "+ uri);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid signature");
+                return;
+            }
+
+            log.debug("Signature verified successfully for client: {} request: {} {}"+ clientId+" "+ method+" "+ uri);
+           // filterChain.doFilter(request, response);
+
         } catch (Exception e) {
-            log.error("Error loading keys from directory: {}", keysDirectory, e);
+            log.error("Error during signature verification"+ e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Signature verification failed");
         }
     }
-
-    public String getPublicKey(String clientId) {
-        return publicKeys.get(clientId);
-    }
-
-    public boolean hasClient(String clientId) {
-        return publicKeys.containsKey(clientId);
-    }
-
-    public void reloadKeys() {
-        publicKeys.clear();
-        loadKeys();
-    }
 }
-									  
