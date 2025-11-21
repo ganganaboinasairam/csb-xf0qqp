@@ -1,78 +1,38 @@
-package com.chat.config;
+import javax.servlet.http.HttpServletRequest;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.web.filter.OncePerRequestFilter;
 
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+public class SignatureVerificationFilter extends OncePerRequestFilter {
 
-@SuppressWarnings("deprecation")
-@Configuration
-@EnableWebSecurity
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
-    private final SignatureVerificationFilter signatureVerificationFilter;
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String uri = request.getRequestURI();
+        String upgrade = request.getHeader("Upgrade");
 
-    public SecurityConfig(SignatureVerificationFilter signatureVerificationFilter) {
-        this.signatureVerificationFilter = signatureVerificationFilter;
+        // Skip websocket handshake (Upgrade header)
+        if (upgrade != null && "websocket".equalsIgnoreCase(upgrade)) {
+            return true;
+        }
+
+        // Skip known WS/STOMP/SockJS endpoints (including SockJS POST fallbacks)
+        if (pathMatcher.match("/ws/**", uri)
+            || pathMatcher.match("/stomp/**", uri)
+            || pathMatcher.match("/sockjs/**", uri)
+            || "/ChatServer/chatServer".equals(uri)) {
+            return true;
+        }
+
+        return false; // run the filter normally for everything else
     }
 
     @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http
-            // If you use SockJS and its POST fallbacks, either disable CSRF or ignore the WS endpoints:
-            .csrf().ignoringAntMatchers("/ws/**", "/sockjs/**", "/stomp/**")
-            // .csrf().disable() // alternative if API-only and you know what you are doing
-            .and()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            .and()
-            .authorizeRequests()
-                .antMatchers("/ping").permitAll()
-                // permit the websocket handshake endpoints (adjust to your actual endpoints)
-                .antMatchers("/ws/**", "/stomp/**", "/sockjs/**", "/ChatServer/chatServer").permitAll()
-                .anyRequest().authenticated()
-            .and()
-            .addFilterBefore(signatureVerificationFilter, UsernamePasswordAuthenticationFilter.class);
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+        // your signature verification logic here (only runs if shouldNotFilter returned false)
+        // ...
+        filterChain.doFilter(request, response);
     }
-
-    @Override
-    public void configure(WebSecurity web) throws Exception {
-        // Prefer NOT to ignore API endpoints here unless you truly want to bypass all security filters.
-        // Keep only static resources in web.ignoring() normally. If you truly want to bypass entirely:
-        // web.ignoring().antMatchers("/static/**", "/public/**");
-    }
-}
-
-
-@Override
-protected void doFilterInternal(HttpServletRequest request,
-                                HttpServletResponse response,
-                                FilterChain chain) throws ServletException, IOException {
-
-    // If this is a websocket upgrade handshake, skip signature verification
-    String upgradeHeader = request.getHeader("Upgrade");
-    if (upgradeHeader != null && "websocket".equalsIgnoreCase(upgradeHeader)) {
-        chain.doFilter(request, response);
-        return;
-    }
-
-    // Optionally skip for specific paths (if needed)
-    String path = request.getRequestURI();
-    if (path != null && (path.startsWith("/ws") || path.startsWith("/stomp") || path.startsWith("/sockjs") || path.equals("/ChatServer/chatServer"))) {
-        chain.doFilter(request, response);
-        return;
-    }
-
-    // ----- existing signature verification logic here -----
-    try {
-        // ... verify signature ...
-    } catch (Exception ex) {
-        // handle failure: return 401/403 or continue as appropriate
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid signature");
-        return;
-    }
-
-    chain.doFilter(request, response);
 }
