@@ -1,87 +1,23 @@
-//this is the java code 
-
-private void handleHttpRequest(String method, String endpoint, HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        try {
-            // Read request body if POST
-            String body = null;
-            if ("POST".equals(method)) {
-                BufferedReader reader = req.getReader();
-                body = reader.lines().reduce("", (a, b) -> a + b);
-            }
-            
-            
-
-            // Generate timestamp
-            String timestamp = String.valueOf(System.currentTimeMillis());
-
-            // Create canonical string
-            String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, "/ChatServer/" + endpoint, body, timestamp);
-            
-            log.info("canonicalString from ChatClient is "+canonicalString);
-
-            // Sign the canonical string
-            String signature = AsymmetricSignatureUtil.sign(canonicalString, privateKeyBase64);
-            
-            log.info("signature is "+signature);
-
-            // Forward request to chat server
-            URL url = new URL(CHAT_SERVER_BASE_URL + "/" + endpoint + "?" + req.getQueryString());
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod(method);
-            conn.setRequestProperty("X-Timestamp", timestamp);
-            conn.setRequestProperty("X-Signature", signature);
-            conn.setRequestProperty("X-Client-ID", CLIENT_ID);
-            
-            log.info("URL is : "+url);
-
-            if (body != null) {
-                conn.setDoOutput(true);
-                try (OutputStream os = conn.getOutputStream()) {
-                    os.write(body.getBytes("UTF-8"));
-                }
-            }
-
-            // Read response
-            int responseCode = conn.getResponseCode();
-            resp.setStatus(responseCode);
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(
-                    responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream()));
-            String inputLine;
-            StringBuilder response = new StringBuilder();
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-
-            resp.getWriter().write(response.toString());
-
-        } catch (Exception e) {
-            log.error("Error handling HTTP request"+ e);
-            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Request failed");
-        }
-    }
-	
-	
-	
-	
-	
-//this is the react code 
-
-const updateMsgStatus = async (custId,branchCode) => {
-
-  const URLBase = window.location.origin;
-
-  const payLoad = {custId: custId,branchCode:branchCode,reqFrom:'customer'}
-  const response = await fetch(`${URLBase}/CEWeb/servlets/chatClient/updateMsgReadStatus`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payLoad)
-          });
-
-          if (!response.ok) throw new Error('Failed to fetch bot reply');
-
-}
-	
-	
-will the java code read the body from the request
+@PostMapping("/updateMsgReadStatus")
+	public ResponseEntity<?> updateMsgReadStatus(
+			@RequestParam String reqFrom,
+			@RequestParam String custId,
+			@RequestParam String branchCode
+			) {
+		Map<String,String> response = new HashMap<String, String>();
+		try {
+			System.out.println("/////////////////////////////////////// enter updateMsgReadStatus //////////////////////////////");
+			ChatMessageManager.updateMsgReadStatus(reqFrom, custId, branchCode);
+			//JSONObject jsonObj = new JSONObject();
+			response.put("info", "Sucessfully updated msg status for " + custId );
+			System.out.println("Sucessfully updated msg status for " + custId );
+			return ResponseEntity.ok(response);
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.println("/////////////////////////////////////// enter updateMsgReadStatus  catch 1 //////////////////////////////");
+			//JSONObject error = new JSONObject();
+			response.put("error", "Server error while loading messages");
+			System.out.println("/////////////////////////////////////// enter updateMsgReadStatus  catch //////////////////////////////");
+            return ResponseEntity.status(500).body(response);
+		}
+	}
