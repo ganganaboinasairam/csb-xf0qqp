@@ -46,9 +46,9 @@ public class ChatClientServlet extends HttpServlet {
 	
 	
 	
-	private static final String CLIENT_ID = "customerPub";
-	private static final String PRIVATE_KEY_PATH = "EncryptionKeys/customerPriv.pem";
-	private static final String CHAT_SERVER_BASE_URL = "http://10.177.141.86:7001/ChatServer"; // Adjust as needed
+	private String CLIENT_ID ;
+	private String PRIVATE_KEY_PATH ;
+	private String CHAT_SERVER_BASE_URL; 
 
 	private String privateKeyBase64;
 	private final Map<String, Session> wsSessions = new ConcurrentHashMap<>();
@@ -56,6 +56,14 @@ public class ChatClientServlet extends HttpServlet {
 	@Override
 	public void init() throws ServletException {
 		try {
+//load properties
+			Properties pr =  new Properties();
+			
+			pr.load(new FileInputStream("properties/ChatServer.properties"));
+			
+			CLIENT_ID = pr.getProperty("CLIENT_ID");
+			PRIVATE_KEY_PATH = pr.getProperty("PRIVATE_KEY_PATH");
+			CHAT_SERVER_BASE_URL = pr.getProperty("CHAT_SERVER_BASE_URL");
 			
 			// Load private key
 			String privateKeyPem = new String(Files.readAllBytes(Paths.get(PRIVATE_KEY_PATH))).replaceAll("\\n", "")
@@ -64,6 +72,8 @@ public class ChatClientServlet extends HttpServlet {
 			privateKeyBase64 = privateKeyPem;
 			log.info("Loaded private key for client: " + CLIENT_ID);
 			log.info("privateKeyPem is " + privateKeyPem);
+			
+			
 		} catch (Exception e) {
 			throw new ServletException("Failed to load private key", e);
 		}
