@@ -22,10 +22,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
-            // If you use SockJS and its POST fallbacks, either disable CSRF or ignore the WS endpoints:
-            .csrf().ignoringAntMatchers("/ws/**", "/sockjs/**", "/stomp/**")
-            // .csrf().disable() // alternative if API-only and you know what you are doing
-            .and()
+            // Disable CSRF checks entirely (no CSRF token required for any HTTP method)
+            // Use this only for stateless APIs or when you know requests won't rely on cookies.
+            .csrf().disable()
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
@@ -39,12 +38,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     public void configure(WebSecurity web) throws Exception {
-        // Prefer NOT to ignore API endpoints here unless you truly want to bypass all security filters.
-        // Keep only static resources in web.ignoring() normally. If you truly want to bypass entirely:
-        web.ignoring().antMatchers("/ChatServer/chatServer");
+        // Keep static resources here if desired. Only ignore truly public static resources.
+        web.ignoring().antMatchers("/resources/**", "/static/**", "/public/**");
     }
 }
-
-
-
-modify the configuration , so that i wont ask for csrf for POST and any other type
