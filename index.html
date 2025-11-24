@@ -1,44 +1,23 @@
-package com.chat.config;
-
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-@SuppressWarnings("deprecation")
-@Configuration
-@EnableWebSecurity
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
-
-    private final SignatureVerificationFilter signatureVerificationFilter;
-
-    public SecurityConfig(SignatureVerificationFilter signatureVerificationFilter) {
-        this.signatureVerificationFilter = signatureVerificationFilter;
-    }
-
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http
-            // Disable CSRF checks entirely (no CSRF token required for any HTTP method)
-            // Use this only for stateless APIs or when you know requests won't rely on cookies.
-            .csrf().disable()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            .and()
-            .authorizeRequests()
-                .antMatchers("/ping").permitAll()
-                // permit the websocket handshake endpoints (adjust to your actual endpoints)
-                .antMatchers("/ws/**", "/stomp/**", "/sockjs/**", "/ChatServer/chatServer").permitAll()
-                .anyRequest().authenticated()
-            .and()
-            .addFilterBefore(signatureVerificationFilter, UsernamePasswordAuthenticationFilter.class);
-    }
-
-    @Override
-    public void configure(WebSecurity web) throws Exception {
-        // Keep static resources here if desired. Only ignore truly public static resources.
-        web.ignoring().antMatchers("/resources/**", "/static/**", "/public/**");
-    }
-}
+@PostMapping("/updateMsgReadStatus")
+	public ResponseEntity<?> updateMsgReadStatus(
+			@RequestParam String reqFrom,
+			@RequestParam String custId,
+			@RequestParam String branchCode
+			) {
+		Map<String,String> response = new HashMap<String, String>();
+		try {
+			System.out.println("/////////////////////////////////////// enter updateMsgReadStatus //////////////////////////////");
+			ChatMessageManager.updateMsgReadStatus(reqFrom, custId, branchCode);
+			//JSONObject jsonObj = new JSONObject();
+			response.put("info", "Sucessfully updated msg status for " + custId );
+			System.out.println("Sucessfully updated msg status for " + custId );
+			return ResponseEntity.ok(response);
+		} catch (Exception e) {
+			// TODO: handle exception
+			System.out.println("/////////////////////////////////////// enter updateMsgReadStatus  catch 1 //////////////////////////////");
+			//JSONObject error = new JSONObject();
+			response.put("error", "Server error while loading messages");
+			System.out.println("/////////////////////////////////////// enter updateMsgReadStatus  catch //////////////////////////////");
+            return ResponseEntity.status(500).body(response);
+		}
+	}
