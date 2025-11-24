@@ -1,55 +1,318 @@
-// at top imports
-import java.util.stream.Collectors;
-import java.nio.charset.Charset;
+package com.tcs.sbi.chat;
 
-// inside handleHttpRequest before creating canonicalString
-byte[] bodyBytes = null;
-String body = "";
-if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
-    // Read raw bytes from the request input stream (preserves everything exactly)
-    bodyBytes = req.getInputStream().readAllBytes(); // Java 9+, fallback below if needed
-    if (bodyBytes == null) {
-        bodyBytes = new byte[0];
-    }
-    Charset charset = req.getCharacterEncoding() == null ? StandardCharsets.UTF_8 : Charset.forName(req.getCharacterEncoding());
-    body = bodyBytes.length == 0 ? "" : new String(bodyBytes, charset);
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.websocket.Session;
+
+import com.cs.base.log.CSLogger;
+import com.cs.eximap.log.ASCELog;
+import com.cs.eximap.log.CELogUtility;
+
+/**
+ * Example servlet that mediates between HTML frontend and chat server. Handles
+ * signed HTTP requests and WebSocket connections. Assumes private key in
+ * keys/example-client.pem.
+ */
+//@WebServlet("/chatClient/*")
+public class ChatClientServlet extends HttpServlet {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	public static final CSLogger log = ASCELog
+			.getCELogger(CELogUtility.getLoggerWithClassName(ChatClientServlet.class, "CELOG"));
+
+	private static final String CLIENT_ID = "customerPub";
+	private static final String PRIVATE_KEY_PATH = "EncryptionKeys/customerPriv.pem";
+	private static final String CHAT_SERVER_BASE_URL = "http://10.177.141.86:7001/ChatServer"; // Adjust as needed
+	// private static final String CHAT_SERVER_WS_URL =
+	// "ws://10.177.141.86:7001/ChatServer/chatServer"; // Adjust as needed
+
+	private String privateKeyBase64;
+	private final Map<String, Session> wsSessions = new ConcurrentHashMap<>();
+
+	@Override
+	public void init() throws ServletException {
+		try {
+			// Load private key
+			String privateKeyPem = new String(Files.readAllBytes(Paths.get(PRIVATE_KEY_PATH))).replaceAll("\\n", "")
+					.replaceAll("\\r", "").replace("-----BEGIN RSA PRIVATE KEY-----", "")
+					.replace("-----END RSA PRIVATE KEY-----", "").trim();
+			privateKeyBase64 = privateKeyPem;
+			log.info("Loaded private key for client: " + CLIENT_ID);
+			log.info("privateKeyPem is " + privateKeyPem);
+		} catch (Exception e) {
+			throw new ServletException("Failed to load private key", e);
+		}
+	}
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		String pathInfo = req.getPathInfo();
+		if (pathInfo == null || pathInfo.equals("/")) {
+			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid path");
+			return;
+		}
+
+		String endpoint = pathInfo.substring(1); // Remove leading /
+
+		handleHttpRequest("GET", endpoint, req, resp);
+
+	}
+
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		String pathInfo = req.getPathInfo();
+		if (pathInfo == null || pathInfo.equals("/")) {
+			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid path");
+			return;
+		}
+
+		String endpoint = pathInfo.substring(1);
+		handleHttpRequest("POST", endpoint, req, resp);
+	}
+
+	private void handleHttpRequest(String method, String endpoint, HttpServletRequest req, HttpServletResponse resp)
+			throws IOException {
+		try {
+			// Read request body if POST
+			byte[] bodyBytes = null;
+			String body = "";
+			if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
+				
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				try(InputStream is = req.getInputStream()){
+					byte[] buf = new byte[4096];
+					int r;
+					while((r = is.read(buf)) != -1)baos.write(buf,0,r);
+				}
+				bodyBytes = baos.toByteArray();
+				Charset charset = req.getCharacterEncoding() == null ? StandardCharsets.UTF_8 : Charset.forName(req.getCharacterEncoding());
+				body = bodyBytes.length == 0 ? "" : new String(bodyBytes, charset);
+			}
+
+			log.info("body (string) is ::::::::::::::::::::::::::::::::::::::::::" + body);
+			log.info("body bytes length = " + (bodyBytes == null ? 0 : bodyBytes.length));
+
+			// Generate timestamp
+			String timestamp = String.valueOf(System.currentTimeMillis());
+
+			// Create canonical string using the *exact* body string you just computed
+			String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, "/ChatServer/" + endpoint, body, timestamp);
+			log.info("canonicalString from ChatClient is " + canonicalString);
+
+			// Sign it
+			String signature = AsymmetricSignatureUtil.sign(canonicalString, privateKeyBase64);
+			log.info("signature is " + signature);
+
+			// Build finalURL (same as before)
+			String query = req.getQueryString();
+			String finalURL = CHAT_SERVER_BASE_URL + "/" + endpoint + (query != null && !query.isEmpty() ? "?" + query : "");
+
+			URL url = new URL(finalURL);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod(method);
+			conn.setRequestProperty("X-Timestamp", timestamp);
+			conn.setRequestProperty("X-Signature", signature);
+			conn.setRequestProperty("X-Client-ID", CLIENT_ID);
+
+			// Forward Content-Type from incoming request if present, otherwise default
+			String contentType = req.getContentType() != null ? req.getContentType() : "application/json; charset=UTF-8";
+			conn.setRequestProperty("Content-Type", contentType);
+
+			// If you have bodyBytes, write them exactly
+			if (bodyBytes != null && bodyBytes.length > 0) {
+			    conn.setDoOutput(true);
+			    conn.setRequestProperty("Content-Length", String.valueOf(bodyBytes.length));
+			    try (OutputStream os = conn.getOutputStream()) {
+			        os.write(bodyBytes); // write exact bytes
+			        os.flush();
+			    }
+			}
+			
+			log.info("url contents are :      "+conn.getContent());
+
+			// Read response
+			int responseCode = conn.getResponseCode();
+			resp.setStatus(responseCode);
+
+			BufferedReader in = new BufferedReader(new InputStreamReader(
+					responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream()));
+			String inputLine;
+			StringBuilder response = new StringBuilder();
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
+
+			resp.getWriter().write(response.toString());
+
+		} catch (Exception e) {
+			log.error("Error handling HTTP request" + e);
+			resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Request failed");
+		}
+	}
+
+
+	// Handle WebSocket messages from HTML client
+	@Override
+	protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		String sessionId = req.getParameter("sessionId");
+		String message = req.getParameter("message");
+
+		if (sessionId == null || message == null) {
+			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing sessionId or message");
+			return;
+		}
+
+		Session wsSession = wsSessions.get(sessionId);
+		if (wsSession != null && wsSession.isOpen()) {
+			try {
+				wsSession.getBasicRemote().sendText(message);
+				resp.getWriter().write("{\"status\":\"sent\"}");
+			} catch (Exception e) {
+				log.error("Error sending WebSocket message" + e);
+				resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Send failed");
+			}
+		} else {
+			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid session");
+		}
+	}
+
 }
 
-log.info("body (string) is ::::::::::::::::::::::::::::::::::::::::::" + body);
-log.info("body bytes length = " + (bodyBytes == null ? 0 : bodyBytes.length));
 
-// Generate timestamp
-String timestamp = String.valueOf(System.currentTimeMillis());
 
-// Create canonical string using the *exact* body string you just computed
-String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, "/ChatServer/" + endpoint, body, timestamp);
-log.info("canonicalString from ChatClient is " + canonicalString);
+                        package com.chat.config;
 
-// Sign it
-String signature = AsymmetricSignatureUtil.sign(canonicalString, privateKeyBase64);
-log.info("signature is " + signature);
+import java.io.IOException;
+import java.util.Collections;
 
-// Build finalURL (same as before)
-String query = req.getQueryString();
-String finalURL = CHAT_SERVER_BASE_URL + "/" + endpoint + (query != null && !query.isEmpty() ? "?" + query : "");
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-URL url = new URL(finalURL);
-HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-conn.setRequestMethod(method);
-conn.setRequestProperty("X-Timestamp", timestamp);
-conn.setRequestProperty("X-Signature", signature);
-conn.setRequestProperty("X-Client-ID", CLIENT_ID);
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.util.StreamUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingRequestWrapper;
+import com.cs.base.log.CSLogger;
+import com.cs.eximap.log.ASCELog;
+import com.cs.eximap.log.CELogUtility;
 
-// Forward Content-Type from incoming request if present, otherwise default
-String contentType = req.getContentType() != null ? req.getContentType() : "application/json; charset=UTF-8";
-conn.setRequestProperty("Content-Type", contentType);
+@Component
+public class SignatureVerificationFilter extends OncePerRequestFilter {
 
-// If you have bodyBytes, write them exactly
-if (bodyBytes != null && bodyBytes.length > 0) {
-    conn.setDoOutput(true);
-    conn.setRequestProperty("Content-Length", String.valueOf(bodyBytes.length));
-    try (OutputStream os = conn.getOutputStream()) {
-        os.write(bodyBytes); // write exact bytes
-        os.flush();
+	public static final CSLogger log = ASCELog.getCELogger(CELogUtility.getLoggerWithClassName(KeyManager.class, "CELOG"));
+    private final KeyManager keyManager;
+
+    public SignatureVerificationFilter(KeyManager keyManager) {
+        this.keyManager = keyManager;
+    }
+
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
+    
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request0, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+
+    	log.info("////////////////////////////////////  enter the security filter  ////////////////////////////////////");
+        // wrap so we can read body and allow downstream to read it too
+        ContentCachingRequestWrapper request = new ContentCachingRequestWrapper(request0);
+
+        try {
+            String method = request.getMethod();
+            String uri = request.getRequestURI();
+            String timestamp = request.getHeader("X-Timestamp");
+            String signature = request.getHeader("X-Signature");
+            String clientId = request.getHeader("X-Client-ID");
+            log.info("method :"+method+" uri :"+uri+" timestamp :"+timestamp+" signature :"+signature+" clientId :"+clientId);
+            
+            if (pathMatcher.match("/ws/**", uri)
+                    || pathMatcher.match("/stomp/**", uri)
+                    || pathMatcher.match("/sockjs/**", uri)
+                    || "/ChatServer/chatServer".equals(uri)) {
+                	
+            	log.info("//////////////////////////////////// websocket ///////////////////////////////////////");
+            	filterChain.doFilter(request, response); 
+            	return;
+                }
+
+            if (timestamp == null || signature == null || clientId == null) {
+                log.warn("Missing required headers: X-Timestamp, X-Signature, or X-Client-ID for request: {} {}"+ method+ uri);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing signature headers");
+                return;
+            }
+
+            String publicKeyBase64 = keyManager.getPublicKey(clientId);
+            if (publicKeyBase64 == null) {
+                log.info("Unknown client ID: {} for request: {} {}"+clientId+" "+ method+" "+ uri);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unknown client");
+                return;
+            }
+
+            String body = "";
+            // For POST/PUT we must read the request body so ContentCachingRequestWrapper caches it
+            if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
+                // read the input stream to force caching
+                byte[] content = StreamUtils.copyToByteArray(request.getInputStream());
+                
+                log.info("++++++++++++++++++++++++++++++ content of body is "+content);
+                if (content != null && content.length > 0) {
+                    String encoding = request.getCharacterEncoding() == null ? "UTF-8" : request.getCharacterEncoding();
+                    body = new String(content, encoding);
+                } else {
+                    body = "";
+                }
+            }
+
+            String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, uri, body, timestamp);
+            log.info("canonicalString from SignatureVerificationFilter is "+canonicalString);
+
+            boolean isValid = AsymmetricSignatureUtil.verify(canonicalString, signature, publicKeyBase64);
+
+            if (!isValid) {
+                log.info("Invalid signature for client: {} request: {} {}"+ clientId+" "+ method+" "+ uri);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid signature");
+                return;
+            }
+
+            // Create an Authentication so Spring's authorization will pass
+            UsernamePasswordAuthenticationToken auth =
+                    new UsernamePasswordAuthenticationToken(clientId, null, Collections.emptyList());
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            log.debug("Signature verified successfully for client: {} request: {} {}"+ clientId+" "+ method+" "+ uri);
+            // continue the chain with the wrapped request
+            filterChain.doFilter(request, response); 
+
+        } catch (Exception e) {
+            SecurityContextHolder.clearContext();
+	    log.error("Error during signature verification"+ e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Signature verification failed");
+        }
     }
 }
