@@ -1,152 +1,217 @@
-package com.chat.config;
+/* chat-sender.jsx -> Replaces WebSocket logic with REST POST to /testproject/chatClient/sendmessage
+   Usage: window.chatSender.init({ urlBase, token, customerId, branchCode, customerName, onResponse, onError })
+   Exposes: init, send, safeSend, close, _internal for testing/inspection
+*/
+(function () {
+  // Default base (adjust if your server lives elsewhere)
+  const DEFAULT_URL_BASE = (opts) => opts.urlBase || "http://localhost:8085";
 
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+  // Internal state
+  let opts = null;
+  let queue = [];
+  let sending = false;
+  let flushTimer = null;
+  let flushInterval = 3000; // attempt queue flush every 3s when items exist
+  let explicitlyClosed = false;
 
-@SuppressWarnings("deprecation")
-@Configuration
-@EnableWebSecurity
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+  // Build endpoint URL for sending messages
+  function buildSendUrl() {
+    const base = DEFAULT_URL_BASE(opts);
+    // Endpoint path used in your description. Adjust if your server path differs.
+    return `${base}/testproject/chatClient/sendmessage`;
+  }
 
-    private final SignatureVerificationFilter signatureVerificationFilter;
-
-    public SecurityConfig(SignatureVerificationFilter signatureVerificationFilter) {
-        this.signatureVerificationFilter = signatureVerificationFilter;
+  // Helper: send one payload to server via fetch
+  async function postMessage(payload) {
+    const url = buildSendUrl();
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    if (opts && opts.token) {
+      // prefer Authorization header if token present
+      headers["Authorization"] = `Bearer ${opts.token}`;
     }
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http
-            // If you use SockJS and its POST fallbacks, either disable CSRF or ignore the WS endpoints:
-            .csrf().ignoringAntMatchers("/ws/**", "/sockjs/**", "/stomp/**")
-            // .csrf().disable() // alternative if API-only and you know what you are doing
-            .and()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            .and()
-            .authorizeRequests()
-                .antMatchers("/ping").permitAll()
-                // permit the websocket handshake endpoints (adjust to your actual endpoints)
-                .antMatchers("/ws/**", "/stomp/**", "/sockjs/**", "/ChatServer/chatServer").permitAll()
-                .anyRequest().authenticated()
-            .and()
-            .addFilterBefore(signatureVerificationFilter, UsernamePasswordAuthenticationFilter.class);
+    // Add identifying metadata to body so server knows which customer/branch sent it
+    const body = Object.assign(
+      {},
+      {
+        customerId: opts.customerId,
+        branchCode: opts.branchCode,
+        customerName: opts.customerName || "",
+      },
+      payload
+    );
+
+    const fetchOptions = {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      // include credentials only if user configured it
+      credentials: opts.credentials || "same-origin",
+    };
+
+    const res = await fetch(url, fetchOptions);
+    if (!res.ok) {
+      // Throw an error so caller can decide to queue/retry
+      const text = await res.text().catch(() => "");
+      const err = new Error(`HTTP ${res.status} ${res.statusText} ${text}`);
+      err.status = res.status;
+      throw err;
+    }
+    // parse JSON if server responds with json
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      return await res.json();
+    }
+    return await res.text();
+  }
+
+  // Flush queue: send queued messages in FIFO order, one-by-one.
+  async function flushQueue() {
+    if (sending || explicitlyClosed) return;
+    if (!queue.length) {
+      // stop periodic flush when nothing to do
+      clearInterval(flushTimer);
+      flushTimer = null;
+      return;
     }
 
-    @Override
-    public void configure(WebSecurity web) throws Exception {
-        // Prefer NOT to ignore API endpoints here unless you truly want to bypass all security filters.
-        // Keep only static resources in web.ignoring() normally. If you truly want to bypass entirely:
-        web.ignoring().antMatchers("/ChatServer/chatServer");
-    }
-}
-
-
-
-package com.chat.config;
-
-import java.io.IOException;
-import java.util.Collections;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
-import org.springframework.util.AntPathMatcher;
-import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.util.ContentCachingRequestWrapper;
-import com.cs.base.log.CSLogger;
-import com.cs.eximap.log.ASCELog;
-import com.cs.eximap.log.CELogUtility;
-
-@Component
-public class SignatureVerificationFilter extends OncePerRequestFilter {
-
-	public static final CSLogger log = ASCELog.getCELogger(CELogUtility.getLoggerWithClassName(KeyManager.class, "CELOG"));
-    private final KeyManager keyManager;
-
-    public SignatureVerificationFilter(KeyManager keyManager) {
-        this.keyManager = keyManager;
-    }
-
-    private final AntPathMatcher pathMatcher = new AntPathMatcher();
-    
-
-    @Override
-    protected void doFilterInternal(HttpServletRequest request0, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-
-        // wrap so we can read body and allow downstream to read it too
-        ContentCachingRequestWrapper request = new ContentCachingRequestWrapper(request0);
-
+    sending = true;
+    try {
+      while (queue.length && !explicitlyClosed) {
+        const item = queue[0]; // peek
         try {
-            String method = request.getMethod();
-            String uri = request.getRequestURI();
-            String timestamp = request.getHeader("X-Timestamp");
-            String signature = request.getHeader("X-Signature");
-            String clientId = request.getHeader("X-Client-ID");
-            log.info("method :"+method+" uri :"+uri+" timestamp :"+timestamp+" signature :"+signature+" clientId :"+clientId);
-            
-            if (pathMatcher.match("/ws/**", uri)
-                    || pathMatcher.match("/stomp/**", uri)
-                    || pathMatcher.match("/sockjs/**", uri)
-                    || "/ChatServer/chatServer".equals(uri)) {
-                	
-            	log.info("////////////////////////////////// // websocket ///////////////////////////////////////");
-            	filterChain.doFilter(request, response); 
-            	return;
-                }
-
-            if (timestamp == null || signature == null || clientId == null) {
-                log.warn("Missing required headers: X-Timestamp, X-Signature, or X-Client-ID for request: {} {}"+ method+ uri);
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Missing signature headers");
-                return;
-            }
-
-            String publicKeyBase64 = keyManager.getPublicKey(clientId);
-            if (publicKeyBase64 == null) {
-                log.info("Unknown client ID: {} for request: {} {}"+clientId+" "+ method+" "+ uri);
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unknown client");
-                return;
-            }
-
-            String body = null;
-            if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
-                byte[] content = request.getContentAsByteArray();
-                body = content.length == 0 ? "" : new String(content, request.getCharacterEncoding() == null ? "UTF-8" : request.getCharacterEncoding());
-            }
-
-            String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, uri, body, timestamp);
-            log.info("canonicalString from SignatureVerificationFilter is "+canonicalString);
-
-            boolean isValid = AsymmetricSignatureUtil.verify(canonicalString, signature, publicKeyBase64);
-
-            if (!isValid) {
-                log.info("Invalid signature for client: {} request: {} {}"+ clientId+" "+ method+" "+ uri);
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid signature");
-                return;
-            }
-
-            // Create an Authentication so Spring's authorization will pass
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(clientId, null, Collections.emptyList());
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            log.debug("Signature verified successfully for client: {} request: {} {}"+ clientId+" "+ method+" "+ uri);
-            // continue the chain with the wrapped request
-            filterChain.doFilter(request, response); 
-
-        } catch (Exception e) {
-            SecurityContextHolder.clearContext();
-	    log.error("Error during signature verification"+ e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Signature verification failed");
+          const resp = await postMessage(item.payload);
+          // success: pop queue and call callback if present
+          queue.shift();
+          if (item.resolve) item.resolve(resp);
+          if (opts.onResponse) {
+            try { opts.onResponse(resp, item.payload); } catch (e) { console.warn("onResponse callback failed", e); }
+          }
+        } catch (err) {
+          // Failed to send this item; stop processing further and leave it queued.
+          if (item.reject) item.reject(err);
+          if (opts.onError) {
+            try { opts.onError(err, item.payload); } catch (e) { console.warn("onError callback failed", e); }
+          }
+          break;
         }
+      }
+    } finally {
+      sending = false;
+      // if still have items, ensure periodic flush is running
+      if (queue.length && !flushTimer && !explicitlyClosed) {
+        flushTimer = setInterval(() => {
+          flushQueue().catch((e) => console.warn("flushQueue error", e));
+        }, flushInterval);
+      }
     }
-}
+  }
+
+  // safeSend: enqueue the payload and attempt immediate send; returns a Promise that resolves/rejects when send completes or fails.
+  function safeSend(payload) {
+    if (explicitlyClosed) {
+      return Promise.reject(new Error("chatSender is closed"));
+    }
+
+    return new Promise((resolve, reject) => {
+      queue.push({ payload, resolve, reject, timestamp: Date.now() });
+      // start flush immediately
+      flushQueue().catch((e) => {
+        // flushQueue handles retries; we expose errors via individual reject
+        console.warn("flushQueue triggered by safeSend failed", e);
+      });
+      // ensure periodic flush exists
+      if (!flushTimer) {
+        flushTimer = setInterval(() => {
+          flushQueue().catch((e) => console.warn("flushQueue error", e));
+        }, flushInterval);
+      }
+    });
+  }
+
+  // send: attempt immediate POST; if it fails, queue payload and return false. If success returns true.
+  async function send(payload) {
+    if (explicitlyClosed) {
+      console.warn("chatSender.send called after close()");
+      queue.push({ payload }); // keep it safe in queue anyway
+      return false;
+    }
+
+    try {
+      const resp = await postMessage(payload);
+      if (opts.onResponse) {
+        try { opts.onResponse(resp, payload); } catch (e) { console.warn("onResponse callback failed", e); }
+      }
+      return true;
+    } catch (err) {
+      // On failure, queue it for retry
+      queue.push({ payload });
+      if (!flushTimer) {
+        flushTimer = setInterval(() => {
+          flushQueue().catch((e) => console.warn("flushQueue error", e));
+        }, flushInterval);
+      }
+      if (opts.onError) {
+        try { opts.onError(err, payload); } catch (e) { console.warn("onError callback failed", e); }
+      }
+      return false;
+    }
+  }
+
+  // init: configure module and optionally start flushing existing queue
+  function init(initOpts = {}) {
+    opts = Object.assign(
+      {
+        urlBase: "http://localhost:8085",
+        token: "",
+        customerId: null,
+        branchCode: null,
+        customerName: "",
+        credentials: "same-origin", // or "include" if you need cookies included
+        onResponse: null,
+        onError: null,
+      },
+      initOpts
+    );
+    explicitlyClosed = false;
+
+    // If there are queued items (maybe persisted externally in future), start flush timer
+    if (queue.length && !flushTimer) {
+      flushTimer = setInterval(() => {
+        flushQueue().catch((e) => console.warn("flushQueue error", e));
+      }, flushInterval);
+      // attempt immediate flush
+      flushQueue().catch(() => {});
+    }
+  }
+
+  // close: disable automatic retries and clear queue (optionally)
+  function close({ clearQueue = false } = {}) {
+    explicitlyClosed = true;
+    clearInterval(flushTimer);
+    flushTimer = null;
+    if (clearQueue) queue = [];
+  }
+
+  // Expose public API
+  window.chatSender = {
+    init,
+    send,     // async function returning boolean
+    safeSend, // returns a Promise
+    close,
+    _internal: {
+      _getQueue: () => queue.slice(),
+      _getSendUrl: () => buildSendUrl(),
+      _isSending: () => sending,
+    },
+  };
+})();
+
+
+
+ # temporary — set only for debugging
+logging.level.org.springframework.security=DEBUG
+logging.level.org.springframework.web=DEBUG
+logging.level.org.springframework.web.socket=DEBUG
