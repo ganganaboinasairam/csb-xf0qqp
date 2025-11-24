@@ -1,214 +1,124 @@
-package com.tcs.sbi.chat;
+@Override
+public void init() throws ServletException {
+    Properties pr = new Properties();
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
+    // 1) Try explicit locations: system property then env var
+    String explicitPath = System.getProperty("chatserver.properties.path");
+    if (explicitPath == null || explicitPath.trim().isEmpty()) {
+        explicitPath = System.getenv("CHATSERVER_PROPERTIES_PATH");
+    }
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.websocket.Session;
+    // 2) If no explicit path, try to derive from JAR location
+    String resolvedPropsPath = null;
+    try {
+        if (explicitPath != null && !explicitPath.trim().isEmpty()) {
+            resolvedPropsPath = explicitPath;
+        } else {
+            // Determine location of the running jar (this class)
+            java.net.URL codeLocation = ChatClientServlet.class.getProtectionDomain().getCodeSource().getLocation();
+            java.nio.file.Path codePath = java.nio.file.Paths.get(codeLocation.toURI()); // e.g. .../base_domain/lib/app.jar or /base_domain/classes/
+            java.nio.file.Path baseDir;
 
-import com.cs.base.log.CSLogger;
-import com.cs.eximap.log.ASCELog;
-import com.cs.eximap.log.CELogUtility;
+            if (java.nio.file.Files.isDirectory(codePath)) {
+                // running exploded (classes/), assume baseDir is parent of that dir
+                baseDir = codePath.getParent(); // adjust if needed
+            } else {
+                // running from jar — get parent of parent ( jar is .../base_domain/lib/app.jar -> parent = lib -> baseDir = parentOfParent = base_domain )
+                java.nio.file.Path libDir = codePath.getParent();       // .../base_domain/lib
+                baseDir = libDir.getParent();                           // .../base_domain
+            }
+
+            if (baseDir == null) {
+                throw new ServletException("Unable to resolve application base directory from code location: " + codeLocation);
+            }
+
+            // Expect properties at base_domain/properties/chat.properties
+            resolvedPropsPath = baseDir.resolve("properties").resolve("chat.properties").toAbsolutePath().toString();
+        }
+
+        // Load properties from resolvedPropsPath
+        try (InputStream fis = new java.io.FileInputStream(resolvedPropsPath)) {
+            pr.load(fis);
+            log.info("Loaded properties from: " + resolvedPropsPath);
+        } catch (IOException ioe) {
+            throw new ServletException("Failed to load properties from: " + resolvedPropsPath, ioe);
+        }
+
+        // Read property values (use lowercase keys)
+        CLIENT_ID = trimToNull(pr.getProperty("client.id"));
+        String privateKeyPathProp = trimToNull(pr.getProperty("private.key.path"));
+        CHAT_SERVER_BASE_URL = trimToNull(pr.getProperty("chat.server.base.url"));
+
+        if (CLIENT_ID == null || privateKeyPathProp == null || CHAT_SERVER_BASE_URL == null) {
+            throw new ServletException("Missing required properties. Ensure client.id, private.key.path and chat.server.base.url are set in " + resolvedPropsPath);
+        }
+
+        // Read private key bytes (support classpath:... or filesystem)
+        byte[] keyBytes = readBytesForPath(privateKeyPathProp, resolvedPropsPath);
+        String privateKeyPem = new String(keyBytes, java.nio.charset.StandardCharsets.UTF_8)
+                .replaceAll("\\r", "")
+                .replaceAll("\\n", "")
+                .replace("-----BEGIN RSA PRIVATE KEY-----", "")
+                .replace("-----END RSA PRIVATE KEY-----", "")
+                .trim();
+        privateKeyBase64 = privateKeyPem;
+
+        log.info("Loaded private key from: " + privateKeyPathProp + " (resolved relative to: " + resolvedPropsPath + ")");
+        log.info("Client ID: " + CLIENT_ID);
+        // DO NOT log the privateKeyBase64 content in production
+
+    } catch (ServletException se) {
+        throw se;
+    } catch (Exception e) {
+        log.error("Failed to initialize ChatClientServlet", e);
+        throw new ServletException("Initialization failed", e);
+    }
+}
+
+/** trim helper */
+private static String trimToNull(String s) {
+    if (s == null) return null;
+    s = s.trim();
+    return s.isEmpty() ? null : s;
+}
 
 /**
- * Example servlet that mediates between HTML frontend and chat server. Handles
- * signed HTTP requests and WebSocket connections. Assumes private key in
- * keys/example-client.pem.
+ * Read bytes for a private key path. If the privateKeyPath starts with "classpath:",
+ * load from classpath. Otherwise treat as filesystem path. If relative path is given,
+ * resolve it relative to the properties file's directory (propsFilePath).
+ *
+ * @param privateKeyPath the path from properties (e.g. "/etc/keys/key.pem" or "classpath:keys/key.pem" or "keys/key.pem")
+ * @param propsFilePath absolute path to the properties file used to resolve relative privateKeyPath
+ * @return byte[] contents
  */
-//@WebServlet("/chatClient/*")
-public class ChatClientServlet extends HttpServlet {
+private byte[] readBytesForPath(String privateKeyPath, String propsFilePath) throws IOException {
+    if (privateKeyPath.startsWith("classpath:")) {
+        String resource = privateKeyPath.substring("classpath:".length());
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(resource)) {
+            if (is == null) throw new IOException("Private key resource not found on classpath: " + resource);
+            return toByteArray(is);
+        }
+    } else {
+        java.nio.file.Path keyPath = java.nio.file.Paths.get(privateKeyPath);
+        if (!keyPath.isAbsolute()) {
+            // resolve relative to properties file directory
+            java.nio.file.Path propsDir = java.nio.file.Paths.get(propsFilePath).getParent();
+            if (propsDir != null) {
+                keyPath = propsDir.resolve(privateKeyPath).toAbsolutePath();
+            } else {
+                keyPath = keyPath.toAbsolutePath();
+            }
+        }
+        return java.nio.file.Files.readAllBytes(keyPath);
+    }
+}
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-
-	public static final CSLogger log = ASCELog
-			.getCELogger(CELogUtility.getLoggerWithClassName(ChatClientServlet.class, "CELOG"));
-	
-	
-	
-	
-	private String CLIENT_ID ;
-	private String PRIVATE_KEY_PATH ;
-	private String CHAT_SERVER_BASE_URL; 
-
-	private String privateKeyBase64;
-	private final Map<String, Session> wsSessions = new ConcurrentHashMap<>();
-
-	@Override
-	public void init() throws ServletException {
-		try {
-//load properties
-			Properties pr =  new Properties();
-			
-			pr.load(new FileInputStream("properties/ChatServer.properties"));
-			
-			CLIENT_ID = pr.getProperty("CLIENT_ID");
-			PRIVATE_KEY_PATH = pr.getProperty("PRIVATE_KEY_PATH");
-			CHAT_SERVER_BASE_URL = pr.getProperty("CHAT_SERVER_BASE_URL");
-			
-			// Load private key
-			String privateKeyPem = new String(Files.readAllBytes(Paths.get(PRIVATE_KEY_PATH))).replaceAll("\\n", "")
-					.replaceAll("\\r", "").replace("-----BEGIN RSA PRIVATE KEY-----", "")
-					.replace("-----END RSA PRIVATE KEY-----", "").trim();
-			privateKeyBase64 = privateKeyPem;
-			log.info("Loaded private key for client: " + CLIENT_ID);
-			log.info("privateKeyPem is " + privateKeyPem);
-			
-			
-		} catch (Exception e) {
-			throw new ServletException("Failed to load private key", e);
-		}
-	}
-
-	@Override
-	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		String pathInfo = req.getPathInfo();
-		if (pathInfo == null || pathInfo.equals("/")) {
-			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid path");
-			return;
-		}
-
-		String endpoint = pathInfo.substring(1); // Remove leading /
-
-		handleHttpRequest("GET", endpoint, req, resp);
-
-	}
-
-	@Override
-	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		String pathInfo = req.getPathInfo();
-		if (pathInfo == null || pathInfo.equals("/")) {
-			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid path");
-			return;
-		}
-
-		String endpoint = pathInfo.substring(1);
-		handleHttpRequest("POST", endpoint, req, resp);
-	}
-
-	private void handleHttpRequest(String method, String endpoint, HttpServletRequest req, HttpServletResponse resp)
-			throws IOException {
-		try {
-			// Read request body if POST
-			byte[] bodyBytes = null;
-			String body = "";
-			if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
-				
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				try(InputStream is = req.getInputStream()){
-					byte[] buf = new byte[4096];
-					int r;
-					while((r = is.read(buf)) != -1)baos.write(buf,0,r);
-				}
-				bodyBytes = baos.toByteArray();
-				Charset charset = req.getCharacterEncoding() == null ? StandardCharsets.UTF_8 : Charset.forName(req.getCharacterEncoding());
-				body = bodyBytes.length == 0 ? "" : new String(bodyBytes, charset);
-			}
-
-			log.info("body (string) is ::::::::::::::::::::::::::::::::::::::::::" + body);
-			log.info("body bytes length = " + (bodyBytes == null ? 0 : bodyBytes.length));
-
-			// Generate timestamp
-			String timestamp = String.valueOf(System.currentTimeMillis());
-
-			// Create canonical string using the *exact* body string you just computed
-			String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, "/ChatServer/" + endpoint, body, timestamp);
-			log.info("canonicalString from ChatClient is " + canonicalString);
-
-			// Sign it
-			String signature = AsymmetricSignatureUtil.sign(canonicalString, privateKeyBase64);
-			log.info("signature is " + signature);
-
-			// Build finalURL (same as before)
-			String query = req.getQueryString();
-			String finalURL = CHAT_SERVER_BASE_URL + "/" + endpoint + (query != null && !query.isEmpty() ? "?" + query : "");
-
-			URL url = new URL(finalURL);
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setRequestMethod(method);
-			conn.setRequestProperty("X-Timestamp", timestamp);
-			conn.setRequestProperty("X-Signature", signature);
-			conn.setRequestProperty("X-Client-ID", CLIENT_ID);
-
-			// Forward Content-Type from incoming request if present, otherwise default
-			String contentType = req.getContentType() != null ? req.getContentType() : "application/json; charset=UTF-8";
-			conn.setRequestProperty("Content-Type", contentType);
-
-			// If you have bodyBytes, write them exactly
-			if (bodyBytes != null && bodyBytes.length > 0) {
-			    conn.setDoOutput(true);
-			    conn.setRequestProperty("Content-Length", String.valueOf(bodyBytes.length));
-			    try (OutputStream os = conn.getOutputStream()) {
-			        os.write(bodyBytes); // write exact bytes
-			        os.flush();
-			    }
-			}
-			
-			log.info("url contents are :      "+conn.getContent());
-
-			// Read response
-			int responseCode = conn.getResponseCode();
-			resp.setStatus(responseCode);
-
-			BufferedReader in = new BufferedReader(new InputStreamReader(
-					responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream()));
-			String inputLine;
-			StringBuilder response = new StringBuilder();
-			while ((inputLine = in.readLine()) != null) {
-				response.append(inputLine);
-			}
-			in.close();
-
-			resp.getWriter().write(response.toString());
-
-		} catch (Exception e) {
-			log.error("Error handling HTTP request" + e);
-			resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Request failed");
-		}
-	}
-
-	// Handle WebSocket messages from HTML client
-	@Override
-	protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		String sessionId = req.getParameter("sessionId");
-		String message = req.getParameter("message");
-
-		if (sessionId == null || message == null) {
-			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing sessionId or message");
-			return;
-		}
-
-		Session wsSession = wsSessions.get(sessionId);
-		if (wsSession != null && wsSession.isOpen()) {
-			try {
-				wsSession.getBasicRemote().sendText(message);
-				resp.getWriter().write("{\"status\":\"sent\"}");
-			} catch (Exception e) {
-				log.error("Error sending WebSocket message" + e);
-				resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Send failed");
-			}
-		} else {
-			resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid session");
-		}
-	}
-
+/** utility to read InputStream fully */
+private static byte[] toByteArray(InputStream is) throws IOException {
+    try (java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream()) {
+        byte[] buf = new byte[8192];
+        int r;
+        while ((r = is.read(buf)) != -1) baos.write(buf, 0, r);
+        return baos.toByteArray();
+    }
 }
