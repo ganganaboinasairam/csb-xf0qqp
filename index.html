@@ -1,6 +1,7 @@
 package com.chat.helper;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
@@ -18,28 +19,7 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
 
     @Override
     public ServletInputStream getInputStream() {
-        final ByteArrayInputStream bais = new ByteArrayInputStream(this.cachedBody);
-        return new ServletInputStream() {
-            @Override
-            public int read() {
-                return bais.read();
-            }
-
-            @Override
-            public boolean isFinished() {
-                return bais.available() == 0;
-            }
-
-            @Override
-            public boolean isReady() {
-                return true;
-            }
-
-            @Override
-            public void setReadListener(ReadListener readListener) {
-                // no-op for blocking IO
-            }
-        };
+        return new ByteArrayServletInputStream(this.cachedBody);
     }
 
     @Override
@@ -52,6 +32,31 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
         return this.cachedBody.length;
     }
 
-    // If someone calls getReader(), the container will wrap the InputStream -> Reader,
-    // so nothing else needed here (default wrapper behavior is fine).
+    private static class ByteArrayServletInputStream extends ServletInputStream {
+        private final ByteArrayInputStream bais;
+
+        ByteArrayServletInputStream(byte[] bytes) {
+            this.bais = new ByteArrayInputStream(bytes);
+        }
+
+        @Override
+        public int read() throws IOException {
+            return bais.read();
+        }
+
+        @Override
+        public boolean isFinished() {
+            return bais.available() == 0;
+        }
+
+        @Override
+        public boolean isReady() {
+            return true;
+        }
+
+        @Override
+        public void setReadListener(ReadListener readListener) {
+            // no-op for blocking IO
+        }
+    }
 }
