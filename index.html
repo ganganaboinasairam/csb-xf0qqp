@@ -1,62 +1,112 @@
-    const loadPreviousMessages = async () => {
-      try {
-        const response = await fetch(`../servlets/SampleServletChat?custId=${tellerId}&reqFrom=bank&branchCode=${branchCode}`,{
-			method:'GET',
-			credentials:'include'
-		});
-        if (!response.ok) throw new Error('Failed to fetch previous messages');
+const loadPreviousMessages = async () => {
+  try {
+    // build URL safely
+    const url = `../servlets/SampleServletChat?custId=${encodeURIComponent(tellerId)}&reqFrom=bank&branchCode=${encodeURIComponent(branchCode)}`;
 
-        let data = await response.json();
+    // wrap XHR in a Promise so we can await it
+    const data = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
 
-        // Group by customer
-        const customerMap = {};
-        data.forEach(msg => {
-          const custId = msg.custID1;
-          const custName = msg.custName;
-          if (!customerMap[custId]) {
-            customerMap[custId] = {
-              id: custId,
-              name: custName,
-              lastMessage: '',
-              lastMessageTime: '',
-              status: "online",
-              unreadCount: 0,
-              messages: []
-            };
+      // Ensure cookies/session are sent (important!)
+      xhr.withCredentials = true;
+
+      // optional: set a timeout (ms)
+      xhr.timeout = 30000; // 30s
+
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState !== 4) return;
+
+        // Only accept 2xx as OK
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const text = xhr.responseText;
+          if (!text) {
+            // empty response -> resolve with empty array
+            return resolve([]);
           }
-          customerMap[custId].messages.push({
-            content: msg.message,
-            type: msg.type,
-            isCustomer: msg.sender.toLowerCase() === 'customer',
-            timestamp: parseBankTimestamp(msg.date).toISOString()
-          });
-        });
+          try {
+            const json = JSON.parse(text);
+            resolve(json);
+          } catch (err) {
+            reject(new Error('Invalid JSON response: ' + err.message));
+          }
+        } else {
+          // Non-success status; try to surface server error message if present
+          let errMsg = `Request failed with status ${xhr.status}`;
+          try {
+            const resp = xhr.responseText;
+            if (resp) {
+              const parsed = JSON.parse(resp);
+              if (parsed.message) errMsg += ` - ${parsed.message}`;
+            }
+          } catch (e) {
+            // ignore parse errors
+          }
+          reject(new Error(errMsg));
+        }
+      };
 
-        Object.values(customerMap).forEach(customer => {
-          customer.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-          const lastMsg = customer.messages[customer.messages.length - 1];
-          customer.lastMessage = lastMsg?.content ?? '';
-          customer.lastMessageTime = lastMsg ? formatDate(lastMsg.timestamp) : '';
-        });
+      xhr.ontimeout = function () {
+        reject(new Error('Request timed out'));
+      };
 
-        const customerList = Object.values(customerMap).sort((a, b) => {
-          const timeA = new Date(a.messages[a.messages.length - 1]?.timestamp || 0);
-          const timeB = new Date(b.messages[b.messages.length - 1]?.timestamp || 0);
-          return timeB - timeA;
-        });
+      xhr.onerror = function () {
+        reject(new Error('Network error while making the request'));
+      };
 
-        setCustomers(customerList);
+      xhr.send();
+    });
 
-        const allTimestamps = customerList.flatMap(c => c.messages.map(m => m.timestamp));
-        const latestTimestamp = allTimestamps.length > 0 ? allTimestamps.sort().pop() : null;
-        setLastTimestamp(latestTimestamp);
-
-        if (customerList.length > 0) setSelectedCustomer(customerList[0]);
-
-        // NEW: fetch unread counts for all (authoritative)
-        refreshUnreadCountsForAll(customerList);
-
-      } catch (error) {
-        console.error('Error loading previous messages:', error);
+    // ====== existing processing logic (unchanged) ======
+    // Group by customer
+    const customerMap = {};
+    (data || []).forEach(msg => {
+      const custId = msg.custID1;
+      const custName = msg.custName;
+      if (!customerMap[custId]) {
+        customerMap[custId] = {
+          id: custId,
+          name: custName,
+          lastMessage: '',
+          lastMessageTime: '',
+          status: "online",
+          unreadCount: 0,
+          messages: []
+        };
       }
-    };
+      customerMap[custId].messages.push({
+        content: msg.message,
+        type: msg.type,
+        isCustomer: msg.sender && msg.sender.toLowerCase() === 'customer',
+        timestamp: parseBankTimestamp(msg.date).toISOString()
+      });
+    });
+
+    Object.values(customerMap).forEach(customer => {
+      customer.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      const lastMsg = customer.messages[customer.messages.length - 1];
+      customer.lastMessage = lastMsg?.content ?? '';
+      customer.lastMessageTime = lastMsg ? formatDate(lastMsg.timestamp) : '';
+    });
+
+    const customerList = Object.values(customerMap).sort((a, b) => {
+      const timeA = new Date(a.messages[a.messages.length - 1]?.timestamp || 0);
+      const timeB = new Date(b.messages[b.messages.length - 1]?.timestamp || 0);
+      return timeB - timeA;
+    });
+
+    setCustomers(customerList);
+
+    const allTimestamps = customerList.flatMap(c => c.messages.map(m => m.timestamp));
+    const latestTimestamp = allTimestamps.length > 0 ? allTimestamps.sort().pop() : null;
+    setLastTimestamp(latestTimestamp);
+
+    if (customerList.length > 0) setSelectedCustomer(customerList[0]);
+
+    // NEW: fetch unread counts for all (authoritative)
+    refreshUnreadCountsForAll(customerList);
+
+  } catch (error) {
+    console.error('Error loading previous messages:', error);
+  }
+};
