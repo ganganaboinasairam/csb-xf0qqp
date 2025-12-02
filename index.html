@@ -1,62 +1,62 @@
-package com.chat.helper;
+    const loadPreviousMessages = async () => {
+      try {
+        const response = await fetch(`../servlets/SampleServletChat?custId=${tellerId}&reqFrom=bank&branchCode=${branchCode}`,{
+			method:'GET',
+			credentials:'include'
+		});
+        if (!response.ok) throw new Error('Failed to fetch previous messages');
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
+        let data = await response.json();
 
-import javax.servlet.ReadListener;
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
+        // Group by customer
+        const customerMap = {};
+        data.forEach(msg => {
+          const custId = msg.custID1;
+          const custName = msg.custName;
+          if (!customerMap[custId]) {
+            customerMap[custId] = {
+              id: custId,
+              name: custName,
+              lastMessage: '',
+              lastMessageTime: '',
+              status: "online",
+              unreadCount: 0,
+              messages: []
+            };
+          }
+          customerMap[custId].messages.push({
+            content: msg.message,
+            type: msg.type,
+            isCustomer: msg.sender.toLowerCase() === 'customer',
+            timestamp: parseBankTimestamp(msg.date).toISOString()
+          });
+        });
 
-public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
+        Object.values(customerMap).forEach(customer => {
+          customer.messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          const lastMsg = customer.messages[customer.messages.length - 1];
+          customer.lastMessage = lastMsg?.content ?? '';
+          customer.lastMessageTime = lastMsg ? formatDate(lastMsg.timestamp) : '';
+        });
 
-    private final byte[] cachedBody;
+        const customerList = Object.values(customerMap).sort((a, b) => {
+          const timeA = new Date(a.messages[a.messages.length - 1]?.timestamp || 0);
+          const timeB = new Date(b.messages[b.messages.length - 1]?.timestamp || 0);
+          return timeB - timeA;
+        });
 
-    public CachedBodyHttpServletRequest(HttpServletRequest request, byte[] body) {
-        super(request);
-        this.cachedBody = body == null ? new byte[0] : body;
-    }
+        setCustomers(customerList);
 
-    @Override
-    public ServletInputStream getInputStream() {
-        return new ByteArrayServletInputStream(this.cachedBody);
-    }
+        const allTimestamps = customerList.flatMap(c => c.messages.map(m => m.timestamp));
+        const latestTimestamp = allTimestamps.length > 0 ? allTimestamps.sort().pop() : null;
+        setLastTimestamp(latestTimestamp);
 
-    @Override
-    public int getContentLength() {
-        return this.cachedBody.length;
-    }
+        if (customerList.length > 0) setSelectedCustomer(customerList[0]);
 
-    @Override
-    public long getContentLengthLong() {
-        return this.cachedBody.length;
-    }
+        // NEW: fetch unread counts for all (authoritative)
+        refreshUnreadCountsForAll(customerList);
 
-    private static class ByteArrayServletInputStream extends ServletInputStream {
-        private final ByteArrayInputStream bais;
-
-        ByteArrayServletInputStream(byte[] bytes) {
-            this.bais = new ByteArrayInputStream(bytes);
-        }
-
-        @Override
-        public int read() throws IOException {
-            return bais.read();
-        }
-
-        @Override
-        public boolean isFinished() {
-            return bais.available() == 0;
-        }
-
-        @Override
-        public boolean isReady() {
-            return true;
-        }
-
-        @Override
-        public void setReadListener(ReadListener readListener) {
-            // no-op for blocking IO
-        }
-    }
-}
+      } catch (error) {
+        console.error('Error loading previous messages:', error);
+      }
+    };
