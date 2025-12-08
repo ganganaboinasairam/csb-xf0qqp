@@ -1,54 +1,28 @@
-for our project the below method is working for POST 
-
-function classifyDocuments() {
-    try {
-		alert("Please upload documents as Consolidated documents in upload document section");
-        var mainRef = document.getElementById("C_MAIN_REF").value;
-		 var userSessionId = document.getElementById('currentSessionId')?.value || null;
-
-        if (!mainRef) {
-            alert("Main Reference is missing!");
-            return;
-        }
-
-        var url = "../servlets/ClassificationDocServlet";
-
-            var params =
-            "reference_id=" + mainRef +
-            "&UserSessionId=" + userSessionId;
-			
-        sendRequestByAjaxPost(
-            url,
-            params,
-            false,
-            function (xmlhttp) {
-                var respText = xmlhttp.responseText;
-                console.log("CLASSIFY RESP:", respText);
-
-                var text = xmlhttp.responseText;
-
-				// remove illegal HTML/XML wrappers inserted by WebLogic
-				text = text.replace(/^\s*<[^>]+>/g, '');   // remove starting HTML tags
-				text = text.replace(/<\/[^>]+>\s*$/g, ''); // remove ending HTML tags
-
-				// fix bad WebLogic escaping (converts \x, \u, \n errors)
-				text = text.replace(/\\(?!["\\/bfnrtu])/g, "\\\\"); // escape ONLY bad backslashes
-
-                var resp = JSON.parse(text);
-				
-                if (resp.status === "success") {
-                    alert("Document sent for classification.");
-                } else {
-                    alert("Error: " + resp.message);
-                }
-            }
-        );
-
-    } catch (e) {
-        alert("Classification failed: " + e);
-    }
-};
-
-
-
-i want a similar type of code for get request 
+SELECT
+    t1.c_main_ref,
+    t1.c_unit_code
+FROM
+    eximtrx.fwco_master t1
+WHERE
+        t1.c_locked_flag = 'F'
+    AND ( t1.c_lock_func_id <> 'AP'
+          OR t1.c_lock_func_id IS NULL )
+    AND ( t1.c_locked_op <> 'AP_OP'
+          OR t1.c_locked_op <> 'AP_OP'
+          OR t1.c_locked_op = ''
+          OR t1.c_locked_op IS NULL )
+    AND ( t1.c_unit_code = '09995' )
+    AND t1.c_trx_status = 'M'
+    AND t1.c_func_short_name IN ( 'Booking_FC_DEO')
+    AND ( ( sysdate - t1.booking_date = 7 )
+          OR ( ( sysdate - t1.booking_date > 10 )
+               AND ( sysdate - t1.booking_date < 16 ) ) )
+    AND t1.area_delivery = '4'
+ORDER BY
+    c_main_ref;
+	
+	
+	
+	
+	
+this is the query of the autobatch runnig to send a reminder to the customer about documents, the mail should go on 7th day and 11th day and continously from 11th to 15 , but after the batch runs on the 7th day the c_func_short_name will get updated to "CE15MailTracer", then the sql will not pick the transaction for the 11th day reminder 
