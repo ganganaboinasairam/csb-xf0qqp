@@ -1,28 +1,3 @@
-SELECT
-    t1.c_main_ref,
-    t1.c_unit_code
-FROM
-    eximtrx.fwco_master t1
-WHERE
-        t1.c_locked_flag = 'F'
-    AND ( t1.c_lock_func_id <> 'AP'
-          OR t1.c_lock_func_id IS NULL )
-    AND ( t1.c_locked_op <> 'AP_OP'
-          OR t1.c_locked_op <> 'AP_OP'
-          OR t1.c_locked_op = ''
-          OR t1.c_locked_op IS NULL )
-    AND ( t1.c_unit_code = '09995' )
-    AND t1.c_trx_status = 'M'
-    AND t1.c_func_short_name IN ( 'Booking_FC_DEO')
-    AND ( ( sysdate - t1.booking_date = 7 )
-          OR ( ( sysdate - t1.booking_date > 10 )
-               AND ( sysdate - t1.booking_date < 16 ) ) )
-    AND t1.area_delivery = '4'
-ORDER BY
-    c_main_ref;
-	
-	
-	
-	
-	
-this is the query of the autobatch runnig to send a reminder to the customer about documents, the mail should go on 7th day and 11th day and continously from 11th to 15 , but after the batch runs on the 7th day the c_func_short_name will get updated to "CE15MailTracer", then the sql will not pick the transaction for the 11th day reminder 
+i want to develop a java tool for retrofitting files (html,jsp,js,xml).
+
+in out project we use the PVCS (version controll system) while pushing the file to pvcs we need to retrofit our code with tagging of CR like (Start of IR 123456 and End of IR 123456) i will provide the new file and the old file .
