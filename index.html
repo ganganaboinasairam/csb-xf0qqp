@@ -1,5 +1,39 @@
-there is a change in the functionality, as i can oberver that the retrofiting is not working out because the untagged code is not totally my changes , other developers also working on the common file that is the reson that the tool is not serving my purpose .
+java -jar ir-disable-tool.jar "25090062" "A925 (ADDITION OF IR 25120053)"
 
-now i wamt to use the tool to different purpose , i want to comment out the code in particular cr or ir tagging , when the component is moving to the production the component will be checked in under multiple ir ,if the latest ir is going to the poroduction , then the code is checked in in the differnt ir which is stil in the ST or UAT or in nonprod region , then the code unser that ir will be commmented with a special tagging line .
 
-now i will provide the ir number which is the st or nonprod and specialm tagging tag to comment out the code.
+below is the example tagging 
+
+if the code is tagged like 
+
+
+EXAMPLE 1:
+
+// Start of CR 25090062
+document.getElementById("OTHERS_DET_TAB").style.display = "none";
+			// End of CR 25090062
+			
+it should be commented like 
+
+// Start of CR 25090062
+//START OF A925 (ADDITION OF IR 25120053)
+document.getElementById("OTHERS_DET_TAB").style.display = "none";
+//END OF A925 (ADDITION OF IR 25120053)
+			// End of CR 25090062
+			
+EXAMPLE 2:
+// Start of CR 25090062
+document.getElementById("OTHERS_DET_TAB").style.display = "none";
+/*document.getElementById("BANK_DET_TAB").style.display = "none";*/
+			document.getElementById("DRAWEE_DET_TAB").style.display = "none";
+			// End of CR 25090062
+			
+OUTPUT: 
+// Start of CR 25090062
+//START OF A925 (ADDITION OF IR 25120053)
+document.getElementById("OTHERS_DET_TAB").style.display = "none";
+//END OF A925 (ADDITION OF IR 25120053)
+/*document.getElementById("BANK_DET_TAB").style.display = "none";*/
+//START OF A925 (ADDITION OF IR 25120053)
+			document.getElementById("DRAWEE_DET_TAB").style.display = "none";
+			//END OF A925 (ADDITION OF IR 25120053)
+			// End of CR 25090062
