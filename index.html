@@ -1,183 +1,39 @@
-public enum FileType {
-    JSP, HTML, JS, XML, OTHER
-}
-
 import java.nio.file.Path;
-
-public final class FileTypeResolver {
-
-    public static FileType resolve(Path file) {
-        String name = file.getFileName().toString().toLowerCase();
-
-        if (name.endsWith(".jsp")) return FileType.JSP;
-        if (name.endsWith(".html") || name.endsWith(".htm")) return FileType.HTML;
-        if (name.endsWith(".js")) return FileType.JS;
-        if (name.endsWith(".xml")) return FileType.XML;
-
-        return FileType.OTHER;
-    }
-}
-
-import java.io.IOException;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-
-public class RetrofitDirectoryProcessor {
-
-    private final Path oldRoot;
-    private final Path newRoot;
-    private final Path outRoot;
-    private final String cr;
-
-    public RetrofitDirectoryProcessor(Path oldRoot, Path newRoot,
-                                      Path outRoot, String cr) {
-        this.oldRoot = oldRoot;
-        this.newRoot = newRoot;
-        this.outRoot = outRoot;
-        this.cr = cr;
-    }
-
-    public void process() throws IOException {
-
-        Files.walkFileTree(newRoot, new SimpleFileVisitor<Path>() {
-
-            @Override
-            public FileVisitResult visitFile(Path newFile,
-                                             BasicFileAttributes attrs) throws IOException {
-
-                if (!attrs.isRegularFile()) {
-                    return FileVisitResult.CONTINUE;
-                }
-
-                Path relativePath = newRoot.relativize(newFile);
-                Path oldFile = oldRoot.resolve(relativePath);
-                Path outFile = outRoot.resolve(relativePath);
-
-                Files.createDirectories(outFile.getParent());
-
-                FileType type = FileTypeResolver.resolve(newFile);
-
-                try {
-                    if (Files.exists(oldFile) && type != FileType.OTHER) {
-                        retrofit(oldFile, newFile, outFile, type);
-                    } else {
-                        Files.copy(newFile, outFile,
-                                StandardCopyOption.REPLACE_EXISTING);
-                    }
-                } catch (Exception e) {
-                    throw new IOException("Failed processing: " + relativePath, e);
-                }
-
-                return FileVisitResult.CONTINUE;
-            }
-        });
-    }
-
-    private void retrofit(Path oldFile, Path newFile,
-                          Path outFile, FileType type) throws Exception {
-
-        switch (type) {
-            case JSP:
-                RetrofitEngine.retrofitJsp(oldFile, newFile, outFile, cr);
-                break;
-
-            case HTML:
-            case XML:
-            case JS:
-                RetrofitEngine.retrofitText(oldFile, newFile, outFile, cr, type);
-                break;
-
-            default:
-                Files.copy(newFile, outFile,
-                        StandardCopyOption.REPLACE_EXISTING);
-        }
-    }
-}
-
-public static void retrofitText(
-        Path oldFile,
-        Path newFile,
-        Path outFile,
-        String cr,
-        FileType type) throws Exception {
-
-    List<String> oldLines = Files.readAllLines(oldFile);
-    List<String> newLines = Files.readAllLines(newFile);
-
-    List<String> normOld = normalize(oldLines);
-    List<String> normNew = normalize(newLines);
-
-    Patch<String> patch = DiffUtils.diff(normOld, normNew);
-    Set<Integer> changeLines = new HashSet<>();
-
-    for (AbstractDelta<String> delta : patch.getDeltas()) {
-        if (delta.getType() != DeltaType.DELETE) {
-            int pos = delta.getTarget().getPosition();
-            int size = delta.getTarget().getLines().size();
-            for (int i = pos; i < pos + size; i++) {
-                changeLines.add(i);
-            }
-        }
-    }
-
-    TagStrategy ts =
-            (type == FileType.JS)
-                    ? new JavaCommentTagStrategy()
-                    : new HtmlTagStrategy();
-
-    List<String> output = new ArrayList<>();
-    boolean open = false;
-
-    for (int i = 0; i < newLines.size(); i++) {
-        String line = newLines.get(i);
-
-        boolean changed =
-                changeLines.contains(i)
-                && !LineNormalizer.normalize(line).isEmpty()
-                && !CRTagDetector.isAnyCRTag(line);
-
-        if (changed && !open) {
-            output.add(ts.start(cr));
-            open = true;
-        }
-
-        if (!changed && open) {
-            output.add(ts.end(cr));
-            open = false;
-        }
-
-        output.add(line);
-    }
-
-    if (open) {
-        output.add(ts.end(cr));
-    }
-
-    Files.write(outFile, output);
-}
-
-import java.nio.file.*;
+import java.nio.file.Paths;
 
 public class RetrofitCLI {
 
+    // HARD-CODED BASE PATHS
+    private static final Path OLD_BASE =
+            Paths.get("E:/old_base_domain");
+
+    private static final Path NEW_BASE =
+            Paths.get("E:/new_base_domain");
+
+    private static final Path OUT_BASE =
+            Paths.get("E:/retrofitted_base_domain");
+
     public static void main(String[] args) throws Exception {
 
-        if (args.length < 4) {
+        if (args.length < 1) {
             System.err.println(
-                "Usage: java -jar retrofit.jar <oldDir> <newDir> <outDir> <CR>");
+                "Usage: java -jar retrofit-tool.jar <CR_NUMBER>");
             System.exit(1);
         }
 
-        Path oldDir = Paths.get(args[0]);
-        Path newDir = Paths.get(args[1]);
-        Path outDir = Paths.get(args[2]);
-        String cr = args[3];
+        String cr = args[0];
 
         RetrofitDirectoryProcessor processor =
-                new RetrofitDirectoryProcessor(oldDir, newDir, outDir, cr);
+                new RetrofitDirectoryProcessor(
+                        OLD_BASE,
+                        NEW_BASE,
+                        OUT_BASE,
+                        cr
+                );
 
         processor.process();
 
-        System.out.println("Batch retrofit completed for IR " + cr);
+        System.out.println(
+            "Batch retrofit completed for IR " + cr);
     }
 }
