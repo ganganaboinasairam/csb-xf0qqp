@@ -1,39 +1,65 @@
-java -jar ir-disable-tool.jar "25090062" "A925 (ADDITION OF IR 25120053)"
+public final class CommentUtil {
+
+    private CommentUtil() {}
+
+    public static boolean isAlreadyCommented(String line) {
+        String t = line.trim();
+        return t.startsWith("//")
+            || t.startsWith("/*")
+            || t.endsWith("*/");
+    }
+
+    public static String startMarker(String tag, String indent) {
+        return indent + "//START OF " + tag;
+    }
+
+    public static String endMarker(String tag, String indent) {
+        return indent + "//END OF " + tag;
+    }
+
+    public static String leadingWhitespace(String line) {
+        int i = 0;
+        while (i < line.length() && Character.isWhitespace(line.charAt(i))) {
+            i++;
+        }
+        return line.substring(0, i);
+    }
+}
 
 
-below is the example tagging 
-
-if the code is tagged like 
 
 
-EXAMPLE 1:
 
-// Start of CR 25090062
-document.getElementById("OTHERS_DET_TAB").style.display = "none";
-			// End of CR 25090062
-			
-it should be commented like 
 
-// Start of CR 25090062
-//START OF A925 (ADDITION OF IR 25120053)
-document.getElementById("OTHERS_DET_TAB").style.display = "none";
-//END OF A925 (ADDITION OF IR 25120053)
-			// End of CR 25090062
-			
-EXAMPLE 2:
-// Start of CR 25090062
-document.getElementById("OTHERS_DET_TAB").style.display = "none";
-/*document.getElementById("BANK_DET_TAB").style.display = "none";*/
-			document.getElementById("DRAWEE_DET_TAB").style.display = "none";
-			// End of CR 25090062
-			
-OUTPUT: 
-// Start of CR 25090062
-//START OF A925 (ADDITION OF IR 25120053)
-document.getElementById("OTHERS_DET_TAB").style.display = "none";
-//END OF A925 (ADDITION OF IR 25120053)
-/*document.getElementById("BANK_DET_TAB").style.display = "none";*/
-//START OF A925 (ADDITION OF IR 25120053)
-			document.getElementById("DRAWEE_DET_TAB").style.display = "none";
-			//END OF A925 (ADDITION OF IR 25120053)
-			// End of CR 25090062
+
+
+
+
+if (ctx.isInsideDisabled(disabledIRs)
+        && !CRTagDetector.isAnyCRTag(line)
+        && !LineNormalizer.normalize(line).isEmpty()
+        && !CommentUtil.isAlreadyCommented(line)) {
+
+    String indent = CommentUtil.leadingWhitespace(line);
+
+    output.add(CommentUtil.startMarker(specialTag, indent));
+    output.add(line);
+    output.add(CommentUtil.endMarker(specialTag, indent));
+
+} else {
+    output.add(line);
+}
+
+
+
+
+
+
+
+
+
+if (ctx.isInsideDisabled(disabledIRs)
+    && !CRTagDetector.isAnyCRTag(line)
+    && !LineNormalizer.normalize(line).isEmpty()
+    && !CommentUtil.isAlreadyCommented(line)
+    && !line.contains("START OF " + specialTag)) {
