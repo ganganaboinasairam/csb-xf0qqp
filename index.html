@@ -1,34 +1,52 @@
-private void flush(List<String> buffer,
-                   List<String> out,
-                   FileType type) {
+java -jar ir-disable-tool.jar 25090062 "A952 (adding of 25090139)"
 
-    if (buffer.isEmpty()) return;
 
-    String indent = CommentUtil.indent(buffer.get(0));
+the tool is commenting the not related IR also
 
-    out.add(CommentUtil.startMarker(tag, indent, type));
-
-    if (buffer.size() == 1) {
-        // Single line → single comment
-        out.add(CommentUtil.commentLine(buffer.get(0).trim(), type));
-    } else {
-        if (type == FileType.JS) {
-            // JS multi-line block
-            out.add(indent + "/*");
-            for (String l : buffer) {
-                out.add(l);
-            }
-            out.add(indent + "*/");
-        } else {
-            // XML / JSP multi-line block (SINGLE COMMENT)
-            out.add(indent + "<!--");
-            for (String l : buffer) {
-                out.add(l);
-            }
-            out.add(indent + "-->");
-        }
-    }
-
-    out.add(CommentUtil.endMarker(tag, indent, type));
-    buffer.clear();
-}
+//start of ir 25090062
+		
+            // START OF A952 (adding of 25090139)
+            /*
+            }else if(document.MAINFORM.DOC_SENT_DROP.value == '4')  {
+                 document.MAINFORM.OTHER_NM_PINCODE.value = document.MAINFORM.OTHER_NM_PINCODE.value.replaceAll(" ","");
+                 var destPinCode = document.MAINFORM.OTHER_NM_PINCODE.value;
+            */
+            // END OF A952 (adding of 25090139)
+				  // start of ir 25090060
+                 // START OF A952 (adding of 25090139)
+//var RecStreetLn1 = document.MAINFORM.OTHER_NM_ADD1.value;
+                 // END OF A952 (adding of 25090139)
+				 // start of ir 25090061 
+                 // START OF A952 (adding of 25090139)
+                 /*
+                 var RecCity1 = document.MAINFORM.OTHER_NM_ADD3.value;
+                 var RecCounCode1 = document.MAINFORM.CNTY_CD_DOC2.value;
+                 */
+                 // END OF A952 (adding of 25090139)
+				 // end of ir 25090061
+                 // START OF A952 (adding of 25090139)
+                 /*
+                 if(document.MAINFORM.CNTY_CD_DOC2.value == 'US'){
+                    var RecSTcode1 = document.MAINFORM.OTHER_ST_CD.value;
+                 }else{
+                    var RecSTcode1 = '';
+                 }
+                 */
+                 // END OF A952 (adding of 25090139)
+				  // end of ir 25090060
+				  // START OF A952 (adding of 25090139)
+				  /*
+				  }else if(document.MAINFORM.DOC_SENT_DROP.value == '4')  {
+                 document.MAINFORM.OTHER_NM_PINCODE.value = document.MAINFORM.OTHER_NM_PINCODE.value.replaceAll(" ","");
+                 var destPinCode = document.MAINFORM.OTHER_NM_PINCODE.value;
+                 var RecStreetLn1 = document.MAINFORM.OTHER_NM_ADD1.value;			 
+                 var RecCity1 = document.MAINFORM.OTHER_NM_ADD3.value;
+                 var RecCounCode1 = document.MAINFORM.CNTY_CD_DOC2.value;
+                 if(document.MAINFORM.CNTY_CD_DOC2.value == 'US'){
+                    var RecSTcode1 = document.MAINFORM.OTHER_ST_CD.value;
+                 }else{
+                    var RecSTcode1 = '';
+				  */
+				  // END OF A952 (adding of 25090139)
+		 //end of ir 25090062
+            
