@@ -12,74 +12,18 @@ public class Task {
         this.status = status;
     }
 
-    public int getId() {
-        return id;
+    public int getId() { return id; }
+
+    public String getDescription() { return description; }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public String getStatus() {
-        return status;
-    }
+    public String getStatus() { return status; }
 
     public void setStatus(String status) {
         this.status = status;
-    }
-}
-
-
-package com.reminder;
-
-import com.google.gson.*;
-import java.io.*;
-import java.util.*;
-
-public class TaskJsonStore {
-
-    private static final String FILE_NAME = "tasks.json";
-    private static final Gson gson =
-            new GsonBuilder().setPrettyPrinting().create();
-
-    public static List<Task> loadTasks() {
-
-        try {
-            File file = new File(FILE_NAME);
-
-            if (!file.exists()) {
-                saveTasks(new ArrayList<>());
-                return new ArrayList<>();
-            }
-
-            JsonObject root = JsonParser
-                    .parseReader(new FileReader(file))
-                    .getAsJsonObject();
-
-            Task[] tasks = gson.fromJson(
-                    root.getAsJsonArray("tasks"),
-                    Task[].class
-            );
-
-            return new ArrayList<>(Arrays.asList(tasks));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
-    }
-
-    public static void saveTasks(List<Task> tasks) {
-
-        try (Writer writer = new FileWriter(FILE_NAME)) {
-
-            JsonObject root = new JsonObject();
-            root.add("tasks", gson.toJsonTree(tasks));
-            gson.toJson(root, writer);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 }
 
@@ -96,116 +40,141 @@ public class ReminderUI {
     public static void show(List<Task> tasks) {
 
         JDialog dialog = new JDialog((Frame) null, "Task Reminder", true);
-        dialog.setSize(600, 350);
+        dialog.setSize(700, 400);
         dialog.setLayout(new BorderLayout());
 
-        String[] columns = { "ID", "Task", "Status" };
-        Object[][] data = new Object[tasks.size()][3];
-
-        for (int i = 0; i < tasks.size(); i++) {
-            Task t = tasks.get(i);
-            data[i][0] = t.getId();
-            data[i][1] = t.getDescription();
-            data[i][2] = t.getStatus();
-        }
-
-        DefaultTableModel model = new DefaultTableModel(data, columns) {
+        String[] columns = {"ID", "Task", "Status"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
                 return col == 2;
             }
         };
 
+        for (Task t : tasks) {
+            model.addRow(new Object[]{
+                    t.getId(),
+                    t.getDescription(),
+                    t.getStatus()
+            });
+        }
+
         JTable table = new JTable(model);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
         JComboBox<String> statusBox =
                 new JComboBox<>(new String[]{"PENDING", "DONE"});
         table.getColumnModel()
                 .getColumn(2)
                 .setCellEditor(new DefaultCellEditor(statusBox));
 
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        /* ================= Buttons ================= */
+
+        JButton addBtn = new JButton("Add Task");
+        JButton editBtn = new JButton("Edit Task");
+        JButton deleteBtn = new JButton("Delete Task");
         JButton saveBtn = new JButton("Save & Close");
+
+        /* ---------- Add Task ---------- */
+        addBtn.addActionListener(e -> {
+            String desc = JOptionPane.showInputDialog(
+                    dialog,
+                    "Enter task description:"
+            );
+
+            if (desc != null && !desc.trim().isEmpty()) {
+                int newId = getNextId(model);
+                model.addRow(new Object[]{
+                        newId,
+                        desc.trim(),
+                        "PENDING"
+                });
+            }
+        });
+
+        /* ---------- Edit Task ---------- */
+        editBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                showMsg(dialog, "Please select a task to edit");
+                return;
+            }
+
+            String current = model.getValueAt(row, 1).toString();
+            String updated = JOptionPane.showInputDialog(
+                    dialog,
+                    "Edit task description:",
+                    current
+            );
+
+            if (updated != null && !updated.trim().isEmpty()) {
+                model.setValueAt(updated.trim(), row, 1);
+            }
+        });
+
+        /* ---------- Delete Task ---------- */
+        deleteBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                showMsg(dialog, "Please select a task to delete");
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(
+                    dialog,
+                    "Delete selected task?",
+                    "Confirm",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                model.removeRow(row);
+            }
+        });
+
+        /* ---------- Save ---------- */
         saveBtn.addActionListener(e -> {
 
-            for (int i = 0; i < tasks.size(); i++) {
-                tasks.get(i).setStatus(
+            tasks.clear();
+
+            for (int i = 0; i < model.getRowCount(); i++) {
+                tasks.add(new Task(
+                        Integer.parseInt(model.getValueAt(i, 0).toString()),
+                        model.getValueAt(i, 1).toString(),
                         model.getValueAt(i, 2).toString()
-                );
+                ));
             }
 
             TaskJsonStore.saveTasks(tasks);
             dialog.dispose();
         });
 
-        dialog.add(new JScrollPane(table), BorderLayout.CENTER);
-        dialog.add(saveBtn, BorderLayout.SOUTH);
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnPanel.add(addBtn);
+        btnPanel.add(editBtn);
+        btnPanel.add(deleteBtn);
+        btnPanel.add(saveBtn);
+
+        dialog.add(scrollPane, BorderLayout.CENTER);
+        dialog.add(btnPanel, BorderLayout.SOUTH);
         dialog.setLocationRelativeTo(null);
         dialog.setVisible(true);
     }
-}
 
+    /* ================= Helpers ================= */
 
-package com.reminder;
-
-import java.awt.*;
-import java.util.List;
-
-public class SystemTrayManager {
-
-    public static void init() {
-
-        if (!SystemTray.isSupported()) {
-            return;
+    private static int getNextId(DefaultTableModel model) {
+        int max = 0;
+        for (int i = 0; i < model.getRowCount(); i++) {
+            max = Math.max(max,
+                    Integer.parseInt(model.getValueAt(i, 0).toString()));
         }
+        return max + 1;
+    }
 
-        try {
-            SystemTray tray = SystemTray.getSystemTray();
-            Image image = Toolkit.getDefaultToolkit()
-                    .getImage("reminder.png");
-
-            PopupMenu menu = new PopupMenu();
-
-            MenuItem open = new MenuItem("Open Tasks");
-            open.addActionListener(e -> {
-                List<Task> tasks = TaskJsonStore.loadTasks();
-                ReminderUI.show(tasks);
-            });
-
-            MenuItem exit = new MenuItem("Exit");
-            exit.addActionListener(e -> System.exit(0));
-
-            menu.add(open);
-            menu.add(exit);
-
-            TrayIcon trayIcon =
-                    new TrayIcon(image, "Task Reminder", menu);
-            trayIcon.setImageAutoSize(true);
-            tray.add(trayIcon);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    private static void showMsg(Component parent, String msg) {
+        JOptionPane.showMessageDialog(parent, msg);
     }
 }
-
-
-package com.reminder;
-
-import java.util.List;
-import java.util.concurrent.*;
-
-public class ReminderScheduler {
-
-    public static void main(String[] args) {
-
-        SystemTrayManager.init();
-
-        ScheduledExecutorService scheduler =
-                Executors.newSingleThreadScheduledExecutor();
-
-        scheduler.scheduleAtFixedRate(() -> {
-            List<Task> tasks = TaskJsonStore.loadTasks();
-            ReminderUI.show(tasks);
-        }, 0, 1, TimeUnit.HOURS);
-    }
-}
-
