@@ -1,219 +1,115 @@
 package com.reminder;
 
-import javax.swing.*;
-import javax.swing.table.*;
-import java.awt.*;
-import java.util.List;
+public class Task {
 
-public class ReminderUI {
+    private int id;
+    private String description;
+    private String status;
+    private boolean dailyReset;
 
-    public static void show(List<Task> tasks) {
+    public Task(int id, String description, String status) {
+        this(id, description, status, false);
+    }
 
-        JDialog dialog = new JDialog((Frame) null, "Task Reminder", true);
-        dialog.setSize(800, 450);
-        dialog.setLayout(new BorderLayout());
+    public Task(int id, String description, String status, boolean dailyReset) {
+        this.id = id;
+        this.description = description;
+        this.status = status;
+        this.dailyReset = dailyReset;
+    }
 
-        String[] columns = {"ID", "Task", "Status"};
-        DefaultTableModel model = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int col) {
-                return col == 2; // only status editable
-            }
-        };
+    public int getId() { return id; }
+    public String getDescription() { return description; }
+    public String getStatus() { return status; }
+    public boolean isDailyReset() { return dailyReset; }
 
-        for (Task t : tasks) {
-            model.addRow(new Object[]{
-                    t.getId(),
-                    t.getDescription(),
-                    t.getStatus()
-            });
-        }
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
-        JTable table = new JTable(model);
-        table.setRowHeight(40);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        table.getTableHeader().setFont(
-                new Font("Segoe UI", Font.BOLD, 14)
-        );
+    public void setStatus(String status) {
+        this.status = status;
+    }
 
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    public void setDailyReset(boolean dailyReset) {
+        this.dailyReset = dailyReset;
+    }
+}
 
-        /* ================= Column Sizes ================= */
-        TableColumnModel colModel = table.getColumnModel();
-        colModel.getColumn(0).setPreferredWidth(50);   // ID small
-        colModel.getColumn(1).setPreferredWidth(500);  // Task large
-        colModel.getColumn(2).setPreferredWidth(120);  // Status
+package com.reminder;
 
-        /* ================= Task Text Wrap ================= */
-        colModel.getColumn(1).setCellRenderer(new TextWrapRenderer());
+import com.google.gson.*;
+import java.io.*;
+import java.time.LocalDate;
+import java.util.*;
 
-        /* ================= Status Dropdown ================= */
-        JComboBox<String> statusBox =
-                new JComboBox<>(new String[]{"PENDING", "DONE"});
-        colModel.getColumn(2).setCellEditor(new DefaultCellEditor(statusBox));
-        colModel.getColumn(2).setCellRenderer(new StatusColorRenderer());
+public class TaskJsonStore {
 
-        JScrollPane scrollPane = new JScrollPane(table);
+    private static final String FILE = "tasks.json";
+    private static final Gson gson =
+            new GsonBuilder().setPrettyPrinting().create();
 
-        /* ================= Buttons ================= */
+    public static List<Task> loadTasks() {
 
-        JButton addBtn = new JButton("Add Task");
-        JButton editBtn = new JButton("Edit Task");
-        JButton deleteBtn = new JButton("Delete Task");
-        JButton saveBtn = new JButton("Save & Close");
+        try {
+            File file = new File(FILE);
 
-        addBtn.addActionListener(e -> {
-            String desc = JOptionPane.showInputDialog(
-                    dialog,
-                    "Enter task description:"
-            );
-            if (desc != null && !desc.trim().isEmpty()) {
-                model.addRow(new Object[]{
-                        getNextId(model),
-                        desc.trim(),
-                        "PENDING"
-                });
-            }
-        });
-
-        editBtn.addActionListener(e -> {
-            int row = table.getSelectedRow();
-            if (row == -1) {
-                showMsg(dialog, "Please select a task to edit");
-                return;
+            if (!file.exists()) {
+                saveAll(new ArrayList<>(), LocalDate.now());
+                return new ArrayList<>();
             }
 
-            String current = model.getValueAt(row, 1).toString();
-            String updated = JOptionPane.showInputDialog(
-                    dialog,
-                    "Edit task description:",
-                    current
+            JsonObject root = JsonParser
+                    .parseReader(new FileReader(file))
+                    .getAsJsonObject();
+
+            LocalDate lastReset =
+                    LocalDate.parse(root.get("lastResetDate").getAsString());
+
+            LocalDate today = LocalDate.now();
+
+            Task[] tasks = gson.fromJson(
+                    root.getAsJsonArray("tasks"),
+                    Task[].class
             );
 
-            if (updated != null && !updated.trim().isEmpty()) {
-                model.setValueAt(updated.trim(), row, 1);
-            }
-        });
+            List<Task> taskList =
+                    new ArrayList<>(Arrays.asList(tasks));
 
-        deleteBtn.addActionListener(e -> {
-            int row = table.getSelectedRow();
-            if (row == -1) {
-                showMsg(dialog, "Please select a task to delete");
-                return;
-            }
-
-            if (JOptionPane.showConfirmDialog(
-                    dialog,
-                    "Delete selected task?",
-                    "Confirm",
-                    JOptionPane.YES_NO_OPTION
-            ) == JOptionPane.YES_OPTION) {
-                model.removeRow(row);
-            }
-        });
-
-        saveBtn.addActionListener(e -> {
-            tasks.clear();
-            for (int i = 0; i < model.getRowCount(); i++) {
-                tasks.add(new Task(
-                        Integer.parseInt(model.getValueAt(i, 0).toString()),
-                        model.getValueAt(i, 1).toString(),
-                        model.getValueAt(i, 2).toString()
-                ));
-            }
-            TaskJsonStore.saveTasks(tasks);
-            dialog.dispose();
-        });
-
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        btnPanel.add(addBtn);
-        btnPanel.add(editBtn);
-        btnPanel.add(deleteBtn);
-        btnPanel.add(saveBtn);
-
-        dialog.add(scrollPane, BorderLayout.CENTER);
-        dialog.add(btnPanel, BorderLayout.SOUTH);
-        dialog.setLocationRelativeTo(null);
-        dialog.setVisible(true);
-    }
-
-    /* ================= Helper Methods ================= */
-
-    private static int getNextId(DefaultTableModel model) {
-        int max = 0;
-        for (int i = 0; i < model.getRowCount(); i++) {
-            max = Math.max(max,
-                    Integer.parseInt(model.getValueAt(i, 0).toString()));
-        }
-        return max + 1;
-    }
-
-    private static void showMsg(Component parent, String msg) {
-        JOptionPane.showMessageDialog(parent, msg);
-    }
-
-    /* ================= Custom Renderers ================= */
-
-    /** Wraps long task text */
-    static class TextWrapRenderer extends JTextArea implements TableCellRenderer {
-        public TextWrapRenderer() {
-            setLineWrap(true);
-            setWrapStyleWord(true);
-            setOpaque(true);
-            setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        }
-
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table, Object value, boolean isSelected,
-                boolean hasFocus, int row, int column) {
-
-            setText(value == null ? "" : value.toString());
-
-            if (isSelected) {
-                setBackground(table.getSelectionBackground());
-                setForeground(table.getSelectionForeground());
-            } else {
-                setBackground(Color.WHITE);
-                setForeground(Color.BLACK);
+            // === Daily Reset (ONLY ONCE PER DAY) ===
+            if (!today.equals(lastReset)) {
+                for (Task t : taskList) {
+                    if (t.isDailyReset() &&
+                        "DONE".equalsIgnoreCase(t.getStatus())) {
+                        t.setStatus("PENDING");
+                    }
+                }
+                saveAll(taskList, today);
             }
 
-            setSize(table.getColumnModel().getColumn(column).getWidth(),
-                    getPreferredSize().height);
+            return taskList;
 
-            if (table.getRowHeight(row) != getPreferredSize().height) {
-                table.setRowHeight(row, getPreferredSize().height);
-            }
-
-            return this;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
         }
     }
 
-    /** Colors status cells */
-    static class StatusColorRenderer extends DefaultTableCellRenderer {
+    public static void saveTasks(List<Task> tasks) {
+        saveAll(tasks, LocalDate.now());
+    }
 
-        @Override
-        public Component getTableCellRendererComponent(
-                JTable table, Object value, boolean isSelected,
-                boolean hasFocus, int row, int column) {
+    private static void saveAll(List<Task> tasks, LocalDate resetDate) {
 
-            super.getTableCellRendererComponent(
-                    table, value, isSelected, hasFocus, row, column);
+        try (Writer writer = new FileWriter(FILE)) {
 
-            setFont(new Font("Segoe UI", Font.BOLD, 13));
-            setHorizontalAlignment(CENTER);
+            JsonObject root = new JsonObject();
+            root.addProperty("lastResetDate", resetDate.toString());
+            root.add("tasks", gson.toJsonTree(tasks));
+            gson.toJson(root, writer);
 
-            if ("DONE".equalsIgnoreCase(String.valueOf(value))) {
-                setBackground(new Color(144, 238, 144)); // green
-            } else {
-                setBackground(new Color(255, 255, 153)); // yellow
-            }
-
-            if (isSelected) {
-                setBackground(table.getSelectionBackground());
-            }
-
-            return this;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
