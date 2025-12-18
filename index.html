@@ -1,10 +1,104 @@
-String indent = CommentUtil.leadingWhitespace(buffer.get(0));
-out.add(CommentUtil.startMarker(tag, indent, type));
-out.add(CommentUtil.commentLine(buffer.get(0).trim(), type));
-out.add(CommentUtil.endMarker(tag, indent, type));
+ cmd : java -jar ir-disable-tool.jar 25090062 "ir tool"
+ 
+ xml example:
+ 
+ 
+ input:
+ <!--Start of CR 25090062-->
+	<DISP_PARA PROTECTED="false">OTHER_NM</DISP_PARA>
+    <DISP_PARA PROTECTED="false">OTHER_NM_ADD1</DISP_PARA>
+    <DISP_PARA PROTECTED="false">OTHER_NM_ADD2</DISP_PARA>
+    <DISP_PARA PROTECTED="false">OTHER_NM_ADD3</DISP_PARA>
+    <DISP_PARA PROTECTED="false">OTHER_NM_PINCODE</DISP_PARA>
+	<DISP_PARA PROTECTED="false">OTHER_STATE_CODE</DISP_PARA>
+	<DISP_PARA PROTECTED="false">CNTY_NM_DOC2</DISP_PARA>
+	 <DISP_PARA PROTECTED="false">CNTY_CD_DOC2</DISP_PARA>
+	 <!--End of CR 25090062-->
+	 
+	 output:
+	  <!--Start of CR 25090062-->
+	  <!-- START OF ir tool -->
+	<!-- <DISP_PARA PROTECTED="false">OTHER_NM</DISP_PARA>
+    <DISP_PARA PROTECTED="false">OTHER_NM_ADD1</DISP_PARA>
+    <DISP_PARA PROTECTED="false">OTHER_NM_ADD2</DISP_PARA>
+    <DISP_PARA PROTECTED="false">OTHER_NM_ADD3</DISP_PARA>
+    <DISP_PARA PROTECTED="false">OTHER_NM_PINCODE</DISP_PARA>
+	<DISP_PARA PROTECTED="false">OTHER_STATE_CODE</DISP_PARA>
+	<DISP_PARA PROTECTED="false">CNTY_NM_DOC2</DISP_PARA>
+	 <DISP_PARA PROTECTED="false">CNTY_CD_DOC2</DISP_PARA> -->
+	 <!-- END OF ir tool -->
+	 <!--End of CR 25090062-->
+	 
+js example 
 
-if (ctx.isInsideDisabled()
-    && !CommentUtil.isAlreadyCommented(line, type)
-    && !CRTagDetector.isAnyCRTag(line)
-    && !LineNormalizer.normalize(line).isEmpty()
-    && !line.contains("START OF " + tag)) {
+input: 
+ //start of ir 25090062
+		 // strat of ir 25090060
+           /* }else if(document.MAINFORM.DOC_SENT_DROP.value == '4')  {
+                 document.MAINFORM.OTHER_NM_PINCODE.value = document.MAINFORM.OTHER_NM_PINCODE.value.replaceAll(" ","");
+                 var destPinCode = document.MAINFORM.OTHER_NM_PINCODE.value;
+                 var RecStreetLn1 = document.MAINFORM.OTHER_NM_ADD1.value;			 
+                 var RecCity1 = document.MAINFORM.OTHER_NM_ADD3.value;
+                 var RecCounCode1 = document.MAINFORM.CNTY_CD_DOC2.value;
+                 if(document.MAINFORM.CNTY_CD_DOC2.value == 'US'){
+                    var RecSTcode1 = document.MAINFORM.OTHER_ST_CD.value;
+                 }else{
+                    var RecSTcode1 = '';
+                 }*/
+				  // end of ir 25090060
+				  }else if(document.MAINFORM.DOC_SENT_DROP.value == '4')  {
+                 document.MAINFORM.OTHER_NM_PINCODE.value = document.MAINFORM.OTHER_NM_PINCODE.value.replaceAll(" ","");
+                 var destPinCode = document.MAINFORM.OTHER_NM_PINCODE.value;
+                 var RecStreetLn1 = document.MAINFORM.OTHER_NM_ADD1.value;			 
+                 var RecCity1 = document.MAINFORM.OTHER_NM_ADD3.value;
+                 var RecCounCode1 = document.MAINFORM.CNTY_CD_DOC2.value;
+                 if(document.MAINFORM.CNTY_CD_DOC2.value == 'US'){
+                    var RecSTcode1 = document.MAINFORM.OTHER_ST_CD.value;
+                 }else{
+                    var RecSTcode1 = '';
+		 //end of ir 25090062
+		 
+output:
+//start of ir 25090062
+		 // strat of ir 25090060
+           /* }else if(document.MAINFORM.DOC_SENT_DROP.value == '4')  {
+                 document.MAINFORM.OTHER_NM_PINCODE.value = document.MAINFORM.OTHER_NM_PINCODE.value.replaceAll(" ","");
+                 var destPinCode = document.MAINFORM.OTHER_NM_PINCODE.value;
+                 var RecStreetLn1 = document.MAINFORM.OTHER_NM_ADD1.value;			 
+                 var RecCity1 = document.MAINFORM.OTHER_NM_ADD3.value;
+                 var RecCounCode1 = document.MAINFORM.CNTY_CD_DOC2.value;
+                 if(document.MAINFORM.CNTY_CD_DOC2.value == 'US'){
+                    var RecSTcode1 = document.MAINFORM.OTHER_ST_CD.value;
+                 }else{
+                    var RecSTcode1 = '';
+                 }*/
+				  // end of ir 25090060
+				  // START of ir tool
+				  }else if(document.MAINFORM.DOC_SENT_DROP.value == '4')  {
+                 document.MAINFORM.OTHER_NM_PINCODE.value = document.MAINFORM.OTHER_NM_PINCODE.value.replaceAll(" ","");
+                 var destPinCode = document.MAINFORM.OTHER_NM_PINCODE.value;
+                 var RecStreetLn1 = document.MAINFORM.OTHER_NM_ADD1.value;			 
+                 var RecCity1 = document.MAINFORM.OTHER_NM_ADD3.value;
+                 var RecCounCode1 = document.MAINFORM.CNTY_CD_DOC2.value;
+                 if(document.MAINFORM.CNTY_CD_DOC2.value == 'US'){
+                    var RecSTcode1 = document.MAINFORM.OTHER_ST_CD.value;
+                 }else{
+                    var RecSTcode1 = '';
+					// END of ir tool
+		 //end of ir 25090062
+		 
+JSP example :
+
+imput:
+<!--Start of CR 25090062-->
+                        <option value="4">Others</option>
+						<!--End of CR 25090062-->
+
+output:
+<!--Start of CR 25090062-->
+                        <!--START OF ir tool-->
+<!-- <option value="4">Others</option> -->
+                        <!--END OF ir tool-->
+						<!--End of CR 25090062-->
+						
+						
