@@ -1,104 +1,137 @@
- cmd : java -jar ir-disable-tool.jar 25090062 "ir tool"
- 
- xml example:
- 
- 
- input:
- <!--Start of CR 25090062-->
-	<DISP_PARA PROTECTED="false">OTHER_NM</DISP_PARA>
-    <DISP_PARA PROTECTED="false">OTHER_NM_ADD1</DISP_PARA>
-    <DISP_PARA PROTECTED="false">OTHER_NM_ADD2</DISP_PARA>
-    <DISP_PARA PROTECTED="false">OTHER_NM_ADD3</DISP_PARA>
-    <DISP_PARA PROTECTED="false">OTHER_NM_PINCODE</DISP_PARA>
-	<DISP_PARA PROTECTED="false">OTHER_STATE_CODE</DISP_PARA>
-	<DISP_PARA PROTECTED="false">CNTY_NM_DOC2</DISP_PARA>
-	 <DISP_PARA PROTECTED="false">CNTY_CD_DOC2</DISP_PARA>
-	 <!--End of CR 25090062-->
-	 
-	 output:
-	  <!--Start of CR 25090062-->
-	  <!-- START OF ir tool -->
-	<!-- <DISP_PARA PROTECTED="false">OTHER_NM</DISP_PARA>
-    <DISP_PARA PROTECTED="false">OTHER_NM_ADD1</DISP_PARA>
-    <DISP_PARA PROTECTED="false">OTHER_NM_ADD2</DISP_PARA>
-    <DISP_PARA PROTECTED="false">OTHER_NM_ADD3</DISP_PARA>
-    <DISP_PARA PROTECTED="false">OTHER_NM_PINCODE</DISP_PARA>
-	<DISP_PARA PROTECTED="false">OTHER_STATE_CODE</DISP_PARA>
-	<DISP_PARA PROTECTED="false">CNTY_NM_DOC2</DISP_PARA>
-	 <DISP_PARA PROTECTED="false">CNTY_CD_DOC2</DISP_PARA> -->
-	 <!-- END OF ir tool -->
-	 <!--End of CR 25090062-->
-	 
-js example 
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.*;
+import java.io.IOException;
 
-input: 
- //start of ir 25090062
-		 // strat of ir 25090060
-           /* }else if(document.MAINFORM.DOC_SENT_DROP.value == '4')  {
-                 document.MAINFORM.OTHER_NM_PINCODE.value = document.MAINFORM.OTHER_NM_PINCODE.value.replaceAll(" ","");
-                 var destPinCode = document.MAINFORM.OTHER_NM_PINCODE.value;
-                 var RecStreetLn1 = document.MAINFORM.OTHER_NM_ADD1.value;			 
-                 var RecCity1 = document.MAINFORM.OTHER_NM_ADD3.value;
-                 var RecCounCode1 = document.MAINFORM.CNTY_CD_DOC2.value;
-                 if(document.MAINFORM.CNTY_CD_DOC2.value == 'US'){
-                    var RecSTcode1 = document.MAINFORM.OTHER_ST_CD.value;
-                 }else{
-                    var RecSTcode1 = '';
-                 }*/
-				  // end of ir 25090060
-				  }else if(document.MAINFORM.DOC_SENT_DROP.value == '4')  {
-                 document.MAINFORM.OTHER_NM_PINCODE.value = document.MAINFORM.OTHER_NM_PINCODE.value.replaceAll(" ","");
-                 var destPinCode = document.MAINFORM.OTHER_NM_PINCODE.value;
-                 var RecStreetLn1 = document.MAINFORM.OTHER_NM_ADD1.value;			 
-                 var RecCity1 = document.MAINFORM.OTHER_NM_ADD3.value;
-                 var RecCounCode1 = document.MAINFORM.CNTY_CD_DOC2.value;
-                 if(document.MAINFORM.CNTY_CD_DOC2.value == 'US'){
-                    var RecSTcode1 = document.MAINFORM.OTHER_ST_CD.value;
-                 }else{
-                    var RecSTcode1 = '';
-		 //end of ir 25090062
-		 
-output:
-//start of ir 25090062
-		 // strat of ir 25090060
-           /* }else if(document.MAINFORM.DOC_SENT_DROP.value == '4')  {
-                 document.MAINFORM.OTHER_NM_PINCODE.value = document.MAINFORM.OTHER_NM_PINCODE.value.replaceAll(" ","");
-                 var destPinCode = document.MAINFORM.OTHER_NM_PINCODE.value;
-                 var RecStreetLn1 = document.MAINFORM.OTHER_NM_ADD1.value;			 
-                 var RecCity1 = document.MAINFORM.OTHER_NM_ADD3.value;
-                 var RecCounCode1 = document.MAINFORM.CNTY_CD_DOC2.value;
-                 if(document.MAINFORM.CNTY_CD_DOC2.value == 'US'){
-                    var RecSTcode1 = document.MAINFORM.OTHER_ST_CD.value;
-                 }else{
-                    var RecSTcode1 = '';
-                 }*/
-				  // end of ir 25090060
-				  // START of ir tool
-				  }else if(document.MAINFORM.DOC_SENT_DROP.value == '4')  {
-                 document.MAINFORM.OTHER_NM_PINCODE.value = document.MAINFORM.OTHER_NM_PINCODE.value.replaceAll(" ","");
-                 var destPinCode = document.MAINFORM.OTHER_NM_PINCODE.value;
-                 var RecStreetLn1 = document.MAINFORM.OTHER_NM_ADD1.value;			 
-                 var RecCity1 = document.MAINFORM.OTHER_NM_ADD3.value;
-                 var RecCounCode1 = document.MAINFORM.CNTY_CD_DOC2.value;
-                 if(document.MAINFORM.CNTY_CD_DOC2.value == 'US'){
-                    var RecSTcode1 = document.MAINFORM.OTHER_ST_CD.value;
-                 }else{
-                    var RecSTcode1 = '';
-					// END of ir tool
-		 //end of ir 25090062
-		 
-JSP example :
+public class IRDisableProcessor {
 
-imput:
-<!--Start of CR 25090062-->
-                        <option value="4">Others</option>
-						<!--End of CR 25090062-->
+    private final Path source;
+    private final Path output;
+    private final Set<String> disabledIRs;
+    private final String tag;
 
-output:
-<!--Start of CR 25090062-->
-                        <!--START OF ir tool-->
-<!-- <option value="4">Others</option> -->
-                        <!--END OF ir tool-->
-						<!--End of CR 25090062-->
-						
-						
+    public IRDisableProcessor(Path source,
+                              Path output,
+                              Set<String> disabledIRs,
+                              String tag) {
+        this.source = source;
+        this.output = output;
+        this.disabledIRs = disabledIRs;
+        this.tag = tag;
+    }
+
+    public void process() throws IOException {
+
+        Files.walkFileTree(source, new SimpleFileVisitor<Path>() {
+
+            @Override
+            public FileVisitResult visitFile(Path file,
+                    BasicFileAttributes attrs) throws IOException {
+
+                if (!attrs.isRegularFile()) {
+                    return FileVisitResult.CONTINUE;
+                }
+
+                FileType type = FileTypeResolver.resolve(file);
+
+                Path rel = source.relativize(file);
+                Path outFile = output.resolve(rel);
+                Files.createDirectories(outFile.getParent());
+
+                List<String> lines = Files.readAllLines(file);
+                List<String> out = new ArrayList<>();
+                List<String> buffer = new ArrayList<>();
+
+                IRContext ctx = new IRContext(disabledIRs);
+
+                boolean insideJsBlockComment = false;
+
+                for (String line : lines) {
+
+                    String trimmed = line.trim();
+
+                    /* ---------------- JS block comment handling ---------------- */
+                    if (type == FileType.JS) {
+
+                        if (trimmed.startsWith("/*")) {
+                            insideJsBlockComment = true;
+                        }
+
+                        if (insideJsBlockComment) {
+                            out.add(line);
+                            if (trimmed.endsWith("*/")) {
+                                insideJsBlockComment = false;
+                            }
+                            continue;
+                        }
+                    }
+
+                    /* ---------------- CR/IR boundary handling ---------------- */
+                    String start = CRTagDetector.extractStartId(line);
+                    if (start != null) {
+                        flush(buffer, out, type);
+                        ctx.enter(start);
+                        out.add(line);
+                        continue;
+                    }
+
+                    String end = CRTagDetector.extractEndId(line);
+                    if (end != null) {
+                        flush(buffer, out, type);
+                        out.add(line);
+                        ctx.exit(end);
+                        continue;
+                    }
+
+                    /* ---------------- Disable logic ---------------- */
+                    if (ctx.isInsideDisabled()
+                        && !CommentUtil.isBlank(line)
+                        && !CRTagDetector.isAnyCRTag(line)
+                        && !CommentUtil.isAlreadyCommented(line, type)
+                        && !line.contains("START OF " + tag)) {
+
+                        buffer.add(line);
+                        continue;
+                    }
+
+                    flush(buffer, out, type);
+                    out.add(line);
+                }
+
+                flush(buffer, out, type);
+                Files.write(outFile, out);
+                return FileVisitResult.CONTINUE;
+            }
+        });
+    }
+
+    private void flush(List<String> buffer,
+                       List<String> out,
+                       FileType type) {
+
+        if (buffer.isEmpty()) return;
+
+        String indent = CommentUtil.indent(buffer.get(0));
+
+        out.add(CommentUtil.startMarker(tag, indent, type));
+
+        if (buffer.size() == 1) {
+            out.add(CommentUtil.commentLine(buffer.get(0).trim(), type));
+        } else {
+            if (type == FileType.JS) {
+                out.add(indent + "/*");
+                for (String l : buffer) {
+                    out.add(l);
+                }
+                out.add(indent + "*/");
+            } else {
+                for (String l : buffer) {
+                    out.add(CommentUtil.commentLine(l.trim(), type));
+                }
+            }
+        }
+
+        out.add(CommentUtil.endMarker(tag, indent, type));
+        buffer.clear();
+    }
+}
