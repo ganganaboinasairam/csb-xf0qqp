@@ -1,3 +1,136 @@
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public final class CRTagDetector {
+
+    private static final Pattern START_PATTERN =
+        Pattern.compile("(?i)\\bstart\\b\\s*[-_:]*\\s*\\bof\\b\\s*[-_:]*\\s*\\b(ir|cr)\\b\\s*[-_:]*\\s*(\\d+)");
+
+    private static final Pattern END_PATTERN =
+        Pattern.compile("(?i)\\bend\\b\\s*[-_:]*\\s*\\bof\\b\\s*[-_:]*\\s*\\b(ir|cr)\\b\\s*[-_:]*\\s*(\\d+)");
+
+    private CRTagDetector() {}
+
+    public static String extractStartId(String line) {
+        if (line == null) return null;
+        Matcher m = START_PATTERN.matcher(line);
+        return m.find() ? m.group(2) : null;
+    }
+
+    public static String extractEndId(String line) {
+        if (line == null) return null;
+        Matcher m = END_PATTERN.matcher(line);
+        return m.find() ? m.group(2) : null;
+    }
+
+    public static boolean isAnyCRTag(String line) {
+        if (line == null) return false;
+        return START_PATTERN.matcher(line).find()
+            || END_PATTERN.matcher(line).find();
+    }
+}
+
+import java.nio.file.Path;
+
+public final class FileTypeResolver {
+
+    private FileTypeResolver() {}
+
+    public static FileType resolve(Path file) {
+        String n = file.getFileName().toString().toLowerCase();
+        if (n.endsWith(".js")) return FileType.JS;
+        if (n.endsWith(".jsp")) return FileType.JSP;
+        if (n.endsWith(".xml")) return FileType.XML;
+        return FileType.OTHER;
+    }
+}
+
+
+import java.util.Set;
+
+public class IRContext {
+
+    private boolean insideDisabled = false;
+    private final Set<String> disabledIRs;
+
+    public IRContext(Set<String> disabledIRs) {
+        this.disabledIRs = disabledIRs;
+    }
+
+    public void enter(String ir) {
+        if (disabledIRs.contains(ir)) {
+            insideDisabled = true;
+        }
+    }
+
+    public void exit(String ir) {
+        if (disabledIRs.contains(ir)) {
+            insideDisabled = false;
+        }
+    }
+
+    public boolean isInsideDisabled() {
+        return insideDisabled;
+    }
+}
+
+
+public final class CommentUtil {
+
+    private CommentUtil() {}
+
+    public static boolean isBlank(String line) {
+        return line == null || line.trim().isEmpty();
+    }
+
+    public static String indent(String line) {
+        int i = 0;
+        while (i < line.length() && Character.isWhitespace(line.charAt(i))) {
+            i++;
+        }
+        return line.substring(0, i);
+    }
+
+    public static boolean isAlreadyCommented(String line, FileType type) {
+        String t = line.trim();
+
+        switch (type) {
+            case JS:
+                return t.startsWith("//")
+                    || t.startsWith("/*")
+                    || t.endsWith("*/");
+            case JSP:
+            case XML:
+                return t.startsWith("<!--")
+                    || t.endsWith("-->");
+            default:
+                return false;
+        }
+    }
+
+    public static String startMarker(String tag, String indent, FileType type) {
+        if (type == FileType.JS) {
+            return indent + "// START OF " + tag;
+        }
+        return indent + "<!-- START OF " + tag + " -->";
+    }
+
+    public static String endMarker(String tag, String indent, FileType type) {
+        if (type == FileType.JS) {
+            return indent + "// END OF " + tag;
+        }
+        return indent + "<!-- END OF " + tag + " -->";
+    }
+
+    public static String commentLine(String line, FileType type) {
+        if (type == FileType.JS) {
+            return "//" + line;
+        }
+        return "<!-- " + line + " -->";
+    }
+}
+
+
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
@@ -133,5 +266,45 @@ public class IRDisableProcessor {
 
         out.add(CommentUtil.endMarker(tag, indent, type));
         buffer.clear();
+    }
+}
+
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Set;
+
+public class IRDisableCLI {
+
+    private static final Path SOURCE_BASE =
+        Paths.get("E:/new_base_domain");
+
+    private static final Path OUTPUT_BASE =
+        Paths.get("E:/retrofitted_base_domain");
+
+    public static void main(String[] args) throws Exception {
+
+        if (args.length < 2) {
+            System.err.println(
+                "Usage: java -jar ir-disable-tool.jar <DISABLE_IR> <SPECIAL_TAG>");
+            System.exit(1);
+        }
+
+        Set<String> disabled = new HashSet<>();
+        disabled.add(args[0]);
+
+        IRDisableProcessor processor =
+            new IRDisableProcessor(
+                SOURCE_BASE,
+                OUTPUT_BASE,
+                disabled,
+                args[1]
+            );
+
+        processor.process();
+
+        System.out.println(
+            "IR " + args[0] + " disabled with tag: " + args[1]);
     }
 }
