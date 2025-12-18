@@ -1,48 +1,97 @@
-private static void exportToExcel(JTable table, Component parent) {
+package com.reminder;
 
-    JFileChooser chooser = new JFileChooser();
-    chooser.setDialogTitle("Export Tasks to Excel");
-    chooser.setSelectedFile(new java.io.File("tasks.csv"));
+import java.awt.*;
+import java.util.List;
 
-    if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) {
-        return;
+public class SystemTrayManager {
+
+    private static TrayIcon trayIcon;
+
+    public static void init() {
+
+        if (!SystemTray.isSupported()) return;
+
+        try {
+            Image image = Toolkit.getDefaultToolkit().getImage(
+                    SystemTrayManager.class
+                            .getResource("/com/reminder/reminder.png")
+            );
+
+            PopupMenu menu = new PopupMenu();
+
+            MenuItem open = new MenuItem("Open Tasks");
+            open.addActionListener(e -> {
+                List<Task> tasks = TaskJsonStore.loadTasks();
+                ReminderUI.show(tasks);
+            });
+
+            MenuItem exit = new MenuItem("Exit");
+            exit.addActionListener(e -> System.exit(0));
+
+            menu.add(open);
+            menu.add(exit);
+
+            trayIcon = new TrayIcon(image, "Task Reminder", menu);
+            trayIcon.setImageAutoSize(true);
+
+            SystemTray.getSystemTray().add(trayIcon);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    java.io.File file = chooser.getSelectedFile();
-
-    try (java.io.PrintWriter pw = new java.io.PrintWriter(file)) {
-
-        // Header
-        for (int col = 0; col < table.getColumnCount(); col++) {
-            pw.print(table.getColumnName(col));
-            if (col < table.getColumnCount() - 1) pw.print(",");
+    public static void showBubble(String title, String message) {
+        if (trayIcon != null) {
+            trayIcon.displayMessage(
+                    title,
+                    message,
+                    TrayIcon.MessageType.INFO
+            );
         }
-        pw.println();
+    }
+}
 
-        // Rows
-        for (int row = 0; row < table.getRowCount(); row++) {
-            for (int col = 0; col < table.getColumnCount(); col++) {
-                Object val = table.getValueAt(row, col);
-                pw.print("\"" + (val == null ? "" : val.toString()) + "\"");
-                if (col < table.getColumnCount() - 1) pw.print(",");
+
+package com.reminder;
+
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
+
+public class BubbleReminderScheduler {
+
+    private static int currentIndex = 0;
+
+    public static void start() {
+
+        ScheduledExecutorService scheduler =
+                Executors.newSingleThreadScheduledExecutor();
+
+        scheduler.scheduleAtFixedRate(() -> {
+
+            List<Task> tasks = TaskJsonStore.loadTasks();
+
+            List<Task> pendingTasks = tasks.stream()
+                    .filter(t -> "PENDING".equalsIgnoreCase(t.getStatus()))
+                    .collect(Collectors.toList());
+
+            if (pendingTasks.isEmpty()) {
+                return;
             }
-            pw.println();
-        }
 
-        JOptionPane.showMessageDialog(
-                parent,
-                "Tasks exported successfully.\n\n" + file.getAbsolutePath(),
-                "Export Complete",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+            if (currentIndex >= pendingTasks.size()) {
+                currentIndex = 0;
+            }
 
-    } catch (Exception ex) {
-        JOptionPane.showMessageDialog(
-                parent,
-                "Failed to export tasks",
-                "Error",
-                JOptionPane.ERROR_MESSAGE
-        );
-        ex.printStackTrace();
+            Task task = pendingTasks.get(currentIndex);
+            currentIndex++;
+
+            SystemTrayManager.showBubble(
+                    "Pending Task (" + task.getPriority() + ")",
+                    task.getDescription()
+            );
+
+        }, 0, 30, TimeUnit.MINUTES);
     }
 }
