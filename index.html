@@ -1,37 +1,7 @@
 package com.reminder;
 
-public class Task {
-
-    private int id;
-    private String description;
-    private String status;
-
-    public Task(int id, String description, String status) {
-        this.id = id;
-        this.description = description;
-        this.status = status;
-    }
-
-    public int getId() { return id; }
-
-    public String getDescription() { return description; }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getStatus() { return status; }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-}
-
-
-package com.reminder;
-
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.table.*;
 import java.awt.*;
 import java.util.List;
 
@@ -40,14 +10,14 @@ public class ReminderUI {
     public static void show(List<Task> tasks) {
 
         JDialog dialog = new JDialog((Frame) null, "Task Reminder", true);
-        dialog.setSize(700, 400);
+        dialog.setSize(800, 450);
         dialog.setLayout(new BorderLayout());
 
         String[] columns = {"ID", "Task", "Status"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
-                return col == 2;
+                return col == 2; // only status editable
             }
         };
 
@@ -60,13 +30,28 @@ public class ReminderUI {
         }
 
         JTable table = new JTable(model);
+        table.setRowHeight(40);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        table.getTableHeader().setFont(
+                new Font("Segoe UI", Font.BOLD, 14)
+        );
+
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
+        /* ================= Column Sizes ================= */
+        TableColumnModel colModel = table.getColumnModel();
+        colModel.getColumn(0).setPreferredWidth(50);   // ID small
+        colModel.getColumn(1).setPreferredWidth(500);  // Task large
+        colModel.getColumn(2).setPreferredWidth(120);  // Status
+
+        /* ================= Task Text Wrap ================= */
+        colModel.getColumn(1).setCellRenderer(new TextWrapRenderer());
+
+        /* ================= Status Dropdown ================= */
         JComboBox<String> statusBox =
                 new JComboBox<>(new String[]{"PENDING", "DONE"});
-        table.getColumnModel()
-                .getColumn(2)
-                .setCellEditor(new DefaultCellEditor(statusBox));
+        colModel.getColumn(2).setCellEditor(new DefaultCellEditor(statusBox));
+        colModel.getColumn(2).setCellRenderer(new StatusColorRenderer());
 
         JScrollPane scrollPane = new JScrollPane(table);
 
@@ -77,24 +62,20 @@ public class ReminderUI {
         JButton deleteBtn = new JButton("Delete Task");
         JButton saveBtn = new JButton("Save & Close");
 
-        /* ---------- Add Task ---------- */
         addBtn.addActionListener(e -> {
             String desc = JOptionPane.showInputDialog(
                     dialog,
                     "Enter task description:"
             );
-
             if (desc != null && !desc.trim().isEmpty()) {
-                int newId = getNextId(model);
                 model.addRow(new Object[]{
-                        newId,
+                        getNextId(model),
                         desc.trim(),
                         "PENDING"
                 });
             }
         });
 
-        /* ---------- Edit Task ---------- */
         editBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row == -1) {
@@ -114,7 +95,6 @@ public class ReminderUI {
             }
         });
 
-        /* ---------- Delete Task ---------- */
         deleteBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row == -1) {
@@ -122,23 +102,18 @@ public class ReminderUI {
                 return;
             }
 
-            int confirm = JOptionPane.showConfirmDialog(
+            if (JOptionPane.showConfirmDialog(
                     dialog,
                     "Delete selected task?",
                     "Confirm",
                     JOptionPane.YES_NO_OPTION
-            );
-
-            if (confirm == JOptionPane.YES_OPTION) {
+            ) == JOptionPane.YES_OPTION) {
                 model.removeRow(row);
             }
         });
 
-        /* ---------- Save ---------- */
         saveBtn.addActionListener(e -> {
-
             tasks.clear();
-
             for (int i = 0; i < model.getRowCount(); i++) {
                 tasks.add(new Task(
                         Integer.parseInt(model.getValueAt(i, 0).toString()),
@@ -146,7 +121,6 @@ public class ReminderUI {
                         model.getValueAt(i, 2).toString()
                 ));
             }
-
             TaskJsonStore.saveTasks(tasks);
             dialog.dispose();
         });
@@ -163,7 +137,7 @@ public class ReminderUI {
         dialog.setVisible(true);
     }
 
-    /* ================= Helpers ================= */
+    /* ================= Helper Methods ================= */
 
     private static int getNextId(DefaultTableModel model) {
         int max = 0;
@@ -176,5 +150,70 @@ public class ReminderUI {
 
     private static void showMsg(Component parent, String msg) {
         JOptionPane.showMessageDialog(parent, msg);
+    }
+
+    /* ================= Custom Renderers ================= */
+
+    /** Wraps long task text */
+    static class TextWrapRenderer extends JTextArea implements TableCellRenderer {
+        public TextWrapRenderer() {
+            setLineWrap(true);
+            setWrapStyleWord(true);
+            setOpaque(true);
+            setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table, Object value, boolean isSelected,
+                boolean hasFocus, int row, int column) {
+
+            setText(value == null ? "" : value.toString());
+
+            if (isSelected) {
+                setBackground(table.getSelectionBackground());
+                setForeground(table.getSelectionForeground());
+            } else {
+                setBackground(Color.WHITE);
+                setForeground(Color.BLACK);
+            }
+
+            setSize(table.getColumnModel().getColumn(column).getWidth(),
+                    getPreferredSize().height);
+
+            if (table.getRowHeight(row) != getPreferredSize().height) {
+                table.setRowHeight(row, getPreferredSize().height);
+            }
+
+            return this;
+        }
+    }
+
+    /** Colors status cells */
+    static class StatusColorRenderer extends DefaultTableCellRenderer {
+
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table, Object value, boolean isSelected,
+                boolean hasFocus, int row, int column) {
+
+            super.getTableCellRendererComponent(
+                    table, value, isSelected, hasFocus, row, column);
+
+            setFont(new Font("Segoe UI", Font.BOLD, 13));
+            setHorizontalAlignment(CENTER);
+
+            if ("DONE".equalsIgnoreCase(String.valueOf(value))) {
+                setBackground(new Color(144, 238, 144)); // green
+            } else {
+                setBackground(new Color(255, 255, 153)); // yellow
+            }
+
+            if (isSelected) {
+                setBackground(table.getSelectionBackground());
+            }
+
+            return this;
+        }
     }
 }
