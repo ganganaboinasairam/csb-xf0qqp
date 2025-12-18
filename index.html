@@ -1,196 +1,50 @@
-package com.reminder;
+public final class CommentUtil {
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.geom.RoundRectangle2D;
-import java.time.Instant;
-import java.util.List;
+    private CommentUtil() {}
 
-public class MiniTaskPopup {
-
-    private static final int WIDTH = 380;
-    private static final int HEIGHT = 180;
-    private static final int ARC = 20;
-    private static final int AUTO_CLOSE_SEC = 15;
-    private static final int ANIMATION_DELAY = 15;
-
-    public static void show(Task task, List<Task> allTasks) {
-
-        JWindow window = new JWindow();
-        window.setSize(WIDTH, HEIGHT);
-        window.setAlwaysOnTop(true);
-        window.setBackground(new Color(0, 0, 0, 0));
-
-        JPanel root = new JPanel(new BorderLayout());
-        root.setOpaque(false);
-
-        Color borderColor = getPriorityColor(task.getPriority());
-
-        JPanel content = new RoundedPanel(borderColor);
-        content.setLayout(new BorderLayout());
-        content.setBackground(Color.WHITE);
-
-        /* ---------- Header ---------- */
-        JLabel title = new JLabel(
-                " Pending Task [" + task.getPriority() + "]"
-        );
-        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
-
-        JButton closeBtn = new JButton("✕");
-        closeBtn.setBorder(null);
-        closeBtn.setContentAreaFilled(false);
-        closeBtn.setFocusPainted(false);
-        closeBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        closeBtn.addActionListener(e -> fadeOut(window));
-
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-        header.add(title, BorderLayout.WEST);
-        header.add(closeBtn, BorderLayout.EAST);
-        header.setBorder(BorderFactory.createEmptyBorder(6, 10, 0, 6));
-
-        /* ---------- Task Text ---------- */
-        JTextArea text = new JTextArea(task.getDescription());
-        text.setLineWrap(true);
-        text.setWrapStyleWord(true);
-        text.setEditable(false);
-        text.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        text.setBackground(Color.WHITE);
-        text.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
-
-        /* ---------- Buttons ---------- */
-        JButton doneBtn = new JButton("DONE");
-        JButton snoozeBtn = new JButton("SNOOZE 30m");
-        JButton openBtn = new JButton("OPEN");
-
-        doneBtn.addActionListener(e -> {
-            task.setStatus("DONE");
-            TaskJsonStore.saveTasks(allTasks);
-            fadeOut(window);
-        });
-
-        snoozeBtn.addActionListener(e -> {
-            task.setSnoozeUntil(
-                    Instant.now().plusSeconds(30 * 60).toEpochMilli()
-            );
-            TaskJsonStore.saveTasks(allTasks);
-            fadeOut(window);
-        });
-
-        openBtn.addActionListener(e -> {
-            ReminderUI.show(allTasks);
-            fadeOut(window);
-        });
-
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        btnPanel.setOpaque(false);
-        btnPanel.add(doneBtn);
-        btnPanel.add(snoozeBtn);
-        btnPanel.add(openBtn);
-        btnPanel.setBorder(BorderFactory.createEmptyBorder(0, 6, 6, 6));
-
-        content.add(header, BorderLayout.NORTH);
-        content.add(text, BorderLayout.CENTER);
-        content.add(btnPanel, BorderLayout.SOUTH);
-
-        root.add(content);
-        window.add(root);
-
-        Point target = getBottomRightPosition();
-        Point start = new Point(target.x, target.y + 80);
-
-        window.setLocation(start);
-        window.setOpacity(0f);
-        window.setVisible(true);
-
-        slideInAndFade(window, start, target);
-
-        new Timer(AUTO_CLOSE_SEC * 1000, e -> fadeOut(window)).start();
-    }
-
-    /* ================= Animations ================= */
-
-    private static void slideInAndFade(
-            Window w, Point from, Point to) {
-
-        Timer timer = new Timer(ANIMATION_DELAY, null);
-        timer.addActionListener(e -> {
-            float opacity = Math.min(1f, w.getOpacity() + 0.05f);
-            int y = w.getY() - 4;
-
-            w.setOpacity(opacity);
-            w.setLocation(to.x, Math.max(y, to.y));
-
-            if (opacity >= 1f && w.getY() <= to.y) {
-                timer.stop();
-                w.setLocation(to);
-            }
-        });
-        timer.start();
-    }
-
-    private static void fadeOut(Window w) {
-        Timer timer = new Timer(ANIMATION_DELAY, null);
-        timer.addActionListener(e -> {
-            float opacity = w.getOpacity() - 0.05f;
-            w.setOpacity(Math.max(opacity, 0f));
-            if (opacity <= 0f) {
-                timer.stop();
-                w.dispose();
-            }
-        });
-        timer.start();
-    }
-
-    /* ================= Helpers ================= */
-
-    private static Point getBottomRightPosition() {
-        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-        return new Point(
-                screen.width - WIDTH - 20,
-                screen.height - HEIGHT - 60
-        );
-    }
-
-    private static Color getPriorityColor(String priority) {
-        if ("HIGH".equalsIgnoreCase(priority))
-            return new Color(220, 80, 80);
-        if ("LOW".equalsIgnoreCase(priority))
-            return new Color(80, 160, 80);
-        return new Color(240, 160, 60);
-    }
-
-    /* ================= Rounded Panel ================= */
-
-    static class RoundedPanel extends JPanel {
-
-        private final Color borderColor;
-
-        RoundedPanel(Color borderColor) {
-            this.borderColor = borderColor;
-            setOpaque(false);
+    public static boolean isAlreadyCommented(String line, FileType type) {
+        String t = line.trim();
+        switch (type) {
+            case JS:
+            case JSP:
+                return t.startsWith("//") || t.startsWith("/*") || t.endsWith("*/");
+            case XML:
+                return t.startsWith("<!--") || t.endsWith("-->");
+            default:
+                return false;
         }
+    }
 
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g;
-            g2.setRenderingHint(
-                    RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON
-            );
-
-            g2.setColor(Color.WHITE);
-            g2.fill(new RoundRectangle2D.Double(
-                    0, 0, getWidth(), getHeight(),
-                    ARC, ARC
-            ));
-
-            g2.setColor(borderColor);
-            g2.setStroke(new BasicStroke(2));
-            g2.draw(new RoundRectangle2D.Double(
-                    1, 1, getWidth() - 2, getHeight() - 2,
-                    ARC, ARC
-            ));
+    public static String startMarker(String tag, String indent, FileType type) {
+        switch (type) {
+            case XML:
+                return indent + "<!-- START OF " + tag + " -->";
+            default:
+                return indent + "//START OF " + tag;
         }
+    }
+
+    public static String endMarker(String tag, String indent, FileType type) {
+        switch (type) {
+            case XML:
+                return indent + "<!-- END OF " + tag + " -->";
+            default:
+                return indent + "//END OF " + tag;
+        }
+    }
+
+    public static String commentLine(String line, FileType type) {
+        switch (type) {
+            case XML:
+                return "<!-- " + line + " -->";
+            default:
+                return "//" + line;
+        }
+    }
+
+    public static String leadingWhitespace(String line) {
+        int i = 0;
+        while (i < line.length() && Character.isWhitespace(line.charAt(i))) i++;
+        return line.substring(0, i);
     }
 }
