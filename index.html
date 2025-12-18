@@ -1,30 +1,48 @@
-static class PriorityColorRenderer extends DefaultTableCellRenderer {
+private static void exportToExcel(JTable table, Component parent) {
 
-    @Override
-    public Component getTableCellRendererComponent(
-            JTable table, Object value, boolean isSelected,
-            boolean hasFocus, int row, int column) {
+    JFileChooser chooser = new JFileChooser();
+    chooser.setDialogTitle("Export Tasks to Excel");
+    chooser.setSelectedFile(new java.io.File("tasks.csv"));
 
-        super.getTableCellRendererComponent(
-                table, value, isSelected, hasFocus, row, column);
+    if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) {
+        return;
+    }
 
-        String priority = value == null ? "MEDIUM" : value.toString();
-        setHorizontalAlignment(CENTER);
-        setFont(getFont().deriveFont(Font.BOLD));
+    java.io.File file = chooser.getSelectedFile();
 
-        if (!isSelected) {
-            switch (priority) {
-                case "HIGH":
-                    setBackground(new Color(255, 102, 102)); // red
-                    break;
-                case "LOW":
-                    setBackground(new Color(204, 255, 204)); // light green
-                    break;
-                default:
-                    setBackground(new Color(255, 204, 102)); // orange
+    try (java.io.PrintWriter pw = new java.io.PrintWriter(file)) {
+
+        // Header
+        for (int col = 0; col < table.getColumnCount(); col++) {
+            pw.print(table.getColumnName(col));
+            if (col < table.getColumnCount() - 1) pw.print(",");
+        }
+        pw.println();
+
+        // Rows
+        for (int row = 0; row < table.getRowCount(); row++) {
+            for (int col = 0; col < table.getColumnCount(); col++) {
+                Object val = table.getValueAt(row, col);
+                pw.print("\"" + (val == null ? "" : val.toString()) + "\"");
+                if (col < table.getColumnCount() - 1) pw.print(",");
             }
+            pw.println();
         }
 
-        return this;
+        JOptionPane.showMessageDialog(
+                parent,
+                "Tasks exported successfully.\n\n" + file.getAbsolutePath(),
+                "Export Complete",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+
+    } catch (Exception ex) {
+        JOptionPane.showMessageDialog(
+                parent,
+                "Failed to export tasks",
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+        );
+        ex.printStackTrace();
     }
 }
