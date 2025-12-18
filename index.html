@@ -1,5 +1,88 @@
 package com.reminder;
 
+import javax.swing.*;
+import java.awt.*;
+import java.time.Instant;
+import java.util.List;
+
+public class MiniTaskPopup {
+
+    private static final int AUTO_CLOSE_SEC = 12;
+
+    public static void show(Task task, List<Task> allTasks) {
+
+        JWindow window = new JWindow();
+        window.setAlwaysOnTop(true);
+        window.setSize(360, 160);
+        window.setLayout(new BorderLayout());
+        window.setBackground(Color.WHITE);
+
+        JLabel title = new JLabel(
+                "Pending Task [" + task.getPriority() + "]",
+                SwingConstants.LEFT
+        );
+        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        title.setBorder(BorderFactory.createEmptyBorder(8, 10, 4, 10));
+
+        JTextArea text = new JTextArea(task.getDescription());
+        text.setLineWrap(true);
+        text.setWrapStyleWord(true);
+        text.setEditable(false);
+        text.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        text.setBackground(Color.WHITE);
+        text.setBorder(BorderFactory.createEmptyBorder(4, 10, 6, 10));
+
+        JButton doneBtn = new JButton("DONE");
+        JButton snoozeBtn = new JButton("SNOOZE 30m");
+        JButton openBtn = new JButton("OPEN");
+
+        doneBtn.addActionListener(e -> {
+            task.setStatus("DONE");
+            TaskJsonStore.saveTasks(allTasks);
+            window.dispose();
+        });
+
+        snoozeBtn.addActionListener(e -> {
+            task.setSnoozeUntil(
+                    Instant.now().plusSeconds(30 * 60).toEpochMilli()
+            );
+            TaskJsonStore.saveTasks(allTasks);
+            window.dispose();
+        });
+
+        openBtn.addActionListener(e -> {
+            ReminderUI.show(allTasks);
+            window.dispose();
+        });
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnPanel.add(doneBtn);
+        btnPanel.add(snoozeBtn);
+        btnPanel.add(openBtn);
+
+        window.add(title, BorderLayout.NORTH);
+        window.add(text, BorderLayout.CENTER);
+        window.add(btnPanel, BorderLayout.SOUTH);
+
+        positionBottomRight(window);
+        window.setVisible(true);
+
+        // Auto close
+        new Timer(AUTO_CLOSE_SEC * 1000, e -> window.dispose()).start();
+    }
+
+    private static void positionBottomRight(Window window) {
+        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+        int x = screen.width - window.getWidth() - 20;
+        int y = screen.height - window.getHeight() - 60;
+        window.setLocation(x, y);
+    }
+}
+
+
+package com.reminder;
+
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -7,7 +90,7 @@ import java.util.stream.Collectors;
 public class BubbleReminderScheduler {
 
     private static final int INTERVAL_MINUTES = 30;
-    private static final int DELAY_BETWEEN_BUBBLES_SEC = 6;
+    private static final int DELAY_BETWEEN_POPUPS_SEC = 8;
 
     public static void start() {
 
@@ -18,25 +101,22 @@ public class BubbleReminderScheduler {
 
             List<Task> tasks = TaskJsonStore.loadTasks();
 
+            long now = Instant.now().toEpochMilli();
+
             List<Task> pendingTasks = tasks.stream()
                     .filter(t -> "PENDING".equalsIgnoreCase(t.getStatus()))
+                    .filter(t -> t.getSnoozeUntil() <= now)
                     .collect(Collectors.toList());
-
-            if (pendingTasks.isEmpty()) {
-                return;
-            }
 
             for (Task task : pendingTasks) {
 
-                SystemTrayManager.showBubble(
-                        "Pending Task [" + task.getPriority() + "]",
-                        task.getDescription()
+                SwingUtilities.invokeLater(() ->
+                        MiniTaskPopup.show(task, tasks)
                 );
 
                 try {
-                    Thread.sleep(DELAY_BETWEEN_BUBBLES_SEC * 1000L);
-                } catch (InterruptedException ignored) {
-                }
+                    Thread.sleep(DELAY_BETWEEN_POPUPS_SEC * 1000L);
+                } catch (InterruptedException ignored) {}
             }
 
         }, 0, INTERVAL_MINUTES, TimeUnit.MINUTES);
