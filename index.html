@@ -1,310 +1,34 @@
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+private void flush(List<String> buffer,
+                   List<String> out,
+                   FileType type) {
 
-public final class CRTagDetector {
+    if (buffer.isEmpty()) return;
 
-    private static final Pattern START_PATTERN =
-        Pattern.compile("(?i)\\bstart\\b\\s*[-_:]*\\s*\\bof\\b\\s*[-_:]*\\s*\\b(ir|cr)\\b\\s*[-_:]*\\s*(\\d+)");
+    String indent = CommentUtil.indent(buffer.get(0));
 
-    private static final Pattern END_PATTERN =
-        Pattern.compile("(?i)\\bend\\b\\s*[-_:]*\\s*\\bof\\b\\s*[-_:]*\\s*\\b(ir|cr)\\b\\s*[-_:]*\\s*(\\d+)");
+    out.add(CommentUtil.startMarker(tag, indent, type));
 
-    private CRTagDetector() {}
-
-    public static String extractStartId(String line) {
-        if (line == null) return null;
-        Matcher m = START_PATTERN.matcher(line);
-        return m.find() ? m.group(2) : null;
-    }
-
-    public static String extractEndId(String line) {
-        if (line == null) return null;
-        Matcher m = END_PATTERN.matcher(line);
-        return m.find() ? m.group(2) : null;
-    }
-
-    public static boolean isAnyCRTag(String line) {
-        if (line == null) return false;
-        return START_PATTERN.matcher(line).find()
-            || END_PATTERN.matcher(line).find();
-    }
-}
-
-import java.nio.file.Path;
-
-public final class FileTypeResolver {
-
-    private FileTypeResolver() {}
-
-    public static FileType resolve(Path file) {
-        String n = file.getFileName().toString().toLowerCase();
-        if (n.endsWith(".js")) return FileType.JS;
-        if (n.endsWith(".jsp")) return FileType.JSP;
-        if (n.endsWith(".xml")) return FileType.XML;
-        return FileType.OTHER;
-    }
-}
-
-
-import java.util.Set;
-
-public class IRContext {
-
-    private boolean insideDisabled = false;
-    private final Set<String> disabledIRs;
-
-    public IRContext(Set<String> disabledIRs) {
-        this.disabledIRs = disabledIRs;
-    }
-
-    public void enter(String ir) {
-        if (disabledIRs.contains(ir)) {
-            insideDisabled = true;
-        }
-    }
-
-    public void exit(String ir) {
-        if (disabledIRs.contains(ir)) {
-            insideDisabled = false;
-        }
-    }
-
-    public boolean isInsideDisabled() {
-        return insideDisabled;
-    }
-}
-
-
-public final class CommentUtil {
-
-    private CommentUtil() {}
-
-    public static boolean isBlank(String line) {
-        return line == null || line.trim().isEmpty();
-    }
-
-    public static String indent(String line) {
-        int i = 0;
-        while (i < line.length() && Character.isWhitespace(line.charAt(i))) {
-            i++;
-        }
-        return line.substring(0, i);
-    }
-
-    public static boolean isAlreadyCommented(String line, FileType type) {
-        String t = line.trim();
-
-        switch (type) {
-            case JS:
-                return t.startsWith("//")
-                    || t.startsWith("/*")
-                    || t.endsWith("*/");
-            case JSP:
-            case XML:
-                return t.startsWith("<!--")
-                    || t.endsWith("-->");
-            default:
-                return false;
-        }
-    }
-
-    public static String startMarker(String tag, String indent, FileType type) {
+    if (buffer.size() == 1) {
+        // Single line → single comment
+        out.add(CommentUtil.commentLine(buffer.get(0).trim(), type));
+    } else {
         if (type == FileType.JS) {
-            return indent + "// START OF " + tag;
-        }
-        return indent + "<!-- START OF " + tag + " -->";
-    }
-
-    public static String endMarker(String tag, String indent, FileType type) {
-        if (type == FileType.JS) {
-            return indent + "// END OF " + tag;
-        }
-        return indent + "<!-- END OF " + tag + " -->";
-    }
-
-    public static String commentLine(String line, FileType type) {
-        if (type == FileType.JS) {
-            return "//" + line;
-        }
-        return "<!-- " + line + " -->";
-    }
-}
-
-
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
-import java.io.IOException;
-
-public class IRDisableProcessor {
-
-    private final Path source;
-    private final Path output;
-    private final Set<String> disabledIRs;
-    private final String tag;
-
-    public IRDisableProcessor(Path source,
-                              Path output,
-                              Set<String> disabledIRs,
-                              String tag) {
-        this.source = source;
-        this.output = output;
-        this.disabledIRs = disabledIRs;
-        this.tag = tag;
-    }
-
-    public void process() throws IOException {
-
-        Files.walkFileTree(source, new SimpleFileVisitor<Path>() {
-
-            @Override
-            public FileVisitResult visitFile(Path file,
-                    BasicFileAttributes attrs) throws IOException {
-
-                if (!attrs.isRegularFile()) {
-                    return FileVisitResult.CONTINUE;
-                }
-
-                FileType type = FileTypeResolver.resolve(file);
-
-                Path rel = source.relativize(file);
-                Path outFile = output.resolve(rel);
-                Files.createDirectories(outFile.getParent());
-
-                List<String> lines = Files.readAllLines(file);
-                List<String> out = new ArrayList<>();
-                List<String> buffer = new ArrayList<>();
-
-                IRContext ctx = new IRContext(disabledIRs);
-
-                boolean insideJsBlockComment = false;
-
-                for (String line : lines) {
-
-                    String trimmed = line.trim();
-
-                    /* ---------------- JS block comment handling ---------------- */
-                    if (type == FileType.JS) {
-
-                        if (trimmed.startsWith("/*")) {
-                            insideJsBlockComment = true;
-                        }
-
-                        if (insideJsBlockComment) {
-                            out.add(line);
-                            if (trimmed.endsWith("*/")) {
-                                insideJsBlockComment = false;
-                            }
-                            continue;
-                        }
-                    }
-
-                    /* ---------------- CR/IR boundary handling ---------------- */
-                    String start = CRTagDetector.extractStartId(line);
-                    if (start != null) {
-                        flush(buffer, out, type);
-                        ctx.enter(start);
-                        out.add(line);
-                        continue;
-                    }
-
-                    String end = CRTagDetector.extractEndId(line);
-                    if (end != null) {
-                        flush(buffer, out, type);
-                        out.add(line);
-                        ctx.exit(end);
-                        continue;
-                    }
-
-                    /* ---------------- Disable logic ---------------- */
-                    if (ctx.isInsideDisabled()
-                        && !CommentUtil.isBlank(line)
-                        && !CRTagDetector.isAnyCRTag(line)
-                        && !CommentUtil.isAlreadyCommented(line, type)
-                        && !line.contains("START OF " + tag)) {
-
-                        buffer.add(line);
-                        continue;
-                    }
-
-                    flush(buffer, out, type);
-                    out.add(line);
-                }
-
-                flush(buffer, out, type);
-                Files.write(outFile, out);
-                return FileVisitResult.CONTINUE;
+            // JS multi-line block
+            out.add(indent + "/*");
+            for (String l : buffer) {
+                out.add(l);
             }
-        });
-    }
-
-    private void flush(List<String> buffer,
-                       List<String> out,
-                       FileType type) {
-
-        if (buffer.isEmpty()) return;
-
-        String indent = CommentUtil.indent(buffer.get(0));
-
-        out.add(CommentUtil.startMarker(tag, indent, type));
-
-        if (buffer.size() == 1) {
-            out.add(CommentUtil.commentLine(buffer.get(0).trim(), type));
+            out.add(indent + "*/");
         } else {
-            if (type == FileType.JS) {
-                out.add(indent + "/*");
-                for (String l : buffer) {
-                    out.add(l);
-                }
-                out.add(indent + "*/");
-            } else {
-                for (String l : buffer) {
-                    out.add(CommentUtil.commentLine(l.trim(), type));
-                }
+            // XML / JSP multi-line block (SINGLE COMMENT)
+            out.add(indent + "<!--");
+            for (String l : buffer) {
+                out.add(l);
             }
+            out.add(indent + "-->");
         }
-
-        out.add(CommentUtil.endMarker(tag, indent, type));
-        buffer.clear();
     }
-}
 
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.Set;
-
-public class IRDisableCLI {
-
-    private static final Path SOURCE_BASE =
-        Paths.get("E:/new_base_domain");
-
-    private static final Path OUTPUT_BASE =
-        Paths.get("E:/retrofitted_base_domain");
-
-    public static void main(String[] args) throws Exception {
-
-        if (args.length < 2) {
-            System.err.println(
-                "Usage: java -jar ir-disable-tool.jar <DISABLE_IR> <SPECIAL_TAG>");
-            System.exit(1);
-        }
-
-        Set<String> disabled = new HashSet<>();
-        disabled.add(args[0]);
-
-        IRDisableProcessor processor =
-            new IRDisableProcessor(
-                SOURCE_BASE,
-                OUTPUT_BASE,
-                disabled,
-                args[1]
-            );
-
-        processor.process();
-
-        System.out.println(
-            "IR " + args[0] + " disabled with tag: " + args[1]);
-    }
+    out.add(CommentUtil.endMarker(tag, indent, type));
+    buffer.clear();
 }
