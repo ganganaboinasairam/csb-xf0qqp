@@ -1,115 +1,69 @@
-package com.reminder;
-
-public class Task {
-
-    private int id;
-    private String description;
-    private String status;
-    private boolean dailyReset;
-
-    public Task(int id, String description, String status) {
-        this(id, description, status, false);
-    }
-
-    public Task(int id, String description, String status, boolean dailyReset) {
-        this.id = id;
-        this.description = description;
-        this.status = status;
-        this.dailyReset = dailyReset;
-    }
-
-    public int getId() { return id; }
-    public String getDescription() { return description; }
-    public String getStatus() { return status; }
-    public boolean isDailyReset() { return dailyReset; }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public void setDailyReset(boolean dailyReset) {
-        this.dailyReset = dailyReset;
-    }
-}
-
-package com.reminder;
-
-import com.google.gson.*;
-import java.io.*;
-import java.time.LocalDate;
-import java.util.*;
-
-public class TaskJsonStore {
-
-    private static final String FILE = "tasks.json";
-    private static final Gson gson =
-            new GsonBuilder().setPrettyPrinting().create();
-
-    public static List<Task> loadTasks() {
-
-        try {
-            File file = new File(FILE);
-
-            if (!file.exists()) {
-                saveAll(new ArrayList<>(), LocalDate.now());
-                return new ArrayList<>();
-            }
-
-            JsonObject root = JsonParser
-                    .parseReader(new FileReader(file))
-                    .getAsJsonObject();
-
-            LocalDate lastReset =
-                    LocalDate.parse(root.get("lastResetDate").getAsString());
-
-            LocalDate today = LocalDate.now();
-
-            Task[] tasks = gson.fromJson(
-                    root.getAsJsonArray("tasks"),
-                    Task[].class
-            );
-
-            List<Task> taskList =
-                    new ArrayList<>(Arrays.asList(tasks));
-
-            // === Daily Reset (ONLY ONCE PER DAY) ===
-            if (!today.equals(lastReset)) {
-                for (Task t : taskList) {
-                    if (t.isDailyReset() &&
-                        "DONE".equalsIgnoreCase(t.getStatus())) {
-                        t.setStatus("PENDING");
-                    }
-                }
-                saveAll(taskList, today);
-            }
-
-            return taskList;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ArrayList<>();
-        }
-    }
-
-    public static void saveTasks(List<Task> tasks) {
-        saveAll(tasks, LocalDate.now());
-    }
-
-    private static void saveAll(List<Task> tasks, LocalDate resetDate) {
-
-        try (Writer writer = new FileWriter(FILE)) {
-
-            JsonObject root = new JsonObject();
-            root.addProperty("lastResetDate", resetDate.toString());
-            root.add("tasks", gson.toJsonTree(tasks));
-            gson.toJson(root, writer);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-}
+Exception in thread "AWT-EventQueue-0" java.lang.NullPointerException
+	at com.reminder.ReminderUI.lambda$3(ReminderUI.java:129)
+	at javax.swing.AbstractButton.fireActionPerformed(AbstractButton.java:2022)
+	at javax.swing.AbstractButton$Handler.actionPerformed(AbstractButton.java:2348)
+	at javax.swing.DefaultButtonModel.fireActionPerformed(DefaultButtonModel.java:402)
+	at javax.swing.DefaultButtonModel.setPressed(DefaultButtonModel.java:259)
+	at javax.swing.plaf.basic.BasicButtonListener.mouseReleased(BasicButtonListener.java:252)
+	at java.awt.Component.processMouseEvent(Component.java:6533)
+	at javax.swing.JComponent.processMouseEvent(JComponent.java:3324)
+	at java.awt.Component.processEvent(Component.java:6298)
+	at java.awt.Container.processEvent(Container.java:2236)
+	at java.awt.Component.dispatchEventImpl(Component.java:4889)
+	at java.awt.Container.dispatchEventImpl(Container.java:2294)
+	at java.awt.Component.dispatchEvent(Component.java:4711)
+	at java.awt.LightweightDispatcher.retargetMouseEvent(Container.java:4888)
+	at java.awt.LightweightDispatcher.processMouseEvent(Container.java:4525)
+	at java.awt.LightweightDispatcher.dispatchEvent(Container.java:4466)
+	at java.awt.Container.dispatchEventImpl(Container.java:2280)
+	at java.awt.Window.dispatchEventImpl(Window.java:2746)
+	at java.awt.Component.dispatchEvent(Component.java:4711)
+	at java.awt.EventQueue.dispatchEventImpl(EventQueue.java:758)
+	at java.awt.EventQueue.access$500(EventQueue.java:97)
+	at java.awt.EventQueue$3.run(EventQueue.java:709)
+	at java.awt.EventQueue$3.run(EventQueue.java:703)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:80)
+	at java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:90)
+	at java.awt.EventQueue$4.run(EventQueue.java:731)
+	at java.awt.EventQueue$4.run(EventQueue.java:729)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:80)
+	at java.awt.EventQueue.dispatchEvent(EventQueue.java:728)
+	at java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:201)
+	at java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:116)
+	at java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:109)
+	at java.awt.WaitDispatchSupport$2.run(WaitDispatchSupport.java:184)
+	at java.awt.WaitDispatchSupport$4.run(WaitDispatchSupport.java:229)
+	at java.awt.WaitDispatchSupport$4.run(WaitDispatchSupport.java:227)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at java.awt.WaitDispatchSupport.enter(WaitDispatchSupport.java:227)
+	at java.awt.Dialog.show(Dialog.java:1084)
+	at java.awt.Component.show(Component.java:1671)
+	at java.awt.Component.setVisible(Component.java:1623)
+	at java.awt.Window.setVisible(Window.java:1014)
+	at java.awt.Dialog.setVisible(Dialog.java:1005)
+	at com.reminder.ReminderUI.show(ReminderUI.java:145)
+	at com.reminder.SystemTrayManager.lambda$0(SystemTrayManager.java:25)
+	at java.awt.MenuItem.processActionEvent(MenuItem.java:669)
+	at java.awt.MenuItem.processEvent(MenuItem.java:628)
+	at java.awt.MenuComponent.dispatchEventImpl(MenuComponent.java:357)
+	at java.awt.MenuComponent.dispatchEvent(MenuComponent.java:345)
+	at java.awt.EventQueue.dispatchEventImpl(EventQueue.java:761)
+	at java.awt.EventQueue.access$500(EventQueue.java:97)
+	at java.awt.EventQueue$3.run(EventQueue.java:709)
+	at java.awt.EventQueue$3.run(EventQueue.java:703)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:80)
+	at java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:90)
+	at java.awt.EventQueue$4.run(EventQueue.java:731)
+	at java.awt.EventQueue$4.run(EventQueue.java:729)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at java.security.ProtectionDomain$JavaSecurityAccessImpl.doIntersectionPrivilege(ProtectionDomain.java:80)
+	at java.awt.EventQueue.dispatchEvent(EventQueue.java:728)
+	at java.awt.EventDispatchThread.pumpOneEventForFilters(EventDispatchThread.java:201)
+	at java.awt.EventDispatchThread.pumpEventsForFilter(EventDispatchThread.java:116)
+	at java.awt.EventDispatchThread.pumpEventsForHierarchy(EventDispatchThread.java:105)
+	at java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:101)
+	at java.awt.EventDispatchThread.pumpEvents(EventDispatchThread.java:93)
+	at java.awt.EventDispatchThread.run(EventDispatchThread.java:82)
