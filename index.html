@@ -1,67 +1,13 @@
 package com.reminder;
 
-import java.awt.*;
 import java.util.List;
-
-public class SystemTrayManager {
-
-    private static TrayIcon trayIcon;
-
-    public static void init() {
-
-        if (!SystemTray.isSupported()) return;
-
-        try {
-            Image image = Toolkit.getDefaultToolkit().getImage(
-                    SystemTrayManager.class
-                            .getResource("/com/reminder/reminder.png")
-            );
-
-            PopupMenu menu = new PopupMenu();
-
-            MenuItem open = new MenuItem("Open Tasks");
-            open.addActionListener(e -> {
-                List<Task> tasks = TaskJsonStore.loadTasks();
-                ReminderUI.show(tasks);
-            });
-
-            MenuItem exit = new MenuItem("Exit");
-            exit.addActionListener(e -> System.exit(0));
-
-            menu.add(open);
-            menu.add(exit);
-
-            trayIcon = new TrayIcon(image, "Task Reminder", menu);
-            trayIcon.setImageAutoSize(true);
-
-            SystemTray.getSystemTray().add(trayIcon);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void showBubble(String title, String message) {
-        if (trayIcon != null) {
-            trayIcon.displayMessage(
-                    title,
-                    message,
-                    TrayIcon.MessageType.INFO
-            );
-        }
-    }
-}
-
-
-package com.reminder;
-
-import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class BubbleReminderScheduler {
 
-    private static int currentIndex = 0;
+    private static final int INTERVAL_MINUTES = 30;
+    private static final int DELAY_BETWEEN_BUBBLES_SEC = 6;
 
     public static void start() {
 
@@ -80,18 +26,19 @@ public class BubbleReminderScheduler {
                 return;
             }
 
-            if (currentIndex >= pendingTasks.size()) {
-                currentIndex = 0;
+            for (Task task : pendingTasks) {
+
+                SystemTrayManager.showBubble(
+                        "Pending Task [" + task.getPriority() + "]",
+                        task.getDescription()
+                );
+
+                try {
+                    Thread.sleep(DELAY_BETWEEN_BUBBLES_SEC * 1000L);
+                } catch (InterruptedException ignored) {
+                }
             }
 
-            Task task = pendingTasks.get(currentIndex);
-            currentIndex++;
-
-            SystemTrayManager.showBubble(
-                    "Pending Task (" + task.getPriority() + ")",
-                    task.getDescription()
-            );
-
-        }, 0, 30, TimeUnit.MINUTES);
+        }, 0, INTERVAL_MINUTES, TimeUnit.MINUTES);
     }
 }
