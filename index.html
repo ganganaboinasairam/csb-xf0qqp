@@ -1,33 +1,18 @@
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Set;
+import java.nio.charset.*;
+import java.nio.file.*;
+import java.io.*;
+import java.util.*;
 
-public class IRContext {
+public final class FileUtil {
 
-    private final Deque<String> irStack = new ArrayDeque<>();
-    private final Set<String> disabledIRs;
+    private FileUtil() {}
 
-    public IRContext(Set<String> disabledIRs) {
-        this.disabledIRs = disabledIRs;
-    }
-
-    public void enter(String ir) {
-        irStack.push(ir);
-    }
-
-    public void exit(String ir) {
-        if (!irStack.isEmpty() && irStack.peek().equals(ir)) {
-            irStack.pop();
+    public static List<String> safeReadAllLines(Path file) throws IOException {
+        try {
+            return Files.readAllLines(file, StandardCharsets.UTF_8);
+        } catch (MalformedInputException e) {
+            // fallback for legacy encodings
+            return Files.readAllLines(file, Charset.defaultCharset());
         }
     }
-
-    /**
-     * Disable ONLY when the disabled IR is the current active IR
-     */
-    public boolean shouldDisable() {
-        return !irStack.isEmpty()
-            && disabledIRs.contains(irStack.peek());
-    }
 }
-
-
