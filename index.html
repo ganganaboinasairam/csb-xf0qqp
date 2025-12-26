@@ -1,24 +1,47 @@
- const handleCustomerSelect = async (customer) => {
-      setSelectedCustomer(customer);
+const handleCustomerSelect = async (customer) => {
+  setSelectedCustomer(customer);
 
-      // Immediately zero the badge in UI for that customer
-      setCustomers(prev =>
-        prev.map(c => c.id === customer.id ? { ...c, unreadCount: 0 } : c)
-      );
+  // Immediately zero the badge in UI
+  setCustomers(prev =>
+    prev.map(c => c.id === customer.id ? { ...c, unreadCount: 0 } : c)
+  );
 
-      // NEW: mark read on server when banker opens the chat
-      try {
-		
-		const response = await fetch(`../servlets/chatClient/updateMsgReadStatus`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `custId=${encodeURIComponent(customer.id)}&branchCode=${encodeURIComponent(branchCode)}&reqFrom=bank`
-          });
-        if (!resp.ok) throw new Error('Failed to update read status');
-        // Optionally re-pull only this customer's count (should be 0)
-        // const count = await getUnreadCount(customer.id);
-        // setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, unreadCount: count } : c));
-      } catch (e) {
-        console.error('updateMsgReadStatus error', e);
+  try {
+    const userSessionId =
+      document.getElementById("currentSessionId")?.value;
+
+    let params = new URLSearchParams();
+    params.append("custId", customer.id);
+    params.append("branchCode", branchCode);
+    params.append("reqFrom", "bank");
+    params.append("UserSessionId", userSessionId);
+    params.append("POST_MODE", "ajax");
+
+    // Append CSRF token (MANDATORY)
+    if (window.CSRF && CSRF.location) {
+      const csrf = CSRF.location.getCsrfToken("&");
+      const [k, v] = csrf.substring(1).split("=");
+      params.append(k, v);
+    }
+
+    const resp = await fetch(
+      "../servlets/chatClient/updateMsgReadStatus",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
+        },
+        body: params.toString(),
+        credentials: "same-origin" // REQUIRED for session
       }
-    };
+    );
+
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${text}`);
+    }
+
+  } catch (e) {
+    console.error("updateMsgReadStatus error", e);
+  }
+};
