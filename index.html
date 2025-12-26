@@ -1,38 +1,24 @@
-async function postMessage(payload) {
-  const url = buildSendUrl();
+ const handleCustomerSelect = async (customer) => {
+      setSelectedCustomer(customer);
 
-  // Build URL-encoded body (EXACTLY like legacy code)
-  let params = new URLSearchParams();
+      // Immediately zero the badge in UI for that customer
+      setCustomers(prev =>
+        prev.map(c => c.id === customer.id ? { ...c, unreadCount: 0 } : c)
+      );
 
-  params.append("UserSessionId", opts.userSessionId);
-  params.append("customerId", opts.customerId);
-  params.append("branchCode", opts.branchCode);
-  params.append("customerName", opts.customerName || "");
-  params.append("message", payload.message || "");
-
-  // Append CSRF token (critical)
-  if (window.CSRF && CSRF.location) {
-    const csrf = CSRF.location.getCsrfToken("&"); // same as legacy
-    params.append(csrf.substring(1).split("=")[0],
-                  csrf.substring(1).split("=")[1]);
-  }
-
-  // Mandatory legacy flag
-  params.append("POST_MODE", "ajax");
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
-    },
-    body: params.toString(),
-    credentials: "same-origin" // REQUIRED for session
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`HTTP ${res.status}: ${text}`);
-  }
-
-  return res.text(); // legacy servlets often return text, not JSON
-}
+      // NEW: mark read on server when banker opens the chat
+      try {
+		
+		const response = await fetch(`../servlets/chatClient/updateMsgReadStatus`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `custId=${encodeURIComponent(customer.id)}&branchCode=${encodeURIComponent(branchCode)}&reqFrom=bank`
+          });
+        if (!resp.ok) throw new Error('Failed to update read status');
+        // Optionally re-pull only this customer's count (should be 0)
+        // const count = await getUnreadCount(customer.id);
+        // setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, unreadCount: count } : c));
+      } catch (e) {
+        console.error('updateMsgReadStatus error', e);
+      }
+    };
