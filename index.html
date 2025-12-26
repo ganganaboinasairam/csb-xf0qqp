@@ -1,47 +1,89 @@
-const handleCustomerSelect = async (customer) => {
-  setSelectedCustomer(customer);
+	if i need to send the request as text ,not json, then adjust the below menthod to work according for POST and PUT
+	
+	
+	
+	
+	
+	
+	private void handleHttpRequest(String method, String endpoint, HttpServletRequest req, HttpServletResponse resp)
+			throws IOException {
+		try {
+			// Read request body if POST
+			byte[] bodyBytes = null;
+			String body = "";
+			if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
+				
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				try(InputStream is = req.getInputStream()){
+					byte[] buf = new byte[4096];
+					int r;
+					while((r = is.read(buf)) != -1)baos.write(buf,0,r);
+				}
+				bodyBytes = baos.toByteArray();
+				Charset charset = req.getCharacterEncoding() == null ? StandardCharsets.UTF_8 : Charset.forName(req.getCharacterEncoding());
+				body = bodyBytes.length == 0 ? "" : new String(bodyBytes, charset);
+			}
 
-  // Immediately zero the badge in UI
-  setCustomers(prev =>
-    prev.map(c => c.id === customer.id ? { ...c, unreadCount: 0 } : c)
-  );
+			log.info("body (string) is ::::::::::::::::::::::::::::::::::::::::::" + body);
+			log.info("body bytes length = " + (bodyBytes == null ? 0 : bodyBytes.length));
 
-  try {
-    const userSessionId =
-      document.getElementById("currentSessionId")?.value;
+			// Generate timestamp
+			String timestamp = String.valueOf(System.currentTimeMillis());
 
-    let params = new URLSearchParams();
-    params.append("custId", customer.id);
-    params.append("branchCode", branchCode);
-    params.append("reqFrom", "bank");
-    params.append("UserSessionId", userSessionId);
-    params.append("POST_MODE", "ajax");
+			// Create canonical string using the *exact* body string you just computed
+			String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, "/ChatServer/" + endpoint, body, timestamp);
+			log.info("canonicalString from ChatClient is " + canonicalString);
 
-    // Append CSRF token (MANDATORY)
-    if (window.CSRF && CSRF.location) {
-      const csrf = CSRF.location.getCsrfToken("&");
-      const [k, v] = csrf.substring(1).split("=");
-      params.append(k, v);
-    }
+			// Sign it
+			String signature = AsymmetricSignatureUtil.sign(canonicalString, privateKeyBase64);
+			log.info("signature is " + signature);
 
-    const resp = await fetch(
-      "../servlets/chatClient/updateMsgReadStatus",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
-        },
-        body: params.toString(),
-        credentials: "same-origin" // REQUIRED for session
-      }
-    );
+			// Build finalURL (same as before)
+			String query = req.getQueryString();
+			String finalURL = CHAT_SERVER_BASE_URL + "/" + endpoint + (query != null && !query.isEmpty() ? "?" + query : "");
+			
+			log.info("finalURL is "+finalURL);
 
-    if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error(`HTTP ${resp.status}: ${text}`);
-    }
+			URL url = new URL(finalURL);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod(method);
+			conn.setRequestProperty("X-Timestamp", timestamp);
+			conn.setRequestProperty("X-Signature", signature);
+			conn.setRequestProperty("X-Client-ID", CLIENT_ID);
 
-  } catch (e) {
-    console.error("updateMsgReadStatus error", e);
-  }
-};
+			// Forward Content-Type from incoming request if present, otherwise default
+			String contentType = req.getContentType() != null ? req.getContentType() : "application/json; charset=UTF-8";
+			conn.setRequestProperty("Content-Type", contentType);
+
+			// If you have bodyBytes, write them exactly
+			if (bodyBytes != null && bodyBytes.length > 0) {
+			    conn.setDoOutput(true);
+			    conn.setRequestProperty("Content-Length", String.valueOf(bodyBytes.length));
+			    try (OutputStream os = conn.getOutputStream()) {
+			        os.write(bodyBytes); // write exact bytes
+			        os.flush();
+			    }
+			}
+			
+			log.info("url contents are :      "+conn.getContent());
+
+			// Read response
+			int responseCode = conn.getResponseCode();
+			resp.setStatus(responseCode);
+
+			BufferedReader in = new BufferedReader(new InputStreamReader(
+					responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream()));
+			String inputLine;
+			StringBuilder response = new StringBuilder();
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
+
+			resp.getWriter().write(response.toString());
+
+		} catch (Exception e) {
+			log.severe("Error handling HTTP request" + e);
+			resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Request failed");
+		}
+	}
