@@ -1,54 +1,57 @@
-private String buildFormBody(HttpServletRequest req) {
-    return req.getParameterMap().entrySet().stream()
-            .sorted(java.util.Map.Entry.comparingByKey()) // stable order
-            .map(e -> {
-                String key = e.getKey();
-                String val = e.getValue() != null && e.getValue().length > 0
-                        ? e.getValue()[0]
-                        : "";
-                return key + "=" + val;
-            })
-            .reduce((a, b) -> a + "&" + b)
-            .orElse("");
-}
+@PostMapping(
+			value = "/updateMsgReadStatus",
+			consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE+";charset=utf-8"
+			
+			)
+	//public ResponseEntity<?> updateMsgReadStatus(@RequestBody UpdateMsgReadStatus request) {
+	
+	public ResponseEntity<?> updateMsgReadStatus(
+			@RequestParam String custId,
+			@RequestParam String branchCode,
+			@RequestParam String reqFrom
+			
+			){
 
+	    Map<String, String> response = new HashMap<>();
 
+	    try {
+	        //System.out.println("/////////////////////////////////////// enter updateMsgReadStatus //////////////////////////////");
 
+	        ChatMessageManager.updateMsgReadStatus(
+	        		reqFrom,
+	        		custId,
+	                branchCode
+	        );
 
-byte[] bodyBytes = null;
-String body = "";
+	        response.put("info", "Successfully updated msg status for " + custId);
+	        System.out.println("Successfully updated msg status for " + custId);
+	        return ResponseEntity.ok(response);
 
-String contentType = req.getContentType();
-boolean isForm =
-        contentType != null &&
-        contentType.startsWith("application/x-www-form-urlencoded");
+	    } catch (Exception e) {
 
-if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
+	        //System.out.println("/////////////////////////////////////// enter updateMsgReadStatus catch //////////////////////////////");
+	        response.put("error", "Server error while loading messages");
+	        return ResponseEntity.status(500).body(response);
+	    }
+	}
+	
+	
+	
+ERROR LOG
 
-    if (isForm) {
-        // 🔴 FORM DATA: DO NOT READ INPUT STREAM
-        body = buildFormBody(req);
-        bodyBytes = body.getBytes(
-                req.getCharacterEncoding() != null
-                        ? Charset.forName(req.getCharacterEncoding())
-                        : StandardCharsets.UTF_8
-        );
-    } else {
-        // JSON / others
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (InputStream is = req.getInputStream()) {
-            byte[] buf = new byte[4096];
-            int r;
-            while ((r = is.read(buf)) != -1) {
-                baos.write(buf, 0, r);
-            }
-        }
-        bodyBytes = baos.toByteArray();
-        body = new String(
-                bodyBytes,
-                req.getCharacterEncoding() != null
-                        ? Charset.forName(req.getCharacterEncoding())
-                        : StandardCharsets.UTF_8
-        );
-    }
-}
+method>>>>>>>>Post
+######## METHOD VERIFIED ########
+16:16:13.887 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.security.web.FilterChainProxy - Securing POST /updateMsgReadStatus
+16:16:13.887 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.s.w.c.SecurityContextPersistenceFilter - Set SecurityContextHolder to empty SecurityContext
+16:16:13.890 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.s.w.a.i.FilterSecurityInterceptor - Authorized filter invocation [POST /updateMsgReadStatus] with attributes [authenticated]
+16:16:13.890 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.security.web.FilterChainProxy - Secured POST /updateMsgReadStatus
+16:16:13.891 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - POST "/ChatServer/updateMsgReadStatus", parameters={masked}
+16:16:13.891 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to com.chat.controller.ChatMessageController#updateMsgReadStatus(UpdateMsgReadStatus)
+16:16:13.893 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.method.HandlerMethod - Could not resolve parameter [0] in public org.springframework.http.ResponseEntity<?> com.chat.controller.ChatMessageController.updateMsgReadStatus(com.chat.bean.UpdateMsgReadStatus): Content type 'application/x-www-form-urlencoded;charset=utf-8' not supported
+16:16:13.893 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] WARN  o.s.w.s.m.s.DefaultHandlerExceptionResolver - Resolved [org.springframework.web.HttpMediaTypeNotSupportedException: Content type 'application/x-www-form-urlencoded;charset=utf-8' not supported]
+16:16:13.893 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - Completed 415 UNSUPPORTED_MEDIA_TYPE
+16:16:13.894 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.s.w.c.SecurityContextPersistenceFilter - Cleared SecurityContextHolder to complete request
+16:16:13.896 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - "FORWARD" dispatch for POST "/ChatServer/error", parameters={masked}
+16:16:13.896 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#errorHtml(HttpServletRequest, HttpServletResponse)
+16:16:13.905 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.w.s.v.ContentNegotiatingViewResolver - Selected 'text/html' given [text/html, text/html;q=.2]
+16:16:13.906 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - Exiting from "FORWARD" dispatch, status 415
