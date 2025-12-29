@@ -1,14 +1,25 @@
-const updateMsgStatus = async (custId,branchCode) => {
+const updateMsgStatus = async (custId, branchCode) => {
 
   const URLBase = window.location.origin;
 
-  const payLoad = {custId: custId,branchCode:branchCode,reqFrom:'customer'}
-  const response = await fetch(`${URLBase}/CEWeb/servlets/chatClient/updateMsgReadStatus`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payLoad)
-          });
+  // Convert payload to plain text (key=value format)
+  const payload =
+    `custId=${encodeURIComponent(custId)}` +
+    `&branchCode=${encodeURIComponent(branchCode)}` +
+    `&reqFrom=customer`;
 
-          if (!response.ok) throw new Error('Failed to fetch bot reply');
+  const response = await fetch(
+    `${URLBase}/CEWeb/servlets/chatClient/updateMsgReadStatus`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain; charset=UTF-8'
+      },
+      body: payload
+    }
+  );
 
-}
+  if (!response.ok) {
+    throw new Error('Failed to update message status');
+  }
+};
