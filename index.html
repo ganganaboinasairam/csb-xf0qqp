@@ -1,13 +1,11 @@
-private String normalizeFormBody(HttpServletRequest req, byte[] bodyBytes) throws IOException {
-    if (bodyBytes == null || bodyBytes.length == 0) {
-        return "";
-    }
-
-    String charsetName = req.getCharacterEncoding();
-    Charset charset = charsetName != null
-            ? Charset.forName(charsetName)
-            : StandardCharsets.UTF_8;
-
-    // IMPORTANT: do NOT re-encode or reorder
-    return new String(bodyBytes, charset).trim();
+private String buildFormBodyFromParameters(HttpServletRequest request) {
+    return request.getParameterMap().entrySet().stream()
+            .sorted(java.util.Map.Entry.comparingByKey()) // canonical order
+            .map(e -> {
+                String key = e.getKey();
+                String[] values = e.getValue();
+                return key + "=" + (values.length > 0 ? values[0] : "");
+            })
+            .reduce((a, b) -> a + "&" + b)
+            .orElse("");
 }
