@@ -1,15 +1,54 @@
-String contentType = cachedRequest.getContentType();
+private String buildFormBody(HttpServletRequest req) {
+    return req.getParameterMap().entrySet().stream()
+            .sorted(java.util.Map.Entry.comparingByKey()) // stable order
+            .map(e -> {
+                String key = e.getKey();
+                String val = e.getValue() != null && e.getValue().length > 0
+                        ? e.getValue()[0]
+                        : "";
+                return key + "=" + val;
+            })
+            .reduce((a, b) -> a + "&" + b)
+            .orElse("");
+}
 
-if (contentType != null &&
-    contentType.startsWith(MediaType.APPLICATION_FORM_URLENCODED_VALUE)) {
 
-    body = buildFormBodyFromParameters(cachedRequest);
 
-} else if (bodyBytes != null && bodyBytes.length > 0) {
 
-    String charsetName = cachedRequest.getCharacterEncoding();
-    Charset charset = StringUtils.hasText(charsetName)
-            ? Charset.forName(charsetName)
-            : StandardCharsets.UTF_8;
-    body = new String(bodyBytes, charset);
+byte[] bodyBytes = null;
+String body = "";
+
+String contentType = req.getContentType();
+boolean isForm =
+        contentType != null &&
+        contentType.startsWith("application/x-www-form-urlencoded");
+
+if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
+
+    if (isForm) {
+        // 🔴 FORM DATA: DO NOT READ INPUT STREAM
+        body = buildFormBody(req);
+        bodyBytes = body.getBytes(
+                req.getCharacterEncoding() != null
+                        ? Charset.forName(req.getCharacterEncoding())
+                        : StandardCharsets.UTF_8
+        );
+    } else {
+        // JSON / others
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (InputStream is = req.getInputStream()) {
+            byte[] buf = new byte[4096];
+            int r;
+            while ((r = is.read(buf)) != -1) {
+                baos.write(buf, 0, r);
+            }
+        }
+        bodyBytes = baos.toByteArray();
+        body = new String(
+                bodyBytes,
+                req.getCharacterEncoding() != null
+                        ? Charset.forName(req.getCharacterEncoding())
+                        : StandardCharsets.UTF_8
+        );
+    }
 }
