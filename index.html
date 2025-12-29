@@ -1,11 +1,15 @@
-private String buildFormBodyFromParameters(HttpServletRequest request) {
-    return request.getParameterMap().entrySet().stream()
-            .sorted(java.util.Map.Entry.comparingByKey()) // canonical order
-            .map(e -> {
-                String key = e.getKey();
-                String[] values = e.getValue();
-                return key + "=" + (values.length > 0 ? values[0] : "");
-            })
-            .reduce((a, b) -> a + "&" + b)
-            .orElse("");
+String contentType = cachedRequest.getContentType();
+
+if (contentType != null &&
+    contentType.startsWith(MediaType.APPLICATION_FORM_URLENCODED_VALUE)) {
+
+    body = buildFormBodyFromParameters(cachedRequest);
+
+} else if (bodyBytes != null && bodyBytes.length > 0) {
+
+    String charsetName = cachedRequest.getCharacterEncoding();
+    Charset charset = StringUtils.hasText(charsetName)
+            ? Charset.forName(charsetName)
+            : StandardCharsets.UTF_8;
+    body = new String(bodyBytes, charset);
 }
