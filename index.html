@@ -1,89 +1,14 @@
-	if i need to send the request as text ,not json, then adjust the below menthod to work according for POST and PUT
-	
-	
-	
-	
-	
-	
-	private void handleHttpRequest(String method, String endpoint, HttpServletRequest req, HttpServletResponse resp)
-			throws IOException {
-		try {
-			// Read request body if POST
-			byte[] bodyBytes = null;
-			String body = "";
-			if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
-				
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				try(InputStream is = req.getInputStream()){
-					byte[] buf = new byte[4096];
-					int r;
-					while((r = is.read(buf)) != -1)baos.write(buf,0,r);
-				}
-				bodyBytes = baos.toByteArray();
-				Charset charset = req.getCharacterEncoding() == null ? StandardCharsets.UTF_8 : Charset.forName(req.getCharacterEncoding());
-				body = bodyBytes.length == 0 ? "" : new String(bodyBytes, charset);
-			}
+const updateMsgStatus = async (custId,branchCode) => {
 
-			log.info("body (string) is ::::::::::::::::::::::::::::::::::::::::::" + body);
-			log.info("body bytes length = " + (bodyBytes == null ? 0 : bodyBytes.length));
+  const URLBase = window.location.origin;
 
-			// Generate timestamp
-			String timestamp = String.valueOf(System.currentTimeMillis());
+  const payLoad = {custId: custId,branchCode:branchCode,reqFrom:'customer'}
+  const response = await fetch(`${URLBase}/CEWeb/servlets/chatClient/updateMsgReadStatus`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payLoad)
+          });
 
-			// Create canonical string using the *exact* body string you just computed
-			String canonicalString = AsymmetricSignatureUtil.createCanonicalString(method, "/ChatServer/" + endpoint, body, timestamp);
-			log.info("canonicalString from ChatClient is " + canonicalString);
+          if (!response.ok) throw new Error('Failed to fetch bot reply');
 
-			// Sign it
-			String signature = AsymmetricSignatureUtil.sign(canonicalString, privateKeyBase64);
-			log.info("signature is " + signature);
-
-			// Build finalURL (same as before)
-			String query = req.getQueryString();
-			String finalURL = CHAT_SERVER_BASE_URL + "/" + endpoint + (query != null && !query.isEmpty() ? "?" + query : "");
-			
-			log.info("finalURL is "+finalURL);
-
-			URL url = new URL(finalURL);
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setRequestMethod(method);
-			conn.setRequestProperty("X-Timestamp", timestamp);
-			conn.setRequestProperty("X-Signature", signature);
-			conn.setRequestProperty("X-Client-ID", CLIENT_ID);
-
-			// Forward Content-Type from incoming request if present, otherwise default
-			String contentType = req.getContentType() != null ? req.getContentType() : "application/json; charset=UTF-8";
-			conn.setRequestProperty("Content-Type", contentType);
-
-			// If you have bodyBytes, write them exactly
-			if (bodyBytes != null && bodyBytes.length > 0) {
-			    conn.setDoOutput(true);
-			    conn.setRequestProperty("Content-Length", String.valueOf(bodyBytes.length));
-			    try (OutputStream os = conn.getOutputStream()) {
-			        os.write(bodyBytes); // write exact bytes
-			        os.flush();
-			    }
-			}
-			
-			log.info("url contents are :      "+conn.getContent());
-
-			// Read response
-			int responseCode = conn.getResponseCode();
-			resp.setStatus(responseCode);
-
-			BufferedReader in = new BufferedReader(new InputStreamReader(
-					responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream()));
-			String inputLine;
-			StringBuilder response = new StringBuilder();
-			while ((inputLine = in.readLine()) != null) {
-				response.append(inputLine);
-			}
-			in.close();
-
-			resp.getWriter().write(response.toString());
-
-		} catch (Exception e) {
-			log.severe("Error handling HTTP request" + e);
-			resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Request failed");
-		}
-	}
+}
