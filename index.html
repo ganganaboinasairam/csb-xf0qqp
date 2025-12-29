@@ -1,25 +1,17 @@
-const updateMsgStatus = async (custId, branchCode) => {
-
-  const URLBase = window.location.origin;
-
-  // Convert payload to plain text (key=value format)
-  const payload =
-    `custId=${encodeURIComponent(custId)}` +
-    `&branchCode=${encodeURIComponent(branchCode)}` +
-    `&reqFrom=customer`;
-
-  const response = await fetch(
-    `${URLBase}/CEWeb/servlets/chatClient/updateMsgReadStatus`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain; charset=UTF-8'
-      },
-      body: payload
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to update message status');
-  }
-};
+]
+method>>>>>>>>Post
+######## METHOD VERIFIED ########
+12:34:44.414 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.security.web.FilterChainProxy - Securing POST /updateMsgReadStatus
+12:34:44.414 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.s.w.c.SecurityContextPersistenceFilter - Set SecurityContextHolder to empty SecurityContext
+12:34:44.415 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.s.w.a.i.FilterSecurityInterceptor - Authorized filter invocation [POST /updateMsgReadStatus] with attributes [authenticated]
+12:34:44.415 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.security.web.FilterChainProxy - Secured POST /updateMsgReadStatus
+12:34:44.415 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - POST "/ChatServer/updateMsgReadStatus", parameters={}
+12:34:44.415 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to com.chat.controller.ChatMessageController#updateMsgReadStatus(UpdateMsgReadStatus)
+12:34:44.416 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.method.HandlerMethod - Could not resolve parameter [0] in public org.springframework.http.ResponseEntity<?> com.chat.controller.ChatMessageController.updateMsgReadStatus(com.chat.bean.UpdateMsgReadStatus): Content type 'application/x-www-form-urlencoded;charset=utf-8' not supported
+12:34:44.416 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] WARN  o.s.w.s.m.s.DefaultHandlerExceptionResolver - Resolved [org.springframework.web.HttpMediaTypeNotSupportedException: Content type 'application/x-www-form-urlencoded;charset=utf-8' not supported]
+12:34:44.416 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - Completed 415 UNSUPPORTED_MEDIA_TYPE
+12:34:44.416 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.s.w.c.SecurityContextPersistenceFilter - Cleared SecurityContextHolder to complete request
+12:34:44.416 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - "FORWARD" dispatch for POST "/ChatServer/error", parameters={}
+12:34:44.416 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#errorHtml(HttpServletRequest, HttpServletResponse)
+12:34:44.421 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.w.s.v.ContentNegotiatingViewResolver - Selected 'text/html' given [text/html, text/html;q=.2]
+12:34:44.421 [[ACTIVE] ExecuteThread: '0' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - Exiting from "FORWARD" dispatch, status 415
