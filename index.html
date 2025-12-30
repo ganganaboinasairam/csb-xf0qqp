@@ -1,40 +1,43 @@
-/* chat-sender.jsx -> Replaces WebSocket logic with REST POST to /testproject/chatClient/sendmessage
+/* chat-sender.jsx -> Uses REST POST with application/x-www-form-urlencoded
    Usage: window.chatSender.init({ urlBase, token, customerId, branchCode, customerName, onResponse, onError })
-   Exposes: init, send, safeSend, close, _internal for testing/inspection
 */
 (function () {
-  // Default base (adjust if your server lives elsewhere)
+
   const DEFAULT_URL_BASE = (opts) => opts.urlBase || "http://10.177.141.86:7001";
 
-  // Internal state
   let opts = null;
   let queue = [];
   let sending = false;
   let flushTimer = null;
-  let flushInterval = 3000; // attempt queue flush every 3s when items exist
+  let flushInterval = 3000;
   let explicitlyClosed = false;
 
-  // Build endpoint URL for sending messages
   function buildSendUrl() {
     const base = DEFAULT_URL_BASE(opts);
-    // Endpoint path used in your description. Adjust if your server path differs.
     return `${base}/CEWeb/servlets/chatClient/sendmessage`;
   }
 
-  // Helper: send one payload to server via fetch
+  /* ---------- NEW: helper to build x-www-form-urlencoded body ---------- */
+  function toFormUrlEncoded(obj) {
+    return Object.keys(obj)
+      .filter(k => obj[k] !== undefined && obj[k] !== null)
+      .map(k => encodeURIComponent(k) + "=" + encodeURIComponent(obj[k]))
+      .join("&");
+  }
+
   async function postMessage(payload) {
     const url = buildSendUrl();
+
     const headers = {
-      "Content-Type": "application/json",
+      "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
     };
+
     if (opts && opts.token) {
-      // prefer Authorization header if token present
       headers["Authorization"] = `Bearer ${opts.token}`;
     }
 
-    // Add identifying metadata to body so server knows which customer/branch sent it
-    const body = Object.assign(
-      {},
+    /* ---------- Form body instead of JSON ---------- */
+    const bodyObj = Object.assign(
       {
         customerId: opts.customerId,
         branchCode: opts.branchCode,
@@ -46,20 +49,19 @@
     const fetchOptions = {
       method: "POST",
       headers,
-      body: JSON.stringify(body),
-      // include credentials only if user configured it
+      body: toFormUrlEncoded(bodyObj),
       credentials: opts.credentials || "same-origin",
     };
 
     const res = await fetch(url, fetchOptions);
+
     if (!res.ok) {
-      // Throw an error so caller can decide to queue/retry
       const text = await res.text().catch(() => "");
       const err = new Error(`HTTP ${res.status} ${res.statusText} ${text}`);
       err.status = res.status;
       throw err;
     }
-    // parse JSON if server responds with json
+
     const contentType = res.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
       return await res.json();
@@ -67,11 +69,10 @@
     return await res.text();
   }
 
-  // Flush queue: send queued messages in FIFO order, one-by-one.
   async function flushQueue() {
     if (sending || explicitlyClosed) return;
+
     if (!queue.length) {
-      // stop periodic flush when nothing to do
       clearInterval(flushTimer);
       flushTimer = null;
       return;
@@ -80,36 +81,28 @@
     sending = true;
     try {
       while (queue.length && !explicitlyClosed) {
-        const item = queue[0]; // peek
+        const item = queue[0];
         try {
           const resp = await postMessage(item.payload);
-          // success: pop queue and call callback if present
           queue.shift();
           if (item.resolve) item.resolve(resp);
-          if (opts.onResponse) {
-            try { opts.onResponse(resp, item.payload); } catch (e) { console.warn("onResponse callback failed", e); }
-          }
+          if (opts.onResponse) opts.onResponse(resp, item.payload);
         } catch (err) {
-          // Failed to send this item; stop processing further and leave it queued.
           if (item.reject) item.reject(err);
-          if (opts.onError) {
-            try { opts.onError(err, item.payload); } catch (e) { console.warn("onError callback failed", e); }
-          }
+          if (opts.onError) opts.onError(err, item.payload);
           break;
         }
       }
     } finally {
       sending = false;
-      // if still have items, ensure periodic flush is running
       if (queue.length && !flushTimer && !explicitlyClosed) {
         flushTimer = setInterval(() => {
-          flushQueue().catch((e) => console.warn("flushQueue error", e));
+          flushQueue().catch(e => console.warn("flushQueue error", e));
         }, flushInterval);
       }
     }
   }
 
-  // safeSend: enqueue the payload and attempt immediate send; returns a Promise that resolves/rejects when send completes or fails.
   function safeSend(payload) {
     if (explicitlyClosed) {
       return Promise.reject(new Error("chatSender is closed"));
@@ -117,50 +110,37 @@
 
     return new Promise((resolve, reject) => {
       queue.push({ payload, resolve, reject, timestamp: Date.now() });
-      // start flush immediately
-      flushQueue().catch((e) => {
-        // flushQueue handles retries; we expose errors via individual reject
-        console.warn("flushQueue triggered by safeSend failed", e);
-      });
-      // ensure periodic flush exists
+      flushQueue().catch(() => {});
       if (!flushTimer) {
         flushTimer = setInterval(() => {
-          flushQueue().catch((e) => console.warn("flushQueue error", e));
+          flushQueue().catch(e => console.warn("flushQueue error", e));
         }, flushInterval);
       }
     });
   }
 
-  // send: attempt immediate POST; if it fails, queue payload and return false. If success returns true.
   async function send(payload) {
     if (explicitlyClosed) {
-      console.warn("chatSender.send called after close()");
-      queue.push({ payload }); // keep it safe in queue anyway
+      queue.push({ payload });
       return false;
     }
 
     try {
       const resp = await postMessage(payload);
-      if (opts.onResponse) {
-        try { opts.onResponse(resp, payload); } catch (e) { console.warn("onResponse callback failed", e); }
-      }
+      if (opts.onResponse) opts.onResponse(resp, payload);
       return true;
     } catch (err) {
-      // On failure, queue it for retry
       queue.push({ payload });
       if (!flushTimer) {
         flushTimer = setInterval(() => {
-          flushQueue().catch((e) => console.warn("flushQueue error", e));
+          flushQueue().catch(e => console.warn("flushQueue error", e));
         }, flushInterval);
       }
-      if (opts.onError) {
-        try { opts.onError(err, payload); } catch (e) { console.warn("onError callback failed", e); }
-      }
+      if (opts.onError) opts.onError(err, payload);
       return false;
     }
   }
 
-  // init: configure module and optionally start flushing existing queue
   function init(initOpts = {}) {
     opts = Object.assign(
       {
@@ -169,7 +149,7 @@
         customerId: null,
         branchCode: null,
         customerName: "",
-        credentials: "same-origin", // or "include" if you need cookies included
+        credentials: "same-origin",
         onResponse: null,
         onError: null,
       },
@@ -177,17 +157,14 @@
     );
     explicitlyClosed = false;
 
-    // If there are queued items (maybe persisted externally in future), start flush timer
     if (queue.length && !flushTimer) {
       flushTimer = setInterval(() => {
-        flushQueue().catch((e) => console.warn("flushQueue error", e));
+        flushQueue().catch(() => {});
       }, flushInterval);
-      // attempt immediate flush
       flushQueue().catch(() => {});
     }
   }
 
-  // close: disable automatic retries and clear queue (optionally)
   function close({ clearQueue = false } = {}) {
     explicitlyClosed = true;
     clearInterval(flushTimer);
@@ -195,11 +172,10 @@
     if (clearQueue) queue = [];
   }
 
-  // Expose public API
   window.chatSender = {
     init,
-    send,     // async function returning boolean
-    safeSend, // returns a Promise
+    send,
+    safeSend,
     close,
     _internal: {
       _getQueue: () => queue.slice(),
@@ -208,10 +184,3 @@
     },
   };
 })();
-
-
-
-
-
-
-change the POST method content type from "application/json" to 'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8' and adjust the code according to that
