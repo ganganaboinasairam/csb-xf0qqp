@@ -1,57 +1,17 @@
-@PostMapping(
-			value = "/updateMsgReadStatus",
-			consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE+";charset=utf-8"
-			
-			)
-	//public ResponseEntity<?> updateMsgReadStatus(@RequestBody UpdateMsgReadStatus request) {
-	
-	public ResponseEntity<?> updateMsgReadStatus(
-			@RequestParam String custId,
-			@RequestParam String branchCode,
-			@RequestParam String reqFrom
-			
-			){
+██████╗ ██╗  ██╗ █████╗ ████████╗██████╗  ██████╗ ██╗  ██╗
+  ██╔════╝ ██║  ██║██╔══██╗╚══██╔══╝██╔══██╗██╔═══██╗╚██╗██╔╝
+  ██║      ███████║███████║   ██║   ██████╔╝██║   ██║ ╚███╔╝ 
+  ██║      ██╔══██║██╔══██║   ██║   ██╔══██╗██║   ██║ ██╔██╗ 
+  ╚██████╗ ██║  ██║██║  ██║   ██║   ██████╔╝╚██████╔╝██╔╝ ██╗
+   ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═════╝  ╚═════╝ ╚═╝  ╚═╝
 
-	    Map<String, String> response = new HashMap<>();
+            :: CHATBOX – Secure Messaging Platform ::
+            :: Spring Boot Application Initialized ::
 
-	    try {
-	        //System.out.println("/////////////////////////////////////// enter updateMsgReadStatus //////////////////////////////");
-
-	        ChatMessageManager.updateMsgReadStatus(
-	        		reqFrom,
-	        		custId,
-	                branchCode
-	        );
-
-	        response.put("info", "Successfully updated msg status for " + custId);
-	        System.out.println("Successfully updated msg status for " + custId);
-	        return ResponseEntity.ok(response);
-
-	    } catch (Exception e) {
-
-	        //System.out.println("/////////////////////////////////////// enter updateMsgReadStatus catch //////////////////////////////");
-	        response.put("error", "Server error while loading messages");
-	        return ResponseEntity.status(500).body(response);
-	    }
-	}
-	
-	
-	
-ERROR LOG
-
-method>>>>>>>>Post
-######## METHOD VERIFIED ########
-16:16:13.887 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.security.web.FilterChainProxy - Securing POST /updateMsgReadStatus
-16:16:13.887 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.s.w.c.SecurityContextPersistenceFilter - Set SecurityContextHolder to empty SecurityContext
-16:16:13.890 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.s.w.a.i.FilterSecurityInterceptor - Authorized filter invocation [POST /updateMsgReadStatus] with attributes [authenticated]
-16:16:13.890 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.security.web.FilterChainProxy - Secured POST /updateMsgReadStatus
-16:16:13.891 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - POST "/ChatServer/updateMsgReadStatus", parameters={masked}
-16:16:13.891 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to com.chat.controller.ChatMessageController#updateMsgReadStatus(UpdateMsgReadStatus)
-16:16:13.893 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.method.HandlerMethod - Could not resolve parameter [0] in public org.springframework.http.ResponseEntity<?> com.chat.controller.ChatMessageController.updateMsgReadStatus(com.chat.bean.UpdateMsgReadStatus): Content type 'application/x-www-form-urlencoded;charset=utf-8' not supported
-16:16:13.893 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] WARN  o.s.w.s.m.s.DefaultHandlerExceptionResolver - Resolved [org.springframework.web.HttpMediaTypeNotSupportedException: Content type 'application/x-www-form-urlencoded;charset=utf-8' not supported]
-16:16:13.893 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - Completed 415 UNSUPPORTED_MEDIA_TYPE
-16:16:13.894 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.s.w.c.SecurityContextPersistenceFilter - Cleared SecurityContextHolder to complete request
-16:16:13.896 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - "FORWARD" dispatch for POST "/ChatServer/error", parameters={masked}
-16:16:13.896 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.w.s.m.m.a.RequestMappingHandlerMapping - Mapped to org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#errorHtml(HttpServletRequest, HttpServletResponse)
-16:16:13.905 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.w.s.v.ContentNegotiatingViewResolver - Selected 'text/html' given [text/html, text/html;q=.2]
-16:16:13.906 [[ACTIVE] ExecuteThread: '2' for queue: 'weblogic.kernel.Default (self-tuning)'] DEBUG o.s.web.servlet.DispatcherServlet - Exiting from "FORWARD" dispatch, status 415
+--------------------------------------------------------------
+ Application Name : CHATBOX
+ Environment      : ${spring.profiles.active}
+ Java Version     : ${java.version}
+ Spring Boot      : ${spring-boot.version}
+ Startup Time     : ${spring.application.startup-time:NA}
+--------------------------------------------------------------
