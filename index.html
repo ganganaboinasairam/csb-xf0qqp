@@ -1,186 +1,101 @@
-/* chat-sender.jsx -> Uses REST POST with application/x-www-form-urlencoded
-   Usage: window.chatSender.init({ urlBase, token, customerId, branchCode, customerName, onResponse, onError })
-*/
-(function () {
+package com.chat.bean;
 
-  const DEFAULT_URL_BASE = (opts) => opts.urlBase || "http://10.177.141.86:7001";
+public class AddMessageToDb {
 
-  let opts = null;
-  let queue = [];
-  let sending = false;
-  let flushTimer = null;
-  let flushInterval = 3000;
-  let explicitlyClosed = false;
+	private String customerId;
+	private String branchCode;
+	private String sender;
+	private String customerName;
+	private String type;
+	private String role;
+	private String msgSrc;
+	private String timestamp;
+	private String content;
+	
 
-  function buildSendUrl() {
-    const base = DEFAULT_URL_BASE(opts);
-    return `${base}/CEWeb/servlets/chatClient/sendmessage`;
-  }
+	
+	
+	public String getContent() {
+		return content;
+	}
+	public void setContent(String content) {
+		this.content = content;
+	}
+	public String getCustomerId() {
+		return customerId;
+	}
+	public void setCustomerId(String customerId) {
+		this.customerId = customerId;
+	}
+	public String getBranchCode() {
+		return branchCode;
+	}
+	public void setBranchCode(String branchCode) {
+		this.branchCode = branchCode;
+	}
+	public String getSender() {
+		return sender;
+	}
+	public void setSender(String sender) {
+		this.sender = sender;
+	}
+	public String getCustomerName() {
+		return customerName;
+	}
+	public void setCustomerName(String customerName) {
+		this.customerName = customerName;
+	}
+	public String getType() {
+		return type;
+	}
+	public void setType(String type) {
+		this.type = type;
+	}
+	public String getRole() {
+		return role;
+	}
+	public void setRole(String role) {
+		this.role = role;
+	}
+	public String getMsgSrc() {
+		return msgSrc;
+	}
+	public void setMsgSrc(String msgSrc) {
+		this.msgSrc = msgSrc;
+	}
+	public String getTimestamp() {
+		return timestamp;
+	}
+	public void setTimestamp(String timestamp) {
+		this.timestamp = timestamp;
+	}
+	
+}
 
-  /* ---------- NEW: helper to build x-www-form-urlencoded body ---------- */
-  function toFormUrlEncoded(obj) {
-    return Object.keys(obj)
-      .filter(k => obj[k] !== undefined && obj[k] !== null)
-      .map(k => encodeURIComponent(k) + "=" + encodeURIComponent(obj[k]))
-      .join("&");
-  }
 
-  async function postMessage(payload) {
-    const url = buildSendUrl();
 
-    const headers = {
-      "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
-    };
 
-    if (opts && opts.token) {
-      headers["Authorization"] = `Bearer ${opts.token}`;
-    }
 
-    /* ---------- Form body instead of JSON ---------- */
-    const bodyObj = Object.assign(
-      {
-        customerId: opts.customerId,
-        branchCode: opts.branchCode,
-        customerName: opts.customerName || "",
-      },
-      payload
-    );
-
-    const fetchOptions = {
-      method: "POST",
-      headers,
-      body: toFormUrlEncoded(bodyObj),
-      credentials: opts.credentials || "same-origin",
-    };
-
-    const res = await fetch(url, fetchOptions);
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      const err = new Error(`HTTP ${res.status} ${res.statusText} ${text}`);
-      err.status = res.status;
-      throw err;
-    }
-
-    const contentType = res.headers.get("content-type") || "";
-    if (contentType.includes("application/json")) {
-      return await res.json();
-    }
-    return await res.text();
-  }
-
-  async function flushQueue() {
-    if (sending || explicitlyClosed) return;
-
-    if (!queue.length) {
-      clearInterval(flushTimer);
-      flushTimer = null;
-      return;
-    }
-
-    sending = true;
-    try {
-      while (queue.length && !explicitlyClosed) {
-        const item = queue[0];
-        try {
-          const resp = await postMessage(item.payload);
-          queue.shift();
-          if (item.resolve) item.resolve(resp);
-          if (opts.onResponse) opts.onResponse(resp, item.payload);
-        } catch (err) {
-          if (item.reject) item.reject(err);
-          if (opts.onError) opts.onError(err, item.payload);
-          break;
-        }
-      }
-    } finally {
-      sending = false;
-      if (queue.length && !flushTimer && !explicitlyClosed) {
-        flushTimer = setInterval(() => {
-          flushQueue().catch(e => console.warn("flushQueue error", e));
-        }, flushInterval);
-      }
-    }
-  }
-
-  function safeSend(payload) {
-    if (explicitlyClosed) {
-      return Promise.reject(new Error("chatSender is closed"));
-    }
-
-    return new Promise((resolve, reject) => {
-      queue.push({ payload, resolve, reject, timestamp: Date.now() });
-      flushQueue().catch(() => {});
-      if (!flushTimer) {
-        flushTimer = setInterval(() => {
-          flushQueue().catch(e => console.warn("flushQueue error", e));
-        }, flushInterval);
-      }
-    });
-  }
-
-  async function send(payload) {
-    if (explicitlyClosed) {
-      queue.push({ payload });
-      return false;
-    }
-
-    try {
-      const resp = await postMessage(payload);
-      if (opts.onResponse) opts.onResponse(resp, payload);
-      return true;
-    } catch (err) {
-      queue.push({ payload });
-      if (!flushTimer) {
-        flushTimer = setInterval(() => {
-          flushQueue().catch(e => console.warn("flushQueue error", e));
-        }, flushInterval);
-      }
-      if (opts.onError) opts.onError(err, payload);
-      return false;
-    }
-  }
-
-  function init(initOpts = {}) {
-    opts = Object.assign(
-      {
-        urlBase: "http://10.177.141.86:7001",
-        token: "",
-        customerId: null,
-        branchCode: null,
-        customerName: "",
-        credentials: "same-origin",
-        onResponse: null,
-        onError: null,
-      },
-      initOpts
-    );
-    explicitlyClosed = false;
-
-    if (queue.length && !flushTimer) {
-      flushTimer = setInterval(() => {
-        flushQueue().catch(() => {});
-      }, flushInterval);
-      flushQueue().catch(() => {});
-    }
-  }
-
-  function close({ clearQueue = false } = {}) {
-    explicitlyClosed = true;
-    clearInterval(flushTimer);
-    flushTimer = null;
-    if (clearQueue) queue = [];
-  }
-
-  window.chatSender = {
-    init,
-    send,
-    safeSend,
-    close,
-    _internal: {
-      _getQueue: () => queue.slice(),
-      _getSendUrl: () => buildSendUrl(),
-      _isSending: () => sending,
-    },
-  };
-})();
+@PostMapping("sendmessage")
+	public ResponseEntity<?> addMessageToDb(@RequestBody AddMessageToDb request){
+		Map<String, String> response = new HashMap<>();
+		
+		try {
+			JSONObject obj = new JSONObject(request);
+			
+			System.out.println("obj is :::::::::::::::::::::::::::::::::::::::::::"+obj.toString());
+			
+			ChatMessageManager.saveMessagesToDB(obj);
+			
+			response.put("info", "Successfully added msg to db " + request);
+	        return ResponseEntity.ok(response);
+		} catch (Exception e) {
+			// TODO: handle exception
+			response.put("error", "Server error while adding messages   :::::::::::: "  + e);
+	        return ResponseEntity.status(500).body(response);
+		}
+	}
+	
+	
+	
+adjust the method accordingly
