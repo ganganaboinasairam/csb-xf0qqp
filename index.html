@@ -1,1 +1,17 @@
-Error handling HTTP requestjavax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target [end]
+csFuncLevelProto.FLD_EXNE_OTHER_MOB_NO_onchange = function() {
+        try {
+            var mob = document.MAINFORM.OTHER_MOB_NO.value;
+        var s = mob;
+        var filter = /^[6-9]\d{9}$/gi;
+
+        for (var i = 0; i < s.length; i++) {
+            var returnval = filter.test(s[i]);
+            if (returnval == false) {
+                alert("Please enter a valid mobile number.");
+                document.MAINFORM.OTHER_MOB_NO.value = '';
+            }
+        }
+        } catch (e) {
+            DisExcpt("SYF_EXNE_Export_Bills_Negotiation_Purc_Disc_DEO.js*FLD_EXNE_OTHER_MOB_NO_onchange", e);
+        }
+}
