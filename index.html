@@ -1,23 +1,19 @@
-csFuncLevelProto.FLD_EXNE_OTHER_MOB_NO_onchange = function () {
-    try {
-        var mob = document.MAINFORM.OTHER_MOB_NO.value.trim();
+import java.net.URL;
 
-        // Indian mobile number: starts with 6-9 and total 10 digits
-        var filter = /^[6-9][0-9]{9}$/;
+public class UrlInfo {
+    public static void main(String[] args) throws Exception {
 
-        if (!filter.test(mob)) {
-            alert("Please enter a valid 10-digit Indian mobile number.");
-            document.MAINFORM.OTHER_MOB_NO.value = '';
-            document.MAINFORM.OTHER_MOB_NO.focus();
-            return false;
-        }
+        URL url = new URL("https://example.com:8443/app/api/test?user=abc&id=10#section1");
 
-        return true;
-
-    } catch (e) {
-        DisExcpt(
-            "SYF_EXNE_Export_Bills_Negotiation_Purc_Disc_DEO.js*FLD_EXNE_OTHER_MOB_NO_onchange",
-            e
-        );
+        System.out.println("Full URL      : " + url.toString());
+        System.out.println("Protocol      : " + url.getProtocol());
+        System.out.println("Host          : " + url.getHost());
+        System.out.println("Port          : " + url.getPort());
+        System.out.println("Default Port  : " + url.getDefaultPort());
+        System.out.println("Authority     : " + url.getAuthority());
+        System.out.println("Path          : " + url.getPath());
+        System.out.println("Query         : " + url.getQuery());
+        System.out.println("File          : " + url.getFile());
+        System.out.println("Ref (Fragment): " + url.getRef());
     }
-};
+}
