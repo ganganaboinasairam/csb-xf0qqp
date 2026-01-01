@@ -1,17 +1,23 @@
-csFuncLevelProto.FLD_EXNE_OTHER_MOB_NO_onchange = function() {
-        try {
-            var mob = document.MAINFORM.OTHER_MOB_NO.value;
-        var s = mob;
-        var filter = /^[6-9]\d{9}$/gi;
+csFuncLevelProto.FLD_EXNE_OTHER_MOB_NO_onchange = function () {
+    try {
+        var mob = document.MAINFORM.OTHER_MOB_NO.value.trim();
 
-        for (var i = 0; i < s.length; i++) {
-            var returnval = filter.test(s[i]);
-            if (returnval == false) {
-                alert("Please enter a valid mobile number.");
-                document.MAINFORM.OTHER_MOB_NO.value = '';
-            }
+        // Indian mobile number: starts with 6-9 and total 10 digits
+        var filter = /^[6-9][0-9]{9}$/;
+
+        if (!filter.test(mob)) {
+            alert("Please enter a valid 10-digit Indian mobile number.");
+            document.MAINFORM.OTHER_MOB_NO.value = '';
+            document.MAINFORM.OTHER_MOB_NO.focus();
+            return false;
         }
-        } catch (e) {
-            DisExcpt("SYF_EXNE_Export_Bills_Negotiation_Purc_Disc_DEO.js*FLD_EXNE_OTHER_MOB_NO_onchange", e);
-        }
-}
+
+        return true;
+
+    } catch (e) {
+        DisExcpt(
+            "SYF_EXNE_Export_Bills_Negotiation_Purc_Disc_DEO.js*FLD_EXNE_OTHER_MOB_NO_onchange",
+            e
+        );
+    }
+};
