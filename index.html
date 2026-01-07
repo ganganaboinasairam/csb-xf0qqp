@@ -1,177 +1,56 @@
-git.repo.path=/path/to/your/git/repo
-git.remote.name=origin
-git.branch.name=main
-git.author.name=Auto Commit Tool
-git.author.email=dev@company.com
-git.log.scan.limit=20
-
-package com.company.git;
-
-import java.io.FileInputStream;
-import java.util.Properties;
-
-public class Config {
-
-    private static final Properties props = new Properties();
-
-    static {
-        try (FileInputStream fis =
-                     new FileInputStream("application.properties")) {
-            props.load(fis);
-        } catch (Exception e) {
-            throw new RuntimeException(
-                "Unable to load application.properties", e);
-        }
-    }
-
-    public static String get(String key) {
-        return props.getProperty(key);
-    }
-
-    public static int getInt(String key) {
-        return Integer.parseInt(props.getProperty(key));
-    }
-}
-
-package com.company.git;
-
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.revwalk.RevCommit;
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-
-public class CommitMessageGenerator {
-
-    private static final DateTimeFormatter DF =
-            DateTimeFormatter.ofPattern("ddMMyy");
-
-    public static String generate(Git git, String crNo) throws Exception {
-
-        String today = LocalDate.now().format(DF);
-        int maxSeq = 0;
-
-        Iterable<RevCommit> commits =
-                git.log().setMaxCount(
-                        Config.getInt("git.log.scan.limit")).call();
-
-        for (RevCommit commit : commits) {
-            String msg = commit.getShortMessage();
-            if (msg.startsWith("CR_" + crNo + "_" + today + "_")) {
-                String[] parts = msg.split("_");
-                int seq = Integer.parseInt(parts[3]);
-                maxSeq = Math.max(maxSeq, seq);
-            }
-        }
-
-        return "CR_" + crNo + "_" + today + "_" + (maxSeq + 1);
-    }
-}
-
-
-package com.company.git;
-
-import org.eclipse.jgit.api.*;
-import org.eclipse.jgit.lib.*;
-import org.eclipse.jgit.revwalk.*;
-
-import java.io.File;
-
-public class GitService {
-
-    public void commitRebasePush(String crNo) throws Exception {
-
-        File repoDir = new File(Config.get("git.repo.path"));
-
-        try (Git git = Git.open(repoDir)) {
-
-            // Stage everything
-            git.add().addFilepattern(".").call();
-
-            Status status = git.status().call();
-            if (status.isClean()) {
-                System.out.println("No changes to commit.");
-                return;
-            }
-
-            // Generate commit message
-            String msg = CommitMessageGenerator.generate(git, crNo);
-
-            git.commit()
-               .setMessage(msg)
-               .setAuthor(
-                   Config.get("git.author.name"),
-                   Config.get("git.author.email"))
-               .call();
-
-            System.out.println("Committed: " + msg);
-
-            rebaseIfRequired(git);
-            push(git);
-        }
-    }
-
-    private void rebaseIfRequired(Git git) throws Exception {
-
-        String branch = Config.get("git.branch.name");
-        String remote = Config.get("git.remote.name");
-
-        git.fetch().setRemote(remote).call();
-
-        Repository repo = git.getRepository();
-        ObjectId local = repo.resolve("HEAD");
-        ObjectId remoteHead =
-                repo.resolve("refs/remotes/" + remote + "/" + branch);
-
-        if (remoteHead == null) {
-            return;
-        }
-
-        try (RevWalk walk = new RevWalk(repo)) {
-
-            boolean behind = walk.isMergedInto(
-                    walk.parseCommit(local),
-                    walk.parseCommit(remoteHead));
-
-            if (behind) {
-                System.out.println("Remote is ahead. Rebasing...");
-
-                PullResult result =
-                        git.pull().setRebase(true).call();
-
-                if (!result.isSuccessful()) {
-                    throw new RuntimeException(
-                        "Rebase conflict. Resolve manually.");
-                }
-            }
-        }
-    }
-
-    private void push(Git git) throws Exception {
-        git.push().call();
-        System.out.println("Push successful.");
-    }
-}
-
-package com.company.git;
-
-public class Main {
-
-    public static void main(String[] args) throws Exception {
-
-        if (args.length != 1) {
-            System.err.println(
-                "Usage: java -cp <classpath> com.company.git.Main <CR_NUMBER>");
-            System.exit(1);
-        }
-
-        String crNo = args[0];
-
-        if (!crNo.matches("\\d+")) {
-            throw new IllegalArgumentException("Invalid CR number");
-        }
-
-        new GitService().commitRebasePush(crNo);
-    }
-}
-
+repoDirE:\gitClone\tf_ee_pre_dev
+init E:\gitClone\tf_ee_pre_dev
+git add  
+Committed: CR_25090062_070126_1
+org.eclipse.jgit.api.errors.TransportException: https://V1013325@10.177.140.236/gitlab/root/tf_ee_pre_dev.git: Secure connection to https://V1013325@10.177.140.236/gitlab/root/tf_ee_pre_dev.git could not be established because of SSL problems
+	at org.eclipse.jgit.api.FetchCommand.call(FetchCommand.java:224)
+	at com.tcs.git.GitService.rebaseIfRequired(GitService.java:52)
+	at com.tcs.git.GitService.commitRebasePush(GitService.java:40)
+	at com.tcs.git.Main.main(Main.java:20)
+Caused by: org.eclipse.jgit.errors.TransportException: https://V1013325@10.177.140.236/gitlab/root/tf_ee_pre_dev.git: Secure connection to https://V1013325@10.177.140.236/gitlab/root/tf_ee_pre_dev.git could not be established because of SSL problems
+	at org.eclipse.jgit.transport.TransportHttp.handleSslFailure(TransportHttp.java:831)
+	at org.eclipse.jgit.transport.TransportHttp.connect(TransportHttp.java:732)
+	at org.eclipse.jgit.transport.TransportHttp.openFetch(TransportHttp.java:465)
+	at org.eclipse.jgit.transport.FetchProcess.executeImp(FetchProcess.java:142)
+	at org.eclipse.jgit.transport.FetchProcess.execute(FetchProcess.java:94)
+	at org.eclipse.jgit.transport.Transport.fetch(Transport.java:1309)
+	at org.eclipse.jgit.api.FetchCommand.call(FetchCommand.java:213)
+	... 3 more
+Caused by: javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+	at sun.security.ssl.Alerts.getSSLException(Alerts.java:192)
+	at sun.security.ssl.SSLSocketImpl.fatal(SSLSocketImpl.java:1949)
+	at sun.security.ssl.Handshaker.fatalSE(Handshaker.java:302)
+	at sun.security.ssl.Handshaker.fatalSE(Handshaker.java:296)
+	at sun.security.ssl.ClientHandshaker.serverCertificate(ClientHandshaker.java:1514)
+	at sun.security.ssl.ClientHandshaker.processMessage(ClientHandshaker.java:216)
+	at sun.security.ssl.Handshaker.processLoop(Handshaker.java:1026)
+	at sun.security.ssl.Handshaker.process_record(Handshaker.java:961)
+	at sun.security.ssl.SSLSocketImpl.readRecord(SSLSocketImpl.java:1062)
+	at sun.security.ssl.SSLSocketImpl.performInitialHandshake(SSLSocketImpl.java:1375)
+	at sun.security.ssl.SSLSocketImpl.startHandshake(SSLSocketImpl.java:1403)
+	at sun.security.ssl.SSLSocketImpl.startHandshake(SSLSocketImpl.java:1387)
+	at sun.net.www.protocol.https.HttpsClient.afterConnect(HttpsClient.java:559)
+	at sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:185)
+	at sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1546)
+	at sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1474)
+	at java.net.HttpURLConnection.getResponseCode(HttpURLConnection.java:480)
+	at sun.net.www.protocol.https.HttpsURLConnectionImpl.getResponseCode(HttpsURLConnectionImpl.java:338)
+	at org.eclipse.jgit.transport.http.JDKHttpConnection.getResponseCode(JDKHttpConnection.java:85)
+	at org.eclipse.jgit.util.HttpSupport.response(HttpSupport.java:205)
+	at org.eclipse.jgit.transport.TransportHttp.connect(TransportHttp.java:654)
+	... 8 more
+Caused by: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+	at sun.security.validator.PKIXValidator.doBuild(PKIXValidator.java:387)
+	at sun.security.validator.PKIXValidator.engineValidate(PKIXValidator.java:292)
+	at sun.security.validator.Validator.validate(Validator.java:260)
+	at sun.security.ssl.X509TrustManagerImpl.validate(X509TrustManagerImpl.java:324)
+	at sun.security.ssl.X509TrustManagerImpl.checkTrusted(X509TrustManagerImpl.java:229)
+	at sun.security.ssl.X509TrustManagerImpl.checkServerTrusted(X509TrustManagerImpl.java:124)
+	at sun.security.ssl.ClientHandshaker.serverCertificate(ClientHandshaker.java:1496)
+	... 24 more
+Caused by: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+	at sun.security.provider.certpath.SunCertPathBuilder.build(SunCertPathBuilder.java:141)
+	at sun.security.provider.certpath.SunCertPathBuilder.engineBuild(SunCertPathBuilder.java:126)
+	at java.security.cert.CertPathBuilder.build(CertPathBuilder.java:280)
+	at sun.security.validator.PKIXValidator.doBuild(PKIXValidator.java:382)
+	... 30 more
