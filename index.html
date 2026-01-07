@@ -1,47 +1,41 @@
-public void commitRebasePush(String crNo) throws Exception {
+private void push(Git git) throws Exception {
 
-    long start = System.currentTimeMillis();
-    System.out.println("Opening repository...");
+    String remote = Config.get("git.remote.name");   // origin
+    String branch = Config.get("git.branch.name");   // main / develop
 
-    File repoDir = new File(Config.get("git.repo.path"));
-    try (Git git = Git.open(repoDir)) {
+    System.out.println("Pushing to " + remote + "/" + branch);
 
-        git.getRepository().getConfig()
-           .setBoolean("core", null, "filemode", false);
+    Iterable<PushResult> results = git.push()
+        .setRemote(remote)
+        .setRefSpecs(
+            new RefSpec("refs/heads/" + branch +
+                        ":refs/heads/" + branch))
+        .setCredentialsProvider(credentials())
+        .call();
 
-        System.out.println("Checking status...");
-        Status status = git.status().call();
+    boolean pushed = false;
 
-        if (status.isClean()) {
-            System.out.println("No changes to commit.");
-            return;
+    for (PushResult result : results) {
+        for (RemoteRefUpdate update : result.getRemoteUpdates()) {
+
+            RemoteRefUpdate.Status status = update.getStatus();
+            System.out.println("Push status: " + status);
+
+            if (status == RemoteRefUpdate.Status.OK ||
+                status == RemoteRefUpdate.Status.UP_TO_DATE) {
+                pushed = true;
+            } else {
+                throw new RuntimeException(
+                    "Push failed: " + status + " - " +
+                    update.getMessage());
+            }
         }
-
-        System.out.println("Staging changed files...");
-        for (String f : status.getModified()) {
-            git.add().addFilepattern(f).call();
-        }
-        for (String f : status.getUntracked()) {
-            git.add().addFilepattern(f).call();
-        }
-
-        System.out.println("Generating commit message...");
-        String msg = CommitMessageGenerator.generate(git, crNo);
-
-        System.out.println("Committing...");
-        git.commit()
-           .setMessage(msg)
-           .setAuthor(
-               Config.get("git.author.name"),
-               Config.get("git.author.email"))
-           .call();
-
-        System.out.println("Committed: " + msg);
-
-        System.out.println("Local commit time: "
-            + (System.currentTimeMillis() - start) + " ms");
-
-        rebaseIfRequired(git);
-        push(git);
     }
+
+    if (!pushed) {
+        throw new RuntimeException(
+            "Push reported success but no refs were updated");
+    }
+
+    System.out.println("Push completed successfully.");
 }
