@@ -1,56 +1,40 @@
-repoDirE:\gitClone\tf_ee_pre_dev
-init E:\gitClone\tf_ee_pre_dev
-git add  
-Committed: CR_25090062_070126_1
-org.eclipse.jgit.api.errors.TransportException: https://V1013325@10.177.140.236/gitlab/root/tf_ee_pre_dev.git: Secure connection to https://V1013325@10.177.140.236/gitlab/root/tf_ee_pre_dev.git could not be established because of SSL problems
-	at org.eclipse.jgit.api.FetchCommand.call(FetchCommand.java:224)
-	at com.tcs.git.GitService.rebaseIfRequired(GitService.java:52)
-	at com.tcs.git.GitService.commitRebasePush(GitService.java:40)
-	at com.tcs.git.Main.main(Main.java:20)
-Caused by: org.eclipse.jgit.errors.TransportException: https://V1013325@10.177.140.236/gitlab/root/tf_ee_pre_dev.git: Secure connection to https://V1013325@10.177.140.236/gitlab/root/tf_ee_pre_dev.git could not be established because of SSL problems
-	at org.eclipse.jgit.transport.TransportHttp.handleSslFailure(TransportHttp.java:831)
-	at org.eclipse.jgit.transport.TransportHttp.connect(TransportHttp.java:732)
-	at org.eclipse.jgit.transport.TransportHttp.openFetch(TransportHttp.java:465)
-	at org.eclipse.jgit.transport.FetchProcess.executeImp(FetchProcess.java:142)
-	at org.eclipse.jgit.transport.FetchProcess.execute(FetchProcess.java:94)
-	at org.eclipse.jgit.transport.Transport.fetch(Transport.java:1309)
-	at org.eclipse.jgit.api.FetchCommand.call(FetchCommand.java:213)
-	... 3 more
-Caused by: javax.net.ssl.SSLHandshakeException: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
-	at sun.security.ssl.Alerts.getSSLException(Alerts.java:192)
-	at sun.security.ssl.SSLSocketImpl.fatal(SSLSocketImpl.java:1949)
-	at sun.security.ssl.Handshaker.fatalSE(Handshaker.java:302)
-	at sun.security.ssl.Handshaker.fatalSE(Handshaker.java:296)
-	at sun.security.ssl.ClientHandshaker.serverCertificate(ClientHandshaker.java:1514)
-	at sun.security.ssl.ClientHandshaker.processMessage(ClientHandshaker.java:216)
-	at sun.security.ssl.Handshaker.processLoop(Handshaker.java:1026)
-	at sun.security.ssl.Handshaker.process_record(Handshaker.java:961)
-	at sun.security.ssl.SSLSocketImpl.readRecord(SSLSocketImpl.java:1062)
-	at sun.security.ssl.SSLSocketImpl.performInitialHandshake(SSLSocketImpl.java:1375)
-	at sun.security.ssl.SSLSocketImpl.startHandshake(SSLSocketImpl.java:1403)
-	at sun.security.ssl.SSLSocketImpl.startHandshake(SSLSocketImpl.java:1387)
-	at sun.net.www.protocol.https.HttpsClient.afterConnect(HttpsClient.java:559)
-	at sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:185)
-	at sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1546)
-	at sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1474)
-	at java.net.HttpURLConnection.getResponseCode(HttpURLConnection.java:480)
-	at sun.net.www.protocol.https.HttpsURLConnectionImpl.getResponseCode(HttpsURLConnectionImpl.java:338)
-	at org.eclipse.jgit.transport.http.JDKHttpConnection.getResponseCode(JDKHttpConnection.java:85)
-	at org.eclipse.jgit.util.HttpSupport.response(HttpSupport.java:205)
-	at org.eclipse.jgit.transport.TransportHttp.connect(TransportHttp.java:654)
-	... 8 more
-Caused by: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
-	at sun.security.validator.PKIXValidator.doBuild(PKIXValidator.java:387)
-	at sun.security.validator.PKIXValidator.engineValidate(PKIXValidator.java:292)
-	at sun.security.validator.Validator.validate(Validator.java:260)
-	at sun.security.ssl.X509TrustManagerImpl.validate(X509TrustManagerImpl.java:324)
-	at sun.security.ssl.X509TrustManagerImpl.checkTrusted(X509TrustManagerImpl.java:229)
-	at sun.security.ssl.X509TrustManagerImpl.checkServerTrusted(X509TrustManagerImpl.java:124)
-	at sun.security.ssl.ClientHandshaker.serverCertificate(ClientHandshaker.java:1496)
-	... 24 more
-Caused by: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
-	at sun.security.provider.certpath.SunCertPathBuilder.build(SunCertPathBuilder.java:141)
-	at sun.security.provider.certpath.SunCertPathBuilder.engineBuild(SunCertPathBuilder.java:126)
-	at java.security.cert.CertPathBuilder.build(CertPathBuilder.java:280)
-	at sun.security.validator.PKIXValidator.doBuild(PKIXValidator.java:382)
-	... 30 more
+package com.company.git;
+
+import javax.net.ssl.*;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+
+public final class SSLUtil {
+
+    private SSLUtil() {}
+
+    public static void disableSSLVerification() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
+                    }
+                    public void checkClientTrusted(
+                            X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(
+                            X509Certificate[] certs, String authType) {}
+                }
+            };
+
+            SSLContext sc = SSLContext.getInstance("TLS");
+            sc.init(null, trustAllCerts, new SecureRandom());
+
+            HttpsURLConnection.setDefaultSSLSocketFactory(
+                    sc.getSocketFactory());
+
+            HttpsURLConnection.setDefaultHostnameVerifier(
+                    (hostname, session) -> true);
+
+            System.out.println("SSL verification DISABLED (DEV mode)");
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to disable SSL", e);
+        }
+    }
+}
