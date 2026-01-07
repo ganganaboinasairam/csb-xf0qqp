@@ -1,19 +1,16 @@
-private void push(Git git) throws Exception {
+private void pushWithRebaseRetry(Git git) throws Exception {
 
-    String remote = Config.get("git.remote.name");   // origin
-    String branch = Config.get("git.branch.name");   // main / develop
+    String remote = Config.get("git.remote.name");
+    String branch = Config.get("git.branch.name");
 
     System.out.println("Pushing to " + remote + "/" + branch);
 
     Iterable<PushResult> results = git.push()
         .setRemote(remote)
-        .setRefSpecs(
-            new RefSpec("refs/heads/" + branch +
-                        ":refs/heads/" + branch))
+        .setRefSpecs(new RefSpec(
+            "refs/heads/" + branch + ":refs/heads/" + branch))
         .setCredentialsProvider(credentials())
         .call();
-
-    boolean pushed = false;
 
     for (PushResult result : results) {
         for (RemoteRefUpdate update : result.getRemoteUpdates()) {
@@ -23,19 +20,30 @@ private void push(Git git) throws Exception {
 
             if (status == RemoteRefUpdate.Status.OK ||
                 status == RemoteRefUpdate.Status.UP_TO_DATE) {
-                pushed = true;
-            } else {
-                throw new RuntimeException(
-                    "Push failed: " + status + " - " +
-                    update.getMessage());
+                return; // success
             }
+
+            if (status == RemoteRefUpdate.Status.REJECTED_NONFASTFORWARD) {
+                System.out.println(
+                    "NONFASTFORWARD detected. Rebasing and retrying...");
+
+                PullResult pull = git.pull()
+                    .setRebase(true)
+                    .setCredentialsProvider(credentials())
+                    .call();
+
+                if (!pull.isSuccessful()) {
+                    throw new RuntimeException(
+                        "Rebase failed. Resolve conflicts manually.");
+                }
+
+                // retry push ONCE
+                pushWithRebaseRetry(git);
+                return;
+            }
+
+            throw new RuntimeException(
+                "Push failed: " + status + " " + update.getMessage());
         }
     }
-
-    if (!pushed) {
-        throw new RuntimeException(
-            "Push reported success but no refs were updated");
-    }
-
-    System.out.println("Push completed successfully.");
 }
