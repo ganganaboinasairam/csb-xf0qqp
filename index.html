@@ -1,40 +1,47 @@
-package com.company.git;
+public void commitRebasePush(String crNo) throws Exception {
 
-import javax.net.ssl.*;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
+    long start = System.currentTimeMillis();
+    System.out.println("Opening repository...");
 
-public final class SSLUtil {
+    File repoDir = new File(Config.get("git.repo.path"));
+    try (Git git = Git.open(repoDir)) {
 
-    private SSLUtil() {}
+        git.getRepository().getConfig()
+           .setBoolean("core", null, "filemode", false);
 
-    public static void disableSSLVerification() {
-        try {
-            TrustManager[] trustAllCerts = new TrustManager[]{
-                new X509TrustManager() {
-                    public X509Certificate[] getAcceptedIssuers() {
-                        return new X509Certificate[0];
-                    }
-                    public void checkClientTrusted(
-                            X509Certificate[] certs, String authType) {}
-                    public void checkServerTrusted(
-                            X509Certificate[] certs, String authType) {}
-                }
-            };
+        System.out.println("Checking status...");
+        Status status = git.status().call();
 
-            SSLContext sc = SSLContext.getInstance("TLS");
-            sc.init(null, trustAllCerts, new SecureRandom());
-
-            HttpsURLConnection.setDefaultSSLSocketFactory(
-                    sc.getSocketFactory());
-
-            HttpsURLConnection.setDefaultHostnameVerifier(
-                    (hostname, session) -> true);
-
-            System.out.println("SSL verification DISABLED (DEV mode)");
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to disable SSL", e);
+        if (status.isClean()) {
+            System.out.println("No changes to commit.");
+            return;
         }
+
+        System.out.println("Staging changed files...");
+        for (String f : status.getModified()) {
+            git.add().addFilepattern(f).call();
+        }
+        for (String f : status.getUntracked()) {
+            git.add().addFilepattern(f).call();
+        }
+
+        System.out.println("Generating commit message...");
+        String msg = CommitMessageGenerator.generate(git, crNo);
+
+        System.out.println("Committing...");
+        git.commit()
+           .setMessage(msg)
+           .setAuthor(
+               Config.get("git.author.name"),
+               Config.get("git.author.email"))
+           .call();
+
+        System.out.println("Committed: " + msg);
+
+        System.out.println("Local commit time: "
+            + (System.currentTimeMillis() - start) + " ms");
+
+        rebaseIfRequired(git);
+        push(git);
     }
 }
