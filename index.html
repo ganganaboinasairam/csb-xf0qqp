@@ -1,49 +1,160 @@
-private void pushWithRebaseRetry(Git git) throws Exception {
+package com.tcs.git;
 
-    String remote = Config.get("git.remote.name");
-    String branch = Config.get("git.branch.name");
+import java.io.FileInputStream;
+import java.util.Properties;
 
-    System.out.println("Pushing to " + remote + "/" + branch);
+public class Config {
 
-    Iterable<PushResult> results = git.push()
-        .setRemote(remote)
-        .setRefSpecs(new RefSpec(
-            "refs/heads/" + branch + ":refs/heads/" + branch))
-        .setCredentialsProvider(credentials())
-        .call();
+    private static final Properties props = new Properties();
 
-    for (PushResult result : results) {
-        for (RemoteRefUpdate update : result.getRemoteUpdates()) {
-
-            RemoteRefUpdate.Status status = update.getStatus();
-            System.out.println("Push status: " + status);
-
-            if (status == RemoteRefUpdate.Status.OK ||
-                status == RemoteRefUpdate.Status.UP_TO_DATE) {
-                return; // success
-            }
-
-            if (status == RemoteRefUpdate.Status.REJECTED_NONFASTFORWARD) {
-                System.out.println(
-                    "NONFASTFORWARD detected. Rebasing and retrying...");
-
-                PullResult pull = git.pull()
-                    .setRebase(true)
-                    .setCredentialsProvider(credentials())
-                    .call();
-
-                if (!pull.isSuccessful()) {
-                    throw new RuntimeException(
-                        "Rebase failed. Resolve conflicts manually.");
-                }
-
-                // retry push ONCE
-                pushWithRebaseRetry(git);
-                return;
-            }
-
+    static {
+        try (FileInputStream fis =
+                     new FileInputStream("application.properties")) {
+            props.load(fis);
+        } catch (Exception e) {
             throw new RuntimeException(
-                "Push failed: " + status + " " + update.getMessage());
+                "Unable to load application.properties", e);
         }
+    }
+
+    public static String get(String key) {
+        return props.getProperty(key);
+    }
+
+    public static int getInt(String key) {
+        return Integer.parseInt(props.getProperty(key));
+    }
+}
+
+package com.tcs.git;
+
+import java.io.*;
+import java.util.*;
+
+public class GitCli {
+
+    public static String run(File repo, String... args) throws Exception {
+
+        List<String> command = new ArrayList<>();
+        command.add("git");
+        command.addAll(Arrays.asList(args));
+
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.directory(repo);
+        pb.redirectErrorStream(true);
+
+        Process p = pb.start();
+
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader br =
+                     new BufferedReader(
+                         new InputStreamReader(p.getInputStream()))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                System.out.println(line);
+                output.append(line).append("\n");
+            }
+        }
+
+        int exit = p.waitFor();
+        if (exit != 0) {
+            throw new RuntimeException(
+                "Git command failed: " + String.join(" ", args));
+        }
+
+        return output.toString();
+    }
+}
+
+
+package com.tcs.git;
+
+import java.io.File;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+public class CommitMessageGenerator {
+
+    private static final DateTimeFormatter DF =
+            DateTimeFormatter.ofPattern("ddMMyy");
+
+    public static String generate(File repo, String crNo) throws Exception {
+
+        String today = LocalDate.now().format(DF);
+        int maxSeq = 0;
+
+        String log = GitCli.run(
+                repo,
+                "log",
+                "--pretty=%s",
+                "-n",
+                String.valueOf(Config.getInt("git.log.scan.limit"))
+        );
+
+        for (String line : log.split("\n")) {
+            if (line.startsWith("CR_" + crNo + "_" + today + "_")) {
+                String[] parts = line.split("_");
+                int seq = Integer.parseInt(parts[3]);
+                maxSeq = Math.max(maxSeq, seq);
+            }
+        }
+
+        return "CR_" + crNo + "_" + today + "_" + (maxSeq + 1);
+    }
+}
+
+
+package com.tcs.git;
+
+import java.io.File;
+
+public class Main {
+
+    public static void main(String[] args) throws Exception {
+
+        if (args.length != 1) {
+            System.err.println(
+                "Usage: java com.tcs.git.Main <CR_NUMBER>");
+            System.exit(1);
+        }
+
+        String crNo = args[0];
+        if (!crNo.matches("\\d+")) {
+            throw new IllegalArgumentException("Invalid CR number");
+        }
+
+        File repo = new File(Config.get("git.repo.path"));
+        String branch = Config.get("git.branch.name");
+
+        System.out.println("Repository: " + repo.getAbsolutePath());
+
+        // 1. Always rebase first
+        System.out.println("Pulling with rebase...");
+        GitCli.run(repo, "pull", "--rebase", "origin", branch);
+
+        // 2. Check if there are changes
+        String status = GitCli.run(repo, "status", "--porcelain");
+        if (status.trim().isEmpty()) {
+            System.out.println("No changes to commit.");
+            return;
+        }
+
+        // 3. Generate commit message
+        String commitMsg =
+                CommitMessageGenerator.generate(repo, crNo);
+
+        // 4. Stage all
+        System.out.println("Staging changes...");
+        GitCli.run(repo, "add", "-A");
+
+        // 5. Commit
+        System.out.println("Committing: " + commitMsg);
+        GitCli.run(repo, "commit", "-m", commitMsg);
+
+        // 6. Push
+        System.out.println("Pushing to origin/" + branch);
+        GitCli.run(repo, "push", "origin", branch);
+
+        System.out.println("DONE. Commit pushed successfully.");
     }
 }
