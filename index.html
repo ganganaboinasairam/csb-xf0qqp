@@ -1,4 +1,177 @@
-Trust this certificate? [no]:  yes
-Certificate was added to keystore
-keytool error: java.io.FileNotFoundException: /weblogic/jdk1.8/lib/security/cacerts (Is a directory)
-[weblogic@TFNEWCESTAPP ~]$
+git.repo.path=/path/to/your/git/repo
+git.remote.name=origin
+git.branch.name=main
+git.author.name=Auto Commit Tool
+git.author.email=dev@company.com
+git.log.scan.limit=20
+
+package com.company.git;
+
+import java.io.FileInputStream;
+import java.util.Properties;
+
+public class Config {
+
+    private static final Properties props = new Properties();
+
+    static {
+        try (FileInputStream fis =
+                     new FileInputStream("application.properties")) {
+            props.load(fis);
+        } catch (Exception e) {
+            throw new RuntimeException(
+                "Unable to load application.properties", e);
+        }
+    }
+
+    public static String get(String key) {
+        return props.getProperty(key);
+    }
+
+    public static int getInt(String key) {
+        return Integer.parseInt(props.getProperty(key));
+    }
+}
+
+package com.company.git;
+
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.revwalk.RevCommit;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+public class CommitMessageGenerator {
+
+    private static final DateTimeFormatter DF =
+            DateTimeFormatter.ofPattern("ddMMyy");
+
+    public static String generate(Git git, String crNo) throws Exception {
+
+        String today = LocalDate.now().format(DF);
+        int maxSeq = 0;
+
+        Iterable<RevCommit> commits =
+                git.log().setMaxCount(
+                        Config.getInt("git.log.scan.limit")).call();
+
+        for (RevCommit commit : commits) {
+            String msg = commit.getShortMessage();
+            if (msg.startsWith("CR_" + crNo + "_" + today + "_")) {
+                String[] parts = msg.split("_");
+                int seq = Integer.parseInt(parts[3]);
+                maxSeq = Math.max(maxSeq, seq);
+            }
+        }
+
+        return "CR_" + crNo + "_" + today + "_" + (maxSeq + 1);
+    }
+}
+
+
+package com.company.git;
+
+import org.eclipse.jgit.api.*;
+import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.revwalk.*;
+
+import java.io.File;
+
+public class GitService {
+
+    public void commitRebasePush(String crNo) throws Exception {
+
+        File repoDir = new File(Config.get("git.repo.path"));
+
+        try (Git git = Git.open(repoDir)) {
+
+            // Stage everything
+            git.add().addFilepattern(".").call();
+
+            Status status = git.status().call();
+            if (status.isClean()) {
+                System.out.println("No changes to commit.");
+                return;
+            }
+
+            // Generate commit message
+            String msg = CommitMessageGenerator.generate(git, crNo);
+
+            git.commit()
+               .setMessage(msg)
+               .setAuthor(
+                   Config.get("git.author.name"),
+                   Config.get("git.author.email"))
+               .call();
+
+            System.out.println("Committed: " + msg);
+
+            rebaseIfRequired(git);
+            push(git);
+        }
+    }
+
+    private void rebaseIfRequired(Git git) throws Exception {
+
+        String branch = Config.get("git.branch.name");
+        String remote = Config.get("git.remote.name");
+
+        git.fetch().setRemote(remote).call();
+
+        Repository repo = git.getRepository();
+        ObjectId local = repo.resolve("HEAD");
+        ObjectId remoteHead =
+                repo.resolve("refs/remotes/" + remote + "/" + branch);
+
+        if (remoteHead == null) {
+            return;
+        }
+
+        try (RevWalk walk = new RevWalk(repo)) {
+
+            boolean behind = walk.isMergedInto(
+                    walk.parseCommit(local),
+                    walk.parseCommit(remoteHead));
+
+            if (behind) {
+                System.out.println("Remote is ahead. Rebasing...");
+
+                PullResult result =
+                        git.pull().setRebase(true).call();
+
+                if (!result.isSuccessful()) {
+                    throw new RuntimeException(
+                        "Rebase conflict. Resolve manually.");
+                }
+            }
+        }
+    }
+
+    private void push(Git git) throws Exception {
+        git.push().call();
+        System.out.println("Push successful.");
+    }
+}
+
+package com.company.git;
+
+public class Main {
+
+    public static void main(String[] args) throws Exception {
+
+        if (args.length != 1) {
+            System.err.println(
+                "Usage: java -cp <classpath> com.company.git.Main <CR_NUMBER>");
+            System.exit(1);
+        }
+
+        String crNo = args[0];
+
+        if (!crNo.matches("\\d+")) {
+            throw new IllegalArgumentException("Invalid CR number");
+        }
+
+        new GitService().commitRebasePush(crNo);
+    }
+}
+
