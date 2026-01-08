@@ -2,59 +2,188 @@ package com.tcs.git;
 
 import java.io.File;
 
-public class Main {
+public class GitAutomationService {
 
-    public static void main(String[] args) throws Exception {
+    public static void execute(String region, String crNo, OutputListener out)
+            throws Exception {
 
-        if (args.length != 2) {
-            System.err.println(
-                "Usage: java com.tcs.git.Main <(EE OR CE)> <CR_NUMBER>");
-            System.exit(1);
-        }
+        File repo = new File(Config.get("git.repo.path." + region));
+        String branch = Config.get("git.branch.name." + region);
 
-        String crNo = args[1];
-        String region = args [0];
-        if (!crNo.matches("\\d+")) {
-            throw new IllegalArgumentException("Invalid CR number");
-        }
+        out.log("Repository: " + repo.getAbsolutePath());
 
-        File repo = new File(Config.get("git.repo.path."+region.toLowerCase()));
-        String branch = Config.get("git.branch.name."+region.toLowerCase());
-
-        System.out.println("Repository: " + repo.getAbsolutePath());
-
-        
-
-        // 2. Check if there are changes
-        String status = GitCli.run(repo, "status", "--porcelain");
+        String status = GitCli.run(repo, out, "status", "--porcelain");
         if (status.trim().isEmpty()) {
-            System.out.println("No changes to commit.");
+            out.log("No changes to commit.");
             return;
         }
-        // 3. Generate commit message
+
         String commitMsg =
                 CommitMessageGenerator.generate(repo, crNo);
 
-        // 4. Stage all
-        System.out.println("Staging changes...");
-        GitCli.run(repo, "add", "-A");
+        out.log("Staging changes...");
+        GitCli.run(repo, out, "add", "-A");
 
-        // 5. Commit
-        System.out.println("Committing: " + commitMsg);
-        GitCli.run(repo, "commit", "-m", commitMsg);
-        
-     // 1. Always rebase first
-        System.out.println("Pulling with rebase...");
-        GitCli.run(repo, "pull", "--rebase", "origin", branch);
+        out.log("Committing: " + commitMsg);
+        GitCli.run(repo, out, "commit", "-m", commitMsg);
 
-        // 6. Push
-        System.out.println("Pushing to origin/" + branch);
-        GitCli.run(repo, "push", "origin", branch);
+        out.log("Pulling with rebase...");
+        GitCli.run(repo, out, "pull", "--rebase", "origin", branch);
 
-        System.out.println("DONE. Commit "+commitMsg+" pushed successfully.");
+        out.log("Pushing to origin/" + branch);
+        GitCli.run(repo, out, "push", "origin", branch);
+
+        out.log("DONE. Commit " + commitMsg + " pushed successfully.");
     }
 }
 
+package com.tcs.git;
 
-					
-this is updated main class , now i want to implement UI using java swing , a text input for the CR number and another for selecting EE or CE and a push button and below is the output area 
+public interface OutputListener {
+    void log(String message);
+}
+
+public static String run(File repo, OutputListener out, String... args)
+        throws Exception {
+
+    ProcessBuilder pb = new ProcessBuilder(buildCommand(args));
+    pb.directory(repo);
+    pb.redirectErrorStream(true);
+
+    Process p = pb.start();
+
+    StringBuilder output = new StringBuilder();
+    try (BufferedReader br =
+                 new BufferedReader(
+                     new InputStreamReader(p.getInputStream()))) {
+
+        String line;
+        while ((line = br.readLine()) != null) {
+            out.log(line);
+            output.append(line).append("\n");
+        }
+    }
+
+    int exit = p.waitFor();
+    if (exit != 0) {
+        throw new RuntimeException("Git failed: " + String.join(" ", args));
+    }
+    return output.toString();
+}
+
+package com.tcs.git;
+
+import javax.swing.*;
+import java.awt.*;
+
+public class GitAutomationUI extends JFrame {
+
+    private JTextField crField;
+    private JComboBox<String> regionBox;
+    private JTextArea outputArea;
+    private JButton pushButton;
+
+    public GitAutomationUI() {
+
+        setTitle("Git Commit & Push Tool");
+        setSize(700, 500);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        initUI();
+    }
+
+    private void initUI() {
+
+        JPanel topPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(5,5,5,5);
+
+        c.gridx = 0; c.gridy = 0;
+        topPanel.add(new JLabel("Region:"), c);
+
+        c.gridx = 1;
+        regionBox = new JComboBox<>(new String[]{"EE", "CE"});
+        topPanel.add(regionBox, c);
+
+        c.gridx = 0; c.gridy = 1;
+        topPanel.add(new JLabel("CR Number:"), c);
+
+        c.gridx = 1;
+        crField = new JTextField(15);
+        topPanel.add(crField, c);
+
+        c.gridx = 1; c.gridy = 2;
+        pushButton = new JButton("Commit & Push");
+        topPanel.add(pushButton, c);
+
+        outputArea = new JTextArea();
+        outputArea.setEditable(false);
+        outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
+
+        JScrollPane scrollPane =
+                new JScrollPane(outputArea,
+                        JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+                        JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
+        add(topPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+
+        pushButton.addActionListener(e -> runGitTask());
+    }
+
+    private void runGitTask() {
+
+        String crNo = crField.getText().trim();
+        String region = regionBox.getSelectedItem().toString().toLowerCase();
+
+        if (!crNo.matches("\\d+")) {
+            JOptionPane.showMessageDialog(
+                this, "Invalid CR Number", "Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        pushButton.setEnabled(false);
+        outputArea.setText("");
+
+        SwingWorker<Void, String> worker = new SwingWorker<>() {
+
+            @Override
+            protected Void doInBackground() throws Exception {
+
+                GitAutomationService.execute(
+                        region,
+                        crNo,
+                        msg -> publish(msg)
+                );
+                return null;
+            }
+
+            @Override
+            protected void process(java.util.List<String> chunks) {
+                for (String msg : chunks) {
+                    outputArea.append(msg + "\n");
+                }
+            }
+
+            @Override
+            protected void done() {
+                pushButton.setEnabled(true);
+                try {
+                    get();
+                } catch (Exception ex) {
+                    outputArea.append("\nERROR: " + ex.getMessage());
+                }
+            }
+        };
+
+        worker.execute();
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() ->
+                new GitAutomationUI().setVisible(true));
+    }
+}
+
