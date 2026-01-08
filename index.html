@@ -1,239 +1,43 @@
-package com.tcs.git;
+public static void chkStatus(
+        String region,
+        java.util.function.Consumer<String> log)
+        throws Exception {
 
-import java.io.File;
+    File repo = new File(
+            Config.get("git.repo.path." + region));
 
-public class GitAutomationService {
+    log.accept("Repository: " + repo.getAbsolutePath());
+    log.accept("Checking status...\n");
 
-    public static void execute(
-            String region,
-            String crNo,
-            java.util.function.Consumer<String> log)
-            throws Exception {
+    String status =
+            GitCli.run(repo, "status", "--porcelain");
 
-        File repo = new File(
-                Config.get("git.repo.path." + region));
-        String branch =
-                Config.get("git.branch.name." + region);
-
-        log.accept("Repository: " + repo.getAbsolutePath());
-
-        // Pull first
-        log.accept("Pulling with rebase...");
-        GitCli.run(repo, "pull", "--rebase", "origin", branch);
-
-        // Check changes
-        String status =
-                GitCli.run(repo, "status", "--porcelain");
-        if (status.trim().isEmpty()) {
-            log.accept("No changes to commit.");
-            return;
-        }
-
-        // Generate commit message
-        String commitMsg =
-                CommitMessageGenerator.generate(repo, crNo);
-
-        log.accept("Staging changes...");
-        GitCli.run(repo, "add", "-A");
-
-        log.accept("Committing: " + commitMsg);
-        GitCli.run(repo, "commit", "-m", commitMsg);
-
-        log.accept("Pushing to origin/" + branch);
-        GitCli.run(repo, "push", "origin", branch);
-
-        log.accept("DONE. Commit " + commitMsg + " pushed successfully.");
+    if (status.trim().isEmpty()) {
+        log.accept("No changes found. Working tree clean.");
+        return;
     }
-    
-    public static void chkStatus(
-            String region,
-            java.util.function.Consumer<String> log)
-            throws Exception {
-    	File repo = new File(
-                Config.get("git.repo.path." + region));
-        
 
-        log.accept("Repository: " + repo.getAbsolutePath());
-        
-        String status =
-                GitCli.run(repo, "status", "--porcelain");
-        if (status.trim().isEmpty()) {
-            log.accept("no changes found, working tree clean");
-            return;
+    log.accept("Files to be committed:\n");
+
+    String[] lines = status.split("\\r?\\n");
+
+    for (String line : lines) {
+
+        if (line.length() < 3) continue;
+
+        String flag = line.substring(0, 2).trim();
+        String file = line.substring(3);
+
+        if ("??".equals(flag)) {
+            log.accept("[NEW]       " + file);
+        } else if (flag.contains("M")) {
+            log.accept("[MODIFIED]  " + file);
+        } else if (flag.contains("A")) {
+            log.accept("[ADDED]     " + file);
+        } else if (flag.contains("D")) {
+            log.accept("[DELETED]   " + file);
+        } else {
+            log.accept("[CHANGED]   " + file);
         }
     }
 }
-
-
-package com.tcs.git;
-
-import javax.swing.*;
-import java.awt.*;
-
-public class MainUI extends JFrame {
-
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private JTextField crField;
-    private JComboBox<String> regionBox;
-    private JTextArea outputArea;
-    private JButton pushButton;
-    private JButton statusButton;
-
-    public MainUI() {
-
-        setTitle("Git Commit & Push Tool");
-        setSize(750, 500);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-
-        initUI();
-    }
-
-    private void initUI() {
-
-        JPanel top = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(5,5,5,5);
-
-        c.gridx = 0; c.gridy = 0;
-        top.add(new JLabel("Region:"), c);
-
-        c.gridx = 1;
-        regionBox = new JComboBox<>(new String[]{"EE", "CE"});
-        top.add(regionBox, c);
-
-        c.gridx = 0; c.gridy = 1;
-        top.add(new JLabel("CR Number:"), c);
-
-        c.gridx = 1;
-        crField = new JTextField(15);
-        top.add(crField, c);
-
-        c.gridx = 1; c.gridy = 2;
-        pushButton = new JButton("Commit & Push");
-        top.add(pushButton, c);
-        
-        c.gridx = 0; c.gridy = 2;
-        statusButton = new JButton("Status");
-        top.add(statusButton, c);
-
-        outputArea = new JTextArea();
-        outputArea.setEditable(false);
-        outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
-
-        JScrollPane scroll =
-                new JScrollPane(outputArea,
-                        JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-                        JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-
-        add(top, BorderLayout.NORTH);
-        add(scroll, BorderLayout.CENTER);
-
-        pushButton.addActionListener(e -> runTask());
-        statusButton.addActionListener(e -> checkStatus());
-    }
-
-    private void runTask() {
-
-        String crNo = crField.getText().trim();
-        String region =
-                regionBox.getSelectedItem().toString().toLowerCase();
-
-        if (!crNo.matches("\\d+")) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Invalid CR Number",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        outputArea.setText("");
-        pushButton.setEnabled(false);
-
-        SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
-
-            @Override
-            protected Void doInBackground() throws Exception {
-                GitAutomationService.execute(
-                        region,
-                        crNo,
-                        msg -> publish(msg));
-                return null;
-            }
-
-            @Override
-            protected void process(java.util.List<String> chunks) {
-                for (String s : chunks) {
-                    outputArea.append(s + "\n");
-                }
-            }
-
-            @Override
-            protected void done() {
-                pushButton.setEnabled(true);
-                try {
-                    get();
-                } catch (Exception ex) {
-                    outputArea.append(
-                        "\nERROR: " + ex.getMessage());
-                }
-            }
-        };
-
-        worker.execute();
-    }
-    
-    private void checkStatus() {
-    	
-        String region =
-                regionBox.getSelectedItem().toString().toLowerCase();
-
-        
-
-        outputArea.setText("");
-        
-        
-        SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
-
-            @Override
-            protected Void doInBackground() throws Exception {
-                GitAutomationService.chkStatus(
-                        region,
-                        msg -> publish(msg));
-                return null;
-            }
-
-            @Override
-            protected void process(java.util.List<String> chunks) {
-                for (String s : chunks) {
-                    outputArea.append(s + "\n");
-                }
-            }
-
-            @Override
-            protected void done() {
-                pushButton.setEnabled(true);
-                try {
-                    get();
-                } catch (Exception ex) {
-                    outputArea.append(
-                        "\nERROR: " + ex.getMessage());
-                }
-            }
-        };
-
-        worker.execute();
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(
-                () -> new MainUI().setVisible(true));
-    }
-}
-
-
-new functionality is added for status check , when button clicked the files to be added should be showed in output
