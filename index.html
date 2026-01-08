@@ -1,10 +1,60 @@
-Exception in thread "main" java.io.IOException: Cannot run program "git" (in directory "E:\gitClone\tf_ee_pre_dev"): CreateProcess error=2, The system cannot find the file specified
-	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1048)
-	at com.tcs.git.GitCli.run(GitCli.java:18)
-	at com.tcs.git.Main.main(Main.java:28)
-Caused by: java.io.IOException: CreateProcess error=2, The system cannot find the file specified
-	at java.lang.ProcessImpl.create(Native Method)
-	at java.lang.ProcessImpl.<init>(ProcessImpl.java:386)
-	at java.lang.ProcessImpl.start(ProcessImpl.java:137)
-	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1029)
-	... 2 more
+package com.tcs.git;
+
+import java.io.File;
+
+public class Main {
+
+    public static void main(String[] args) throws Exception {
+
+        if (args.length != 2) {
+            System.err.println(
+                "Usage: java com.tcs.git.Main <(EE OR CE)> <CR_NUMBER>");
+            System.exit(1);
+        }
+
+        String crNo = args[1];
+        String region = args [0];
+        if (!crNo.matches("\\d+")) {
+            throw new IllegalArgumentException("Invalid CR number");
+        }
+
+        File repo = new File(Config.get("git.repo.path."+region.toLowerCase()));
+        String branch = Config.get("git.branch.name."+region.toLowerCase());
+
+        System.out.println("Repository: " + repo.getAbsolutePath());
+
+        
+
+        // 2. Check if there are changes
+        String status = GitCli.run(repo, "status", "--porcelain");
+        if (status.trim().isEmpty()) {
+            System.out.println("No changes to commit.");
+            return;
+        }
+        // 3. Generate commit message
+        String commitMsg =
+                CommitMessageGenerator.generate(repo, crNo);
+
+        // 4. Stage all
+        System.out.println("Staging changes...");
+        GitCli.run(repo, "add", "-A");
+
+        // 5. Commit
+        System.out.println("Committing: " + commitMsg);
+        GitCli.run(repo, "commit", "-m", commitMsg);
+        
+     // 1. Always rebase first
+        System.out.println("Pulling with rebase...");
+        GitCli.run(repo, "pull", "--rebase", "origin", branch);
+
+        // 6. Push
+        System.out.println("Pushing to origin/" + branch);
+        GitCli.run(repo, "push", "origin", branch);
+
+        System.out.println("DONE. Commit "+commitMsg+" pushed successfully.");
+    }
+}
+
+
+					
+this is updated main class , now i want to implement UI using java swing , a text input for the CR number and another for selecting EE or CE and a push button and below is the output area 
