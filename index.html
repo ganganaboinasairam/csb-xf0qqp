@@ -1,43 +1,56 @@
-public static void chkStatus(
-        String region,
-        java.util.function.Consumer<String> log)
-        throws Exception {
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.Timer;
+import java.util.TimerTask;
 
-    File repo = new File(
-            Config.get("git.repo.path." + region));
+public class WaterReminder {
 
-    log.accept("Repository: " + repo.getAbsolutePath());
-    log.accept("Checking status...\n");
+    private static final int REMINDER_MINUTES = 30; // Change this to 20, 40 etc
 
-    String status =
-            GitCli.run(repo, "status", "--porcelain");
+    private static Timer timer = new Timer();
 
-    if (status.trim().isEmpty()) {
-        log.accept("No changes found. Working tree clean.");
-        return;
+    public static void main(String[] args) {
+
+        System.out.println("Water Reminder Started...");
+
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                showReminder();
+            }
+        }, 0, REMINDER_MINUTES * 60 * 1000);
     }
 
-    log.accept("Files to be committed:\n");
+    private static void showReminder() {
+        SwingUtilities.invokeLater(() -> {
 
-    String[] lines = status.split("\\r?\\n");
+            JFrame frame = new JFrame("Drink Water");
+            frame.setUndecorated(true);
+            frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+            frame.setAlwaysOnTop(true);
+            frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
-    for (String line : lines) {
+            JPanel panel = new JPanel();
+            panel.setBackground(new Color(30, 144, 255));
+            panel.setLayout(new BorderLayout());
 
-        if (line.length() < 3) continue;
+            JLabel label = new JLabel("TIME TO DRINK WATER!", SwingConstants.CENTER);
+            label.setFont(new Font("Arial", Font.BOLD, 60));
+            label.setForeground(Color.WHITE);
 
-        String flag = line.substring(0, 2).trim();
-        String file = line.substring(3);
+            JButton btn = new JButton("I Drank Water");
+            btn.setFont(new Font("Arial", Font.BOLD, 40));
+            btn.setBackground(Color.GREEN);
+            btn.setForeground(Color.BLACK);
 
-        if ("??".equals(flag)) {
-            log.accept("[NEW]       " + file);
-        } else if (flag.contains("M")) {
-            log.accept("[MODIFIED]  " + file);
-        } else if (flag.contains("A")) {
-            log.accept("[ADDED]     " + file);
-        } else if (flag.contains("D")) {
-            log.accept("[DELETED]   " + file);
-        } else {
-            log.accept("[CHANGED]   " + file);
-        }
+            btn.addActionListener(e -> frame.dispose());
+
+            panel.add(label, BorderLayout.CENTER);
+            panel.add(btn, BorderLayout.SOUTH);
+
+            frame.add(panel);
+            frame.setVisible(true);
+        });
     }
 }
