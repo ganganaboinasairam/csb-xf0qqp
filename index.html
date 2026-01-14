@@ -1,152 +1,311 @@
-public static String trigger(
-        String region,
-        String crName,
-        String selection) throws Exception {
+package com.tcs.git;
 
-    String job = Config.get("jenkins.job." + region);
+import javax.swing.*;
+import java.awt.*;
 
-    String params =
-        "CRNAME=" + URLEncoder.encode(crName, "UTF-8") +
-        "&SELECTION=" + URLEncoder.encode(selection, "UTF-8");
+public class MainUI extends JFrame {
 
-    URL url = new URL(
-        Config.get("jenkins.url")
-        + "/job/" + job
-        + "/buildWithParameters?" + params);
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private JTextField crField;
+	private JComboBox<String> regionBox;
+	private JTextArea outputArea;
+	private JButton pushButton;
+	private JButton statusButton;
+	private JButton rebaseButton;
+	private JButton stashButton;
+	private JButton unStashButton;
+	private String selection;
 
-    HttpURLConnection conn =
-        (HttpURLConnection) url.openConnection();
+	public MainUI() {
 
-    String auth = Config.get("jenkins.user") + ":" +
-                  Config.get("jenkins.token");
+		setTitle("Git Commit & Push Tool");
+		setSize(750, 500);
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		setLocationRelativeTo(null);
 
-    conn.setRequestMethod("POST");
-    conn.setRequestProperty(
-        "Authorization",
-        "Basic " + Base64.getEncoder()
-                         .encodeToString(auth.getBytes("UTF-8")));
+		initUI();
+	}
 
-    String[] crumb = JenkinsCrumb.get();
-    conn.setRequestProperty(crumb[0], crumb[1]);
-    conn.setDoOutput(true);
+	private void initUI() {
 
-    int code = conn.getResponseCode();
-    if (code != 201 && code != 200) {
-        throw new RuntimeException(
-            "Failed to trigger Jenkins build. HTTP " + code);
-    }
+		JPanel top = new JPanel(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		c.insets = new Insets(5, 5, 5, 5);
 
-    // Jenkins returns queue item URL here
-    return conn.getHeaderField("Location");
+		c.gridx = 0;
+		c.gridy = 0;
+		top.add(new JLabel("Region:"), c);
+
+		c.gridx = 1;
+		regionBox = new JComboBox<>(new String[] { "EE", "CE" });
+		top.add(regionBox, c);
+
+		c.gridx = 0;
+		c.gridy = 1;
+		top.add(new JLabel("CR Number:"), c);
+
+		c.gridx = 1;
+		crField = new JTextField(9);
+		top.add(crField, c);
+
+		c.gridx = 0;
+		c.gridy = 2;
+		pushButton = new JButton("Commit & Push");
+		top.add(pushButton, c);
+
+		c.gridx = 1;
+		c.gridy = 2;
+		statusButton = new JButton("Status");
+		top.add(statusButton, c);
+
+		c.gridx = 2;
+		c.gridy = 2;
+		rebaseButton = new JButton("Rebase");
+		top.add(rebaseButton, c);
+
+		c.gridx = 3;
+		c.gridy = 2;
+		stashButton = new JButton("Stash");
+		top.add(stashButton, c);
+
+		c.gridx = 3;
+		c.gridy = 2;
+		unStashButton = new JButton("unStash");
+		top.add(unStashButton, c);
+
+		unStashButton.hide();
+
+		outputArea = new JTextArea();
+		outputArea.setEditable(false);
+		outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
+
+		JScrollPane scroll = new JScrollPane(outputArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
+		add(top, BorderLayout.NORTH);
+		add(scroll, BorderLayout.CENTER);
+
+		pushButton.addActionListener(e -> runTask());
+		statusButton.addActionListener(e -> checkStatus());
+		rebaseButton.addActionListener(e -> gitRebase());
+		stashButton.addActionListener(e -> gitStash());
+		unStashButton.addActionListener(e -> gitUnStash());
+	}
+
+	private void runTask() {
+
+		String crNo = crField.getText().trim();
+		String region = regionBox.getSelectedItem().toString().toLowerCase();
+
+		if (!crNo.matches("\\d+")) {
+			JOptionPane.showMessageDialog(this, "Invalid CR Number", "Error", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
+		outputArea.append("\n===============================================================================\n");
+		outputArea.append("GIT PUSH || " + regionBox.getSelectedItem().toString());
+		outputArea.append("\n===============================================================================\n");
+		pushButton.setEnabled(false);
+		selection = "";
+
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				GitAutomationService.execute(region, crNo, selection,msg -> publish(msg));
+				return null;
+			}
+
+			@Override
+			protected void process(java.util.List<String> chunks) {
+				for (String s : chunks) {
+					outputArea.append(s + "\n");
+				}
+			}
+
+			@Override
+			protected void done() {
+				outputArea.append("\n===================================DONE========================================\n");
+				pushButton.setEnabled(true);
+				try {
+					get();
+				} catch (Exception ex) {
+					outputArea.append("\nERROR: " + ex.getMessage());
+				}
+			}
+		};
+
+		worker.execute();
+	}
+
+	private void checkStatus() {
+
+		String region = regionBox.getSelectedItem().toString().toLowerCase();
+
+		outputArea.append("\n===============================================================================\n");
+		outputArea.append("GIT STATUS CHECK || " + regionBox.getSelectedItem().toString());
+		outputArea.append("\n===============================================================================\n");
+
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				GitAutomationService.chkStatus(region, msg -> publish(msg));
+				return null;
+			}
+
+			@Override
+			protected void process(java.util.List<String> chunks) {
+				for (String s : chunks) {
+					outputArea.append(s + "\n");
+				}
+			}
+
+			@Override
+			protected void done() {
+				outputArea.append("\n===================================DONE========================================\n");
+				pushButton.setEnabled(true);
+				try {
+					get();
+				} catch (Exception ex) {
+					outputArea.append("\nERROR: " + ex.getMessage());
+				}
+			}
+		};
+
+		worker.execute();
+	}
+
+	private void gitRebase() {
+
+		String region = regionBox.getSelectedItem().toString().toLowerCase();
+
+		outputArea.append("\n===============================================================================\n");
+		outputArea.append("GIT REBASE || " + regionBox.getSelectedItem().toString());
+		outputArea.append("\n===============================================================================\n");
+		rebaseButton.setEnabled(false);
+
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				GitAutomationService.rebase(region, msg -> publish(msg));
+				return null;
+			}
+
+			@Override
+			protected void process(java.util.List<String> chunks) {
+				for (String s : chunks) {
+					outputArea.append(s + "\n");
+				}
+			}
+
+			@Override
+			protected void done() {
+				outputArea.append("\n===================================DONE========================================\n");
+				rebaseButton.setEnabled(true);
+				try {
+					get();
+				} catch (Exception ex) {
+					outputArea.append("\nERROR: " + ex.getMessage());
+				}
+			}
+		};
+
+		worker.execute();
+	}
+
+	private void gitStash() {
+
+		String region = regionBox.getSelectedItem().toString().toLowerCase();
+
+		outputArea.append("\n===============================================================================\n");
+		outputArea.append("GIT STASH || " + regionBox.getSelectedItem().toString());
+		outputArea.append("\n===============================================================================\n");
+		stashButton.setEnabled(false);
+
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				GitAutomationService.stash(region, msg -> publish(msg));
+				return null;
+			}
+
+			@Override
+			protected void process(java.util.List<String> chunks) {
+				for (String s : chunks) {
+					outputArea.append(s + "\n");
+				}
+			}
+
+			@Override
+			protected void done() {
+				outputArea.append("\n===================================DONE========================================\n");
+				unStashButton.show();
+				stashButton.hide();
+				stashButton.setEnabled(true);
+				try {
+					get();
+				} catch (Exception ex) {
+					outputArea.append("\nERROR: " + ex.getMessage());
+				}
+			}
+		};
+
+		worker.execute();
+	}
+
+	private void gitUnStash() {
+
+		String region = regionBox.getSelectedItem().toString().toLowerCase();
+
+		outputArea.append("\n===============================================================================\n");
+		outputArea.append("GIT STASH APPLY || " + regionBox.getSelectedItem().toString());
+		outputArea.append("\n===============================================================================\n");
+		unStashButton.setEnabled(false);
+
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				GitAutomationService.unStash(region, msg -> publish(msg));
+				return null;
+			}
+
+			@Override
+			protected void process(java.util.List<String> chunks) {
+				for (String s : chunks) {
+					outputArea.append(s + "\n");
+				}
+			}
+
+			@Override
+			protected void done() {
+				outputArea.append("\n===================================DONE========================================\n");
+				unStashButton.hide();
+				stashButton.show();
+				unStashButton.setEnabled(true);
+				try {
+					get();
+				} catch (Exception ex) {
+					outputArea.append("\nERROR: " + ex.getMessage());
+				}
+			}
+		};
+
+		worker.execute();
+	}
+
+	public static void main(String[] args) {
+		SSLUtil.disableSSLVerification();
+		SwingUtilities.invokeLater(() -> new MainUI().setVisible(true));
+	}
 }
 
-public static Integer waitForBuildNumber(
-        String queueUrl,
-        int timeoutSeconds) throws Exception {
 
-    long end = System.currentTimeMillis() +
-               timeoutSeconds * 1000L;
 
-    while (System.currentTimeMillis() < end) {
-
-        HttpURLConnection conn =
-            (HttpURLConnection)
-                new URL(queueUrl + "api/json")
-                    .openConnection();
-
-        String auth = Config.get("jenkins.user") + ":" +
-                      Config.get("jenkins.token");
-
-        conn.setRequestProperty(
-            "Authorization",
-            "Basic " + Base64.getEncoder()
-                             .encodeToString(auth.getBytes("UTF-8")));
-
-        String json = read(conn);
-
-        if (json.contains("\"executable\"")) {
-            String num =
-                json.split("\"number\":")[1]
-                    .split(",")[0];
-            return Integer.parseInt(num.trim());
-        }
-
-        Thread.sleep(3000);
-    }
-
-    throw new RuntimeException("Timed out waiting for build number");
-}
-
-public static String waitForBuildResult(
-        String region,
-        int buildNo,
-        java.util.function.Consumer<String> log)
-        throws Exception {
-
-    String job = Config.get("jenkins.job." + region);
-
-    String url =
-        Config.get("jenkins.url")
-        + "/job/" + job + "/" + buildNo + "/api/json";
-
-    while (true) {
-
-        HttpURLConnection conn =
-            (HttpURLConnection) new URL(url).openConnection();
-
-        String auth = Config.get("jenkins.user") + ":" +
-                      Config.get("jenkins.token");
-
-        conn.setRequestProperty(
-            "Authorization",
-            "Basic " + Base64.getEncoder()
-                             .encodeToString(auth.getBytes("UTF-8")));
-
-        String json = read(conn);
-
-        boolean building =
-            json.contains("\"building\":true");
-
-        if (building) {
-            log.accept("Build #" + buildNo + " is running...");
-            Thread.sleep(5000);
-        } else {
-            String result =
-                json.split("\"result\":\"")[1]
-                    .split("\"")[0];
-            return result;
-        }
-    }
-}
-
-private static String read(HttpURLConnection conn)
-        throws Exception {
-
-    BufferedReader br = new BufferedReader(
-        new InputStreamReader(conn.getInputStream(), "UTF-8"));
-
-    StringBuilder sb = new StringBuilder();
-    String line;
-    while ((line = br.readLine()) != null) {
-        sb.append(line);
-    }
-    br.close();
-    return sb.toString();
-}
-
-log.accept("Triggering Jenkins build...");
-String queueUrl =
-    JenkinsClient.trigger(region, commitMsg, selection);
-
-log.accept("Jenkins queued: " + queueUrl);
-
-int buildNo =
-    JenkinsClient.waitForBuildNumber(queueUrl, 120);
-
-log.accept("Jenkins build started: #" + buildNo);
-
-String result =
-    JenkinsClient.waitForBuildResult(
-        region, buildNo, log);
-
-log.accept("Jenkins build result: " + result);
+devide the top pannel into 2 parts, the left part is for the present git operations and the right is for the jankins operatios , it contains the text bot for commit message and a checkbox with options (Checkout,File Transfer,Update Deployment,Server Restart) and a button "build" , when we click on the build the options and the commit message shoud to the jenkins build url
