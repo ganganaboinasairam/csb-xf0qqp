@@ -1,155 +1,100 @@
-// Jenkins UI components
-private JTextField commitMsgField;
-private JCheckBox chkCheckout;
-private JCheckBox chkFileTransfer;
-private JCheckBox chkDeployment;
-private JCheckBox chkRestart;
-private JButton buildButton;
-
-private void initUI() {
-
-    JPanel top = new JPanel(new GridLayout(1, 2));
-
-    /* ================= LEFT PANEL (GIT) ================= */
-    JPanel gitPanel = new JPanel(new GridBagLayout());
-    gitPanel.setBorder(BorderFactory.createTitledBorder("Git Operations"));
-    GridBagConstraints c = new GridBagConstraints();
-    c.insets = new Insets(5,5,5,5);
-    c.anchor = GridBagConstraints.WEST;
-
-    c.gridx = 0; c.gridy = 0;
-    gitPanel.add(new JLabel("Region:"), c);
-
-    c.gridx = 1;
-    regionBox = new JComboBox<>(new String[]{"EE", "CE"});
-    gitPanel.add(regionBox, c);
-
-    c.gridx = 0; c.gridy = 1;
-    gitPanel.add(new JLabel("CR Number:"), c);
-
-    c.gridx = 1;
-    crField = new JTextField(10);
-    gitPanel.add(crField, c);
-
-    c.gridx = 0; c.gridy = 2;
-    pushButton = new JButton("Commit & Push");
-    gitPanel.add(pushButton, c);
-
-    c.gridx = 1;
-    statusButton = new JButton("Status");
-    gitPanel.add(statusButton, c);
-
-    c.gridx = 2;
-    rebaseButton = new JButton("Rebase");
-    gitPanel.add(rebaseButton, c);
-
-    c.gridx = 0; c.gridy = 3;
-    stashButton = new JButton("Stash");
-    gitPanel.add(stashButton, c);
-
-    c.gridx = 1;
-    unStashButton = new JButton("Unstash");
-    unStashButton.setVisible(false);
-    gitPanel.add(unStashButton, c);
-
-    /* ================= RIGHT PANEL (JENKINS) ================= */
-    JPanel jenkinsPanel = new JPanel(new GridBagLayout());
-    jenkinsPanel.setBorder(BorderFactory.createTitledBorder("Jenkins Build"));
-    GridBagConstraints j = new GridBagConstraints();
-    j.insets = new Insets(5,5,5,5);
-    j.anchor = GridBagConstraints.WEST;
-
-    j.gridx = 0; j.gridy = 0;
-    jenkinsPanel.add(new JLabel("Commit Message:"), j);
-
-    j.gridx = 1;
-    commitMsgField = new JTextField(18);
-    jenkinsPanel.add(commitMsgField, j);
-
-    j.gridx = 0; j.gridy = 1;
-    chkCheckout = new JCheckBox("Checkout", true);
-    jenkinsPanel.add(chkCheckout, j);
-
-    j.gridx = 1;
-    chkFileTransfer = new JCheckBox("File Transfer", true);
-    jenkinsPanel.add(chkFileTransfer, j);
-
-    j.gridx = 0; j.gridy = 2;
-    chkDeployment = new JCheckBox("Update Deployment");
-    jenkinsPanel.add(chkDeployment, j);
-
-    j.gridx = 1;
-    chkRestart = new JCheckBox("Server Restart");
-    jenkinsPanel.add(chkRestart, j);
-
-    j.gridx = 0; j.gridy = 3; j.gridwidth = 2;
-    buildButton = new JButton("Build");
-    jenkinsPanel.add(buildButton, j);
-
-    top.add(gitPanel);
-    top.add(jenkinsPanel);
-
-    outputArea = new JTextArea();
-    outputArea.setEditable(false);
-    outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
-
-    JScrollPane scroll = new JScrollPane(outputArea);
-
-    add(top, BorderLayout.NORTH);
-    add(scroll, BorderLayout.CENTER);
-
-    /* ACTIONS */
-    pushButton.addActionListener(e -> runTask());
-    statusButton.addActionListener(e -> checkStatus());
-    rebaseButton.addActionListener(e -> gitRebase());
-    stashButton.addActionListener(e -> gitStash());
-    unStashButton.addActionListener(e -> gitUnStash());
-    buildButton.addActionListener(e -> triggerJenkins());
+pipeline {
+    agent { label 'master'}
+environment{
+crname = "${params.CRNAME}"
+selection = "${params.SELECTION}"
+}
+    stages {
+         stage('Checkout from SCM'){
+        steps{
+		script{
+	//	cleanWs()
+	markBuild pipelineType: 'CD', environment: 'DEV' ,repoUrl: "{GIT_URL}"
+	//	def crname=params.CRNAME
+	 if (params.SELECTION.contains("Checkout")){
+		checkout([$class: 'GitSCM', branches: [[name: '*/DEV']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'gitlabtokenaspassword', url: 'https://10.177.140.236/gitlab/root/tf_ce_dev.git']]]) 
+			  def validPattern = ~/^(CR|IR|HotFix|BugFix)_.+$/
+			if (!params.CRNAME.matches(validPattern))
+			{error "invalid input Message"}
+			  sh "echo $crname"
+			  sh "rm -rf $crname || true"		
+			  sh "echo $crname"
+			  // Find the commit hashes with messages containing the CR number
+                    def commitHashes = sh(
+                        script: "git log --grep='\\<$crname\\>' --pretty=format:'%H'",
+                        returnStdout: true
+                    ).trim().split('\n')
+                    // Iterate over each commit hash
+                    for (commitHash in commitHashes) {
+                        // Get the files modified in each commit
+                        def files = sh(
+                            script: "git show --pretty='' --name-only ${commitHash}",
+                            returnStdout: true
+                        ).trim().split('\n')
+                        // Create destination folder if it doesn't exist
+                         if(!fileExists(crname))
+                            {
+			             sh "mkdir -p $crname "
+                            }			   
+                        // Copy files to destination folder
+                        for (file in files) {
+                            if (file.trim()) {
+                                if(fileExists(file))
+                                {
+                                sh "cp --parents ${file} $crname"
+                                }
+                            }
+                        }
+                    }
+			       sh "tar -cf ${crname}.tar $crname/"
+	               stash allowEmpty:true, includes: "${crname}/**", name: 'deploymentfile'
+	               sh "find $crname -type f > ${crname}.txt"
+		}	   
+		}
+                }
+         }
+       stage('File Transfer'){
+            agent { label "CE_DEV"}
+            options { skipDefaultCheckout()} 
+        steps{
+            script{
+			 if (params.SELECTION.contains("File Transfer")){
+           unstash(name:'deploymentfile') 
+		    sh "cp -rp $crname/base_domain/* /TFCEAPP/base_domain"
+            }
+        }
+       }
+	   }
+         stage('Update Deployment'){
+            agent { label "CE_DEV"}
+            options { skipDefaultCheckout()} 
+        steps{
+           script{ 
+		    if (params.SELECTION.contains("Deployment")){
+           sh "/weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/wlst.sh /weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/deploymentscript.py"
+        }
+       }
+         }
+		 }
+         stage("Server Restart"){
+            steps{
+                script{
+				if (params.SELECTION.contains("Restart")){
+               try{
+                   node("CE_DEV") {
+                       sh " JENKINS_NODE_COOKIE=dontKillMe nohup /TFCEAPP/DevOps/DevOps_RestartCE.sh > devopsoutput.log 2>&1 &"
+                   }
+               }
+               catch(err){
+                   echo "Server Restarted"
+               }
+               }
+            }
+        }
+		}
+}
 }
 
-private void triggerJenkins() {
 
-    String region =
-        regionBox.getSelectedItem().toString().toLowerCase();
 
-    String commitMsg = commitMsgField.getText().trim();
-    if (commitMsg.isEmpty()) {
-        JOptionPane.showMessageDialog(
-            this, "Commit message required");
-        return;
-    }
-
-    StringBuilder sel = new StringBuilder();
-    if (chkCheckout.isSelected()) sel.append("Checkout,");
-    if (chkFileTransfer.isSelected()) sel.append("File Transfer,");
-    if (chkDeployment.isSelected()) sel.append("Deployment,");
-    if (chkRestart.isSelected()) sel.append("Restart,");
-
-    if (sel.length() == 0) {
-        JOptionPane.showMessageDialog(
-            this, "Select at least one Jenkins option");
-        return;
-    }
-
-    String selection = sel.substring(0, sel.length() - 1);
-
-    outputArea.append("\n================ JENKINS BUILD =================\n");
-
-    SwingWorker<Void, String> worker =
-        new SwingWorker<Void, String>() {
-
-        protected Void doInBackground() throws Exception {
-            String queueUrl =
-                JenkinsClient.trigger(region, commitMsg, selection);
-            publish("Build queued: " + queueUrl);
-            return null;
-        }
-
-        protected void process(java.util.List<String> msgs) {
-            msgs.forEach(m -> outputArea.append(m + "\n"));
-        }
-    };
-
-    worker.execute();
-}
-
+i think same as selection the crname parametrr is reading blank , thats why the build is runnig but without any changes 
