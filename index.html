@@ -1,14 +1,11 @@
-stage('Checkout from SCM') {
-    steps {
-        script {
-
-            echo "================ PARAMETER DEBUG START ================"
-            echo "params.CRNAME        = [${params.CRNAME}]"
-            echo "params.SELECTION     = [${params.SELECTION}]"
-            echo "env.CRNAME           = [${env.CRNAME}]"
-            echo "env.crname           = [${env.crname}]"
-            echo "env.SELECTION        = [${env.SELECTION}]"
-            echo "env.selection        = [${env.selection}]"
-            echo "======================================================="
-
-            // existing logic continues below
+params.CRNAME        = [34234234]
+[Pipeline] echo
+params.SELECTION     = []
+[Pipeline] echo
+env.CRNAME           = [34234234]
+[Pipeline] echo
+env.crname           = [34234234]
+[Pipeline] echo
+env.SELECTION        = [null]
+[Pipeline] echo
+env.selection        = [null]
