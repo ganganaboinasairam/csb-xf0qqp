@@ -1,1 +1,205 @@
-https://10.177.140.236/jenkins/login?from=%2Fjenkins%2F
+pipeline {
+    agent { label 'master'}
+environment{
+crname = "${params.CRNAME}"
+selection = "${params.SELECTION}"
+
+//def crname=params.CRNAME
+//def env=params.ENVIRONMENT
+}
+
+    stages {
+         stage('Checkout from SCM'){
+        steps{
+            script{
+      //    cleanWs()
+      
+      markBuild pipelineType: 'CD', environment: 'PREDEV' ,repoUrl: "{GIT_URL}"
+      //    def crname=params.CRNAME
+       
+       if (selection.contains("Checkout")){
+           
+        
+            checkout([$class: 'GitSCM', branches: [[name: '*/PREDEV']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'gitlabtokenaspassword', url: 'https://10.177.140.236/gitlab/root/tf_ee_pre_dev.git']]]) 
+                    def validPattern = ~/^(CR|IR|HotFix|BugFix)_.+$/
+                  if (!params.CRNAME.matches(validPattern))
+                  {error "invalid input Message"}
+                    sh "echo $crname"
+                    sh "rm -rf $crname || true"       
+                    sh "echo $crname"
+                    // Find the commit hashes with messages containing the CR number
+                    def commitHashes = sh(
+                        script: "git log --grep='\\<$crname\\>' --pretty=format:'%H'",
+                        returnStdout: true
+                    ).trim().split('\n')
+ 
+                    // Iterate over each commit hash
+                    for (commitHash in commitHashes) {
+                        // Get the files modified in each commit
+                        def files = sh(
+                            script: "git show --pretty='' --name-only ${commitHash}",
+                            returnStdout: true
+                        ).trim().split('\n')
+ 
+                        // Create destination folder if it doesn't exist
+                         if(!fileExists(crname))
+                            {
+                               sh "mkdir -p $crname "
+                            }                
+ 
+                        // Copy files to destination folder
+                        for (file in files) {
+                            if (file.trim()) {
+                                if(fileExists(file))
+                                {
+                                sh "cp --parents ${file} $crname"
+                                }
+                            }
+                        }
+                    }
+                         sh "tar -cf ${crname}.tar $crname/"
+                     stash allowEmpty:true, includes: "${crname}/**", name: 'deploymentfile'
+                     sh "find $crname -type f > ${crname}.txt"
+            
+      
+            }        
+            
+            }
+                }
+         }
+       /*stage("Artifactory-Nexus")
+            {
+                  steps
+                  {
+                        script
+                        {
+                        
+                            nexusArtifactUploader artifacts: [[artifactId: "$crname", classifier: '', file: '$crname.tar', type: 'tar']], 
+                      credentialsId: 'nexus_cred', groupId: 'com.tcs.sbi', nexusUrl: '10.177.140.236/nexus',
+                  nexusVersion: 'nexus3', protocol: 'https', repository: 'TF_REVAMP_EE_ST', version: '${BUILD_NUMBER}'
+                              
+                        }
+                  }
+            }*/
+
+
+
+                
+       stage('File Transfer'){
+            agent { label "EE_PRE_DEV"}
+            options { skipDefaultCheckout()} 
+            
+        steps{
+            script{
+                   if (selection.contains("File Transfer")){
+                  
+           unstash(name:'deploymentfile') 
+                sh "cp -rp $crname/base_domain/* /TFEEAPP/base_domain"
+            }
+        }
+       }
+         }
+         stage('Update Deployment'){
+            agent { label "EE_PRE_DEV"}
+            options { skipDefaultCheckout()} 
+            
+        steps{
+           script{ 
+                if (selection.contains("Deployment")){
+           sh "/weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/wlst.sh /weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/deploymentscript.py"
+               
+        }
+       }
+         }
+             }
+         stage("Server Restart"){
+            steps{
+                script{
+                        if (selection.contains("Restart")){
+               try{
+                   node("EE_PRE_DEV") {
+                       sh " JENKINS_NODE_COOKIE=dontKillMe nohup /TFEEAPP/DevOps/DevOps_RestartEE.sh > devopsoutput.log 2>&1 &"
+                    /*timeout(1) {
+                    waitUntil {
+                    sh "echo hi"
+                    sh "kill -9 -1 "  
+                    }
+                        
+                    }*/
+                       
+                   }
+               }
+              
+               catch(err){
+                   echo "Server Restarted"
+               }
+               }
+            }
+        }
+            }
+     
+      stage('DB Execution'){
+      //agent { label "master" }
+      steps{
+      script{
+          if (selection.contains("DB Execution")){
+          checkout([$class: 'GitSCM', branches: [[name: '*/PREDEV']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'gitlabtokenaspassword', url: 'https://10.177.140.236/gitlab/root/tf_ee_pre_dev.git']]]) 
+                  
+              
+                         /*sh '''export PATH=$PATH:${LIQUIBASE_HOME}/ && liquibase \
+                                 --changelog-file=Liquibase/EE_ST_DB_generated-changelog.xml \
+                                 --url=${DB_URL} \
+                                 --username=${DB_CRED_USR} \
+                                 --password=${DB_CRED_PSW} \
+                                 --searchpath=${SEARCH_PATH} \
+                                 generate-changelog '''
+                                 
+                                 
+                                 sh '''export PATH=$PATH:${LIQUIBASE_HOME}/ && liquibase \
+                                 --changelog-file=EE_ST_DB_generated-changelog.xml \
+                                 --url=${DB_URL} \
+                                 --username=${DB_CRED_USR} \
+                                 --password=${DB_CRED_PSW} \
+                                 --searchpath=${SEARCH_PATH} \
+                                 changelog-sync-sql '''
+                                 
+                                 
+                                 
+                                 sh '''export PATH=$PATH:${LIQUIBASE_HOME}/ && liquibase \
+                                 --changelog-file=EE_ST_DB_generated-changelog.xml \
+                                 --url=${DB_URL} \
+                                 --username=${DB_CRED_USR} \
+                                 --password=${DB_CRED_PSW} \
+                                 --searchpath=${SEARCH_PATH} \
+                                changelog-sync'''*/
+
+                                
+                               sh '''export PATH=$PATH:${LIQUIBASE_HOME} && liquibase \
+                                 --changelog-file=${CHANGE_LOG} \
+                                 --url=${DB_URL}\
+                                 --username=${DB_CRED_USR} \
+                                 --password=${DB_CRED_PSW} \
+                                 --searchpath=${SEARCH_PATH} \
+                                 validate '''
+                          
+                                sh '''export PATH=$PATH:${LIQUIBASE_HOME}/ && liquibase \
+                                 --changelog-file=${CHANGE_LOG} \
+                                 --url=${DB_URL} \
+                                 --username=${DB_CRED_USR} \
+                                 --password=${DB_CRED_PSW} \
+                                 --searchpath=${SEARCH_PATH} \
+                                 update '''
+                                 
+                                  sh '''export PATH=$PATH:${LIQUIBASE_HOME}/ && liquibase \
+                                 --changelog-file=${CHANGE_LOG} \
+                                 --url=${DB_URL} \
+                                 --username=${DB_CRED_USR} \
+                                 --password=${DB_CRED_PSW} \
+                                 --searchpath=${SEARCH_PATH} \
+                                 history '''
+          }
+      }
+      }
+      }
+}
+}
