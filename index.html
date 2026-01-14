@@ -1,6 +1,9 @@
 package com.tcs.git;
 
-import java.net.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Base64;
 
 public class JenkinsCrumb {
@@ -10,84 +13,50 @@ public class JenkinsCrumb {
         URL url = new URL(
                 Config.get("jenkins.url") + "/crumbIssuer/api/json");
 
-        HttpURLConnection c =
+        HttpURLConnection conn =
                 (HttpURLConnection) url.openConnection();
 
         String auth = Config.get("jenkins.user") + ":" +
                       Config.get("jenkins.token");
 
-        c.setRequestProperty("Authorization",
-                "Basic " + Base64.getEncoder().encodeToString(auth.getBytes()));
-        c.setRequestMethod("GET");
+        String encodedAuth =
+                Base64.getEncoder()
+                      .encodeToString(auth.getBytes("UTF-8"));
 
-        String json = new String(c.getInputStream().readAllBytes());
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty(
+                "Authorization", "Basic " + encodedAuth);
 
-        String field = json.split("\"crumbRequestField\":\"")[1].split("\"")[0];
-        String crumb = json.split("\"crumb\":\"")[1].split("\"")[0];
+        if (conn.getResponseCode() != 200) {
+            throw new RuntimeException(
+                    "Failed to get Jenkins crumb. HTTP "
+                            + conn.getResponseCode());
+        }
+
+        // ---- Java 8 compatible stream reading ----
+        StringBuilder json = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                json.append(line);
+            }
+        }
+
+        String response = json.toString();
+
+        // Example response:
+        // {"crumbRequestField":"Jenkins-Crumb","crumb":"abcd1234"}
+
+        String field =
+                response.split("\"crumbRequestField\":\"")[1]
+                        .split("\"")[0];
+
+        String crumb =
+                response.split("\"crumb\":\"")[1]
+                        .split("\"")[0];
 
         return new String[]{field, crumb};
     }
 }
-
-package com.tcs.git;
-
-import java.net.*;
-import java.util.Base64;
-
-public class JenkinsClient {
-
-    public static void trigger(
-            String region,
-            String crName,
-            String selection) throws Exception {
-
-        String job = Config.get("jenkins.job." + region);
-
-        String params =
-                "CRNAME=" + URLEncoder.encode(crName, "UTF-8") +
-                "&SELECTION=" + URLEncoder.encode(selection, "UTF-8");
-
-        URL url = new URL(
-                Config.get("jenkins.url") +
-                "/job/" + job + "/buildWithParameters?" + params);
-
-        HttpURLConnection c =
-                (HttpURLConnection) url.openConnection();
-
-        String auth = Config.get("jenkins.user") + ":" +
-                      Config.get("jenkins.token");
-
-        c.setRequestMethod("POST");
-        c.setRequestProperty("Authorization",
-                "Basic " + Base64.getEncoder().encodeToString(auth.getBytes()));
-
-        String[] crumb = JenkinsCrumb.get();
-        c.setRequestProperty(crumb[0], crumb[1]);
-
-        c.setDoOutput(true);
-
-        if (c.getResponseCode() != 200 && c.getResponseCode() != 201) {
-            throw new RuntimeException("Jenkins trigger failed");
-        }
-    }
-}
-
-
-# ================= GIT =================
-git.executable=C:/Program Files/Git/bin/git.exe
-
-git.repo.path.ee=E:/gitClone/tf_ee_pre_dev
-git.branch.name.ee=PREDEV
-
-git.repo.path.ce=E:/gitClone/tf_ce_pre_dev
-git.branch.name.ce=PREDEV
-
-git.log.scan.limit=20
-
-# ================= JENKINS =================
-jenkins.url=https://10.177.140.236/jenkins
-jenkins.user=YOUR_JENKINS_USERNAME
-jenkins.token=YOUR_JENKINS_API_TOKEN
-
-jenkins.job.ee=tf-ee-predev
-jenkins.job.ce=tf-ce-predev
