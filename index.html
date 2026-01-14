@@ -1,126 +1,14 @@
-pipeline {
-    agent { label 'master' }
+stage('Checkout from SCM') {
+    steps {
+        script {
 
-    environment {
-        // KEEP selection if needed for shell usage later
-        selection = "${params.SELECTION}"
-    }
+            echo "================ PARAMETER DEBUG START ================"
+            echo "params.CRNAME        = [${params.CRNAME}]"
+            echo "params.SELECTION     = [${params.SELECTION}]"
+            echo "env.CRNAME           = [${env.CRNAME}]"
+            echo "env.crname           = [${env.crname}]"
+            echo "env.SELECTION        = [${env.SELECTION}]"
+            echo "env.selection        = [${env.selection}]"
+            echo "======================================================="
 
-    stages {
-
-        stage('Checkout from SCM') {
-            steps {
-                script {
-
-                    markBuild pipelineType: 'CD',
-                              environment: 'DEV',
-                              repoUrl: "{GIT_URL}"
-
-                    if (params.SELECTION.contains("Checkout")) {
-
-                        checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: '*/DEV']],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[
-                                credentialsId: 'gitlabtokenaspassword',
-                                url: 'https://10.177.140.236/gitlab/root/tf_ce_dev.git'
-                            ]]
-                        ])
-
-                        def validPattern = ~/^(CR|IR|HotFix|BugFix)_.+$/
-                        if (!params.CRNAME.matches(validPattern)) {
-                            error "invalid input Message"
-                        }
-
-                        // ✅ USE params.CRNAME DIRECTLY
-                        sh "echo ${params.CRNAME}"
-                        sh "rm -rf ${params.CRNAME} || true"
-                        sh "echo ${params.CRNAME}"
-
-                        // Find commit hashes containing CRNAME
-                        def commitHashes = sh(
-                            script: "git log --grep='\\<${params.CRNAME}\\>' --pretty=format:'%H'",
-                            returnStdout: true
-                        ).trim().split('\n')
-
-                        for (commitHash in commitHashes) {
-
-                            def files = sh(
-                                script: "git show --pretty='' --name-only ${commitHash}",
-                                returnStdout: true
-                            ).trim().split('\n')
-
-                            if (!fileExists(params.CRNAME)) {
-                                sh "mkdir -p ${params.CRNAME}"
-                            }
-
-                            for (file in files) {
-                                if (file?.trim() && fileExists(file)) {
-                                    sh "cp --parents ${file} ${params.CRNAME}"
-                                }
-                            }
-                        }
-
-                        sh "tar -cf ${params.CRNAME}.tar ${params.CRNAME}/"
-                        stash allowEmpty: true,
-                              includes: "${params.CRNAME}/**",
-                              name: 'deploymentfile'
-
-                        sh "find ${params.CRNAME} -type f > ${params.CRNAME}.txt"
-                    }
-                }
-            }
-        }
-
-        stage('File Transfer') {
-            agent { label "CE_DEV" }
-            options { skipDefaultCheckout() }
-
-            steps {
-                script {
-                    if (params.SELECTION.contains("File Transfer")) {
-                        unstash 'deploymentfile'
-                        sh "cp -rp ${params.CRNAME}/base_domain/* /TFCEAPP/base_domain"
-                    }
-                }
-            }
-        }
-
-        stage('Update Deployment') {
-            agent { label "CE_DEV" }
-            options { skipDefaultCheckout() }
-
-            steps {
-                script {
-                    if (params.SELECTION.contains("Deployment")) {
-                        sh "/weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/wlst.sh " +
-                           "/weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/deploymentscript.py"
-                    }
-                }
-            }
-        }
-
-        stage("Server Restart") {
-            steps {
-                script {
-                    if (params.SELECTION.contains("Restart")) {
-                        try {
-                            node("CE_DEV") {
-                                sh """
-                                JENKINS_NODE_COOKIE=dontKillMe \
-                                nohup /TFCEAPP/DevOps/DevOps_RestartCE.sh \
-                                > devopsoutput.log 2>&1 &
-                                """
-                            }
-                        } catch (err) {
-                            echo "Server Restarted"
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+            // existing logic continues below
