@@ -1,62 +1,40 @@
 package com.tcs.git;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.Base64;
+import javax.net.ssl.*;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 
-public class JenkinsCrumb {
+public final class SSLUtil {
 
-    public static String[] get() throws Exception {
+    private SSLUtil() {}
 
-        URL url = new URL(
-                Config.get("jenkins.url") + "/crumbIssuer/api/json");
+    public static void disableSSLVerification() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
+                    }
+                    public void checkClientTrusted(
+                            X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(
+                            X509Certificate[] certs, String authType) {}
+                }
+            };
 
-        HttpURLConnection conn =
-                (HttpURLConnection) url.openConnection();
+            SSLContext sc = SSLContext.getInstance("TLS");
+            sc.init(null, trustAllCerts, new SecureRandom());
 
-        String auth = Config.get("jenkins.user") + ":" +
-                      Config.get("jenkins.token");
+            HttpsURLConnection.setDefaultSSLSocketFactory(
+                    sc.getSocketFactory());
 
-        String encodedAuth =
-                Base64.getEncoder()
-                      .encodeToString(auth.getBytes("UTF-8"));
+            HttpsURLConnection.setDefaultHostnameVerifier(
+                    (hostname, session) -> true);
 
-        conn.setRequestMethod("GET");
-        conn.setRequestProperty(
-                "Authorization", "Basic " + encodedAuth);
+            System.out.println("SSL verification DISABLED (DEV mode)");
 
-        if (conn.getResponseCode() != 200) {
-            throw new RuntimeException(
-                    "Failed to get Jenkins crumb. HTTP "
-                            + conn.getResponseCode());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to disable SSL", e);
         }
-
-        // ---- Java 8 compatible stream reading ----
-        StringBuilder json = new StringBuilder();
-        try (BufferedReader br = new BufferedReader(
-                new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
-
-            String line;
-            while ((line = br.readLine()) != null) {
-                json.append(line);
-            }
-        }
-
-        String response = json.toString();
-
-        // Example response:
-        // {"crumbRequestField":"Jenkins-Crumb","crumb":"abcd1234"}
-
-        String field =
-                response.split("\"crumbRequestField\":\"")[1]
-                        .split("\"")[0];
-
-        String crumb =
-                response.split("\"crumb\":\"")[1]
-                        .split("\"")[0];
-
-        return new String[]{field, crumb};
     }
 }
