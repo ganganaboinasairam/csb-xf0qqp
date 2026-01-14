@@ -1,154 +1,152 @@
-pipeline {
-    agent { label 'master'}
-environment{
-crname = "${params.CRNAME}"
-selection = "${params.SELECTION}"
+public static String trigger(
+        String region,
+        String crName,
+        String selection) throws Exception {
 
+    String job = Config.get("jenkins.job." + region);
+
+    String params =
+        "CRNAME=" + URLEncoder.encode(crName, "UTF-8") +
+        "&SELECTION=" + URLEncoder.encode(selection, "UTF-8");
+
+    URL url = new URL(
+        Config.get("jenkins.url")
+        + "/job/" + job
+        + "/buildWithParameters?" + params);
+
+    HttpURLConnection conn =
+        (HttpURLConnection) url.openConnection();
+
+    String auth = Config.get("jenkins.user") + ":" +
+                  Config.get("jenkins.token");
+
+    conn.setRequestMethod("POST");
+    conn.setRequestProperty(
+        "Authorization",
+        "Basic " + Base64.getEncoder()
+                         .encodeToString(auth.getBytes("UTF-8")));
+
+    String[] crumb = JenkinsCrumb.get();
+    conn.setRequestProperty(crumb[0], crumb[1]);
+    conn.setDoOutput(true);
+
+    int code = conn.getResponseCode();
+    if (code != 201 && code != 200) {
+        throw new RuntimeException(
+            "Failed to trigger Jenkins build. HTTP " + code);
+    }
+
+    // Jenkins returns queue item URL here
+    return conn.getHeaderField("Location");
 }
 
-    stages {
-         stage('Checkout from SCM'){
-        steps{
-            script{
-      
-      markBuild pipelineType: 'CD', environment: 'PREDEV' ,repoUrl: "{GIT_URL}"
-     
-       
-       if (selection.contains("Checkout") ){
+public static Integer waitForBuildNumber(
+        String queueUrl,
+        int timeoutSeconds) throws Exception {
 
-           
-        
-            checkout([$class: 'GitSCM', branches: [[name: '*/PREDEV']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'gitlabtokenaspassword', url: 'https://10.177.140.236/gitlab/root/tf_ee_pre_dev.git']]]) 
-                    def validPattern = ~/^(CR|IR|HotFix|BugFix)_.+$/
-                  if (!params.CRNAME.matches(validPattern))
-                  {error "invalid input Message"}
-                    sh "echo $crname"
-                    sh "rm -rf $crname || true"       
-                    sh "echo $crname"
-                    // Find the commit hashes with messages containing the CR number
-                    def commitHashes = sh(
-                        script: "git log --grep='\\<$crname\\>' --pretty=format:'%H'",
-                        returnStdout: true
-                    ).trim().split('\n')
- 
-                    // Iterate over each commit hash
-                    for (commitHash in commitHashes) {
-                        // Get the files modified in each commit
-                        def files = sh(
-                            script: "git show --pretty='' --name-only ${commitHash}",
-                            returnStdout: true
-                        ).trim().split('\n')
- 
-                        // Create destination folder if it doesn't exist
-                         if(!fileExists(crname))
-                            {
-                               sh "mkdir -p $crname "
-                            }                
- 
-                        // Copy files to destination folder
-                        for (file in files) {
-                            if (file.trim()) {
-                                if(fileExists(file))
-                                {
-                                sh "cp --parents ${file} $crname"
-                                }
-                            }
-                        }
-                    }
-                         sh "tar -cf ${crname}.tar $crname/"
-                     stash allowEmpty:true, includes: "${crname}/**", name: 'deploymentfile'
-                     sh "find $crname -type f > ${crname}.txt"
-            
-      
-            }        
-            
-            }
-                }
-         }
-    
-       stage('File Transfer'){
-            agent { label "EE_PRE_DEV"}
-            options { skipDefaultCheckout()} 
-            
-        steps{
-            script{
-                   if (selection.contains("File Transfer")){
-                  
-           unstash(name:'deploymentfile') 
-                sh "cp -rp $crname/base_domain/* /TFEEAPP/base_domain"
-            }
+    long end = System.currentTimeMillis() +
+               timeoutSeconds * 1000L;
+
+    while (System.currentTimeMillis() < end) {
+
+        HttpURLConnection conn =
+            (HttpURLConnection)
+                new URL(queueUrl + "api/json")
+                    .openConnection();
+
+        String auth = Config.get("jenkins.user") + ":" +
+                      Config.get("jenkins.token");
+
+        conn.setRequestProperty(
+            "Authorization",
+            "Basic " + Base64.getEncoder()
+                             .encodeToString(auth.getBytes("UTF-8")));
+
+        String json = read(conn);
+
+        if (json.contains("\"executable\"")) {
+            String num =
+                json.split("\"number\":")[1]
+                    .split(",")[0];
+            return Integer.parseInt(num.trim());
         }
-       }
-         }
-         stage('Update Deployment'){
-            agent { label "EE_PRE_DEV"}
-            options { skipDefaultCheckout()} 
-            
-        steps{
-           script{ 
-                if (selection.contains("Deployment")){
-           sh "/weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/wlst.sh /weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/deploymentscript.py"
-               
-        }
-       }
-         }
-             }
-         stage("Server Restart"){
-            steps{
-                script{
-                        if (selection.contains("Restart")){
-               try{
-                   node("EE_PRE_DEV") {
-                       sh " JENKINS_NODE_COOKIE=dontKillMe nohup /TFEEAPP/DevOps/DevOps_RestartEE.sh > devopsoutput.log 2>&1 &"
-                   
-                       
-                   }
-               }
-              
-               catch(err){
-                   echo "Server Restarted"
-               }
-               }
-            }
-        }
-            }
-     
-      stage('DB Execution'){
-      //agent { label "master" }
-      steps{
-      script{
-          if (selection.contains("DB Execution")){
-          checkout([$class: 'GitSCM', branches: [[name: '*/PREDEV']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'gitlabtokenaspassword', url: 'https://10.177.140.236/gitlab/root/tf_ee_pre_dev.git']]]) 
-                  
-              
-                         
-                                
-                               sh '''export PATH=$PATH:${LIQUIBASE_HOME} && liquibase \
-                                 --changelog-file=${CHANGE_LOG} \
-                                 --url=${DB_URL}\
-                                 --username=${DB_CRED_USR} \
-                                 --password=${DB_CRED_PSW} \
-                                 --searchpath=${SEARCH_PATH} \
-                                 validate '''
-                          
-                                sh '''export PATH=$PATH:${LIQUIBASE_HOME}/ && liquibase \
-                                 --changelog-file=${CHANGE_LOG} \
-                                 --url=${DB_URL} \
-                                 --username=${DB_CRED_USR} \
-                                 --password=${DB_CRED_PSW} \
-                                 --searchpath=${SEARCH_PATH} \
-                                 update '''
-                                 
-                                  sh '''export PATH=$PATH:${LIQUIBASE_HOME}/ && liquibase \
-                                 --changelog-file=${CHANGE_LOG} \
-                                 --url=${DB_URL} \
-                                 --username=${DB_CRED_USR} \
-                                 --password=${DB_CRED_PSW} \
-                                 --searchpath=${SEARCH_PATH} \
-                                 history '''
-          }
-      }
-      }
-      }
+
+        Thread.sleep(3000);
+    }
+
+    throw new RuntimeException("Timed out waiting for build number");
 }
+
+public static String waitForBuildResult(
+        String region,
+        int buildNo,
+        java.util.function.Consumer<String> log)
+        throws Exception {
+
+    String job = Config.get("jenkins.job." + region);
+
+    String url =
+        Config.get("jenkins.url")
+        + "/job/" + job + "/" + buildNo + "/api/json";
+
+    while (true) {
+
+        HttpURLConnection conn =
+            (HttpURLConnection) new URL(url).openConnection();
+
+        String auth = Config.get("jenkins.user") + ":" +
+                      Config.get("jenkins.token");
+
+        conn.setRequestProperty(
+            "Authorization",
+            "Basic " + Base64.getEncoder()
+                             .encodeToString(auth.getBytes("UTF-8")));
+
+        String json = read(conn);
+
+        boolean building =
+            json.contains("\"building\":true");
+
+        if (building) {
+            log.accept("Build #" + buildNo + " is running...");
+            Thread.sleep(5000);
+        } else {
+            String result =
+                json.split("\"result\":\"")[1]
+                    .split("\"")[0];
+            return result;
+        }
+    }
 }
+
+private static String read(HttpURLConnection conn)
+        throws Exception {
+
+    BufferedReader br = new BufferedReader(
+        new InputStreamReader(conn.getInputStream(), "UTF-8"));
+
+    StringBuilder sb = new StringBuilder();
+    String line;
+    while ((line = br.readLine()) != null) {
+        sb.append(line);
+    }
+    br.close();
+    return sb.toString();
+}
+
+log.accept("Triggering Jenkins build...");
+String queueUrl =
+    JenkinsClient.trigger(region, commitMsg, selection);
+
+log.accept("Jenkins queued: " + queueUrl);
+
+int buildNo =
+    JenkinsClient.waitForBuildNumber(queueUrl, 120);
+
+log.accept("Jenkins build started: #" + buildNo);
+
+String result =
+    JenkinsClient.waitForBuildResult(
+        region, buildNo, log);
+
+log.accept("Jenkins build result: " + result);
