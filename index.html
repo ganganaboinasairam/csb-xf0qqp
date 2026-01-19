@@ -1,77 +1,277 @@
-if (!cmd.startsWith("git ")) {
-    throw new SecurityException("Only git commands are allowed");
+package com.tcs.git;
+import javax.swing.*;
+import java.awt.*;
+public class MainUI extends JFrame {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private JTextField crField;
+	private JComboBox<String> regionBox;
+	private JTextArea outputArea;
+	private JButton pushButton;
+	private JButton statusButton;
+	private JButton rebaseButton;
+	private String selection;
+	private JTextField commitMsgField;
+	private JCheckBox chkCheckout;
+	private JCheckBox chkFileTransfer;
+	private JCheckBox chkDeployment;
+	private JCheckBox chkRestart;
+	private JButton buildButton;
+	private JTextField customCmdField;
+	private JButton runCustomBtn;
+	public MainUI() {
+		setTitle("Git Commit & Push Tool");
+		setSize(750, 500);
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		setLocationRelativeTo(null);
+		initUI();
+	}
+	private void initUI() {
+	    JPanel top = new JPanel(new GridLayout(1, 2));
+	    /* ================= LEFT PANEL (GIT) ================= */
+	    JPanel gitPanel = new JPanel(new GridBagLayout());
+	    gitPanel.setBorder(BorderFactory.createTitledBorder("Git Operations"));
+	    GridBagConstraints c = new GridBagConstraints();
+	    c.insets = new Insets(5,5,5,5);
+	    c.anchor = GridBagConstraints.WEST;
+	    c.gridx = 0; c.gridy = 0;
+	    gitPanel.add(new JLabel("Region:"), c);
+	    c.gridx = 1;
+	    regionBox = new JComboBox<>(new String[]{"EE", "CE"});
+	    gitPanel.add(regionBox, c);
+	    c.gridx = 0; c.gridy = 1;
+	    gitPanel.add(new JLabel("CR Number:"), c);
+	    c.gridx = 1;
+	    crField = new JTextField(8);
+	    gitPanel.add(crField, c);
+	    c.gridx = 0; c.gridy = 2;
+	    pushButton = new JButton("Commit & Push");
+	    gitPanel.add(pushButton, c);
+	    c.gridx = 1;
+	    statusButton = new JButton("Status");
+	    gitPanel.add(statusButton, c);
+	    c.gridx = 2;
+	    rebaseButton = new JButton("Rebase");
+	    gitPanel.add(rebaseButton, c);
+	    c.gridx = 0; c.gridy = 3;
+	    gitPanel.add(new JLabel("Git command : "), c);
+	    c.gridx = 1;
+	    customCmdField = new JTextField(12);
+	    gitPanel.add(customCmdField, c);
+	    c.gridx = 2;
+	    runCustomBtn = new JButton("Run");
+	    gitPanel.add(runCustomBtn, c);
+	    /* ================= RIGHT PANEL (JENKINS) ================= */
+	    JPanel jenkinsPanel = new JPanel(new GridBagLayout());
+	    jenkinsPanel.setBorder(BorderFactory.createTitledBorder("Jenkins Build"));
+	    GridBagConstraints j = new GridBagConstraints();
+	    j.insets = new Insets(5,5,5,5);
+	    j.anchor = GridBagConstraints.WEST;
+	    j.gridx = 0; j.gridy = 0;
+	    jenkinsPanel.add(new JLabel("Commit Message:"), j);
+	    j.gridx = 1;
+	    commitMsgField = new JTextField(8);
+	    jenkinsPanel.add(commitMsgField, j);
+	    j.gridx = 0; j.gridy = 1;
+	    chkCheckout = new JCheckBox("Checkout", true);
+	    jenkinsPanel.add(chkCheckout, j);
+	    j.gridx = 1;
+	    chkFileTransfer = new JCheckBox("File Transfer", true);
+	    jenkinsPanel.add(chkFileTransfer, j);
+	    j.gridx = 0; j.gridy = 2;
+	    chkDeployment = new JCheckBox("Update Deployment");
+	    jenkinsPanel.add(chkDeployment, j);
+	    j.gridx = 1;
+	    chkRestart = new JCheckBox("Server Restart");
+	    jenkinsPanel.add(chkRestart, j);
+	    j.gridx = 0; j.gridy = 3; j.gridwidth = 2;
+	    buildButton = new JButton("Build");
+	    jenkinsPanel.add(buildButton, j);
+	    top.add(gitPanel);
+	    top.add(jenkinsPanel);
+	    outputArea = new JTextArea();
+	    outputArea.setEditable(false);
+	    outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
+	    JScrollPane scroll = new JScrollPane(outputArea);
+	    add(top, BorderLayout.NORTH);
+	    add(scroll, BorderLayout.CENTER);
+	    /* ACTIONS */
+	    pushButton.addActionListener(e -> runTask());
+	    statusButton.addActionListener(e -> checkStatus());
+	    rebaseButton.addActionListener(e -> gitRebase());
+	    buildButton.addActionListener(e -> triggerJenkins());
+	    runCustomBtn.addActionListener(e -> customCmd());
+	}
+	private void runTask() {
+		String crNo = crField.getText().trim();
+		String region = regionBox.getSelectedItem().toString().toLowerCase();
+		if (!crNo.matches("\\d+")) {
+			JOptionPane.showMessageDialog(this, "Invalid CR Number", "Error", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		outputArea.append("\n===============================================================================\n");
+		outputArea.append("GIT PUSH || " + regionBox.getSelectedItem().toString());
+		outputArea.append("\n===============================================================================\n");
+		pushButton.setEnabled(false);
+		selection = "";
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				GitAutomationService.execute(region, crNo, selection,msg -> publish(msg));
+				return null;
+			}
+			@Override
+			protected void process(java.util.List<String> chunks) {
+				for (String s : chunks) {
+					outputArea.append(s + "\n");
+				}
+			}
+			@Override
+			protected void done() {
+				outputArea.append("\n===================================DONE========================================\n");
+				pushButton.setEnabled(true);
+				try {
+					get();
+				} catch (Exception ex) {
+					outputArea.append("\nERROR: " + ex.getMessage());
+				}
+			}
+		};
+		worker.execute();
+	}
+	private void checkStatus() {
+		String region = regionBox.getSelectedItem().toString().toLowerCase();
+		outputArea.append("\n===============================================================================\n");
+		outputArea.append("GIT STATUS CHECK || " + regionBox.getSelectedItem().toString());
+		outputArea.append("\n===============================================================================\n");
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				GitAutomationService.chkStatus(region, msg -> publish(msg));
+				return null;
+			}
+			@Override
+			protected void process(java.util.List<String> chunks) {
+				for (String s : chunks) {
+					outputArea.append(s + "\n");
+				}
+			}
+			@Override
+			protected void done() {
+				outputArea.append("\n===================================DONE========================================\n");
+				pushButton.setEnabled(true);
+				try {
+					get();
+				} catch (Exception ex) {
+					outputArea.append("\nERROR: " + ex.getMessage());
+				}
+			}
+		};
+		worker.execute();
+	}
+	private void gitRebase() {
+		String region = regionBox.getSelectedItem().toString().toLowerCase();
+		outputArea.append("\n===============================================================================\n");
+		outputArea.append("GIT REBASE || " + regionBox.getSelectedItem().toString());
+		outputArea.append("\n===============================================================================\n");
+		rebaseButton.setEnabled(false);
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				GitAutomationService.rebase(region, msg -> publish(msg));
+				return null;
+			}
+			@Override
+			protected void process(java.util.List<String> chunks) {
+				for (String s : chunks) {
+					outputArea.append(s + "\n");
+				}
+			}
+			@Override
+			protected void done() {
+				outputArea.append("\n===================================DONE========================================\n");
+				rebaseButton.setEnabled(true);
+				try {
+					get();
+				} catch (Exception ex) {
+					outputArea.append("\nERROR: " + ex.getMessage());
+				}
+			}
+		};
+		worker.execute();
+	}
+	private void customCmd() {
+		// TODO Auto-generated method stub
+		String cmd = customCmdField.getText().trim();
+		String region = regionBox.getSelectedItem().toString().toLowerCase();
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+						@Override
+						protected Void doInBackground() throws Exception {
+							publish("Running: " + cmd);
+				            String out = GitAutomationService.runCustom(region, cmd);
+				            publish(out);
+				            return null;
+						}
+						@Override
+						protected void process(java.util.List<String> chunks) {
+							for (String s : chunks) {
+								outputArea.append(s + "\n");
+							}
+						}
+						@Override
+						protected void done() {
+							outputArea.append("\n===================================DONE========================================\n");
+							try {
+								get();
+							} catch (Exception ex) {
+								outputArea.append("\nERROR: " + ex.getMessage());
+							}
+						}
+					};
+					worker.execute();
+	}
+	private void triggerJenkins() {
+	    String region =
+	        regionBox.getSelectedItem().toString().toLowerCase();
+	    String commitMsg = commitMsgField.getText().trim();
+	    if (commitMsg.isEmpty()) {
+	        JOptionPane.showMessageDialog(
+	            this, "Commit message required");
+	        return;
+	    }
+	    StringBuilder sel = new StringBuilder();
+	    if (chkCheckout.isSelected()) sel.append("Checkout,");
+	    if (chkFileTransfer.isSelected()) sel.append("File Transfer,");
+	    if (chkDeployment.isSelected()) sel.append("Deployment,");
+	    if (chkRestart.isSelected()) sel.append("Restart,");
+	    if (sel.length() == 0) {
+	        JOptionPane.showMessageDialog(
+	            this, "Select at least one Jenkins option");
+	        return;
+	    }
+	    if (!commitMsg.startsWith("CR_", 0) || !commitMsg.startsWith("IR_", 0)) {
+	        JOptionPane.showMessageDialog(
+	            this, "Commit message should start with 'CR' or 'IR'");
+	        return;
+	    }
+	    String selection = sel.substring(0, sel.length() - 1);
+	    outputArea.append("\n================ JENKINS BUILD =================\n");
+	    SwingWorker<Void, String> worker =
+	        new SwingWorker<Void, String>() {
+	        protected Void doInBackground() throws Exception {
+	        	GitAutomationService.jnksTrigger(region, commitMsg, selection, msg -> publish(msg) );
+				return null;
+	        }
+	        protected void process(java.util.List<String> msgs) {
+	            msgs.forEach(m -> outputArea.append(m + "\n"));
+	        }
+	    };
+	    worker.execute();
+	}
+	public static void main(String[] args) {
+		SSLUtil.disableSSLVerification();
+		SwingUtilities.invokeLater(() -> new MainUI().setVisible(true));
+	}
 }
-
-private static final List<String> BLOCKED =
-    Arrays.asList(
-        "clean",
-        "reset --hard",
-        "checkout -f",
-        "rebase --abort",
-        "gc",
-        "config --system"
-    );
-
-for (String b : BLOCKED) {
-    if (cmd.contains(b)) {
-        throw new SecurityException("Command blocked: " + b);
-    }
-}
-
-public static String runCustom(
-        File repo,
-        String command) throws Exception {
-
-    if (!command.startsWith("git ")) {
-        throw new IllegalArgumentException(
-            "Only git commands are allowed");
-    }
-
-    List<String> parts = new ArrayList<>();
-    for (String p : command.split(" ")) {
-        if (!p.isBlank()) {
-            parts.add(p);
-        }
-    }
-
-    ProcessBuilder pb =
-        new ProcessBuilder(parts)
-            .directory(repo)
-            .redirectErrorStream(true);
-
-    Process p = pb.start();
-
-    StringBuilder out = new StringBuilder();
-    try (BufferedReader br =
-            new BufferedReader(
-                new InputStreamReader(p.getInputStream()))) {
-        String line;
-        while ((line = br.readLine()) != null) {
-            out.append(line).append("\n");
-        }
-    }
-
-    int exit = p.waitFor();
-    out.append("\nExit code: ").append(exit);
-
-    return out.toString();
-}
-
-JTextField customCmdField;
-JButton runCustomBtn;
-
-String cmd = customCmdField.getText().trim();
-
-SwingWorker<Void, String> worker =
-    new SwingWorker<>() {
-        protected Void doInBackground() throws Exception {
-            publish("Running: " + cmd);
-            String out = GitCli.runCustom(repo, cmd);
-            publish(out);
-            return null;
-        }
-        protected void process(List<String> chunks) {
-            chunks.forEach(s -> outputArea.append(s + "\n"));
-        }
-    };
-worker.execute();
