@@ -1,13 +1,62 @@
-String[] order = {
-    "Checkout",
-    "File Transfer",
-    "Deployment",
-    "Restart"
-};
-
-for (String step : order) {
-    if (selections.contains(step)) {
-        JenkinsClient.trigger(region, crName, step);
-        JenkinsClient.waitForCompletion(...); // optional
-    }
-}
+stage('Checkout from SCM'){
+        steps{
+		script{
+	//	cleanWs()
+	markBuild pipelineType: 'CD', environment: 'DEV' ,repoUrl: "{GIT_URL}"
+	//	def crname=params.CRNAME
+	 if (params.SELECTION.contains("Checkout")){
+		checkout([$class: 'GitSCM', branches: [[name: '*/DEV']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'gitlabtokenaspassword', url: 'https://10.177.140.236/gitlab/root/tf_ce_dev.git']]]) 
+			  def validPattern = ~/^(CR|IR|HotFix|BugFix)_.+$/
+			if (!params.CRNAME.matches(validPattern))
+			{error "invalid input Message"}
+			  sh "echo $crname"
+			  sh "rm -rf $crname || true"		
+			  sh "echo $crname"
+			  // Find the commit hashes with messages containing the CR number
+                    def commitHashes = sh(
+                        script: "git log --grep='\\<$crname\\>' --pretty=format:'%H'",
+                        returnStdout: true
+                    ).trim().split('\n')
+                    // Iterate over each commit hash
+                    for (commitHash in commitHashes) {
+                        // Get the files modified in each commit
+                        def files = sh(
+                            script: "git show --pretty='' --name-only ${commitHash}",
+                            returnStdout: true
+                        ).trim().split('\n')
+                        // Create destination folder if it doesn't exist
+                         if(!fileExists(crname))
+                            {
+			             sh "mkdir -p $crname "
+                            }			   
+                        // Copy files to destination folder
+                        for (file in files) {
+                            if (file.trim()) {
+                                if(fileExists(file))
+                                {
+                                sh "cp --parents ${file} $crname"
+                                }
+                            }
+                        }
+                    }
+			       sh "tar -cf ${crname}.tar $crname/"
+	               stash allowEmpty:true, includes: "${crname}/**", name: 'deploymentfile'
+	               sh "find $crname -type f > ${crname}.txt"
+		}	   
+		}
+                }
+         }
+       stage('File Transfer'){
+            agent { label "CE_DEV"}
+            options { skipDefaultCheckout()} 
+        steps{
+            script{
+			 if (params.SELECTION.contains("File Transfer")){
+           unstash(name:'deploymentfile') 
+		    sh "cp -rp $crname/base_domain/* /TFCEAPP/base_domain"
+            }
+        }
+       }
+	   }
+	   
+as we can see the stages the Checkout stage and file transfer stage are running back to back from the UI if i run the stages seperatly from the JAVA then the first stage is runnig sucessfullty and for 2nd stage iam getting error "ERROR: No such saved stash ‘deploymentfile’"
