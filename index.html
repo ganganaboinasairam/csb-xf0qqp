@@ -1,62 +1,141 @@
-stage('Checkout from SCM'){
-        steps{
-		script{
-	//	cleanWs()
-	markBuild pipelineType: 'CD', environment: 'DEV' ,repoUrl: "{GIT_URL}"
-	//	def crname=params.CRNAME
-	 if (params.SELECTION.contains("Checkout")){
-		checkout([$class: 'GitSCM', branches: [[name: '*/DEV']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'gitlabtokenaspassword', url: 'https://10.177.140.236/gitlab/root/tf_ce_dev.git']]]) 
-			  def validPattern = ~/^(CR|IR|HotFix|BugFix)_.+$/
-			if (!params.CRNAME.matches(validPattern))
-			{error "invalid input Message"}
-			  sh "echo $crname"
-			  sh "rm -rf $crname || true"		
-			  sh "echo $crname"
-			  // Find the commit hashes with messages containing the CR number
-                    def commitHashes = sh(
-                        script: "git log --grep='\\<$crname\\>' --pretty=format:'%H'",
-                        returnStdout: true
-                    ).trim().split('\n')
-                    // Iterate over each commit hash
-                    for (commitHash in commitHashes) {
-                        // Get the files modified in each commit
-                        def files = sh(
-                            script: "git show --pretty='' --name-only ${commitHash}",
+pipeline {
+    agent { label 'master' }
+
+    environment {
+        // KEEP selection if needed for shell usage later
+        selection = "${params.SELECTION}"
+    }
+
+    stages {
+
+        stage('Checkout from SCM') {
+    steps {
+        script {
+
+            echo "================ PARAMETER DEBUG START ================"
+            echo "params.CRNAME        = [${params.CRNAME}]"
+            echo "params.SELECTION     = [${params.SELECTION}]"
+            echo "env.CRNAME           = [${env.CRNAME}]"
+            echo "env.crname           = [${env.crname}]"
+            echo "env.SELECTION        = [${env.SELECTION}]"
+            echo "params        = [${params}]"
+            echo "======================================================="
+
+                    markBuild pipelineType: 'CD',
+                              environment: 'DEV',
+                              repoUrl: "{GIT_URL}"
+
+                    if (params.SELECTION.contains("Checkout")) {
+
+                        checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: '*/DEV']],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[
+                                credentialsId: 'gitlabtokenaspassword',
+                                url: 'https://10.177.140.236/gitlab/root/tf_ce_dev.git'
+                            ]]
+                        ])
+
+                        def validPattern = ~/^(CR|IR|HotFix|BugFix)_.+$/
+                        if (!params.CRNAME.matches(validPattern)) {
+                            error "invalid input Message"
+                        }
+
+                        sh "echo ${params.CRNAME}"
+                        sh "rm -rf ${params.CRNAME} || true"
+                        sh "echo ${params.CRNAME}"
+
+                        // Find commit hashes containing CRNAME
+                        def commitHashes = sh(
+                            script: "git log --grep='\\<${params.CRNAME}\\>' --pretty=format:'%H'",
                             returnStdout: true
                         ).trim().split('\n')
-                        // Create destination folder if it doesn't exist
-                         if(!fileExists(crname))
-                            {
-			             sh "mkdir -p $crname "
-                            }			   
-                        // Copy files to destination folder
-                        for (file in files) {
-                            if (file.trim()) {
-                                if(fileExists(file))
-                                {
-                                sh "cp --parents ${file} $crname"
+
+                        for (commitHash in commitHashes) {
+
+                            def files = sh(
+                                script: "git show --pretty='' --name-only ${commitHash}",
+                                returnStdout: true
+                            ).trim().split('\n')
+
+                            if (!fileExists(params.CRNAME)) {
+                                sh "mkdir -p ${params.CRNAME}"
+                            }
+
+                            for (file in files) {
+                                if (file?.trim() && fileExists(file)) {
+                                    sh "cp --parents ${file} ${params.CRNAME}"
                                 }
                             }
                         }
+
+                        sh "tar -cf ${params.CRNAME}.tar ${params.CRNAME}/"
+                        /*stash allowEmpty: true,
+                              includes: "${params.CRNAME}/**",
+                              name: 'deploymentfile'*/
+							  
+						def workDir = 'TFCEAPP/deploy_cache/${params.CRNAME}'
+							  
+						sh "rm -rf ${workDir}"
+						sh "mkDir -p ${workDir}"
+						sh "cp --parents ${file} ${workDir}"
+
+                        sh "find ${params.CRNAME} -type f > ${params.CRNAME}.txt"
                     }
-			       sh "tar -cf ${crname}.tar $crname/"
-	               stash allowEmpty:true, includes: "${crname}/**", name: 'deploymentfile'
-	               sh "find $crname -type f > ${crname}.txt"
-		}	   
-		}
                 }
-         }
-       stage('File Transfer'){
-            agent { label "CE_DEV"}
-            options { skipDefaultCheckout()} 
-        steps{
-            script{
-			 if (params.SELECTION.contains("File Transfer")){
-           unstash(name:'deploymentfile') 
-		    sh "cp -rp $crname/base_domain/* /TFCEAPP/base_domain"
             }
         }
-       }
-	   }
-	   
-as we can see the stages the Checkout stage and file transfer stage are running back to back from the UI if i run the stages seperatly from the JAVA then the first stage is runnig sucessfullty and for 2nd stage iam getting error "ERROR: No such saved stash ‘deploymentfile’"
+
+        stage('File Transfer') {
+            agent { label "CE_DEV" }
+            options { skipDefaultCheckout() }
+
+            steps {
+                script {
+                    if (params.SELECTION.contains("File Transfer")) {
+                        /*unstash 'deploymentfile'*/
+						def workDir = 'TFCEAPP/deploy_cache/${params.CRNAME}'
+                        sh "cp -rp ${workDir}/base_domain/* /TFCEAPP/base_domain"
+                    }
+                }
+            }
+        }
+
+        stage('Update Deployment') {
+            agent { label "CE_DEV" }
+            options { skipDefaultCheckout() }
+
+            steps {
+                script {
+                    if (params.SELECTION.contains("Deployment")) {
+                        sh "/weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/wlst.sh " +
+                           "/weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/deploymentscript.py"
+                    }
+                }
+            }
+        }
+
+        stage("Server Restart") {
+            steps {
+                script {
+                    if (params.SELECTION.contains("Restart")) {
+                        try {
+                            node("CE_DEV") {
+                                sh """
+                                JENKINS_NODE_COOKIE=dontKillMe \
+                                nohup /TFCEAPP/DevOps/DevOps_RestartCE.sh \
+                                > devopsoutput.log 2>&1 &
+                                """
+                            }
+                        } catch (err) {
+                            echo "Server Restarted"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
