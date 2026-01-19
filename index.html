@@ -1,122 +1,77 @@
-pipeline {
-    agent { label 'master' }
+if (!cmd.startsWith("git ")) {
+    throw new SecurityException("Only git commands are allowed");
+}
 
-    stages {
+private static final List<String> BLOCKED =
+    Arrays.asList(
+        "clean",
+        "reset --hard",
+        "checkout -f",
+        "rebase --abort",
+        "gc",
+        "config --system"
+    );
 
-        stage('Checkout from SCM') {
-            steps {
-                script {
-
-                    echo "================ PARAMETER DEBUG START ================"
-                    echo "params.CRNAME    = [${params.CRNAME}]"
-                    echo "params.SELECTION = [${params.SELECTION}]"
-                    echo "======================================================="
-
-                    markBuild pipelineType: 'CD',
-                              environment: 'DEV',
-                              repoUrl: "{GIT_URL}"
-
-                    if (params.SELECTION.contains("Checkout")) {
-
-                        checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: '*/DEV']],
-                            userRemoteConfigs: [[
-                                credentialsId: 'gitlabtokenaspassword',
-                                url: 'https://10.177.140.236/gitlab/root/tf_ce_dev.git'
-                            ]]
-                        ])
-
-                        def validPattern = ~/^(CR|IR|HotFix|BugFix)_.+$/
-                        if (!params.CRNAME.matches(validPattern)) {
-                            error "Invalid CRNAME"
-                        }
-
-                        // Local CR directory
-                        sh "rm -rf ${params.CRNAME}"
-                        sh "mkdir -p ${params.CRNAME}"
-
-                        def commitHashes = sh(
-                            script: "git log --grep='\\<${params.CRNAME}\\>' --pretty=format:'%H'",
-                            returnStdout: true
-                        ).trim().split('\n')
-
-                        for (commitHash in commitHashes) {
-                            def files = sh(
-                                script: "git show --pretty='' --name-only ${commitHash}",
-                                returnStdout: true
-                            ).trim().split('\n')
-
-                            for (f in files) {
-                                if (f?.trim() && fileExists(f)) {
-                                    sh "cp --parents ${f} ${params.CRNAME}"
-                                }
-                            }
-                        }
-
-                        // Persistent shared location
-                        def workDir = "/TFCEAPP/deploy_cache/${params.CRNAME}"
-
-                        sh "rm -rf ${workDir}"
-                        sh "mkdir -p ${workDir}"
-                        sh "cp -rp ${params.CRNAME}/* ${workDir}/"
-
-                        sh "find ${workDir} -type f > ${params.CRNAME}.txt"
-                    }
-                }
-            }
-        }
-
-        stage('File Transfer') {
-            agent { label "CE_DEV" }
-            options { skipDefaultCheckout() }
-
-            steps {
-                script {
-                    if (params.SELECTION.contains("File Transfer")) {
-                        def workDir = "/TFCEAPP/deploy_cache/${params.CRNAME}"
-
-                        sh """
-                        if [ ! -d "${workDir}" ]; then
-                            echo "ERROR: Deploy cache not found: ${workDir}"
-                            exit 1
-                        fi
-                        """
-
-                        sh "cp -rp ${workDir}/base_domain/* /TFCEAPP/base_domain"
-                    }
-                }
-            }
-        }
-
-        stage('Update Deployment') {
-            agent { label "CE_DEV" }
-            options { skipDefaultCheckout() }
-
-            steps {
-                script {
-                    if (params.SELECTION.contains("Deployment")) {
-                        sh "/weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/wlst.sh \
-                            /weblogic/Oracle/Middleware/Oracle_Home/wlserver/common/bin/deploymentscript.py"
-                    }
-                }
-            }
-        }
-
-        stage('Server Restart') {
-            steps {
-                script {
-                    if (params.SELECTION.contains("Restart")) {
-                        node("CE_DEV") {
-                            sh """
-                            JENKINS_NODE_COOKIE=dontKillMe \
-                            nohup /TFCEAPP/DevOps/DevOps_RestartCE.sh \
-                            > devopsoutput.log 2>&1 &
-                            """
-                        }
-                    }
-                }
-            }
-        }
+for (String b : BLOCKED) {
+    if (cmd.contains(b)) {
+        throw new SecurityException("Command blocked: " + b);
     }
 }
+
+public static String runCustom(
+        File repo,
+        String command) throws Exception {
+
+    if (!command.startsWith("git ")) {
+        throw new IllegalArgumentException(
+            "Only git commands are allowed");
+    }
+
+    List<String> parts = new ArrayList<>();
+    for (String p : command.split(" ")) {
+        if (!p.isBlank()) {
+            parts.add(p);
+        }
+    }
+
+    ProcessBuilder pb =
+        new ProcessBuilder(parts)
+            .directory(repo)
+            .redirectErrorStream(true);
+
+    Process p = pb.start();
+
+    StringBuilder out = new StringBuilder();
+    try (BufferedReader br =
+            new BufferedReader(
+                new InputStreamReader(p.getInputStream()))) {
+        String line;
+        while ((line = br.readLine()) != null) {
+            out.append(line).append("\n");
+        }
+    }
+
+    int exit = p.waitFor();
+    out.append("\nExit code: ").append(exit);
+
+    return out.toString();
+}
+
+JTextField customCmdField;
+JButton runCustomBtn;
+
+String cmd = customCmdField.getText().trim();
+
+SwingWorker<Void, String> worker =
+    new SwingWorker<>() {
+        protected Void doInBackground() throws Exception {
+            publish("Running: " + cmd);
+            String out = GitCli.runCustom(repo, cmd);
+            publish(out);
+            return null;
+        }
+        protected void process(List<String> chunks) {
+            chunks.forEach(s -> outputArea.append(s + "\n"));
+        }
+    };
+worker.execute();
