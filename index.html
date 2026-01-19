@@ -1,3 +1,13 @@
-url are https://10.177.140.236/jenkins/job/CE_DEV_DEPLOYMENT/buildWithParameters?CRNAME=34234234&SELECTION=Checkout%2CFile+Transfer
+String[] order = {
+    "Checkout",
+    "File Transfer",
+    "Deployment",
+    "Restart"
+};
 
-but the url is encoded
+for (String step : order) {
+    if (selections.contains(step)) {
+        JenkinsClient.trigger(region, crName, step);
+        JenkinsClient.waitForCompletion(...); // optional
+    }
+}
