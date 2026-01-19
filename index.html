@@ -1,53 +1,21 @@
-// Command history
-private java.util.List<String> cmdHistory = new java.util.ArrayList<>();
-private int historyIndex = -1;
+JPanel gitButtonBar = new JPanel(
+    new FlowLayout(FlowLayout.LEFT, 10, 0)
+);
 
-private void setupCommandHistoryKeys() {
+pushButton = new JButton("Commit & Push");
+statusButton = new JButton("Status");
+rebaseButton = new JButton("Rebase");
 
-    InputMap im = customCmdField.getInputMap(JComponent.WHEN_FOCUSED);
-    ActionMap am = customCmdField.getActionMap();
+gitButtonBar.add(pushButton);
+gitButtonBar.add(statusButton);
+gitButtonBar.add(rebaseButton);
 
-    // UP arrow → previous command
-    im.put(KeyStroke.getKeyStroke("UP"), "historyUp");
-    am.put("historyUp", new AbstractAction() {
-        @Override
-        public void actionPerformed(java.awt.event.ActionEvent e) {
-            if (cmdHistory.isEmpty()) return;
 
-            if (historyIndex <= 0) {
-                historyIndex = 0;
-            } else {
-                historyIndex--;
-            }
-            customCmdField.setText(cmdHistory.get(historyIndex));
-        }
-    });
+c.gridx = 0;
+c.gridy = 2;
+c.gridwidth = 3;
+c.weightx = 0;
+c.fill = GridBagConstraints.NONE;
 
-    // DOWN arrow → next command
-    im.put(KeyStroke.getKeyStroke("DOWN"), "historyDown");
-    am.put("historyDown", new AbstractAction() {
-        @Override
-        public void actionPerformed(java.awt.event.ActionEvent e) {
-            if (cmdHistory.isEmpty()) return;
+gitPanel.add(gitButtonBar, c);
 
-            if (historyIndex >= cmdHistory.size() - 1) {
-                historyIndex = cmdHistory.size();
-                customCmdField.setText("");
-            } else {
-                historyIndex++;
-                customCmdField.setText(cmdHistory.get(historyIndex));
-            }
-        }
-    });
-}
-
-private void customCmd() {
-
-    String cmd = customCmdField.getText().trim();
-    if (cmd.isEmpty()) return;
-
-    // Store in history (avoid duplicates back-to-back)
-    if (cmdHistory.isEmpty() || !cmd.equals(cmdHistory.get(cmdHistory.size() - 1))) {
-        cmdHistory.add(cmd);
-    }
-    historyIndex = cmdHistory.size(); // reset pointer
