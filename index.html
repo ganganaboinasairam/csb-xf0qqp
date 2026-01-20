@@ -1,19 +1,186 @@
-git.repo.path.ee=E:/gitClone/tf_ee_pre_dev
-git.repo.path.ce=E:/gitClone/tf_ce_dev
-git.remote.name=origin
-git.branch.name.ee=PREDEV
-git.branch.name.ce=DEV
-git.log.scan.limit=50
-git.executable=E:/git/GIT/bin/git.exe
+package com.tcs.git;
+
+import java.io.*;
+import java.util.Properties;
+
+public class ConfigManager {
+
+    private static final String CONFIG_FILE = "application.properties";
+
+    public static Properties load() {
+        Properties p = new Properties();
+        File f = new File(CONFIG_FILE);
+        if (f.exists()) {
+            try (FileInputStream fis = new FileInputStream(f)) {
+                p.load(fis);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return p;
+    }
+
+    public static void save(Properties p) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(CONFIG_FILE)) {
+            p.store(fos, "Git & Jenkins Tool Configuration");
+        }
+    }
+
+    public static boolean exists() {
+        return new File(CONFIG_FILE).exists();
+    }
+}
 
 
-jenkins.url=https://10.177.140.236/jenkins
-jenkins.user=v1013325
-jenkins.token=
-jenkins.job.ee=EE_PRE_DEV_DEPLOYMENT
-jenkins.job.ce=CE_DEV_DEPLOYMENT
+package com.tcs.git;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.Properties;
+
+public class ConfigDialog extends JDialog {
+
+    private JTextField gitRepoEE;
+    private JTextField gitRepoCE;
+    private JTextField gitBranchEE;
+    private JTextField gitBranchCE;
+    private JTextField gitExe;
+
+    private JTextField jenkinsUrl;
+    private JTextField jenkinsUser;
+    private JPasswordField jenkinsToken;
+    private JTextField jenkinsJobEE;
+    private JTextField jenkinsJobCE;
+
+    private boolean saved = false;
+
+    public ConfigDialog(Frame parent) {
+        super(parent, "Application Configuration", true);
+        setSize(600, 450);
+        setLocationRelativeTo(parent);
+        initUI();
+        loadValues();
+    }
+
+    private void initUI() {
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(6,6,6,6);
+        c.fill = GridBagConstraints.HORIZONTAL;
+
+        int y = 0;
+
+        gitRepoEE = addField(panel, c, "Git Repo Path (EE):", y++);
+        gitRepoCE = addField(panel, c, "Git Repo Path (CE):", y++);
+        gitBranchEE = addField(panel, c, "Git Branch (EE):", y++);
+        gitBranchCE = addField(panel, c, "Git Branch (CE):", y++);
+        gitExe = addField(panel, c, "Git Executable Path:", y++);
+
+        jenkinsUrl = addField(panel, c, "Jenkins URL:", y++);
+        jenkinsUser = addField(panel, c, "Jenkins User:", y++);
+        jenkinsToken = new JPasswordField();
+        addPassword(panel, c, "Jenkins Token:", jenkinsToken, y++);
+
+        jenkinsJobEE = addField(panel, c, "Jenkins Job (EE):", y++);
+        jenkinsJobCE = addField(panel, c, "Jenkins Job (CE):", y++);
+
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton save = new JButton("Save");
+        JButton back = new JButton("Back");
+
+        save.addActionListener(e -> onSave());
+        back.addActionListener(e -> dispose());
+
+        btns.add(save);
+        btns.add(back);
+
+        add(panel, BorderLayout.CENTER);
+        add(btns, BorderLayout.SOUTH);
+    }
+
+    private JTextField addField(JPanel p, GridBagConstraints c,
+                               String label, int y) {
+        c.gridx = 0; c.gridy = y; c.weightx = 0;
+        p.add(new JLabel(label), c);
+
+        JTextField tf = new JTextField();
+        c.gridx = 1; c.weightx = 1.0;
+        p.add(tf, c);
+        return tf;
+    }
+
+    private void addPassword(JPanel p, GridBagConstraints c,
+                             String label, JPasswordField pf, int y) {
+        c.gridx = 0; c.gridy = y; c.weightx = 0;
+        p.add(new JLabel(label), c);
+
+        c.gridx = 1; c.weightx = 1.0;
+        p.add(pf, c);
+    }
+
+    private void loadValues() {
+        Properties p = ConfigManager.load();
+
+        gitRepoEE.setText(p.getProperty("git.repo.path.ee", ""));
+        gitRepoCE.setText(p.getProperty("git.repo.path.ce", ""));
+        gitBranchEE.setText(p.getProperty("git.branch.name.ee", ""));
+        gitBranchCE.setText(p.getProperty("git.branch.name.ce", ""));
+        gitExe.setText(p.getProperty("git.executable", ""));
+
+        jenkinsUrl.setText(p.getProperty("jenkins.url", ""));
+        jenkinsUser.setText(p.getProperty("jenkins.user", ""));
+        jenkinsToken.setText(p.getProperty("jenkins.token", ""));
+        jenkinsJobEE.setText(p.getProperty("jenkins.job.ee", ""));
+        jenkinsJobCE.setText(p.getProperty("jenkins.job.ce", ""));
+    }
+
+    private void onSave() {
+        try {
+            Properties p = new Properties();
+
+            p.setProperty("git.repo.path.ee", gitRepoEE.getText());
+            p.setProperty("git.repo.path.ce", gitRepoCE.getText());
+            p.setProperty("git.branch.name.ee", gitBranchEE.getText());
+            p.setProperty("git.branch.name.ce", gitBranchCE.getText());
+            p.setProperty("git.executable", gitExe.getText());
+
+            p.setProperty("jenkins.url", jenkinsUrl.getText());
+            p.setProperty("jenkins.user", jenkinsUser.getText());
+            p.setProperty("jenkins.token", new String(jenkinsToken.getPassword()));
+            p.setProperty("jenkins.job.ee", jenkinsJobEE.getText());
+            p.setProperty("jenkins.job.ce", jenkinsJobCE.getText());
+
+            ConfigManager.save(p);
+            saved = true;
+            dispose();
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                this, "Failed to save configuration\n" + ex.getMessage(),
+                "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public boolean isSaved() {
+        return saved;
+    }
+}
 
 
+public static void main(String[] args) {
 
+    SSLUtil.disableSSLVerification();
 
-these are the properties of the tool , now i want a dialog box on the starting of the application to ask all this properties from the user , if already the properties are there then it should autopopulate , if not it should be blank and there should be save and back button , on click of save the properties should be saved in the aplication.properties 
+    SwingUtilities.invokeLater(() -> {
+
+        ConfigDialog dialog = new ConfigDialog(null);
+        dialog.setVisible(true);
+
+        if (!dialog.isSaved() && !ConfigManager.exists()) {
+            System.exit(0); // force config on first run
+        }
+
+        new MainUI().setVisible(true);
+    });
+}
