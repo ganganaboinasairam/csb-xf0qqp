@@ -1,83 +1,188 @@
-private boolean validateFields() {
+package com.tcs.git.config;
 
-    if (isEmpty(gitRepoEE)) return error("Git Repo Path (EE) is required");
-    if (isEmpty(gitRepoCE)) return error("Git Repo Path (CE) is required");
-    if (isEmpty(gitBranchEE)) return error("Git Branch (EE) is required");
-    if (isEmpty(gitBranchCE)) return error("Git Branch (CE) is required");
-    if (isEmpty(gitExe)) return error("Git Executable path is required");
+import javax.swing.*;
+import java.awt.*;
+import java.util.Properties;
 
-    if (isEmpty(jenkinsUrl)) return error("Jenkins URL is required");
-    if (isEmpty(jenkinsUser)) return error("Jenkins User is required");
-    if (jenkinsToken.getPassword().length == 0)
-        return error("Jenkins Token is required");
+public class ConfigDialog extends JDialog {
 
-    if (isEmpty(jenkinsJobEE)) return error("Jenkins Job (EE) is required");
-    if (isEmpty(jenkinsJobCE)) return error("Jenkins Job (CE) is required");
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private JTextField gitRepoEE;
+    private JTextField gitRepoCE;
+    private JTextField gitBranchEE;
+    private JTextField gitBranchCE;
+    private JTextField gitExe;
 
-    return true;
-}
+    private JTextField jenkinsUrl;
+    private JTextField jenkinsUser;
+    private JPasswordField jenkinsToken;
+    private JTextField jenkinsJobEE;
+    private JTextField jenkinsJobCE;
 
-private boolean isEmpty(JTextField tf) {
-    return tf.getText() == null || tf.getText().trim().isEmpty();
-}
+    private boolean saved = false;
 
-private boolean error(String msg) {
-    JOptionPane.showMessageDialog(
-        this, msg, "Validation Error", JOptionPane.ERROR_MESSAGE);
-    return false;
-}
-
-private void onSave() {
-
-    if (!validateFields()) {
-        return; // ⛔ block save
+    public ConfigDialog(Frame parent) {
+        super(parent, "Application Configuration", true);
+        setSize(600, 450);
+        setLocationRelativeTo(parent);
+        initUI();
+        loadValues();
     }
 
-    try {
-        Properties p = new Properties();
+    private void initUI() {
 
-        p.setProperty("git.repo.path.ee", gitRepoEE.getText().trim());
-        p.setProperty("git.repo.path.ce", gitRepoCE.getText().trim());
-        p.setProperty("git.branch.name.ee", gitBranchEE.getText().trim());
-        p.setProperty("git.branch.name.ce", gitBranchCE.getText().trim());
-        p.setProperty("git.executable", gitExe.getText().trim());
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(6,6,6,6);
+        c.fill = GridBagConstraints.HORIZONTAL;
 
-        p.setProperty("jenkins.url", jenkinsUrl.getText().trim());
-        p.setProperty("jenkins.user", jenkinsUser.getText().trim());
-        p.setProperty("jenkins.token",
-            new String(jenkinsToken.getPassword()).trim());
-        p.setProperty("jenkins.job.ee", jenkinsJobEE.getText().trim());
-        p.setProperty("jenkins.job.ce", jenkinsJobCE.getText().trim());
+        int y = 0;
 
-        ConfigManager.save(p);
-        saved = true;
-        dispose();
+        gitRepoEE = addField(panel, c, "Git Repo Path (EE):", y++);
+        gitRepoCE = addField(panel, c, "Git Repo Path (CE):", y++);
+        gitBranchEE = addField(panel, c, "Git Branch (EE):", y++);
+        gitBranchCE = addField(panel, c, "Git Branch (CE):", y++);
+        gitExe = addField(panel, c, "Git Executable Path:", y++);
 
-    } catch (Exception ex) {
-        JOptionPane.showMessageDialog(
-            this,
-            "Failed to save configuration\n" + ex.getMessage(),
-            "Error",
-            JOptionPane.ERROR_MESSAGE
-        );
+        jenkinsUrl = addField(panel, c, "Jenkins URL:", y++);
+        jenkinsUser = addField(panel, c, "Jenkins User:", y++);
+        jenkinsToken = new JPasswordField();
+        addPassword(panel, c, "Jenkins Token:", jenkinsToken, y++);
+
+        jenkinsJobEE = addField(panel, c, "Jenkins Job (EE):", y++);
+        jenkinsJobCE = addField(panel, c, "Jenkins Job (CE):", y++);
+
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton save = new JButton("Save");
+        JButton back = new JButton("Back");
+
+        save.addActionListener(e -> onSave());
+        back.addActionListener(e -> dispose());
+
+        btns.add(save);
+        btns.add(back);
+
+        add(panel, BorderLayout.CENTER);
+        add(btns, BorderLayout.SOUTH);
+        
+        jenkinsUrl.setEnabled(false);
+        jenkinsJobEE.setEnabled(false);
+        jenkinsJobCE.setEnabled(false);
+        gitBranchEE.setEnabled(false);
+        gitBranchCE.setEnabled(false);
+        
     }
-}
 
-public static void main(String[] args) {
+    private JTextField addField(JPanel p, GridBagConstraints c,
+                               String label, int y) {
+        c.gridx = 0; c.gridy = y; c.weightx = 0;
+        p.add(new JLabel(label), c);
 
-    SSLUtil.disableSSLVerification();
+        JTextField tf = new JTextField();
+        c.gridx = 1; c.weightx = 1.0;
+        p.add(tf, c);
+        return tf;
+    }
 
-    SwingUtilities.invokeLater(() -> {
+    private void addPassword(JPanel p, GridBagConstraints c,
+                             String label, JPasswordField pf, int y) {
+        c.gridx = 0; c.gridy = y; c.weightx = 0;
+        p.add(new JLabel(label), c);
 
-        ConfigDialog dialog = new ConfigDialog(null);
-        dialog.setVisible(true);
+        c.gridx = 1; c.weightx = 1.0;
+        p.add(pf, c);
+    }
 
-        // ⛔ DO NOT proceed unless config is saved
-        if (!dialog.isSaved()) {
-            System.exit(0);
+    private void loadValues() {
+        Properties p = ConfigManager.load();
+
+        gitRepoEE.setText(p.getProperty("git.repo.path.ee", ""));
+        gitRepoCE.setText(p.getProperty("git.repo.path.ce", ""));
+        gitBranchEE.setText(p.getProperty("git.branch.name.ee", ""));
+        gitBranchCE.setText(p.getProperty("git.branch.name.ce", ""));
+        gitExe.setText(p.getProperty("git.executable", ""));
+
+        jenkinsUrl.setText(p.getProperty("jenkins.url", ""));
+        jenkinsUser.setText(p.getProperty("jenkins.user", ""));
+        jenkinsToken.setText(p.getProperty("jenkins.token", ""));
+        jenkinsJobEE.setText(p.getProperty("jenkins.job.ee", ""));
+        jenkinsJobCE.setText(p.getProperty("jenkins.job.ce", ""));
+    }
+
+    private void onSave() {
+
+        if (!validateFields()) {
+            return; 
         }
 
-        new MainUI().setVisible(true);
-    });
+        try {
+            Properties p = new Properties();
+
+            p.setProperty("git.repo.path.ee", gitRepoEE.getText().trim());
+            p.setProperty("git.repo.path.ce", gitRepoCE.getText().trim());
+            p.setProperty("git.branch.name.ee", gitBranchEE.getText().trim());
+            p.setProperty("git.branch.name.ce", gitBranchCE.getText().trim());
+            p.setProperty("git.executable", gitExe.getText().trim());
+
+            p.setProperty("jenkins.url", jenkinsUrl.getText().trim());
+            p.setProperty("jenkins.user", jenkinsUser.getText().trim());
+            p.setProperty("jenkins.token",
+                new String(jenkinsToken.getPassword()).trim());
+            p.setProperty("jenkins.job.ee", jenkinsJobEE.getText().trim());
+            p.setProperty("jenkins.job.ce", jenkinsJobCE.getText().trim());
+
+            ConfigManager.save(p);
+            saved = true;
+            dispose();
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Failed to save configuration\n" + ex.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    public boolean isSaved() {
+        return saved;
+    }
+    
+    private boolean validateFields() {
+
+        if (isEmpty(gitRepoEE)) return error("Git Repo Path (EE) is required");
+        if (isEmpty(gitRepoCE)) return error("Git Repo Path (CE) is required");
+        if (isEmpty(gitBranchEE)) return error("Git Branch (EE) is required");
+        if (isEmpty(gitBranchCE)) return error("Git Branch (CE) is required");
+        if (isEmpty(gitExe)) return error("Git Executable path is required");
+
+        if (isEmpty(jenkinsUrl)) return error("Jenkins URL is required");
+        if (isEmpty(jenkinsUser)) return error("Jenkins User is required");
+        if (jenkinsToken.getPassword().length == 0)
+            return error("Jenkins Token is required");
+
+        if (isEmpty(jenkinsJobEE)) return error("Jenkins Job (EE) is required");
+        if (isEmpty(jenkinsJobCE)) return error("Jenkins Job (CE) is required");
+
+        return true;
+    }
+
+    private boolean isEmpty(JTextField tf) {
+        return tf.getText() == null || tf.getText().trim().isEmpty();
+    }
+
+    private boolean error(String msg) {
+        JOptionPane.showMessageDialog(
+            this, msg, "Validation Error", JOptionPane.ERROR_MESSAGE);
+        return false;
+    }
 }
 
+
+
+
+add two checkboxes on first (EE,CE) , if ee is selected then ee configutaion is mandatory and if ce is selected then ce config is mandatory , if both are selected both are mandatory
