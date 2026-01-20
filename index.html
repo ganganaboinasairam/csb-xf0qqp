@@ -1,172 +1,67 @@
-package com.tcs.git;
+private boolean validateFields() {
 
-import java.io.*;
-import java.util.Properties;
+    if (isEmpty(gitRepoEE)) return error("Git Repo Path (EE) is required");
+    if (isEmpty(gitRepoCE)) return error("Git Repo Path (CE) is required");
+    if (isEmpty(gitBranchEE)) return error("Git Branch (EE) is required");
+    if (isEmpty(gitBranchCE)) return error("Git Branch (CE) is required");
+    if (isEmpty(gitExe)) return error("Git Executable path is required");
 
-public class ConfigManager {
+    if (isEmpty(jenkinsUrl)) return error("Jenkins URL is required");
+    if (isEmpty(jenkinsUser)) return error("Jenkins User is required");
+    if (jenkinsToken.getPassword().length == 0)
+        return error("Jenkins Token is required");
 
-    private static final String CONFIG_FILE = "application.properties";
+    if (isEmpty(jenkinsJobEE)) return error("Jenkins Job (EE) is required");
+    if (isEmpty(jenkinsJobCE)) return error("Jenkins Job (CE) is required");
 
-    public static Properties load() {
+    return true;
+}
+
+private boolean isEmpty(JTextField tf) {
+    return tf.getText() == null || tf.getText().trim().isEmpty();
+}
+
+private boolean error(String msg) {
+    JOptionPane.showMessageDialog(
+        this, msg, "Validation Error", JOptionPane.ERROR_MESSAGE);
+    return false;
+}
+
+private void onSave() {
+
+    if (!validateFields()) {
+        return; // ⛔ block save
+    }
+
+    try {
         Properties p = new Properties();
-        File f = new File(CONFIG_FILE);
-        if (f.exists()) {
-            try (FileInputStream fis = new FileInputStream(f)) {
-                p.load(fis);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return p;
-    }
 
-    public static void save(Properties p) throws IOException {
-        try (FileOutputStream fos = new FileOutputStream(CONFIG_FILE)) {
-            p.store(fos, "Git & Jenkins Tool Configuration");
-        }
-    }
+        p.setProperty("git.repo.path.ee", gitRepoEE.getText().trim());
+        p.setProperty("git.repo.path.ce", gitRepoCE.getText().trim());
+        p.setProperty("git.branch.name.ee", gitBranchEE.getText().trim());
+        p.setProperty("git.branch.name.ce", gitBranchCE.getText().trim());
+        p.setProperty("git.executable", gitExe.getText().trim());
 
-    public static boolean exists() {
-        return new File(CONFIG_FILE).exists();
-    }
-}
+        p.setProperty("jenkins.url", jenkinsUrl.getText().trim());
+        p.setProperty("jenkins.user", jenkinsUser.getText().trim());
+        p.setProperty("jenkins.token",
+            new String(jenkinsToken.getPassword()).trim());
+        p.setProperty("jenkins.job.ee", jenkinsJobEE.getText().trim());
+        p.setProperty("jenkins.job.ce", jenkinsJobCE.getText().trim());
 
+        ConfigManager.save(p);
+        saved = true;
+        dispose();
 
-package com.tcs.git;
-
-import javax.swing.*;
-import java.awt.*;
-import java.util.Properties;
-
-public class ConfigDialog extends JDialog {
-
-    private JTextField gitRepoEE;
-    private JTextField gitRepoCE;
-    private JTextField gitBranchEE;
-    private JTextField gitBranchCE;
-    private JTextField gitExe;
-
-    private JTextField jenkinsUrl;
-    private JTextField jenkinsUser;
-    private JPasswordField jenkinsToken;
-    private JTextField jenkinsJobEE;
-    private JTextField jenkinsJobCE;
-
-    private boolean saved = false;
-
-    public ConfigDialog(Frame parent) {
-        super(parent, "Application Configuration", true);
-        setSize(600, 450);
-        setLocationRelativeTo(parent);
-        initUI();
-        loadValues();
-    }
-
-    private void initUI() {
-
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(6,6,6,6);
-        c.fill = GridBagConstraints.HORIZONTAL;
-
-        int y = 0;
-
-        gitRepoEE = addField(panel, c, "Git Repo Path (EE):", y++);
-        gitRepoCE = addField(panel, c, "Git Repo Path (CE):", y++);
-        gitBranchEE = addField(panel, c, "Git Branch (EE):", y++);
-        gitBranchCE = addField(panel, c, "Git Branch (CE):", y++);
-        gitExe = addField(panel, c, "Git Executable Path:", y++);
-
-        jenkinsUrl = addField(panel, c, "Jenkins URL:", y++);
-        jenkinsUser = addField(panel, c, "Jenkins User:", y++);
-        jenkinsToken = new JPasswordField();
-        addPassword(panel, c, "Jenkins Token:", jenkinsToken, y++);
-
-        jenkinsJobEE = addField(panel, c, "Jenkins Job (EE):", y++);
-        jenkinsJobCE = addField(panel, c, "Jenkins Job (CE):", y++);
-
-        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton save = new JButton("Save");
-        JButton back = new JButton("Back");
-
-        save.addActionListener(e -> onSave());
-        back.addActionListener(e -> dispose());
-
-        btns.add(save);
-        btns.add(back);
-
-        add(panel, BorderLayout.CENTER);
-        add(btns, BorderLayout.SOUTH);
-    }
-
-    private JTextField addField(JPanel p, GridBagConstraints c,
-                               String label, int y) {
-        c.gridx = 0; c.gridy = y; c.weightx = 0;
-        p.add(new JLabel(label), c);
-
-        JTextField tf = new JTextField();
-        c.gridx = 1; c.weightx = 1.0;
-        p.add(tf, c);
-        return tf;
-    }
-
-    private void addPassword(JPanel p, GridBagConstraints c,
-                             String label, JPasswordField pf, int y) {
-        c.gridx = 0; c.gridy = y; c.weightx = 0;
-        p.add(new JLabel(label), c);
-
-        c.gridx = 1; c.weightx = 1.0;
-        p.add(pf, c);
-    }
-
-    private void loadValues() {
-        Properties p = ConfigManager.load();
-
-        gitRepoEE.setText(p.getProperty("git.repo.path.ee", ""));
-        gitRepoCE.setText(p.getProperty("git.repo.path.ce", ""));
-        gitBranchEE.setText(p.getProperty("git.branch.name.ee", ""));
-        gitBranchCE.setText(p.getProperty("git.branch.name.ce", ""));
-        gitExe.setText(p.getProperty("git.executable", ""));
-
-        jenkinsUrl.setText(p.getProperty("jenkins.url", ""));
-        jenkinsUser.setText(p.getProperty("jenkins.user", ""));
-        jenkinsToken.setText(p.getProperty("jenkins.token", ""));
-        jenkinsJobEE.setText(p.getProperty("jenkins.job.ee", ""));
-        jenkinsJobCE.setText(p.getProperty("jenkins.job.ce", ""));
-    }
-
-    private void onSave() {
-        try {
-            Properties p = new Properties();
-
-            p.setProperty("git.repo.path.ee", gitRepoEE.getText());
-            p.setProperty("git.repo.path.ce", gitRepoCE.getText());
-            p.setProperty("git.branch.name.ee", gitBranchEE.getText());
-            p.setProperty("git.branch.name.ce", gitBranchCE.getText());
-            p.setProperty("git.executable", gitExe.getText());
-
-            p.setProperty("jenkins.url", jenkinsUrl.getText());
-            p.setProperty("jenkins.user", jenkinsUser.getText());
-            p.setProperty("jenkins.token", new String(jenkinsToken.getPassword()));
-            p.setProperty("jenkins.job.ee", jenkinsJobEE.getText());
-            p.setProperty("jenkins.job.ce", jenkinsJobCE.getText());
-
-            ConfigManager.save(p);
-            saved = true;
-            dispose();
-
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(
-                this, "Failed to save configuration\n" + ex.getMessage(),
-                "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    public boolean isSaved() {
-        return saved;
+    } catch (Exception ex) {
+        JOptionPane.showMessageDialog(
+            this,
+            "Failed to save configuration\n" + ex.getMessage(),
+            "Error",
+            JOptionPane.ERROR_MESSAGE
+        );
     }
 }
-
 
 public static void main(String[] args) {
 
@@ -177,10 +72,12 @@ public static void main(String[] args) {
         ConfigDialog dialog = new ConfigDialog(null);
         dialog.setVisible(true);
 
-        if (!dialog.isSaved() && !ConfigManager.exists()) {
-            System.exit(0); // force config on first run
+        // ⛔ DO NOT proceed unless config is saved
+        if (!dialog.isSaved()) {
+            System.exit(0);
         }
 
         new MainUI().setVisible(true);
     });
 }
+
