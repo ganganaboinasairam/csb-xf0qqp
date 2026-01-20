@@ -6,16 +6,20 @@ import java.util.Properties;
 
 public class ConfigDialog extends JDialog {
 
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private JTextField gitRepoEE;
+    private static final long serialVersionUID = 1L;
+
+    // ===== Environment selection =====
+    private JCheckBox chkEE;
+    private JCheckBox chkCE;
+
+    // ===== Git fields =====
+    private JTextField gitRepoEE;
     private JTextField gitRepoCE;
     private JTextField gitBranchEE;
     private JTextField gitBranchCE;
     private JTextField gitExe;
 
+    // ===== Jenkins fields =====
     private JTextField jenkinsUrl;
     private JTextField jenkinsUser;
     private JPasswordField jenkinsToken;
@@ -26,17 +30,35 @@ public class ConfigDialog extends JDialog {
 
     public ConfigDialog(Frame parent) {
         super(parent, "Application Configuration", true);
-        setSize(600, 450);
+        setSize(650, 500);
         setLocationRelativeTo(parent);
         initUI();
         loadValues();
+        updateFieldStates();
     }
 
     private void initUI() {
 
+        setLayout(new BorderLayout(10, 10));
+
+        /* ================= ENV SELECTION ================= */
+        chkEE = new JCheckBox("EE");
+        chkCE = new JCheckBox("CE");
+
+        JPanel envPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        envPanel.setBorder(BorderFactory.createTitledBorder("Environment Selection"));
+        envPanel.add(chkEE);
+        envPanel.add(chkCE);
+
+        add(envPanel, BorderLayout.NORTH);
+
+        chkEE.addActionListener(e -> updateFieldStates());
+        chkCE.addActionListener(e -> updateFieldStates());
+
+        /* ================= MAIN FORM ================= */
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(6,6,6,6);
+        c.insets = new Insets(6, 6, 6, 6);
         c.fill = GridBagConstraints.HORIZONTAL;
 
         int y = 0;
@@ -49,12 +71,16 @@ public class ConfigDialog extends JDialog {
 
         jenkinsUrl = addField(panel, c, "Jenkins URL:", y++);
         jenkinsUser = addField(panel, c, "Jenkins User:", y++);
+
         jenkinsToken = new JPasswordField();
         addPassword(panel, c, "Jenkins Token:", jenkinsToken, y++);
 
         jenkinsJobEE = addField(panel, c, "Jenkins Job (EE):", y++);
         jenkinsJobCE = addField(panel, c, "Jenkins Job (CE):", y++);
 
+        add(panel, BorderLayout.CENTER);
+
+        /* ================= BUTTONS ================= */
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton save = new JButton("Save");
         JButton back = new JButton("Back");
@@ -65,38 +91,44 @@ public class ConfigDialog extends JDialog {
         btns.add(save);
         btns.add(back);
 
-        add(panel, BorderLayout.CENTER);
         add(btns, BorderLayout.SOUTH);
-        
-        jenkinsUrl.setEnabled(false);
-        jenkinsJobEE.setEnabled(false);
-        jenkinsJobCE.setEnabled(false);
-        gitBranchEE.setEnabled(false);
-        gitBranchCE.setEnabled(false);
-        
     }
+
+    /* ================= FIELD HELPERS ================= */
 
     private JTextField addField(JPanel p, GridBagConstraints c,
                                String label, int y) {
-        c.gridx = 0; c.gridy = y; c.weightx = 0;
+
+        c.gridx = 0;
+        c.gridy = y;
+        c.weightx = 0;
         p.add(new JLabel(label), c);
 
         JTextField tf = new JTextField();
-        c.gridx = 1; c.weightx = 1.0;
+        c.gridx = 1;
+        c.weightx = 1.0;
         p.add(tf, c);
+
         return tf;
     }
 
     private void addPassword(JPanel p, GridBagConstraints c,
                              String label, JPasswordField pf, int y) {
-        c.gridx = 0; c.gridy = y; c.weightx = 0;
+
+        c.gridx = 0;
+        c.gridy = y;
+        c.weightx = 0;
         p.add(new JLabel(label), c);
 
-        c.gridx = 1; c.weightx = 1.0;
+        c.gridx = 1;
+        c.weightx = 1.0;
         p.add(pf, c);
     }
 
+    /* ================= LOAD CONFIG ================= */
+
     private void loadValues() {
+
         Properties p = ConfigManager.load();
 
         gitRepoEE.setText(p.getProperty("git.repo.path.ee", ""));
@@ -110,13 +142,33 @@ public class ConfigDialog extends JDialog {
         jenkinsToken.setText(p.getProperty("jenkins.token", ""));
         jenkinsJobEE.setText(p.getProperty("jenkins.job.ee", ""));
         jenkinsJobCE.setText(p.getProperty("jenkins.job.ce", ""));
+
+        // Auto-select environments if values exist
+        if (!gitRepoEE.getText().trim().isEmpty()) chkEE.setSelected(true);
+        if (!gitRepoCE.getText().trim().isEmpty()) chkCE.setSelected(true);
     }
+
+    /* ================= ENABLE / DISABLE ================= */
+
+    private void updateFieldStates() {
+
+        boolean ee = chkEE.isSelected();
+        boolean ce = chkCE.isSelected();
+
+        gitRepoEE.setEnabled(ee);
+        gitBranchEE.setEnabled(ee);
+        jenkinsJobEE.setEnabled(ee);
+
+        gitRepoCE.setEnabled(ce);
+        gitBranchCE.setEnabled(ce);
+        jenkinsJobCE.setEnabled(ce);
+    }
+
+    /* ================= SAVE ================= */
 
     private void onSave() {
 
-        if (!validateFields()) {
-            return; 
-        }
+        if (!validateFields()) return;
 
         try {
             Properties p = new Properties();
@@ -130,7 +182,7 @@ public class ConfigDialog extends JDialog {
             p.setProperty("jenkins.url", jenkinsUrl.getText().trim());
             p.setProperty("jenkins.user", jenkinsUser.getText().trim());
             p.setProperty("jenkins.token",
-                new String(jenkinsToken.getPassword()).trim());
+                    new String(jenkinsToken.getPassword()).trim());
             p.setProperty("jenkins.job.ee", jenkinsJobEE.getText().trim());
             p.setProperty("jenkins.job.ce", jenkinsJobCE.getText().trim());
 
@@ -148,25 +200,31 @@ public class ConfigDialog extends JDialog {
         }
     }
 
-    public boolean isSaved() {
-        return saved;
-    }
-    
+    /* ================= VALIDATION ================= */
+
     private boolean validateFields() {
 
-        if (isEmpty(gitRepoEE)) return error("Git Repo Path (EE) is required");
-        if (isEmpty(gitRepoCE)) return error("Git Repo Path (CE) is required");
-        if (isEmpty(gitBranchEE)) return error("Git Branch (EE) is required");
-        if (isEmpty(gitBranchCE)) return error("Git Branch (CE) is required");
-        if (isEmpty(gitExe)) return error("Git Executable path is required");
+        if (!chkEE.isSelected() && !chkCE.isSelected()) {
+            return error("Select at least one environment (EE or CE)");
+        }
 
+        if (chkEE.isSelected()) {
+            if (isEmpty(gitRepoEE)) return error("Git Repo Path (EE) is required");
+            if (isEmpty(gitBranchEE)) return error("Git Branch (EE) is required");
+            if (isEmpty(jenkinsJobEE)) return error("Jenkins Job (EE) is required");
+        }
+
+        if (chkCE.isSelected()) {
+            if (isEmpty(gitRepoCE)) return error("Git Repo Path (CE) is required");
+            if (isEmpty(gitBranchCE)) return error("Git Branch (CE) is required");
+            if (isEmpty(jenkinsJobCE)) return error("Jenkins Job (CE) is required");
+        }
+
+        if (isEmpty(gitExe)) return error("Git Executable path is required");
         if (isEmpty(jenkinsUrl)) return error("Jenkins URL is required");
         if (isEmpty(jenkinsUser)) return error("Jenkins User is required");
         if (jenkinsToken.getPassword().length == 0)
             return error("Jenkins Token is required");
-
-        if (isEmpty(jenkinsJobEE)) return error("Jenkins Job (EE) is required");
-        if (isEmpty(jenkinsJobCE)) return error("Jenkins Job (CE) is required");
 
         return true;
     }
@@ -180,9 +238,8 @@ public class ConfigDialog extends JDialog {
             this, msg, "Validation Error", JOptionPane.ERROR_MESSAGE);
         return false;
     }
+
+    public boolean isSaved() {
+        return saved;
+    }
 }
-
-
-
-
-add two checkboxes on first (EE,CE) , if ee is selected then ee configutaion is mandatory and if ce is selected then ce config is mandatory , if both are selected both are mandatory
