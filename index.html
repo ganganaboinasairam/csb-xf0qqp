@@ -1,117 +1,281 @@
-public static void retrieveFiles(
-        String region,
-        String crOrIr,
-        java.util.function.Consumer<String> log,
-        java.util.function.IntConsumer progress) throws Exception {
+package com.tcs.git.config;
 
-    File repo = new File(Config.get("git.repo.path." + region));
+import javax.swing.*;
+import java.awt.*;
+import java.util.Properties;
 
-    log.accept("Repository : " + repo.getAbsolutePath());
-    log.accept("Searching commits for : " + crOrIr);
-    log.accept("");
+public class ConfigDialog extends JDialog {
 
-    final int BATCH_SIZE = 50;
-    int offset = 0;
-    int batchNo = 0;
+	private static final long serialVersionUID = 1L;
 
-    Set<String> files = new TreeSet<>();
+	// ===== Environment selection =====
+	private JCheckBox chkEE;
+	private JCheckBox chkCE;
 
-    while (true) {
+	// ===== Git fields =====
+	private JTextField gitRepoEE;
+	private JTextField gitRepoCE;
+	private JTextField gitBranchEE;
+	private JTextField gitBranchCE;
+	private JTextField gitExe;
 
-        batchNo++;
-        log.accept("Scanning batch " + batchNo +
-                   " (commits " + offset + " - " + (offset + BATCH_SIZE) + ")");
+	// ===== Jenkins fields =====
+	private JTextField jenkinsUrl;
+	private JTextField jenkinsUser;
+	private JPasswordField jenkinsToken;
+	private JTextField jenkinsJobEE;
+	private JTextField jenkinsJobCE;
 
-        String out = GitCli.run(
-            repo,
-            "log",
-            "--skip=" + offset,
-            "--max-count=" + BATCH_SIZE,
-            "--name-only",
-            "--pretty=format:",
-            "--grep=" + crOrIr
-        );
+	private boolean saved = false;
 
-        // If nothing returned, check if history ended
-        if (out.trim().isEmpty()) {
+	public ConfigDialog(Frame parent) {
+		super(parent, "Application Configuration", true);
+		setSize(650, 500);
+		setLocationRelativeTo(parent);
+		initUI();
+		loadValues();
+		updateFieldStates();
+	}
 
-            String hasMore = GitCli.run(
-                repo,
-                "log",
-                "--skip=" + offset,
-                "--max-count=1",
-                "--pretty=oneline"
-            );
+	private void initUI() {
 
-            if (hasMore.trim().isEmpty()) {
-                break; // end of history
-            }
+		setLayout(new BorderLayout(10, 10));
 
-            offset += BATCH_SIZE;
-            progress.accept(Math.min(90, batchNo * 10));
-            continue;
-        }
+		/* ================= ENV SELECTION ================= */
+		chkEE = new JCheckBox("EE");
+		chkCE = new JCheckBox("CE");
 
-        // Parse files
-        for (String line : out.split("\\R")) {
-            if (!line.trim().isEmpty()) {
-                files.add(line.trim());
-            }
-        }
+		JPanel envPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		envPanel.setBorder(BorderFactory.createTitledBorder("Environment Selection"));
+		envPanel.add(chkEE);
+		envPanel.add(chkCE);
 
-        break; // found matches, stop scanning
-    }
+		add(envPanel, BorderLayout.NORTH);
 
-    if (files.isEmpty()) {
-        log.accept("No files found for " + crOrIr);
-        progress.accept(100);
-        return;
-    }
+		chkEE.addActionListener(e -> updateFieldStates());
+		chkCE.addActionListener(e -> updateFieldStates());
 
-    progress.accept(100);
+		/* ================= MAIN FORM ================= */
+		JPanel panel = new JPanel(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		c.insets = new Insets(6, 6, 6, 6);
+		c.fill = GridBagConstraints.HORIZONTAL;
 
-    log.accept("");
-    log.accept("Files committed under " + crOrIr + ":");
-    log.accept("----------------------------------------------");
+		int y = 0;
 
-    for (String f : files) {
-        log.accept(f);
-    }
+		gitRepoEE = addField(panel, c, "Git Repo Path (EE):", y++);
+		gitRepoCE = addField(panel, c, "Git Repo Path (CE):", y++);
+		gitBranchEE = addField(panel, c, "Git Branch (EE):", y++);
+		gitBranchCE = addField(panel, c, "Git Branch (CE):", y++);
+		gitExe = addField(panel, c, "Git Executable Path:", y++);
+
+		jenkinsUrl = addField(panel, c, "Jenkins URL:", y++);
+		jenkinsUser = addField(panel, c, "Jenkins User:", y++);
+
+		jenkinsToken = new JPasswordField();
+		addPassword(panel, c, "Jenkins Token:", jenkinsToken, y++);
+
+		jenkinsJobEE = addField(panel, c, "Jenkins Job (EE):", y++);
+		jenkinsJobCE = addField(panel, c, "Jenkins Job (CE):", y++);
+
+		add(panel, BorderLayout.CENTER);
+
+		/* ================= BUTTONS ================= */
+		JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+		JButton save = new JButton("Save");
+		JButton back = new JButton("Back");
+
+		save.addActionListener(e -> onSave());
+		back.addActionListener(e -> dispose());
+
+		btns.add(save);
+		btns.add(back);
+
+		add(btns, BorderLayout.SOUTH);
+
+		jenkinsUrl.setEnabled(false);
+		jenkinsJobEE.setEnabled(false);
+		jenkinsJobCE.setEnabled(false);
+		gitBranchEE.setEnabled(false);
+		gitBranchCE.setEnabled(false);
+
+	}
+
+	/* ================= FIELD HELPERS ================= */
+
+	private JTextField addField(JPanel p, GridBagConstraints c, String label, int y) {
+
+		c.gridx = 0;
+		c.gridy = y;
+		c.weightx = 0;
+		p.add(new JLabel(label), c);
+
+		JTextField tf = new JTextField();
+		c.gridx = 1;
+		c.weightx = 1.0;
+		p.add(tf, c);
+
+		return tf;
+	}
+
+	private void addPassword(JPanel p, GridBagConstraints c, String label, JPasswordField pf, int y) {
+
+		c.gridx = 0;
+		c.gridy = y;
+		c.weightx = 0;
+		p.add(new JLabel(label), c);
+
+		c.gridx = 1;
+		c.weightx = 1.0;
+		p.add(pf, c);
+	}
+
+	/* ================= LOAD CONFIG ================= */
+
+	private void loadValues() {
+
+		Properties p = ConfigManager.load();
+
+		gitRepoEE.setText(p.getProperty("git.repo.path.ee", ""));
+		gitRepoCE.setText(p.getProperty("git.repo.path.ce", ""));
+		gitBranchEE.setText(p.getProperty("git.branch.name.ee", ""));
+		gitBranchCE.setText(p.getProperty("git.branch.name.ce", ""));
+		gitExe.setText(p.getProperty("git.executable", ""));
+
+		jenkinsUrl.setText(p.getProperty("jenkins.url", ""));
+		jenkinsUser.setText(p.getProperty("jenkins.user", ""));
+		jenkinsToken.setText(p.getProperty("jenkins.token", ""));
+		jenkinsJobEE.setText(p.getProperty("jenkins.job.ee", ""));
+		jenkinsJobCE.setText(p.getProperty("jenkins.job.ce", ""));
+
+		// Auto-select environments if values exist
+		if ("true".equals(Config.get("ee.sel")))
+			chkEE.setSelected(true);
+		else
+			chkEE.setSelected(false);
+		if ("true".equals(Config.get("ce.sel")))
+			chkCE.setSelected(true);
+		else
+			chkCE.setSelected(false);
+	}
+
+	/* ================= ENABLE / DISABLE ================= */
+
+	private void updateFieldStates() {
+
+		boolean ee = chkEE.isSelected();
+		boolean ce = chkCE.isSelected();
+
+		gitRepoEE.setEnabled(ee);
+//        gitBranchEE.setEnabled(ee);
+//        jenkinsJobEE.setEnabled(ee);
+
+		gitRepoCE.setEnabled(ce);
+//        gitBranchCE.setEnabled(ce);
+//        jenkinsJobCE.setEnabled(ce);
+	}
+
+	/* ================= SAVE ================= */
+
+	private void onSave() {
+
+		if (!validateFields())
+			return;
+
+		try {
+			Properties p = new Properties();
+
+			p.setProperty("git.repo.path.ee", gitRepoEE.getText().trim());
+			p.setProperty("git.repo.path.ce", gitRepoCE.getText().trim());
+			p.setProperty("git.branch.name.ee", gitBranchEE.getText().trim());
+			p.setProperty("git.branch.name.ce", gitBranchCE.getText().trim());
+			p.setProperty("git.executable", gitExe.getText().trim());
+
+			p.setProperty("jenkins.url", jenkinsUrl.getText().trim());
+			p.setProperty("jenkins.user", jenkinsUser.getText().trim());
+			p.setProperty("jenkins.token", new String(jenkinsToken.getPassword()).trim());
+			p.setProperty("jenkins.job.ee", jenkinsJobEE.getText().trim());
+			p.setProperty("jenkins.job.ce", jenkinsJobCE.getText().trim());
+
+			if (chkCE.isSelected()) {
+				p.setProperty("ce.sel", "true");
+			} else {
+				p.setProperty("ce.sel", "false");
+			}
+
+			if (chkEE.isSelected()) {
+				p.setProperty("ee.sel", "true");
+			} else {
+				p.setProperty("ee.sel", "flase");
+			}
+
+			System.out.println("chkCE.isSelected() " + chkCE.isSelected());
+			System.out.println("chkEE.isSelected() " + chkEE.isSelected());
+
+			p.setProperty("git.log.scan.limit", "50");
+
+			ConfigManager.save(p);
+			saved = true;
+			dispose();
+
+		} catch (Exception ex) {
+			JOptionPane.showMessageDialog(this, "Failed to save configuration\n" + ex.getMessage(), "Error",
+					JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	/* ================= VALIDATION ================= */
+
+	private boolean validateFields() {
+
+		if (!chkEE.isSelected() && !chkCE.isSelected()) {
+			return error("Select at least one environment (EE or CE)");
+		}
+
+		if (chkEE.isSelected()) {
+			if (isEmpty(gitRepoEE))
+				return error("Git Repo Path (EE) is required");
+			if (isEmpty(gitBranchEE))
+				return error("Git Branch (EE) is required");
+			if (isEmpty(jenkinsJobEE))
+				return error("Jenkins Job (EE) is required");
+		}
+
+		if (chkCE.isSelected()) {
+			if (isEmpty(gitRepoCE))
+				return error("Git Repo Path (CE) is required");
+			if (isEmpty(gitBranchCE))
+				return error("Git Branch (CE) is required");
+			if (isEmpty(jenkinsJobCE))
+				return error("Jenkins Job (CE) is required");
+		}
+
+		if (isEmpty(gitExe))
+			return error("Git Executable path is required");
+		if (isEmpty(jenkinsUrl))
+			return error("Jenkins URL is required");
+		if (isEmpty(jenkinsUser))
+			return error("Jenkins User is required");
+		if (jenkinsToken.getPassword().length == 0)
+			return error("Jenkins Token is required");
+
+		return true;
+	}
+
+	private boolean isEmpty(JTextField tf) {
+		return tf.getText() == null || tf.getText().trim().isEmpty();
+	}
+
+	private boolean error(String msg) {
+		JOptionPane.showMessageDialog(this, msg, "Validation Error", JOptionPane.ERROR_MESSAGE);
+		return false;
+	}
+
+	public boolean isSaved() {
+		return saved;
+	}
 }
 
-SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
 
-    @Override
-    protected Void doInBackground() throws Exception {
 
-        GitAutomationService.retrieveFiles(
-            region,
-            crOrIr,
-            msg -> publish(msg),
-            percent -> setProgress(percent)
-        );
-        return null;
-    }
-
-    @Override
-    protected void process(java.util.List<String> chunks) {
-        for (String s : chunks) {
-            outputArea.append(s + "\n");
-        }
-    }
-
-    @Override
-    protected void done() {
-        progressBar.setValue(100);
-        statusLabel.setText("Completed");
-        outputArea.append("\n========== DONE ==========\n");
-    }
-};
-
-worker.addPropertyChangeListener(evt -> {
-    if ("progress".equals(evt.getPropertyName())) {
-        progressBar.setValue((Integer) evt.getNewValue());
-    }
-});
-
-worker.execute();
+region select is not behaving correctly , is there any issue ?
