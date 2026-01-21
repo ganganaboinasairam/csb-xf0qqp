@@ -1,114 +1,161 @@
-private JButton retrieveFilesBtn;
+private void initUI() {
+
+		/* ================= TOP CONTAINER ================= */
+		JPanel top = new JPanel(new BorderLayout(10, 0));
+
+		/* ================= BUTTONS CONTAINER ================= */
+		JPanel gitButtonBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+
+		pushButton = new JButton("Commit & Push");
+		statusButton = new JButton("Status");
+		rebaseButton = new JButton("Rebase");
+		retrieveFilesBtn = new JButton("Retrieve Files");
+		
+
+		gitButtonBar.add(pushButton);
+		gitButtonBar.add(statusButton);
+		gitButtonBar.add(rebaseButton);
+		gitButtonBar.add(retrieveFilesBtn);
+
+		/* ================= LEFT PANEL (GIT) ================= */
+		JPanel gitPanel = new JPanel(new GridBagLayout());
+		gitPanel.setBorder(BorderFactory.createTitledBorder("Git Operations"));
+
+		GridBagConstraints c = new GridBagConstraints();
+		c.insets = new Insets(5, 5, 5, 5);
+		c.anchor = GridBagConstraints.WEST;
+
+		// Row 0 - Region
+		c.gridx = 0;
+		c.gridy = 0;
+		c.weightx = 0;
+		gitPanel.add(new JLabel("Region:"), c);
+
+		c.gridx = 1;
+
+		if (Config.get("ce.sel").equals("true"))
+			regionBox = new JComboBox<>(new String[] { "CE" });
+		else if (Config.get("ee.sel").equals("true"))
+			regionBox = new JComboBox<>(new String[] { "EE" });
+
+		if (Config.get("ce.sel").equals("true") && Config.get("ee.sel").equals("true"))
+			regionBox = new JComboBox<>(new String[] { "EE", "CE" });
+		gitPanel.add(regionBox, c);
+
+		// Row 1 - CR Number
+		c.gridx = 0;
+		c.gridy = 1;
+		gitPanel.add(new JLabel("CR Number:"), c);
+
+		c.gridx = 1;
+		crField = new JTextField(8);
+		gitPanel.add(crField, c);
+
+		// Row 3 - Custom Git Command
+		c.gridx = 0;
+		c.gridy = 3;
+		c.weightx = 0;
+		c.fill = GridBagConstraints.NONE;
+		gitPanel.add(new JLabel("Custom Git command:"), c);
+
+		c.gridx = 1;
+		c.weightx = 1.0;
+		c.fill = GridBagConstraints.HORIZONTAL;
+		customCmdField = new JTextField();
+		gitPanel.add(customCmdField, c);
+
+		c.gridx = 2;
+		c.weightx = 0;
+		c.fill = GridBagConstraints.NONE;
+		runCustomBtn = new JButton("Run");
+		gitPanel.add(runCustomBtn, c);
+
+		c.gridx = 0;
+		c.gridy = 2;
+		c.gridwidth = 3;
+		c.weightx = 0;
+		c.fill = GridBagConstraints.NONE;
+
+		gitPanel.add(gitButtonBar, c);
+
+		/* ================= RIGHT PANEL (JENKINS) ================= */
+		JPanel jenkinsPanel = new JPanel(new GridBagLayout());
+		jenkinsPanel.setBorder(BorderFactory.createTitledBorder("Jenkins Build"));
+
+		GridBagConstraints j = new GridBagConstraints();
+		j.insets = new Insets(5, 5, 5, 5);
+		j.anchor = GridBagConstraints.WEST;
+		j.fill = GridBagConstraints.HORIZONTAL;
+
+		// Row 0 - Commit message
+		j.gridx = 0;
+		j.gridy = 0;
+		j.weightx = 0;
+		jenkinsPanel.add(new JLabel("Commit Message:"), j);
+
+		j.gridx = 1;
+		j.weightx = 1.0;
+		commitMsgField = new JTextField(15);
+		jenkinsPanel.add(commitMsgField, j);
+
+		// Row 1 - Checkboxes
+		j.gridx = 0;
+		j.gridy = 1;
+		j.weightx = 0;
+		chkCheckout = new JCheckBox("Checkout", true);
+		jenkinsPanel.add(chkCheckout, j);
+
+		j.gridx = 1;
+		chkFileTransfer = new JCheckBox("File Transfer", true);
+		jenkinsPanel.add(chkFileTransfer, j);
+
+		// Row 2
+		j.gridx = 0;
+		j.gridy = 2;
+		chkDeployment = new JCheckBox("Update Deployment");
+		jenkinsPanel.add(chkDeployment, j);
+
+		j.gridx = 1;
+		chkRestart = new JCheckBox("Server Restart");
+		jenkinsPanel.add(chkRestart, j);
+
+		// Row 3 - Build button
+		j.gridx = 0;
+		j.gridy = 3;
+		j.gridwidth = 2;
+		j.weightx = 0;
+		j.fill = GridBagConstraints.NONE;
+		buildButton = new JButton("Build");
+		jenkinsPanel.add(buildButton, j);
+
+		/* ================= ADD PANELS ================= */
+
+		JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, gitPanel, jenkinsPanel);
+		split.setResizeWeight(0.5);
+		split.setDividerSize(6);
+		split.setContinuousLayout(true);
+
+		top.add(split, BorderLayout.CENTER);
+
+		/* ================= OUTPUT AREA ================= */
+		outputArea = new JTextArea();
+		outputArea.setEditable(false);
+		outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
+		JScrollPane scroll = new JScrollPane(outputArea);
+
+		add(top, BorderLayout.NORTH);
+		add(scroll, BorderLayout.CENTER);
+
+		/* ================= ACTIONS ================= */
+		pushButton.addActionListener(e -> runTask());
+		statusButton.addActionListener(e -> checkStatus());
+		rebaseButton.addActionListener(e -> gitRebase());
+		runCustomBtn.addActionListener(e -> customCmd());
+		buildButton.addActionListener(e -> triggerJenkins());
+		customCmdField.addActionListener(e -> customCmd());
+		retrieveFilesBtn.addActionListener(e -> retrieveFiles());
+
+	}
 
 
-retrieveFilesBtn = new JButton("Retrieve Files");
-gitPanel.add(retrieveFilesBtn, c);
-
-retrieveFilesBtn.addActionListener(e -> retrieveFiles());
-
-
-private void retrieveFiles() {
-
-    String ref = crField.getText().trim();
-    String region = regionBox.getSelectedItem().toString().toLowerCase();
-
-    if (!ref.matches("(CR|IR)_\\d+.*")) {
-        JOptionPane.showMessageDialog(
-            this,
-            "Enter valid CR or IR (example: CR_12345)",
-            "Invalid Input",
-            JOptionPane.ERROR_MESSAGE
-        );
-        return;
-    }
-
-    outputArea.append("\n=================================================\n");
-    outputArea.append("FILES FOR " + ref + " | " + region.toUpperCase());
-    outputArea.append("\n=================================================\n");
-
-    SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
-
-        @Override
-        protected Void doInBackground() throws Exception {
-            GitAutomationService.retrieveFiles(region, ref, msg -> publish(msg));
-            return null;
-        }
-
-        @Override
-        protected void process(java.util.List<String> chunks) {
-            for (String s : chunks) {
-                outputArea.append(s + "\n");
-            }
-        }
-
-        @Override
-        protected void done() {
-            outputArea.append("\n==================== DONE ====================\n");
-        }
-    };
-
-    worker.execute();
-}
-
-
-
-public static void retrieveFiles(
-        String region,
-        String crOrIr,
-        java.util.function.Consumer<String> log) throws Exception {
-
-    File repo = new File(Config.get("git.repo.path." + region));
-    String git = Config.get("git.executable");
-
-    log.accept("Repository : " + repo.getAbsolutePath());
-    log.accept("Searching commits for : " + crOrIr);
-    log.accept("");
-
-    // 1. Find commit hashes
-    String commits = GitCli.run(
-        repo,
-        git,
-        "log",
-        "--grep=" + crOrIr,
-        "--pretty=format:%H"
-    );
-
-    if (commits.trim().isEmpty()) {
-        log.accept("No commits found for " + crOrIr);
-        return;
-    }
-
-    Set<String> files = new TreeSet<>();
-
-    for (String hash : commits.split("\\R")) {
-        String out = GitCli.run(
-            repo,
-            git,
-            "show",
-            "--pretty=",
-            "--name-only",
-            hash.trim()
-        );
-
-        for (String f : out.split("\\R")) {
-            if (!f.trim().isEmpty()) {
-                files.add(f.trim());
-            }
-        }
-    }
-
-    if (files.isEmpty()) {
-        log.accept("No files found.");
-        return;
-    }
-
-    log.accept("Files committed under " + crOrIr + ":");
-    log.accept("----------------------------------------------");
-
-    for (String f : files) {
-        log.accept(f);
-    }
-}
-
-
-
+                i want a button "Settings" where user can change the configutaion details up on clicking 
