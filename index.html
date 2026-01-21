@@ -1,9 +1,85 @@
-/* ================= MAIN VERTICAL SPLIT ================= */
-JSplitPane verticalSplit =
-    new JSplitPane(JSplitPane.VERTICAL_SPLIT, top, scroll);
+public static void retrieveFilesSafe(
+        String region,
+        String crOrIr,
+        Consumer<String> log,
+        IntConsumer progress,
+        AtomicBoolean cancelled) throws Exception {
 
-verticalSplit.setResizeWeight(0.65);     // 65% top, 35% output
-verticalSplit.setDividerSize(6);
-verticalSplit.setContinuousLayout(true);
+    File repo = new File(Config.get("git.repo.path." + region));
+    String git = Config.get("git.executable");
 
-add(verticalSplit, BorderLayout.CENTER);
+    final int BATCH_SIZE = 50;
+    int offset = 0;
+    int batchCount = 0;
+
+    Set<String> files = new TreeSet<>();
+
+    log.accept("Searching git history for " + crOrIr);
+
+    while (true) {
+
+        if (cancelled.get()) {
+            log.accept("Operation cancelled by user.");
+            return;
+        }
+
+        batchCount++;
+        log.accept("Scanning batch " + batchCount + " (commits " +
+                   offset + " → " + (offset + BATCH_SIZE) + ")");
+
+        String out = GitCli.run(
+            repo,
+            git,
+            "log",
+            "--skip=" + offset,
+            "--max-count=" + BATCH_SIZE,
+            "--name-only",
+            "--pretty=format:",
+            "--grep=" + crOrIr
+        );
+
+        if (out.trim().isEmpty()) {
+            // No matches in this batch
+            // Check if repo history ended
+            String hasMore = GitCli.run(
+                repo,
+                git,
+                "log",
+                "--skip=" + offset,
+                "--max-count=1",
+                "--pretty=oneline"
+            );
+
+            if (hasMore.trim().isEmpty()) {
+                break; // end of history
+            }
+
+            offset += BATCH_SIZE;
+            progress.accept(Math.min(90, batchCount * 10));
+            continue;
+        }
+
+        // Files found
+        for (String line : out.split("\\R")) {
+            if (!line.trim().isEmpty()) {
+                files.add(line.trim());
+            }
+        }
+
+        break;
+    }
+
+    if (files.isEmpty()) {
+        log.accept("No files found for " + crOrIr);
+        return;
+    }
+
+    progress.accept(100);
+
+    log.accept("\nFiles committed under " + crOrIr + ":");
+    log.accept("-------------------------------------");
+
+    for (String f : files) {
+        log.accept(f);
+    }
+}
