@@ -1,58 +1,117 @@
 public static void retrieveFiles(
-	        String region,
-	        String crOrIr,
-	        java.util.function.Consumer<String> log) throws Exception {
+        String region,
+        String crOrIr,
+        java.util.function.Consumer<String> log,
+        java.util.function.IntConsumer progress) throws Exception {
 
-	    File repo = new File(Config.get("git.repo.path." + region));
-	    
+    File repo = new File(Config.get("git.repo.path." + region));
 
-	    log.accept("Repository : " + repo.getAbsolutePath());
-	    log.accept("Searching commits for : " + crOrIr);
-	    log.accept("");
+    log.accept("Repository : " + repo.getAbsolutePath());
+    log.accept("Searching commits for : " + crOrIr);
+    log.accept("");
 
-	    // 1. Find commit hashes
-	    String commits = GitCli.run(
-	        repo,
-	        "log",
-	        "--grep=" + crOrIr,
-	        "--pretty=format:%H"
-	    );
+    final int BATCH_SIZE = 50;
+    int offset = 0;
+    int batchNo = 0;
 
-	    if (commits.trim().isEmpty()) {
-	        log.accept("No commits found for " + crOrIr);
-	        return;
-	    }
+    Set<String> files = new TreeSet<>();
 
-	    Set<String> files = new TreeSet<>();
+    while (true) {
 
-	    for (String hash : commits.split("\\R")) {
-	        String out = GitCli.run(
-	            repo,
-	            "show",
-	            "--pretty=",
-	            "--name-only",
-	            hash.trim()
-	        );
+        batchNo++;
+        log.accept("Scanning batch " + batchNo +
+                   " (commits " + offset + " - " + (offset + BATCH_SIZE) + ")");
 
-	        for (String f : out.split("\\R")) {
-	            if (!f.trim().isEmpty()) {
-	                files.add(f.trim());
-	            }
-	        }
-	    }
+        String out = GitCli.run(
+            repo,
+            "log",
+            "--skip=" + offset,
+            "--max-count=" + BATCH_SIZE,
+            "--name-only",
+            "--pretty=format:",
+            "--grep=" + crOrIr
+        );
 
-	    if (files.isEmpty()) {
-	        log.accept("No files found.");
-	        return;
-	    }
+        // If nothing returned, check if history ended
+        if (out.trim().isEmpty()) {
 
-	    log.accept("Files committed under " + crOrIr + ":");
-	    log.accept("----------------------------------------------");
+            String hasMore = GitCli.run(
+                repo,
+                "log",
+                "--skip=" + offset,
+                "--max-count=1",
+                "--pretty=oneline"
+            );
 
-	    for (String f : files) {
-	        log.accept(f);
-	    }
-	}
+            if (hasMore.trim().isEmpty()) {
+                break; // end of history
+            }
 
+            offset += BATCH_SIZE;
+            progress.accept(Math.min(90, batchNo * 10));
+            continue;
+        }
 
-                    this is the current method working to retrive , give me the updated method and its implementation
+        // Parse files
+        for (String line : out.split("\\R")) {
+            if (!line.trim().isEmpty()) {
+                files.add(line.trim());
+            }
+        }
+
+        break; // found matches, stop scanning
+    }
+
+    if (files.isEmpty()) {
+        log.accept("No files found for " + crOrIr);
+        progress.accept(100);
+        return;
+    }
+
+    progress.accept(100);
+
+    log.accept("");
+    log.accept("Files committed under " + crOrIr + ":");
+    log.accept("----------------------------------------------");
+
+    for (String f : files) {
+        log.accept(f);
+    }
+}
+
+SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+
+    @Override
+    protected Void doInBackground() throws Exception {
+
+        GitAutomationService.retrieveFiles(
+            region,
+            crOrIr,
+            msg -> publish(msg),
+            percent -> setProgress(percent)
+        );
+        return null;
+    }
+
+    @Override
+    protected void process(java.util.List<String> chunks) {
+        for (String s : chunks) {
+            outputArea.append(s + "\n");
+        }
+    }
+
+    @Override
+    protected void done() {
+        progressBar.setValue(100);
+        statusLabel.setText("Completed");
+        outputArea.append("\n========== DONE ==========\n");
+    }
+};
+
+worker.addPropertyChangeListener(evt -> {
+    if ("progress".equals(evt.getPropertyName())) {
+        progressBar.setValue((Integer) evt.getNewValue());
+    }
+});
+
+worker.execute();
