@@ -1,85 +1,58 @@
-public static void retrieveFilesSafe(
-        String region,
-        String crOrIr,
-        Consumer<String> log,
-        IntConsumer progress,
-        AtomicBoolean cancelled) throws Exception {
+public static void retrieveFiles(
+	        String region,
+	        String crOrIr,
+	        java.util.function.Consumer<String> log) throws Exception {
 
-    File repo = new File(Config.get("git.repo.path." + region));
-    String git = Config.get("git.executable");
+	    File repo = new File(Config.get("git.repo.path." + region));
+	    
 
-    final int BATCH_SIZE = 50;
-    int offset = 0;
-    int batchCount = 0;
+	    log.accept("Repository : " + repo.getAbsolutePath());
+	    log.accept("Searching commits for : " + crOrIr);
+	    log.accept("");
 
-    Set<String> files = new TreeSet<>();
+	    // 1. Find commit hashes
+	    String commits = GitCli.run(
+	        repo,
+	        "log",
+	        "--grep=" + crOrIr,
+	        "--pretty=format:%H"
+	    );
 
-    log.accept("Searching git history for " + crOrIr);
+	    if (commits.trim().isEmpty()) {
+	        log.accept("No commits found for " + crOrIr);
+	        return;
+	    }
 
-    while (true) {
+	    Set<String> files = new TreeSet<>();
 
-        if (cancelled.get()) {
-            log.accept("Operation cancelled by user.");
-            return;
-        }
+	    for (String hash : commits.split("\\R")) {
+	        String out = GitCli.run(
+	            repo,
+	            "show",
+	            "--pretty=",
+	            "--name-only",
+	            hash.trim()
+	        );
 
-        batchCount++;
-        log.accept("Scanning batch " + batchCount + " (commits " +
-                   offset + " → " + (offset + BATCH_SIZE) + ")");
+	        for (String f : out.split("\\R")) {
+	            if (!f.trim().isEmpty()) {
+	                files.add(f.trim());
+	            }
+	        }
+	    }
 
-        String out = GitCli.run(
-            repo,
-            git,
-            "log",
-            "--skip=" + offset,
-            "--max-count=" + BATCH_SIZE,
-            "--name-only",
-            "--pretty=format:",
-            "--grep=" + crOrIr
-        );
+	    if (files.isEmpty()) {
+	        log.accept("No files found.");
+	        return;
+	    }
 
-        if (out.trim().isEmpty()) {
-            // No matches in this batch
-            // Check if repo history ended
-            String hasMore = GitCli.run(
-                repo,
-                git,
-                "log",
-                "--skip=" + offset,
-                "--max-count=1",
-                "--pretty=oneline"
-            );
+	    log.accept("Files committed under " + crOrIr + ":");
+	    log.accept("----------------------------------------------");
 
-            if (hasMore.trim().isEmpty()) {
-                break; // end of history
-            }
+	    for (String f : files) {
+	        log.accept(f);
+	    }
+	}
 
-            offset += BATCH_SIZE;
-            progress.accept(Math.min(90, batchCount * 10));
-            continue;
-        }
 
-        // Files found
-        for (String line : out.split("\\R")) {
-            if (!line.trim().isEmpty()) {
-                files.add(line.trim());
-            }
-        }
-
-        break;
-    }
-
-    if (files.isEmpty()) {
-        log.accept("No files found for " + crOrIr);
-        return;
-    }
-
-    progress.accept(100);
-
-    log.accept("\nFiles committed under " + crOrIr + ":");
-    log.accept("-------------------------------------");
-
-    for (String f : files) {
-        log.accept(f);
-    }
-}
+                    this is the current method working to retrive , give me the updated method and its implementation
