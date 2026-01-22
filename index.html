@@ -12,246 +12,310 @@ import com.tcs.git.config.Config;
 
 public class GitAutomationService {
 
-	public static void execute(String region, String crNo, String selection, java.util.function.Consumer<String> log)
-			throws Exception {
+    /* =========================================================
+     * COMMON HELPERS
+     * ========================================================= */
+
+    private static void info(java.util.function.Consumer<String> log, String msg) {
+        log.accept("[INFO] " + msg);
+    }
+
+    private static void warn(java.util.function.Consumer<String> log, String msg) {
+        log.accept("[WARN] " + msg);
+    }
+
+    private static void error(java.util.function.Consumer<String> log, String msg) {
+        log.accept("[ERROR] " + msg);
+    }
+
+    private static void exception(java.util.function.Consumer<String> log, Exception e) {
+        log.accept("[ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage());
+    }
+
+    /* =========================================================
+     * COMMIT + PUSH
+     * ========================================================= */
+
+    public static void execute(
+            String region,
+            String crNo,
+            String selection,
+            java.util.function.Consumer<String> log) {
+
+        info(log, "Starting Git Commit & Push");
+
+        File repo;
+        String branch;
+
+        try {
+            repo = new File(Config.get("git.repo.path." + region));
+            branch = Config.get("git.branch.name." + region);
+        } catch (Exception e) {
+            error(log, "Failed to load configuration for region: " + region);
+            exception(log, e);
+            return;
+        }
+
+        info(log, "Repository: " + repo.getAbsolutePath());
+        info(log, "Branch   : " + branch);
+
+        try {
+            String status = GitCli.run(repo, "status", "--porcelain");
+
+            if (status.trim().isEmpty()) {
+                warn(log, "No changes detected. Nothing to commit.");
+                return;
+            }
+        } catch (Exception e) {
+            error(log, "Failed to check git status");
+            exception(log, e);
+            return;
+        }
+
+        String commitMsg;
+        try {
+            commitMsg = CommitMessageGenerator.generate(repo, crNo);
+            info(log, "Commit message generated: " + commitMsg);
+        } catch (Exception e) {
+            error(log, "Failed to generate commit message");
+            exception(log, e);
+            return;
+        }
+
+        try {
+            info(log, "Staging changes...");
+            GitCli.run(repo, "add", "-A");
+        } catch (Exception e) {
+            error(log, "Git add failed");
+            exception(log, e);
+            return;
+        }
+
+        try {
+            info(log, "Committing changes...");
+            GitCli.run(repo, "commit", "-m", commitMsg);
+        } catch (Exception e) {
+            error(log, "Git commit failed");
+            exception(log, e);
+            return;
+        }
+
+        try {
+            info(log, "Pulling latest changes (rebase)...");
+            GitCli.run(repo, "pull", "--rebase", "origin", branch);
+        } catch (Exception e) {
+            error(log, "Rebase failed — resolve conflicts and retry");
+            exception(log, e);
+            return;
+        }
+
+        try {
+            info(log, "Pushing to origin/" + branch + "...");
+            GitCli.run(repo, "push", "origin", branch);
+        } catch (Exception e) {
+            error(log, "Push failed (non-fast-forward or auth issue)");
+            exception(log, e);
+            return;
+        }
 
-		try {
-			File repo = new File(Config.get("git.repo.path." + region));
-			String branch = Config.get("git.branch.name." + region);
+        info(log, "Commit pushed successfully");
+        info(log, "DONE");
 
-			log.accept("Repository: " + repo.getAbsolutePath());
+        // Safe UI update
+        try {
+            MainUI.commitMsgField.setText(commitMsg);
+        } catch (Exception ignore) {
+        }
+    }
 
-			// Check changes
-			String status = GitCli.run(repo, "status", "--porcelain");
-			if (status.trim().isEmpty()) {
-				log.accept("No changes to commit.");
-				return;
-			}
+    /* =========================================================
+     * JENKINS
+     * ========================================================= */
+
+    public static void jnksTrigger(
+            String region,
+            String commitMsg,
+            String selection,
+            java.util.function.Consumer<String> log) {
+
+        info(log, "Triggering Jenkins build");
+
+        try {
+            String queueUrl = JenkinsClient.trigger(region, commitMsg, selection);
+            info(log, "Build queued at: " + queueUrl);
 
-			// Generate commit message
-			String commitMsg = CommitMessageGenerator.generate(repo, crNo);
+            int buildNo = JenkinsClient.waitForBuildNumber(queueUrl, 120);
+            info(log, "Build started: #" + buildNo);
 
-			log.accept("Staging changes...");
-			GitCli.run(repo, "add", "-A");
-
-			log.accept("Committing: " + commitMsg);
-			GitCli.run(repo, "commit", "-m", commitMsg);
-
-			// Pull first
-			log.accept("Pulling with rebase...");
-			GitCli.run(repo, "pull", "--rebase", "origin", branch);
-
-			log.accept("Pushing to origin/" + branch);
-			GitCli.run(repo, "push", "origin", branch);
-
-			log.accept("DONE. Commit " + commitMsg + " pushed successfully.");
-			
-			MainUI.commitMsgField.setText(commitMsg);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	public static void jnksTrigger(String region, String commitMsg, String selection,
-			java.util.function.Consumer<String> log) throws Exception {
-		log.accept("Triggering Jenkins build...");
-		String queueUrl = JenkinsClient.trigger(region, commitMsg, selection);
-
-		log.accept("Jenkins queued: " + queueUrl);
-
-		int buildNo = JenkinsClient.waitForBuildNumber(queueUrl, 120);
-
-		log.accept("Jenkins build started: #" + buildNo);
-
-		String result = JenkinsClient.waitForBuildResult(region, buildNo, log);
-
-		log.accept("Jenkins build result: " + result);
-	}
-
-	public static String runCustom(String region, String command) throws Exception {
-
-		if (!command.startsWith("git ")) {
-			throw new IllegalArgumentException("Only git commands allowed");
-		}
-
-		String gitExe = Config.get("git.executable");
-		File repo = new File(Config.get("git.repo.path." + region));
-
-		List<String> parts = new ArrayList<>();
-		parts.add(gitExe);
-
-		for (String p : command.substring(4).split(" ")) {
-			if (!p.trim().isEmpty()) {
-				parts.add(p);
-			}
-		}
-
-		ProcessBuilder pb = new ProcessBuilder(parts);
-		pb.directory(repo);
-		pb.redirectErrorStream(true);
-
-		Process p = pb.start();
-
-		StringBuilder out = new StringBuilder();
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-
-			String line;
-			while ((line = br.readLine()) != null) {
-				out.append(line).append("\n");
-			}
-		}
-
-		int exit = p.waitFor();
-		out.append("\nExit code: ").append(exit);
-
-		return out.toString();
-	}
-
-	public static void chkStatus(String region, java.util.function.Consumer<String> log) throws Exception {
-
-		File repo = new File(Config.get("git.repo.path." + region));
-
-		log.accept("Repository: " + repo.getAbsolutePath());
-		log.accept("Checking status...\n");
-
-		String status = GitCli.run(repo, "status", "--porcelain");
-
-		if (status.trim().isEmpty()) {
-			log.accept("No changes found. Working tree clean.");
-			return;
-		}
-
-		log.accept("Files to be committed:\n");
-
-		String[] lines = status.split("\\r?\\n");
-
-		for (String line : lines) {
-
-			if (line.length() < 3)
-				continue;
-
-			String flag = line.substring(0, 2).trim();
-			String file = line.substring(3);
-
-			if ("??".equals(flag)) {
-				log.accept("[NEW]       " + file);
-			} else if (flag.contains("M")) {
-				log.accept("[MODIFIED]  " + file);
-			} else if (flag.contains("A")) {
-				log.accept("[ADDED]     " + file);
-			} else if (flag.contains("D")) {
-				log.accept("[DELETED]   " + file);
-			} else {
-				log.accept("[CHANGED]   " + file);
-			}
-		}
-	}
-
-	public static void rebase(String region, java.util.function.Consumer<String> log) throws Exception {
-
-		File repo = new File(Config.get("git.repo.path." + region));
-		String branch = Config.get("git.branch.name." + region);
-
-		log.accept("Repository: " + repo.getAbsolutePath());
-		log.accept("rebasing...\n");
-
-		String status = GitCli.run(repo, "pull", "--rebase", "origin", branch);
-
-		if (status.trim().isEmpty()) {
-			log.accept("Working tree clean.");
-			return;
-		}
-
-		log.accept("Rebase completed \n");
-
-		String[] lines = status.split("\\r?\\n");
-
-		for (String line : lines) {
-
-			log.accept(line);
-		}
-	}
-	
-	public static void retrieveFiles(
-	        String region,
-	        String crOrIr,
-	        java.util.function.Consumer<String> log,
-	        java.util.function.IntConsumer progress) throws Exception {
-
-	    File repo = new File(Config.get("git.repo.path." + region));
-
-	    log.accept("Repository : " + repo.getAbsolutePath());
-	    log.accept("Searching commits for : " + crOrIr);
-	    log.accept("");
-
-	    final int BATCH_SIZE = 50;
-	    int offset = 0;
-	    int batchNo = 0;
-
-	    Set<String> files = new TreeSet<>();
-
-	    while (true) {
-
-	        batchNo++;
-	        log.accept("Scanning batch " + batchNo +
-	                   " (commits " + offset + " - " + (offset + BATCH_SIZE) + ")");
-
-	        String out = GitCli.run(
-	            repo,
-	            "log",
-	            "--skip=" + offset,
-	            "--max-count=" + BATCH_SIZE,
-	            "--name-only",
-	            "--pretty=format:",
-	            "--grep=" + crOrIr
-	        );
-
-	        // If nothing returned, check if history ended
-	        if (out.trim().isEmpty()) {
-
-	            String hasMore = GitCli.run(
-	                repo,
-	                "log",
-	                "--skip=" + offset,
-	                "--max-count=1",
-	                "--pretty=oneline"
-	            );
-
-	            if (hasMore.trim().isEmpty()) {
-	                break; // end of history
-	            }
-
-	            offset += BATCH_SIZE;
-	            progress.accept(Math.min(90, batchNo * 10));
-	            continue;
-	        }
-
-	        // Parse files
-	        for (String line : out.split("\\R")) {
-	            if (!line.trim().isEmpty()) {
-	                files.add(line.trim());
-	            }
-	        }
-
-	        break; // found matches, stop scanning
-	    }
-
-	    if (files.isEmpty()) {
-	        log.accept("No files found for " + crOrIr);
-	        progress.accept(100);
-	        return;
-	    }
-
-	    progress.accept(100);
-
-	    log.accept("");
-	    log.accept("Files committed under " + crOrIr + ":");
-	    log.accept("----------------------------------------------");
-
-	    for (String f : files) {
-	        log.accept(f);
-	    }
-	}
-
+            String result = JenkinsClient.waitForBuildResult(region, buildNo, log);
+            info(log, "Build result: " + result);
+
+        } catch (Exception e) {
+            error(log, "Jenkins build failed");
+            exception(log, e);
+        }
+    }
+
+    /* =========================================================
+     * CUSTOM GIT COMMAND
+     * ========================================================= */
+
+    public static String runCustom(String region, String command) throws Exception {
+
+        if (!command.startsWith("git ")) {
+            throw new IllegalArgumentException("Only git commands are allowed");
+        }
+
+        String gitExe = Config.get("git.executable");
+        File repo = new File(Config.get("git.repo.path." + region));
+
+        List<String> cmd = new ArrayList<>();
+        cmd.add(gitExe);
+
+        for (String p : command.substring(4).split(" ")) {
+            if (!p.trim().isEmpty()) {
+                cmd.add(p.trim());
+            }
+        }
+
+        ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.directory(repo);
+        pb.redirectErrorStream(true);
+
+        Process p = pb.start();
+
+        StringBuilder out = new StringBuilder();
+        try (BufferedReader br =
+                     new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                out.append(line).append("\n");
+            }
+        }
+
+        int exit = p.waitFor();
+        out.append("\n[INFO] Exit code: ").append(exit);
+
+        return out.toString();
+    }
+
+    /* =========================================================
+     * STATUS
+     * ========================================================= */
+
+    public static void chkStatus(
+            String region,
+            java.util.function.Consumer<String> log) {
+
+        File repo = new File(Config.get("git.repo.path." + region));
+
+        info(log, "Checking status in: " + repo.getAbsolutePath());
+
+        try {
+            String status = GitCli.run(repo, "status", "--porcelain");
+
+            if (status.trim().isEmpty()) {
+                info(log, "Working tree clean");
+                return;
+            }
+
+            for (String line : status.split("\\R")) {
+                if (line.length() >= 3) {
+                    log.accept("[FILE] " + line.substring(3));
+                }
+            }
+
+        } catch (Exception e) {
+            error(log, "Failed to retrieve git status");
+            exception(log, e);
+        }
+    }
+
+    /* =========================================================
+     * REBASE
+     * ========================================================= */
+
+    public static void rebase(
+            String region,
+            java.util.function.Consumer<String> log) {
+
+        File repo = new File(Config.get("git.repo.path." + region));
+        String branch = Config.get("git.branch.name." + region);
+
+        info(log, "Rebasing from origin/" + branch);
+
+        try {
+            GitCli.run(repo, "pull", "--rebase", "origin", branch);
+            info(log, "Rebase completed successfully");
+        } catch (Exception e) {
+            error(log, "Rebase failed — manual resolution required");
+            exception(log, e);
+        }
+    }
+
+    /* =========================================================
+     * RETRIEVE FILES (WITH PROGRESS)
+     * ========================================================= */
+
+    public static void retrieveFiles(
+            String region,
+            String crOrIr,
+            java.util.function.Consumer<String> log,
+            java.util.function.IntConsumer progress) {
+
+        File repo = new File(Config.get("git.repo.path." + region));
+        Set<String> files = new TreeSet<>();
+
+        info(log, "Searching commit history for: " + crOrIr);
+
+        final int BATCH = 50;
+        int offset = 0;
+        int scanned = 0;
+
+        try {
+            while (true) {
+
+                String out = GitCli.run(
+                        repo,
+                        "log",
+                        "--skip=" + offset,
+                        "--max-count=" + BATCH,
+                        "--name-only",
+                        "--pretty=format:",
+                        "--grep=" + crOrIr
+                );
+
+                scanned += BATCH;
+                progress.accept(Math.min(95, scanned));
+
+                if (out.trim().isEmpty()) {
+                    break;
+                }
+
+                for (String line : out.split("\\R")) {
+                    if (!line.trim().isEmpty()) {
+                        files.add(line.trim());
+                    }
+                }
+
+                break;
+            }
+
+            if (files.isEmpty()) {
+                warn(log, "No files found for " + crOrIr);
+            } else {
+                info(log, "Files found:");
+                for (String f : files) {
+                    log.accept("  " + f);
+                }
+            }
+
+        } catch (Exception e) {
+            error(log, "Failed while scanning commit history");
+            exception(log, e);
+        } finally {
+            progress.accept(100);
+        }
+    }
 }
