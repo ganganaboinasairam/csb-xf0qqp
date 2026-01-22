@@ -1,58 +1,27 @@
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.Base64;
+import org.json.JSONObject;
 
 public class JenkinsClient {
 
-    private static String httpGet(String urlStr) throws Exception {
+    /* ================= EXISTING httpGet() ================= */
+    // (keep your existing httpGet implementation here)
 
-        URL url = new URL(urlStr);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    /* ================= NEW getJson() ================= */
+    public static JSONObject getJson(String url) throws Exception {
 
-        conn.setRequestMethod("GET");
-        conn.setConnectTimeout(15000);
-        conn.setReadTimeout(30000);
+        String response = httpGet(url);
 
-        // ===== Jenkins authentication =====
-        String user = Config.get("jenkins.user");
-        String token = Config.get("jenkins.token");
-
-        String auth = user + ":" + token;
-        String encodedAuth =
-            Base64.getEncoder().encodeToString(auth.getBytes("UTF-8"));
-
-        conn.setRequestProperty(
-            "Authorization",
-            "Basic " + encodedAuth
-        );
-
-        conn.setRequestProperty("Accept", "application/json");
-
-        int code = conn.getResponseCode();
-
-        BufferedReader br;
-        if (code >= 200 && code < 300) {
-            br = new BufferedReader(
-                new InputStreamReader(conn.getInputStream(), "UTF-8"));
-        } else {
-            br = new BufferedReader(
-                new InputStreamReader(conn.getErrorStream(), "UTF-8"));
+        if (response == null || response.trim().isEmpty()) {
+            throw new RuntimeException("Empty response from Jenkins API: " + url);
         }
 
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = br.readLine()) != null) {
-            sb.append(line).append("\n");
-        }
-        br.close();
-
-        if (code >= 400) {
+        try {
+            return new JSONObject(response);
+        } catch (Exception e) {
             throw new RuntimeException(
-                "HTTP " + code + " calling " + urlStr + "\n" + sb);
+                "Failed to parse JSON from Jenkins API\nURL: " + url +
+                "\nResponse:\n" + response,
+                e
+            );
         }
-
-        return sb.toString();
     }
 }
