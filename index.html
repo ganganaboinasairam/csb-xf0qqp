@@ -1,49 +1,89 @@
-public static String waitForBuildResult(
-        String region,
-        int buildNo,
-        java.util.function.Consumer<String> log) throws Exception {
+private static void httpPost(String urlStr, String body) throws Exception {
 
-    String job = Config.get("jenkins.job." + region);
-    String base = Config.get("jenkins.url") +
-        "/job/" + job + "/" + buildNo;
+    URL url = new URL(urlStr);
+    HttpURLConnection conn =
+        (HttpURLConnection) url.openConnection();
 
-    info(log, "Waiting for Jenkins build to complete...");
+    conn.setRequestMethod("POST");
+    conn.setDoOutput(true);
+    conn.setConnectTimeout(15000);
+    conn.setReadTimeout(30000);
 
-    while (true) {
+    // ===== Auth =====
+    String user = Config.get("jenkins.user");
+    String token = Config.get("jenkins.token");
+    String auth = user + ":" + token;
 
-        JSONObject json = getJson(base + "/api/json");
+    String encodedAuth = Base64.getEncoder()
+        .encodeToString(auth.getBytes("UTF-8"));
 
-        boolean building = json.getBoolean("building");
+    conn.setRequestProperty(
+        "Authorization",
+        "Basic " + encodedAuth
+    );
 
-        if (!building) {
-            String result = json.optString("result", "UNKNOWN");
-            info(log, "Build finished with result: " + result);
-            return result;
-        }
+    conn.setRequestProperty(
+        "Content-Type",
+        "application/x-www-form-urlencoded"
+    );
 
-        Thread.sleep(3000);
+    if (body != null) {
+        conn.getOutputStream()
+            .write(body.getBytes("UTF-8"));
+    }
+
+    int code = conn.getResponseCode();
+
+    if (code >= 400) {
+        throw new RuntimeException(
+            "POST failed. HTTP " + code + " → " + urlStr
+        );
     }
 }
 
 
-int buildNo = JenkinsClient.waitForBuildNumber(queueUrl, 120);
-info(log, "Build started: #" + buildNo);
+public static void updateBuildMeta(
+        String region,
+        int buildNo,
+        String displayName,
+        String description) throws Exception {
 
-// ✅ WAIT USING api/json (authoritative)
-String finalResult =
-    JenkinsClient.waitForBuildResult(region, buildNo, log);
+    String job = Config.get("jenkins.job." + region);
+    String base =
+        Config.get("jenkins.url") +
+        "/job/" + job + "/" + buildNo;
 
-// ✅ AFTER completion, get stages
-JenkinsPipelineStatus pipeline =
-    JenkinsClient.getPipelineStatus(region, buildNo);
+    // Set display name
+    httpPost(
+        base + "/displayName",
+        "displayName=" +
+        URLEncoder.encode(displayName, "UTF-8")
+    );
 
-// Print stages
-for (JenkinsStage s : pipeline.getStages()) {
-    log.accept(String.format(
-        "[STAGE] %-25s : %s",
-        s.getName(),
-        s.getStatus()
-    ));
+    // Set description
+    httpPost(
+        base + "/description",
+        "description=" +
+        URLEncoder.encode(description, "UTF-8")
+    );
 }
 
-info(log, "Jenkins build result: " + finalResult);
+
+int buildNo =
+    JenkinsClient.waitForBuildNumber(queueUrl, 120);
+
+info(log, "Build started: #" + buildNo);
+
+// ✅ UPDATE DISPLAY NAME & DESCRIPTION
+JenkinsClient.updateBuildMeta(
+    region,
+    buildNo,
+    commitMsg,          // display name
+    "Triggered by Git Tool\n" +
+    "Commit: " + commitMsg +
+    "\nStages: " + selection
+);
+
+info(log, "Updated Jenkins build name & description");
+
+
