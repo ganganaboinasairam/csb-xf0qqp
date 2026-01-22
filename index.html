@@ -1,1 +1,103 @@
-RuntimeException: POST failed. HTTP 403 -> https://10.177.140.236/jenkins/job/CE_DEV_DEPLOYMENT/882/displayName
+private static String getCrumb() throws Exception {
+
+    String urlStr =
+        Config.get("jenkins.url") +
+        "/crumbIssuer/api/json";
+
+    URL url = new URL(urlStr);
+    HttpURLConnection conn =
+        (HttpURLConnection) url.openConnection();
+
+    conn.setRequestMethod("GET");
+
+    String user = Config.get("jenkins.user");
+    String token = Config.get("jenkins.token");
+    String auth = user + ":" + token;
+
+    String encodedAuth = Base64.getEncoder()
+        .encodeToString(auth.getBytes("UTF-8"));
+
+    conn.setRequestProperty(
+        "Authorization",
+        "Basic " + encodedAuth
+    );
+
+    if (conn.getResponseCode() != 200) {
+        throw new RuntimeException(
+            "Failed to fetch crumb. HTTP " +
+            conn.getResponseCode()
+        );
+    }
+
+    String json;
+    try (BufferedReader br =
+             new BufferedReader(
+                 new InputStreamReader(
+                     conn.getInputStream()))) {
+        json = br.readLine();
+    }
+
+    // Example:
+    // {"crumbRequestField":"Jenkins-Crumb","crumb":"abcd1234"}
+    String field =
+        json.replaceAll(
+            ".*\"crumbRequestField\"\\s*:\\s*\"([^\"]+)\".*",
+            "$1");
+
+    String crumb =
+        json.replaceAll(
+            ".*\"crumb\"\\s*:\\s*\"([^\"]+)\".*",
+            "$1");
+
+    return field + ":" + crumb;
+}
+
+
+private static void httpPost(String urlStr, String body)
+        throws Exception {
+
+    URL url = new URL(urlStr);
+    HttpURLConnection conn =
+        (HttpURLConnection) url.openConnection();
+
+    conn.setRequestMethod("POST");
+    conn.setDoOutput(true);
+    conn.setConnectTimeout(15000);
+    conn.setReadTimeout(30000);
+
+    String user = Config.get("jenkins.user");
+    String token = Config.get("jenkins.token");
+    String auth = user + ":" + token;
+
+    String encodedAuth = Base64.getEncoder()
+        .encodeToString(auth.getBytes("UTF-8"));
+
+    conn.setRequestProperty(
+        "Authorization",
+        "Basic " + encodedAuth
+    );
+
+    conn.setRequestProperty(
+        "Content-Type",
+        "application/x-www-form-urlencoded"
+    );
+
+    // ✅ ADD CRUMB
+    String crumbHeader = getCrumb();
+    String[] parts = crumbHeader.split(":");
+    conn.setRequestProperty(parts[0], parts[1]);
+
+    if (body != null) {
+        conn.getOutputStream()
+            .write(body.getBytes("UTF-8"));
+    }
+
+    int code = conn.getResponseCode();
+
+    if (code >= 400) {
+        throw new RuntimeException(
+            "POST failed. HTTP " + code +
+            " → " + urlStr
+        );
+    }
+}
