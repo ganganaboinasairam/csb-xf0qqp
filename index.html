@@ -1,12 +1,9 @@
 @echo off
 cd /d %~dp0
 
-for /f "tokens=1-4 delims=/ " %%a in ("%date%") do (
-  set d=%%d%%b%%c
-)
-
 set LOGDIR=logs
 if not exist %LOGDIR% mkdir %LOGDIR%
 
-start "" javaw -jar git-auto-commit.jar > "%LOGDIR%\sysout-%d%.log" 2>&1
+javaw -jar git-auto-commit.jar > "%LOGDIR%\sysout.log" 2>&1
+
 exit
