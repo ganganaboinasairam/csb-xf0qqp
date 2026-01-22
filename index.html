@@ -1,148 +1,58 @@
-public static void jnksTrigger(
-        String region,
-        String commitMsg,
-        String selection,
-        java.util.function.Consumer<String> log) {
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Base64;
 
-    info(log, "Triggering Jenkins build");
+public class JenkinsClient {
 
-    try {
-        String queueUrl = JenkinsClient.trigger(region, commitMsg, selection);
-        info(log, "Build queued at: " + queueUrl);
+    private static String httpGet(String urlStr) throws Exception {
 
-        int buildNo = JenkinsClient.waitForBuildNumber(queueUrl, 120);
-        info(log, "Build started: #" + buildNo);
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
-        // ===== Fetch pipeline stages =====
-        JenkinsPipelineStatus pipeline =
-            JenkinsClient.getPipelineStatus(region, buildNo);
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(15000);
+        conn.setReadTimeout(30000);
 
-        for (JenkinsStage s : pipeline.getStages()) {
-            log.accept(String.format(
-                "[STAGE] %-25s : %s",
-                s.getName(),
-                s.getStatus()
-            ));
-        }
+        // ===== Jenkins authentication =====
+        String user = Config.get("jenkins.user");
+        String token = Config.get("jenkins.token");
 
-        // ===== Final result =====
-        if (!"SUCCESS".equals(pipeline.getStatus())) {
+        String auth = user + ":" + token;
+        String encodedAuth =
+            Base64.getEncoder().encodeToString(auth.getBytes("UTF-8"));
 
-            error(log, "Build failed in stage: " +
-                       pipeline.getFailedStage());
+        conn.setRequestProperty(
+            "Authorization",
+            "Basic " + encodedAuth
+        );
 
-            String reason =
-                JenkinsClient.getFailureReason(region, buildNo);
+        conn.setRequestProperty("Accept", "application/json");
 
-            error(log, "Reason:");
-            log.accept("----------------------------------");
-            log.accept(reason);
-            log.accept("----------------------------------");
+        int code = conn.getResponseCode();
 
+        BufferedReader br;
+        if (code >= 200 && code < 300) {
+            br = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), "UTF-8"));
         } else {
-            info(log, "All stages completed successfully");
+            br = new BufferedReader(
+                new InputStreamReader(conn.getErrorStream(), "UTF-8"));
         }
 
-        info(log, "Jenkins build result: " + pipeline.getStatus());
-
-    } catch (Exception e) {
-        error(log, "Jenkins build failed");
-        exception(log, e);
-    }
-}
-
-
-public class JenkinsStage {
-    private String name;
-    private String status;
-
-    public JenkinsStage(String name, String status) {
-        this.name = name;
-        this.status = status;
-    }
-    public String getName() { return name; }
-    public String getStatus() { return status; }
-}
-
-
-import java.util.List;
-
-public class JenkinsPipelineStatus {
-    private String status;
-    private List<JenkinsStage> stages;
-    private String failedStage;
-
-    public JenkinsPipelineStatus(
-            String status,
-            List<JenkinsStage> stages,
-            String failedStage) {
-        this.status = status;
-        this.stages = stages;
-        this.failedStage = failedStage;
-    }
-
-    public String getStatus() { return status; }
-    public List<JenkinsStage> getStages() { return stages; }
-    public String getFailedStage() { return failedStage; }
-}
-
-
-public static JenkinsPipelineStatus getPipelineStatus(
-        String region, int buildNo) throws Exception {
-
-    String job = Config.get("jenkins.job." + region);
-    String url = Config.get("jenkins.url") +
-        "/job/" + job + "/" + buildNo + "/wfapi/describe";
-
-    JSONObject json = getJson(url);
-
-    String status = json.getString("status");
-
-    List<JenkinsStage> stages = new ArrayList<>();
-    String failedStage = null;
-
-    JSONArray arr = json.getJSONArray("stages");
-    for (int i = 0; i < arr.length(); i++) {
-        JSONObject s = arr.getJSONObject(i);
-        String name = s.getString("name");
-        String st = s.getString("status");
-        stages.add(new JenkinsStage(name, st));
-
-        if ("FAILED".equals(st)) {
-            failedStage = name;
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line).append("\n");
         }
-    }
+        br.close();
 
-    return new JenkinsPipelineStatus(status, stages, failedStage);
-}
-
-
-
-public static String getFailureReason(
-        String region, int buildNo) throws Exception {
-
-    String job = Config.get("jenkins.job." + region);
-    String url = Config.get("jenkins.url") +
-        "/job/" + job + "/" + buildNo + "/consoleText";
-
-    String log = httpGet(url);
-
-    // Extract last meaningful error lines
-    StringBuilder sb = new StringBuilder();
-    String[] lines = log.split("\\R");
-
-    for (int i = lines.length - 1; i >= 0 && sb.length() < 2000; i--) {
-        if (lines[i].contains("ERROR")
-            || lines[i].contains("Exception")
-            || lines[i].contains("Caused by")) {
-            sb.insert(0, lines[i] + "\n");
+        if (code >= 400) {
+            throw new RuntimeException(
+                "HTTP " + code + " calling " + urlStr + "\n" + sb);
         }
+
+        return sb.toString();
     }
-
-    return sb.length() == 0
-        ? "Unable to determine exact failure reason"
-        : sb.toString();
 }
-
-
-
