@@ -1,8 +1,7 @@
-if (!commitMsg.startsWith("CR_", 0) || !commitMsg.startsWith("IR_", 0)) {
-				System.out.println(commitMsg);
-				JOptionPane.showMessageDialog(this, "Commit message should start with 'CR' or 'IR'");
-				return;
-			}
-
-
-iam giving "CR_1018456_159" but iam getting the error "Commit message should start with 'CR' or 'IR'"
+if (!commitMsg.matches("^(CR|IR)_\\d+.*")) {
+    JOptionPane.showMessageDialog(
+        this,
+        "Invalid commit message format.\nExpected: CR_<number> or IR_<number>"
+    );
+    return;
+}
