@@ -1,28 +1,148 @@
-  public static void jnksTrigger(
-            String region,
-            String commitMsg,
-            String selection,
-            java.util.function.Consumer<String> log) {
+public static void jnksTrigger(
+        String region,
+        String commitMsg,
+        String selection,
+        java.util.function.Consumer<String> log) {
 
-        info(log, "Triggering Jenkins build");
+    info(log, "Triggering Jenkins build");
 
-        try {
-            String queueUrl = JenkinsClient.trigger(region, commitMsg, selection);
-            info(log, "Build queued at: " + queueUrl);
+    try {
+        String queueUrl = JenkinsClient.trigger(region, commitMsg, selection);
+        info(log, "Build queued at: " + queueUrl);
 
-            int buildNo = JenkinsClient.waitForBuildNumber(queueUrl, 120);
-            info(log, "Build started: #" + buildNo);
+        int buildNo = JenkinsClient.waitForBuildNumber(queueUrl, 120);
+        info(log, "Build started: #" + buildNo);
 
-            String result = JenkinsClient.waitForBuildResult(region, buildNo, log);
-            info(log, "Build result: " + result);
+        // ===== Fetch pipeline stages =====
+        JenkinsPipelineStatus pipeline =
+            JenkinsClient.getPipelineStatus(region, buildNo);
 
-        } catch (Exception e) {
-            error(log, "Jenkins build failed");
-            exception(log, e);
+        for (JenkinsStage s : pipeline.getStages()) {
+            log.accept(String.format(
+                "[STAGE] %-25s : %s",
+                s.getName(),
+                s.getStatus()
+            ));
+        }
+
+        // ===== Final result =====
+        if (!"SUCCESS".equals(pipeline.getStatus())) {
+
+            error(log, "Build failed in stage: " +
+                       pipeline.getFailedStage());
+
+            String reason =
+                JenkinsClient.getFailureReason(region, buildNo);
+
+            error(log, "Reason:");
+            log.accept("----------------------------------");
+            log.accept(reason);
+            log.accept("----------------------------------");
+
+        } else {
+            info(log, "All stages completed successfully");
+        }
+
+        info(log, "Jenkins build result: " + pipeline.getStatus());
+
+    } catch (Exception e) {
+        error(log, "Jenkins build failed");
+        exception(log, e);
+    }
+}
+
+
+public class JenkinsStage {
+    private String name;
+    private String status;
+
+    public JenkinsStage(String name, String status) {
+        this.name = name;
+        this.status = status;
+    }
+    public String getName() { return name; }
+    public String getStatus() { return status; }
+}
+
+
+import java.util.List;
+
+public class JenkinsPipelineStatus {
+    private String status;
+    private List<JenkinsStage> stages;
+    private String failedStage;
+
+    public JenkinsPipelineStatus(
+            String status,
+            List<JenkinsStage> stages,
+            String failedStage) {
+        this.status = status;
+        this.stages = stages;
+        this.failedStage = failedStage;
+    }
+
+    public String getStatus() { return status; }
+    public List<JenkinsStage> getStages() { return stages; }
+    public String getFailedStage() { return failedStage; }
+}
+
+
+public static JenkinsPipelineStatus getPipelineStatus(
+        String region, int buildNo) throws Exception {
+
+    String job = Config.get("jenkins.job." + region);
+    String url = Config.get("jenkins.url") +
+        "/job/" + job + "/" + buildNo + "/wfapi/describe";
+
+    JSONObject json = getJson(url);
+
+    String status = json.getString("status");
+
+    List<JenkinsStage> stages = new ArrayList<>();
+    String failedStage = null;
+
+    JSONArray arr = json.getJSONArray("stages");
+    for (int i = 0; i < arr.length(); i++) {
+        JSONObject s = arr.getJSONObject(i);
+        String name = s.getString("name");
+        String st = s.getString("status");
+        stages.add(new JenkinsStage(name, st));
+
+        if ("FAILED".equals(st)) {
+            failedStage = name;
         }
     }
 
+    return new JenkinsPipelineStatus(status, stages, failedStage);
+}
 
 
 
-    the user need to know the proper output for jenkins trigger , it contains of multiple stages and what is the status of each stage and if failed , exact reaSON FOR THE FAIL
+public static String getFailureReason(
+        String region, int buildNo) throws Exception {
+
+    String job = Config.get("jenkins.job." + region);
+    String url = Config.get("jenkins.url") +
+        "/job/" + job + "/" + buildNo + "/consoleText";
+
+    String log = httpGet(url);
+
+    // Extract last meaningful error lines
+    StringBuilder sb = new StringBuilder();
+    String[] lines = log.split("\\R");
+
+    for (int i = lines.length - 1; i >= 0 && sb.length() < 2000; i--) {
+        if (lines[i].contains("ERROR")
+            || lines[i].contains("Exception")
+            || lines[i].contains("Caused by")) {
+            sb.insert(0, lines[i] + "\n");
+        }
+    }
+
+    return sb.length() == 0
+        ? "Unable to determine exact failure reason"
+        : sb.toString();
+}
+
+
+
