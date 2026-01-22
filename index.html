@@ -1,7 +1,28 @@
-if (!commitMsg.matches("^(CR|IR)_\\d+.*")) {
-    JOptionPane.showMessageDialog(
-        this,
-        "Invalid commit message format.\nExpected: CR_<number> or IR_<number>"
-    );
-    return;
-}
+  public static void jnksTrigger(
+            String region,
+            String commitMsg,
+            String selection,
+            java.util.function.Consumer<String> log) {
+
+        info(log, "Triggering Jenkins build");
+
+        try {
+            String queueUrl = JenkinsClient.trigger(region, commitMsg, selection);
+            info(log, "Build queued at: " + queueUrl);
+
+            int buildNo = JenkinsClient.waitForBuildNumber(queueUrl, 120);
+            info(log, "Build started: #" + buildNo);
+
+            String result = JenkinsClient.waitForBuildResult(region, buildNo, log);
+            info(log, "Build result: " + result);
+
+        } catch (Exception e) {
+            error(log, "Jenkins build failed");
+            exception(log, e);
+        }
+    }
+
+
+
+
+    the user need to know the proper output for jenkins trigger , it contains of multiple stages and what is the status of each stage and if failed , exact reaSON FOR THE FAIL
