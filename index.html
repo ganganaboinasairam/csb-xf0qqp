@@ -1,74 +1,13 @@
-package com.tcs.git.util;
-
-import java.io.*;
-import java.nio.file.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
-public class AppLogger {
-
-    private static final String LOG_DIR = "logs";
-    private static final String LOG_FILE;
-
-    static {
-        new File(LOG_DIR).mkdirs();
-
-        String ts = new SimpleDateFormat("yyyyMMdd").format(new Date());
-        LOG_FILE = LOG_DIR + File.separator + "git-tool-" + ts + ".log";
-    }
-
-    private AppLogger() {}
-
-    public static synchronized void log(String msg) {
-        try (FileWriter fw = new FileWriter(LOG_FILE, true);
-             BufferedWriter bw = new BufferedWriter(fw)) {
-
-            bw.write(timestamp() + " " + msg);
-            bw.newLine();
-
-        } catch (IOException e) {
-            // Fail silently – logging must never break app
+public static String readAll() {
+    StringBuilder sb = new StringBuilder();
+    try (BufferedReader br =
+            new BufferedReader(new FileReader(LOG_FILE))) {
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line).append("\n");
         }
+    } catch (IOException e) {
+        // ignore
     }
-
-    public static synchronized void logSeparator() {
-        log("============================================================");
-    }
-
-    private static String timestamp() {
-        return new SimpleDateFormat("[HH:mm:ss]").format(new Date());
-    }
-
-    public static String getLogFilePath() {
-        return LOG_FILE;
-    }
-
-    public static String readAll() {
-        try {
-            return Files.readString(Path.of(LOG_FILE));
-        } catch (IOException e) {
-            return "";
-        }
-    }
+    return sb.toString();
 }
-
-
-private void log(String msg) {
-    outputArea.append(msg + "\n");
-    outputArea.setCaretPosition(outputArea.getDocument().getLength());
-    AppLogger.log(msg);
-}
-
-
-AppLogger.logSeparator();
-AppLogger.log("Application started");
-AppLogger.log("User: " + System.getProperty("user.name"));
-AppLogger.logSeparator();
-
-addWindowListener(new WindowAdapter() {
-    @Override
-    public void windowClosing(WindowEvent e) {
-        AppLogger.log("Application closed");
-        AppLogger.logSeparator();
-    }
-});
