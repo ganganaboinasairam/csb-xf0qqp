@@ -1,13 +1,1 @@
-public static String readAll() {
-    StringBuilder sb = new StringBuilder();
-    try (BufferedReader br =
-            new BufferedReader(new FileReader(LOG_FILE))) {
-        String line;
-        while ((line = br.readLine()) != null) {
-            sb.append(line).append("\n");
-        }
-    } catch (IOException e) {
-        // ignore
-    }
-    return sb.toString();
-}
+The method addWindowListener(WindowListener) in the type Window is not applicable for the arguments (new WindowAdapter(){})
