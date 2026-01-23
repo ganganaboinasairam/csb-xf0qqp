@@ -1,53 +1,65 @@
-import javax.script.*;
-import javax.xml.parsers.*;
-import org.xml.sax.SAXException;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
-import java.io.*;
-import java.nio.file.*;
+import java.io.InputStream;
+import java.io.Reader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.stream.Stream;
 
 public class SyntaxCheckerApp {
 
-    public static void main(String[] args) throws IOException {
+    private static ScriptEngine jsEngine;
+
+    static {
+        ScriptEngineManager manager = new ScriptEngineManager();
+        jsEngine = manager.getEngineByName("nashorn");
+    }
+
+    public static void main(String[] args) throws Exception {
+
         if (args.length == 0) {
             System.out.println("Usage: java SyntaxCheckerApp <folder-path>");
             return;
         }
 
-        Path root = Paths.get(args[0]);
+        Path rootDir = Paths.get(args[0]);
 
-        if (!Files.isDirectory(root)) {
-            System.out.println("Invalid directory: " + root);
+        if (!Files.isDirectory(rootDir)) {
+            System.out.println("Invalid directory: " + rootDir);
             return;
         }
 
-        try (Stream<Path> paths = Files.walk(root)) {
+        try (Stream<Path> paths = Files.walk(rootDir)) {
             paths.filter(Files::isRegularFile)
-                 .forEach(SyntaxCheckerApp::checkFile);
+                 .forEach(SyntaxCheckerApp::validateFile);
         }
     }
 
-    private static void checkFile(Path file) {
-        String name = file.toString().toLowerCase();
+    private static void validateFile(Path file) {
+        String fileName = file.toString().toLowerCase();
 
         try {
-            if (name.endsWith(".xml") || name.endsWith(".jsp")) {
-                checkXml(file);
-            } else if (name.endsWith(".properties")) {
-                checkProperties(file);
-            } else if (name.endsWith(".js")) {
-                checkJavaScript(file);
+            if (fileName.endsWith(".xml") || fileName.endsWith(".jsp")) {
+                validateXml(file);
+            } else if (fileName.endsWith(".properties")) {
+                validateProperties(file);
+            } else if (fileName.endsWith(".js")) {
+                validateJavaScript(file);
             }
         } catch (Exception e) {
-            System.err.println("❌ Syntax Error in: " + file);
-            System.err.println("   → " + e.getMessage());
+            System.err.println("❌ Syntax Error: " + file);
+            System.err.println("   Reason: " + e.getMessage());
         }
     }
 
-    /* ---------------- XML / JSP ---------------- */
+    /* ================= XML / JSP ================= */
 
-    private static void checkXml(Path file) throws Exception {
+    private static void validateXml(Path file) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
         factory.setValidating(false);
@@ -56,26 +68,24 @@ public class SyntaxCheckerApp {
         builder.parse(file.toFile());
     }
 
-    /* ---------------- PROPERTIES ---------------- */
+    /* ================= PROPERTIES ================= */
 
-    private static void checkProperties(Path file) throws IOException {
+    private static void validateProperties(Path file) throws Exception {
         try (InputStream is = Files.newInputStream(file)) {
             Properties props = new Properties();
             props.load(is);
         }
     }
 
-    /* ---------------- JAVASCRIPT ---------------- */
+    /* ================= JAVASCRIPT ================= */
 
-    private static void checkJavaScript(Path file) throws Exception {
-        ScriptEngine engine = new ScriptEngineManager().getEngineByName("js");
-
-        if (engine == null) {
-            throw new RuntimeException("JavaScript engine not available");
+    private static void validateJavaScript(Path file) throws Exception {
+        if (jsEngine == null) {
+            throw new RuntimeException("Nashorn JS Engine not available");
         }
 
         try (Reader reader = Files.newBufferedReader(file)) {
-            engine.eval(reader);
+            jsEngine.eval(reader);
         }
     }
 }
