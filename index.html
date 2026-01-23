@@ -1,221 +1,81 @@
-package com.tcs.git.ui;
+import javax.script.*;
+import javax.xml.parsers.*;
+import org.xml.sax.SAXException;
 
-import javax.swing.*;
-import java.awt.*;
-import java.util.*;
-import java.util.List;
+import java.io.*;
+import java.nio.file.*;
+import java.util.Properties;
+import java.util.stream.Stream;
 
-public class FileSelectionDialog extends JDialog {
+public class SyntaxCheckerApp {
 
-    private static final long serialVersionUID = 1L;
-
-    private final Map<JCheckBox, String> fileMap = new LinkedHashMap<>();
-    private boolean confirmed = false;
-
-    public FileSelectionDialog(Frame parent, List<String> files) {
-        super(parent, "Select Files to Commit", true);
-        setSize(500, 400);
-        setLocationRelativeTo(parent);
-        initUI(files);
-    }
-
-    private void initUI(List<String> files) {
-
-        JPanel main = new JPanel(new BorderLayout(5, 5));
-
-        /* ================= FILE LIST ================= */
-        JPanel listPanel = new JPanel();
-        listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
-
-        for (String file : files) {
-            JCheckBox cb = new JCheckBox(file, true);
-            fileMap.put(cb, file);
-            listPanel.add(cb);
+    public static void main(String[] args) throws IOException {
+        if (args.length == 0) {
+            System.out.println("Usage: java SyntaxCheckerApp <folder-path>");
+            return;
         }
 
-        JScrollPane scroll = new JScrollPane(listPanel);
+        Path root = Paths.get(args[0]);
 
-        /* ================= BUTTON BAR ================= */
-        JButton selectAll = new JButton("Select All");
-        JButton deselectAll = new JButton("Deselect All");
-        JButton ok = new JButton("Commit");
-        JButton cancel = new JButton("Cancel");
+        if (!Files.isDirectory(root)) {
+            System.out.println("Invalid directory: " + root);
+            return;
+        }
 
-        selectAll.addActionListener(e ->
-            fileMap.keySet().forEach(cb -> cb.setSelected(true))
-        );
-
-        deselectAll.addActionListener(e ->
-            fileMap.keySet().forEach(cb -> cb.setSelected(false))
-        );
-
-        ok.addActionListener(e -> {
-            confirmed = true;
-            dispose();
-        });
-
-        cancel.addActionListener(e -> dispose());
-
-        JPanel btnBar = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        btnBar.add(selectAll);
-        btnBar.add(deselectAll);
-        btnBar.add(ok);
-        btnBar.add(cancel);
-
-        main.add(scroll, BorderLayout.CENTER);
-        main.add(btnBar, BorderLayout.SOUTH);
-
-        add(main);
+        try (Stream<Path> paths = Files.walk(root)) {
+            paths.filter(Files::isRegularFile)
+                 .forEach(SyntaxCheckerApp::checkFile);
+        }
     }
 
-    public boolean isConfirmed() {
-        return confirmed;
-    }
+    private static void checkFile(Path file) {
+        String name = file.toString().toLowerCase();
 
-    public List<String> getSelectedFiles() {
-
-        List<String> selected = new ArrayList<>();
-
-        for (Map.Entry<JCheckBox, String> e : fileMap.entrySet()) {
-            if (e.getKey().isSelected()) {
-                selected.add(e.getValue());
+        try {
+            if (name.endsWith(".xml") || name.endsWith(".jsp")) {
+                checkXml(file);
+            } else if (name.endsWith(".properties")) {
+                checkProperties(file);
+            } else if (name.endsWith(".js")) {
+                checkJavaScript(file);
             }
-        }
-        return selected;
-    }
-}
-
-
-public static List<String> getChangedFiles(String region) throws Exception {
-
-    File repo = new File(Config.get("git.repo.path." + region));
-    String status = GitCli.run(repo, "status", "--porcelain");
-
-    List<String> files = new ArrayList<>();
-
-    for (String line : status.split("\\R")) {
-        if (line.length() > 3) {
-            files.add(line.substring(3).trim());
+        } catch (Exception e) {
+            System.err.println("❌ Syntax Error in: " + file);
+            System.err.println("   → " + e.getMessage());
         }
     }
-    return files;
-}
 
+    /* ---------------- XML / JSP ---------------- */
 
-public static List<String> getChangedFiles(String region) throws Exception {
+    private static void checkXml(Path file) throws Exception {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        factory.setValidating(false);
 
-    File repo = new File(Config.get("git.repo.path." + region));
-    String status = GitCli.run(repo, "status", "--porcelain");
-
-    List<String> files = new ArrayList<>();
-
-    for (String line : status.split("\\R")) {
-        if (line.length() > 3) {
-            files.add(line.substring(3).trim());
-        }
-    }
-    return files;
-}
-
-private void runTask() {
-
-    String region = regionBox.getSelectedItem().toString().toLowerCase();
-    String crNo = crField.getText().trim();
-
-    if (!crNo.matches("\\d+")) {
-        JOptionPane.showMessageDialog(this, "Invalid CR Number");
-        return;
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        builder.parse(file.toFile());
     }
 
-    try {
-        List<String> files =
-            GitAutomationService.getChangedFiles(region);
+    /* ---------------- PROPERTIES ---------------- */
 
-        if (files.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                "No changes to commit");
-            return;
+    private static void checkProperties(Path file) throws IOException {
+        try (InputStream is = Files.newInputStream(file)) {
+            Properties props = new Properties();
+            props.load(is);
         }
-
-        FileSelectionDialog dlg =
-            new FileSelectionDialog(this, files);
-
-        dlg.setVisible(true);
-
-        if (!dlg.isConfirmed()) {
-            outputArea.append("Commit cancelled by user\n");
-            return;
-        }
-
-        List<String> selected = dlg.getSelectedFiles();
-
-        if (selected.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                "No files selected");
-            return;
-        }
-
-        executeCommit(region, crNo, selected);
-
-    } catch (Exception e) {
-        outputArea.append("ERROR: " + e.getMessage() + "\n");
-    }
-}
-
-
-private void executeCommit(
-        String region,
-        String crNo,
-        List<String> files) {
-
-    SwingWorker<Void, String> worker =
-        new SwingWorker<Void, String>() {
-
-        protected Void doInBackground() throws Exception {
-
-            GitAutomationService.commitSelected(
-                region, crNo, files, msg -> publish(msg)
-            );
-            return null;
-        }
-
-        protected void process(List<String> msgs) {
-            msgs.forEach(m -> outputArea.append(m + "\n"));
-        }
-    };
-
-    worker.execute();
-}
-
-
-public static void commitSelected(
-        String region,
-        String crNo,
-        List<String> files,
-        Consumer<String> log) throws Exception {
-
-    File repo = new File(Config.get("git.repo.path." + region));
-    String branch = Config.get("git.branch.name." + region);
-
-    log.accept("Staging selected files...");
-
-    for (String f : files) {
-        GitCli.run(repo, "add", f);
-        log.accept("Added: " + f);
     }
 
-    String msg = CommitMessageGenerator.generate(repo, crNo);
+    /* ---------------- JAVASCRIPT ---------------- */
 
-    log.accept("Committing: " + msg);
-    GitCli.run(repo, "commit", "-m", msg);
+    private static void checkJavaScript(Path file) throws Exception {
+        ScriptEngine engine = new ScriptEngineManager().getEngineByName("js");
 
-    log.accept("Rebasing...");
-    GitCli.run(repo, "pull", "--rebase", "origin", branch);
+        if (engine == null) {
+            throw new RuntimeException("JavaScript engine not available");
+        }
 
-    log.accept("Pushing...");
-    GitCli.run(repo, "push", "origin", branch);
-
-    log.accept("Commit pushed successfully");
+        try (Reader reader = Files.newBufferedReader(file)) {
+            engine.eval(reader);
+        }
+    }
 }
-
-
