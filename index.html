@@ -1,103 +1,221 @@
-private static String getCrumb() throws Exception {
+package com.tcs.git.ui;
 
-    String urlStr =
-        Config.get("jenkins.url") +
-        "/crumbIssuer/api/json";
+import javax.swing.*;
+import java.awt.*;
+import java.util.*;
+import java.util.List;
 
-    URL url = new URL(urlStr);
-    HttpURLConnection conn =
-        (HttpURLConnection) url.openConnection();
+public class FileSelectionDialog extends JDialog {
 
-    conn.setRequestMethod("GET");
+    private static final long serialVersionUID = 1L;
 
-    String user = Config.get("jenkins.user");
-    String token = Config.get("jenkins.token");
-    String auth = user + ":" + token;
+    private final Map<JCheckBox, String> fileMap = new LinkedHashMap<>();
+    private boolean confirmed = false;
 
-    String encodedAuth = Base64.getEncoder()
-        .encodeToString(auth.getBytes("UTF-8"));
+    public FileSelectionDialog(Frame parent, List<String> files) {
+        super(parent, "Select Files to Commit", true);
+        setSize(500, 400);
+        setLocationRelativeTo(parent);
+        initUI(files);
+    }
 
-    conn.setRequestProperty(
-        "Authorization",
-        "Basic " + encodedAuth
-    );
+    private void initUI(List<String> files) {
 
-    if (conn.getResponseCode() != 200) {
-        throw new RuntimeException(
-            "Failed to fetch crumb. HTTP " +
-            conn.getResponseCode()
+        JPanel main = new JPanel(new BorderLayout(5, 5));
+
+        /* ================= FILE LIST ================= */
+        JPanel listPanel = new JPanel();
+        listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
+
+        for (String file : files) {
+            JCheckBox cb = new JCheckBox(file, true);
+            fileMap.put(cb, file);
+            listPanel.add(cb);
+        }
+
+        JScrollPane scroll = new JScrollPane(listPanel);
+
+        /* ================= BUTTON BAR ================= */
+        JButton selectAll = new JButton("Select All");
+        JButton deselectAll = new JButton("Deselect All");
+        JButton ok = new JButton("Commit");
+        JButton cancel = new JButton("Cancel");
+
+        selectAll.addActionListener(e ->
+            fileMap.keySet().forEach(cb -> cb.setSelected(true))
         );
+
+        deselectAll.addActionListener(e ->
+            fileMap.keySet().forEach(cb -> cb.setSelected(false))
+        );
+
+        ok.addActionListener(e -> {
+            confirmed = true;
+            dispose();
+        });
+
+        cancel.addActionListener(e -> dispose());
+
+        JPanel btnBar = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnBar.add(selectAll);
+        btnBar.add(deselectAll);
+        btnBar.add(ok);
+        btnBar.add(cancel);
+
+        main.add(scroll, BorderLayout.CENTER);
+        main.add(btnBar, BorderLayout.SOUTH);
+
+        add(main);
     }
 
-    String json;
-    try (BufferedReader br =
-             new BufferedReader(
-                 new InputStreamReader(
-                     conn.getInputStream()))) {
-        json = br.readLine();
+    public boolean isConfirmed() {
+        return confirmed;
     }
 
-    // Example:
-    // {"crumbRequestField":"Jenkins-Crumb","crumb":"abcd1234"}
-    String field =
-        json.replaceAll(
-            ".*\"crumbRequestField\"\\s*:\\s*\"([^\"]+)\".*",
-            "$1");
+    public List<String> getSelectedFiles() {
 
-    String crumb =
-        json.replaceAll(
-            ".*\"crumb\"\\s*:\\s*\"([^\"]+)\".*",
-            "$1");
+        List<String> selected = new ArrayList<>();
 
-    return field + ":" + crumb;
+        for (Map.Entry<JCheckBox, String> e : fileMap.entrySet()) {
+            if (e.getKey().isSelected()) {
+                selected.add(e.getValue());
+            }
+        }
+        return selected;
+    }
 }
 
 
-private static void httpPost(String urlStr, String body)
-        throws Exception {
+public static List<String> getChangedFiles(String region) throws Exception {
 
-    URL url = new URL(urlStr);
-    HttpURLConnection conn =
-        (HttpURLConnection) url.openConnection();
+    File repo = new File(Config.get("git.repo.path." + region));
+    String status = GitCli.run(repo, "status", "--porcelain");
 
-    conn.setRequestMethod("POST");
-    conn.setDoOutput(true);
-    conn.setConnectTimeout(15000);
-    conn.setReadTimeout(30000);
+    List<String> files = new ArrayList<>();
 
-    String user = Config.get("jenkins.user");
-    String token = Config.get("jenkins.token");
-    String auth = user + ":" + token;
+    for (String line : status.split("\\R")) {
+        if (line.length() > 3) {
+            files.add(line.substring(3).trim());
+        }
+    }
+    return files;
+}
 
-    String encodedAuth = Base64.getEncoder()
-        .encodeToString(auth.getBytes("UTF-8"));
 
-    conn.setRequestProperty(
-        "Authorization",
-        "Basic " + encodedAuth
-    );
+public static List<String> getChangedFiles(String region) throws Exception {
 
-    conn.setRequestProperty(
-        "Content-Type",
-        "application/x-www-form-urlencoded"
-    );
+    File repo = new File(Config.get("git.repo.path." + region));
+    String status = GitCli.run(repo, "status", "--porcelain");
 
-    // ✅ ADD CRUMB
-    String crumbHeader = getCrumb();
-    String[] parts = crumbHeader.split(":");
-    conn.setRequestProperty(parts[0], parts[1]);
+    List<String> files = new ArrayList<>();
 
-    if (body != null) {
-        conn.getOutputStream()
-            .write(body.getBytes("UTF-8"));
+    for (String line : status.split("\\R")) {
+        if (line.length() > 3) {
+            files.add(line.substring(3).trim());
+        }
+    }
+    return files;
+}
+
+private void runTask() {
+
+    String region = regionBox.getSelectedItem().toString().toLowerCase();
+    String crNo = crField.getText().trim();
+
+    if (!crNo.matches("\\d+")) {
+        JOptionPane.showMessageDialog(this, "Invalid CR Number");
+        return;
     }
 
-    int code = conn.getResponseCode();
+    try {
+        List<String> files =
+            GitAutomationService.getChangedFiles(region);
 
-    if (code >= 400) {
-        throw new RuntimeException(
-            "POST failed. HTTP " + code +
-            " → " + urlStr
-        );
+        if (files.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "No changes to commit");
+            return;
+        }
+
+        FileSelectionDialog dlg =
+            new FileSelectionDialog(this, files);
+
+        dlg.setVisible(true);
+
+        if (!dlg.isConfirmed()) {
+            outputArea.append("Commit cancelled by user\n");
+            return;
+        }
+
+        List<String> selected = dlg.getSelectedFiles();
+
+        if (selected.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "No files selected");
+            return;
+        }
+
+        executeCommit(region, crNo, selected);
+
+    } catch (Exception e) {
+        outputArea.append("ERROR: " + e.getMessage() + "\n");
     }
 }
+
+
+private void executeCommit(
+        String region,
+        String crNo,
+        List<String> files) {
+
+    SwingWorker<Void, String> worker =
+        new SwingWorker<Void, String>() {
+
+        protected Void doInBackground() throws Exception {
+
+            GitAutomationService.commitSelected(
+                region, crNo, files, msg -> publish(msg)
+            );
+            return null;
+        }
+
+        protected void process(List<String> msgs) {
+            msgs.forEach(m -> outputArea.append(m + "\n"));
+        }
+    };
+
+    worker.execute();
+}
+
+
+public static void commitSelected(
+        String region,
+        String crNo,
+        List<String> files,
+        Consumer<String> log) throws Exception {
+
+    File repo = new File(Config.get("git.repo.path." + region));
+    String branch = Config.get("git.branch.name." + region);
+
+    log.accept("Staging selected files...");
+
+    for (String f : files) {
+        GitCli.run(repo, "add", f);
+        log.accept("Added: " + f);
+    }
+
+    String msg = CommitMessageGenerator.generate(repo, crNo);
+
+    log.accept("Committing: " + msg);
+    GitCli.run(repo, "commit", "-m", msg);
+
+    log.accept("Rebasing...");
+    GitCli.run(repo, "pull", "--rebase", "origin", branch);
+
+    log.accept("Pushing...");
+    GitCli.run(repo, "push", "origin", branch);
+
+    log.accept("Commit pushed successfully");
+}
+
+
