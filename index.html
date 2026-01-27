@@ -1,91 +1,104 @@
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
+package com.tcs.git.ui;
 
-import java.io.InputStream;
-import java.io.Reader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Properties;
-import java.util.stream.Stream;
+import javax.swing.*;
+import java.awt.*;
 
-public class SyntaxCheckerApp {
+public class CommitMessageDialog extends JDialog {
 
-    private static ScriptEngine jsEngine;
+    private static final long serialVersionUID = 1L;
 
-    static {
-        ScriptEngineManager manager = new ScriptEngineManager();
-        jsEngine = manager.getEngineByName("nashorn");
+    private JTextField messageField;
+    private boolean confirmed = false;
+
+    public CommitMessageDialog(Frame parent, String defaultMsg) {
+        super(parent, "Confirm Commit Message", true);
+        setSize(450, 180);
+        setLocationRelativeTo(parent);
+        initUI(defaultMsg);
     }
 
-    public static void main(String[] args) throws Exception {
+    private void initUI(String defaultMsg) {
 
-        if (args.length == 0) {
-            System.out.println("Usage: java SyntaxCheckerApp <folder-path>");
-            return;
-        }
+        JPanel main = new JPanel(new BorderLayout(10, 10));
+        main.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        Path rootDir = Paths.get(args[0]);
+        JLabel lbl = new JLabel("Commit Message:");
+        messageField = new JTextField(defaultMsg, 30);
 
-        if (!Files.isDirectory(rootDir)) {
-            System.out.println("Invalid directory: " + rootDir);
-            return;
-        }
+        JPanel center = new JPanel(new BorderLayout(5, 5));
+        center.add(lbl, BorderLayout.NORTH);
+        center.add(messageField, BorderLayout.CENTER);
 
-        try (Stream<Path> paths = Files.walk(rootDir)) {
-            paths.filter(Files::isRegularFile)
-                 .forEach(SyntaxCheckerApp::validateFile);
-        }
+        JButton ok = new JButton("OK");
+        JButton cancel = new JButton("Cancel");
+
+        ok.addActionListener(e -> {
+            confirmed = true;
+            dispose();
+        });
+
+        cancel.addActionListener(e -> dispose());
+
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btns.add(ok);
+        btns.add(cancel);
+
+        main.add(center, BorderLayout.CENTER);
+        main.add(btns, BorderLayout.SOUTH);
+
+        add(main);
     }
 
-    private static void validateFile(Path file) {
-        String fileName = file.toString().toLowerCase();
-
-        try {
-            if (fileName.endsWith(".xml") || fileName.endsWith(".jsp")) {
-                validateXml(file);
-            } else if (fileName.endsWith(".properties")) {
-                validateProperties(file);
-            } else if (fileName.endsWith(".js")) {
-                validateJavaScript(file);
-            }
-        } catch (Exception e) {
-            System.err.println("❌ Syntax Error: " + file);
-            System.err.println("   Reason: " + e.getMessage());
-        }
+    public boolean isConfirmed() {
+        return confirmed;
     }
 
-    /* ================= XML / JSP ================= */
-
-    private static void validateXml(Path file) throws Exception {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(true);
-        factory.setValidating(false);
-
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        builder.parse(file.toFile());
-    }
-
-    /* ================= PROPERTIES ================= */
-
-    private static void validateProperties(Path file) throws Exception {
-        try (InputStream is = Files.newInputStream(file)) {
-            Properties props = new Properties();
-            props.load(is);
-        }
-    }
-
-    /* ================= JAVASCRIPT ================= */
-
-    private static void validateJavaScript(Path file) throws Exception {
-        if (jsEngine == null) {
-            throw new RuntimeException("Nashorn JS Engine not available");
-        }
-
-        try (Reader reader = Files.newBufferedReader(file)) {
-            jsEngine.eval(reader);
-        }
+    public String getCommitMessage() {
+        return messageField.getText().trim();
     }
 }
+
+
+
+
+
+// After file selection dialog
+List<String> selected = dlg.getSelectedFiles();
+
+if (selected.isEmpty()) {
+    JOptionPane.showMessageDialog(this, "No files selected");
+    return;
+}
+
+// Generate default commit message
+String defaultMsg =
+    CommitMessageGenerator.generate(
+        new File(Config.get("git.repo.path." + region)),
+        crNo
+    );
+
+// 🔹 NEW: Commit message confirmation dialog
+CommitMessageDialog msgDlg =
+    new CommitMessageDialog(this, defaultMsg);
+
+msgDlg.setVisible(true);
+
+if (!msgDlg.isConfirmed()) {
+    outputArea.append("Commit cancelled by user\n");
+    return;
+}
+
+String finalCommitMsg = msgDlg.getCommitMessage();
+
+if (finalCommitMsg.isEmpty()) {
+    JOptionPane.showMessageDialog(this,
+        "Commit message cannot be empty");
+    return;
+}
+
+// Proceed with commit
+executeCommit(region, finalCommitMsg, selected);
+
+
+
+
