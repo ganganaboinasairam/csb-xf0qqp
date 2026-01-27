@@ -1,31 +1,20 @@
-private static final Pattern TOOL_COMMIT_PATTERN =
-    Pattern.compile("^(CR|IR)_\\d+_\\d{6}_(\\d+)$");
+private static void validateGitIdentity(File repo) {
 
+    try {
+        String name = GitCli.run(repo, "config", "user.name");
+        String email = GitCli.run(repo, "config", "user.email");
 
-public static String generate(File repo, String crNo) throws Exception {
-
-    String date = new SimpleDateFormat("ddMMyy").format(new Date());
-    int maxSeq = 0;
-
-    String log = GitCli.run(
-        repo,
-        "log",
-        "--pretty=format:%s",
-        "--grep=" + crNo + "_" + date
-    );
-
-    for (String line : log.split("\\R")) {
-
-        Matcher m = TOOL_COMMIT_PATTERN.matcher(line.trim());
-
-        if (!m.matches()) {
-            // 🔒 Ignore user-edited or custom messages
-            continue;
+        if (name.trim().isEmpty() || email.trim().isEmpty()) {
+            throw new RuntimeException(
+                "Git user identity not configured.\n" +
+                "Please configure:\n" +
+                "git config --global user.name \"Your Name\"\n" +
+                "git config --global user.email \"you@company.com\""
+            );
         }
 
-        int seq = Integer.parseInt(m.group(2));
-        maxSeq = Math.max(maxSeq, seq);
+    } catch (Exception e) {
+        throw new RuntimeException(
+            "Git user identity validation failed", e);
     }
-
-    return crNo + "_" + date + "_" + (maxSeq + 1);
 }
