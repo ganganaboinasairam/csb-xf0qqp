@@ -1,44 +1,40 @@
-private static final int MAX_RETRIES = 3;
+in GitCli --> run with args [config, user.name]
+SSL verification DISABLED (DEV mode)
+in GitCli --> run with args [status, --porcelain]
+in GitCli --> run with args [status, --porcelain]
+in GitCli --> run with args [fetch, origin]
+in GitCli --> run with args [log, origin/PREDEV, --pretty=format:%s, --grep=123456_270126]
+in GitCli --> run with args [pull, --rebase, --autostash, origin, PREDEV]
+in GitCli --> run with args [add, base_domain/CALJS/FUNCLEVEL/SYF_EXBL_GTFC_GRANT_ADVANCE_DEO.js]
+in GitCli --> run with args [config, user.name]
+in GitCli --> run with args [config, user.email]
+in GitCli --> run with args [push, origin, PREDEV]
+in GitCli --> run with args [status, --porcelain]
 
-public static void commitWithRetry(
-        File repo,
-        String branch,
-        String commitMsg,
-        List<String> files,
-        Consumer<String> log) throws Exception {
 
-    for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
 
-        log.accept("Attempt " + attempt + " of " + MAX_RETRIES);
+app output: 
+===============================================================================
+GIT STATUS CHECK || EE
+===============================================================================
+[INFO] Checking status in: E:\gitClone\tf_ee_pre_dev
+[FILE] base_domain/CALJS/FUNCLEVEL/SYF_EXBL_GTFC_GRANT_ADVANCE_DEO.js
 
-        try {
-            // Sync first
-            GitCli.run(repo, "pull", "--rebase", "--autostash", "origin", branch);
+===================================DONE========================================
+Attempt 1 of 3
+[INFO] Pulling latest changes (rebase)...
+Staging selected files...
+Added: base_domain/CALJS/FUNCLEVEL/SYF_EXBL_GTFC_GRANT_ADVANCE_DEO.js
+[INFO] Commit message generated: CR_123456_270126_6
+[INFO] Pushing to origin/PREDEV...
+Commit pushed successfully
 
-            // Stage
-            for (String f : files) {
-                GitCli.run(repo, "add", f);
-            }
+===================================DONE========================================
 
-            // Commit
-            GitCli.run(repo, "commit", "-m", commitMsg);
+===============================================================================
+GIT STATUS CHECK || EE
+===============================================================================
+[INFO] Checking status in: E:\gitClone\tf_ee_pre_dev
+[FILE] base_domain/CALJS/FUNCLEVEL/SYF_EXBL_GTFC_GRANT_ADVANCE_DEO.js
 
-            // Push
-            GitCli.run(repo, "push", "origin", branch);
-
-            log.accept("Commit pushed successfully");
-            return;
-
-        } catch (RuntimeException e) {
-
-            String msg = e.getMessage();
-
-            if (msg.contains("non-fast-forward") && attempt < MAX_RETRIES) {
-                log.accept("Push rejected (non-fast-forward). Retrying...");
-                continue;
-            }
-
-            throw e; // real failure
-        }
-    }
-}
+===================================DONE========================================
