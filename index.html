@@ -1,6 +1,44 @@
-git pull --rebase origin PREDEV
-error: cannot pull with rebase: Your index contains uncommitted changes.
-error: please commit or stash them.
+private static final int MAX_RETRIES = 3;
 
+public static void commitWithRetry(
+        File repo,
+        String branch,
+        String commitMsg,
+        List<String> files,
+        Consumer<String> log) throws Exception {
 
-if i do pull rebase before staging 
+    for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+
+        log.accept("Attempt " + attempt + " of " + MAX_RETRIES);
+
+        try {
+            // Sync first
+            GitCli.run(repo, "pull", "--rebase", "--autostash", "origin", branch);
+
+            // Stage
+            for (String f : files) {
+                GitCli.run(repo, "add", f);
+            }
+
+            // Commit
+            GitCli.run(repo, "commit", "-m", commitMsg);
+
+            // Push
+            GitCli.run(repo, "push", "origin", branch);
+
+            log.accept("Commit pushed successfully");
+            return;
+
+        } catch (RuntimeException e) {
+
+            String msg = e.getMessage();
+
+            if (msg.contains("non-fast-forward") && attempt < MAX_RETRIES) {
+                log.accept("Push rejected (non-fast-forward). Retrying...");
+                continue;
+            }
+
+            throw e; // real failure
+        }
+    }
+}
