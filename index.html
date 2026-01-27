@@ -1,104 +1,31 @@
-package com.tcs.git.ui;
-
-import javax.swing.*;
-import java.awt.*;
-
-public class CommitMessageDialog extends JDialog {
-
-    private static final long serialVersionUID = 1L;
-
-    private JTextField messageField;
-    private boolean confirmed = false;
-
-    public CommitMessageDialog(Frame parent, String defaultMsg) {
-        super(parent, "Confirm Commit Message", true);
-        setSize(450, 180);
-        setLocationRelativeTo(parent);
-        initUI(defaultMsg);
-    }
-
-    private void initUI(String defaultMsg) {
-
-        JPanel main = new JPanel(new BorderLayout(10, 10));
-        main.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        JLabel lbl = new JLabel("Commit Message:");
-        messageField = new JTextField(defaultMsg, 30);
-
-        JPanel center = new JPanel(new BorderLayout(5, 5));
-        center.add(lbl, BorderLayout.NORTH);
-        center.add(messageField, BorderLayout.CENTER);
-
-        JButton ok = new JButton("OK");
-        JButton cancel = new JButton("Cancel");
-
-        ok.addActionListener(e -> {
-            confirmed = true;
-            dispose();
-        });
-
-        cancel.addActionListener(e -> dispose());
-
-        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        btns.add(ok);
-        btns.add(cancel);
-
-        main.add(center, BorderLayout.CENTER);
-        main.add(btns, BorderLayout.SOUTH);
-
-        add(main);
-    }
-
-    public boolean isConfirmed() {
-        return confirmed;
-    }
-
-    public String getCommitMessage() {
-        return messageField.getText().trim();
-    }
-}
+private static final Pattern TOOL_COMMIT_PATTERN =
+    Pattern.compile("^(CR|IR)_\\d+_\\d{6}_(\\d+)$");
 
 
+public static String generate(File repo, String crNo) throws Exception {
 
+    String date = new SimpleDateFormat("ddMMyy").format(new Date());
+    int maxSeq = 0;
 
-
-// After file selection dialog
-List<String> selected = dlg.getSelectedFiles();
-
-if (selected.isEmpty()) {
-    JOptionPane.showMessageDialog(this, "No files selected");
-    return;
-}
-
-// Generate default commit message
-String defaultMsg =
-    CommitMessageGenerator.generate(
-        new File(Config.get("git.repo.path." + region)),
-        crNo
+    String log = GitCli.run(
+        repo,
+        "log",
+        "--pretty=format:%s",
+        "--grep=" + crNo + "_" + date
     );
 
-// 🔹 NEW: Commit message confirmation dialog
-CommitMessageDialog msgDlg =
-    new CommitMessageDialog(this, defaultMsg);
+    for (String line : log.split("\\R")) {
 
-msgDlg.setVisible(true);
+        Matcher m = TOOL_COMMIT_PATTERN.matcher(line.trim());
 
-if (!msgDlg.isConfirmed()) {
-    outputArea.append("Commit cancelled by user\n");
-    return;
+        if (!m.matches()) {
+            // 🔒 Ignore user-edited or custom messages
+            continue;
+        }
+
+        int seq = Integer.parseInt(m.group(2));
+        maxSeq = Math.max(maxSeq, seq);
+    }
+
+    return crNo + "_" + date + "_" + (maxSeq + 1);
 }
-
-String finalCommitMsg = msgDlg.getCommitMessage();
-
-if (finalCommitMsg.isEmpty()) {
-    JOptionPane.showMessageDialog(this,
-        "Commit message cannot be empty");
-    return;
-}
-
-// Proceed with commit
-executeCommit(region, finalCommitMsg, selected);
-
-
-
-
