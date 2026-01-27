@@ -1,33 +1,32 @@
-private JLabel statusLabel;
+public static void main(String[] args) {
+		File repo;
+		repo = new File(Config.get("git.repo.path.ee"));
+		AppLogger.logSeparator();
+		AppLogger.log("Application started");
+		try {
+			AppLogger.log("User: " + GitCli.run(repo, "config", "user.name"));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		AppLogger.logSeparator();
 
-statusLabel = new JLabel(" ");
-statusLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
-statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
-statusLabel.setForeground(new Color(60, 60, 60));
+		SSLUtil.disableSSLVerification();
 
-/* ================= OUTPUT AREA ================= */
-outputArea = new JTextArea();
-outputArea.setEditable(false);
-outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
-JScrollPane scroll = new JScrollPane(outputArea);
+		SwingUtilities.invokeLater(() -> {
 
-/* ================= STATUS LABEL ================= */
-statusLabel = new JLabel(" ");
-statusLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
-statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
-statusLabel.setForeground(new Color(60, 60, 60));
+			ConfigDialog dialog = new ConfigDialog(null);
+			dialog.setVisible(true);
 
-/* ================= CENTER WRAPPER ================= */
-JPanel centerPanel = new JPanel(new BorderLayout());
-centerPanel.add(statusLabel, BorderLayout.NORTH);
-centerPanel.add(scroll, BorderLayout.CENTER);
+			// DO NOT proceed unless config is saved
+			if (!dialog.isSaved()) {
+				System.exit(0);
+			}
 
-/* ================= MAIN VERTICAL SPLIT ================= */
-JSplitPane verticalSplit =
-    new JSplitPane(JSplitPane.VERTICAL_SPLIT, top, centerPanel);
+			new MainUI().setVisible(true);
+		});
+	}
 
-verticalSplit.setResizeWeight(0.65); // top vs output+status
-verticalSplit.setDividerSize(6);
-verticalSplit.setContinuousLayout(true);
 
-add(verticalSplit, BorderLayout.CENTER);
+
+    if every detail is filed in the config dialog of in the properties no need to open the config dialog 
