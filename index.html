@@ -1,20 +1,18 @@
-private static void validateGitIdentity(File repo) {
+@Override
+protected void done() {
+    outputArea.append("\n===================================DONE========================================\n");
+    pushButton.setEnabled(true);
 
     try {
-        String name = GitCli.run(repo, "config", "user.name");
-        String email = GitCli.run(repo, "config", "user.email");
+        get();
 
-        if (name.trim().isEmpty() || email.trim().isEmpty()) {
-            throw new RuntimeException(
-                "Git user identity not configured.\n" +
-                "Please configure:\n" +
-                "git config --global user.name \"Your Name\"\n" +
-                "git config --global user.email \"you@company.com\""
-            );
-        }
+    } catch (ExecutionException ex) {
+        Throwable cause = ex.getCause();
+        outputArea.append("\nERROR: " + cause.getMessage());
+        cause.printStackTrace();
 
-    } catch (Exception e) {
-        throw new RuntimeException(
-            "Git user identity validation failed", e);
+    } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        outputArea.append("\nERROR: Operation interrupted");
     }
 }
