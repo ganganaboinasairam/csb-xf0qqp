@@ -1,18 +1,5 @@
-@Override
-protected void done() {
-    outputArea.append("\n===================================DONE========================================\n");
-    pushButton.setEnabled(true);
-
-    try {
-        get();
-
-    } catch (ExecutionException ex) {
-        Throwable cause = ex.getCause();
-        outputArea.append("\nERROR: " + cause.getMessage());
-        cause.printStackTrace();
-
-    } catch (InterruptedException ex) {
-        Thread.currentThread().interrupt();
-        outputArea.append("\nERROR: Operation interrupted");
-    }
-}
+// Generate default commit message
+			GitCli.run(repo, "stash");
+			GitAutomationService.rebase(region, null);
+			String defaultMsg = CommitMessageGenerator.generate(new File(Config.get("git.repo.path." + region)), crNo);
+			GitCli.run(repo, "stash","apply");
