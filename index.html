@@ -1,214 +1,148 @@
 private void runTask() {
 
-		String region = regionBox.getSelectedItem().toString().toLowerCase();
-		String crNo = crField.getText().trim();
-		File repo = new File(Config.get("git.repo.path." + region));
+    String region = regionBox.getSelectedItem().toString().toLowerCase();
+    String crNo = crField.getText().trim();
 
-		if (!crNo.matches("\\d+")) {
-			JOptionPane.showMessageDialog(this, "Invalid CR Number");
-			return;
-		}
-
-		try {
-			List<String> files = GitAutomationService.getChangedFiles(region);
-
-			if (files.isEmpty()) {
-				JOptionPane.showMessageDialog(this, "No changes to commit");
-				return;
-			}
-
-			FileSelectionDialog dlg = new FileSelectionDialog(this, files);
-
-			dlg.setVisible(true);
-
-			if (!dlg.isConfirmed()) {
-				log("Commit cancelled by user\n");
-				return;
-			}
-
-			List<String> selected = dlg.getSelectedFiles();
-
-			if (selected.isEmpty()) {
-				JOptionPane.showMessageDialog(this, "No files selected");
-				return;
-			}
-
-			// Generate default commit message
-			GitCli.run(repo, "fetch", "origin");
-			String defaultMsg = CommitMessageGenerator.generate(new File(Config.get("git.repo.path." + region)), crNo,
-					region);
-
-			// NEW: Commit message confirmation dialog
-			CommitMessageDialog msgDlg = new CommitMessageDialog(this, defaultMsg);
-
-			msgDlg.setVisible(true);
-
-			if (!msgDlg.isConfirmed()) {
-				log("Commit cancelled by user\n");
-				return;
-			}
-
-			String finalCommitMsg = msgDlg.getCommitMessage();
-
-			if (finalCommitMsg.isEmpty()) {
-				JOptionPane.showMessageDialog(this, "Commit message cannot be empty");
-				return;
-			}
-
-			// Proceed with commit
-			executeCommit(region, finalCommitMsg, selected);
-
-		} catch (Exception e) {
-			log("ERROR: " + e.getMessage() + "\n");
-		}
-	}
-
-
-
-
-        package com.tcs.git.ui;
-
-import javax.swing.*;
-import java.awt.*;
-
-public class CommitMessageDialog extends JDialog {
-
-    private static final long serialVersionUID = 1L;
-
-    private JTextField messageField;
-    private boolean confirmed = false;
-
-    public CommitMessageDialog(Frame parent, String defaultMsg) {
-        super(parent, "Confirm Commit Message", true);
-        setSize(450, 180);
-        setLocationRelativeTo(parent);
-        initUI(defaultMsg);
+    if (!crNo.matches("\\d+")) {
+        JOptionPane.showMessageDialog(this, "Invalid CR Number");
+        return;
     }
 
-    private void initUI(String defaultMsg) {
+    setBusy(true, "Preparing commit...");
 
-        JPanel main = new JPanel(new BorderLayout(10, 10));
-        main.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    SwingWorker<CommitPrepResult, Void> worker =
+        new SwingWorker<CommitPrepResult, Void>() {
 
-        JLabel lbl = new JLabel("Commit Message:");
-        messageField = new JTextField(defaultMsg, 30);
+            @Override
+            protected CommitPrepResult doInBackground() throws Exception {
 
-        JPanel center = new JPanel(new BorderLayout(5, 5));
-        center.add(lbl, BorderLayout.NORTH);
-        center.add(messageField, BorderLayout.CENTER);
+                List<String> files =
+                    GitAutomationService.getChangedFiles(region);
 
-        JButton ok = new JButton("OK");
-        JButton cancel = new JButton("Cancel");
+                if (files.isEmpty()) {
+                    return CommitPrepResult.noChanges();
+                }
 
-        ok.addActionListener(e -> {
-            confirmed = true;
-            dispose();
-        });
+                File repo = new File(
+                    Config.get("git.repo.path." + region));
 
-        cancel.addActionListener(e -> dispose());
+                GitCli.run(repo, "fetch", "origin");
 
-        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        btns.add(ok);
-        btns.add(cancel);
+                String defaultMsg =
+                    CommitMessageGenerator.generate(repo, crNo, region);
 
-        main.add(center, BorderLayout.CENTER);
-        main.add(btns, BorderLayout.SOUTH);
+                return CommitPrepResult.success(files, defaultMsg);
+            }
 
-        add(main);
+            @Override
+            protected void done() {
+                setBusy(false, null);
+
+                try {
+                    CommitPrepResult result = get();
+
+                    if (result.noChanges) {
+                        JOptionPane.showMessageDialog(
+                            MainUI.this, "No changes to commit");
+                        return;
+                    }
+
+                    showFileSelection(result);
+
+                } catch (Exception ex) {
+                    log("ERROR: " + ex.getMessage() + "\n");
+                }
+            }
+        };
+
+    worker.execute();
+}
+
+
+class CommitPrepResult {
+
+    final boolean noChanges;
+    final List<String> files;
+    final String defaultMsg;
+
+    private CommitPrepResult(
+        boolean noChanges,
+        List<String> files,
+        String defaultMsg) {
+
+        this.noChanges = noChanges;
+        this.files = files;
+        this.defaultMsg = defaultMsg;
     }
 
-    public boolean isConfirmed() {
-        return confirmed;
+    static CommitPrepResult noChanges() {
+        return new CommitPrepResult(true, null, null);
     }
 
-    public String getCommitMessage() {
-        return messageField.getText().trim();
+    static CommitPrepResult success(
+        List<String> files, String msg) {
+
+        return new CommitPrepResult(false, files, msg);
     }
 }
 
-package com.tcs.git.ui;
 
-import javax.swing.*;
-import java.awt.*;
-import java.util.*;
-import java.util.List;
+private void showFileSelection(CommitPrepResult result) {
 
-public class FileSelectionDialog extends JDialog {
+    FileSelectionDialog dlg =
+        new FileSelectionDialog(this, result.files);
 
-    private static final long serialVersionUID = 1L;
+    dlg.setVisible(true);
 
-    private final Map<JCheckBox, String> fileMap = new LinkedHashMap<>();
-    private boolean confirmed = false;
-
-    public FileSelectionDialog(Frame parent, List<String> files) {
-        super(parent, "Select Files to Commit", true);
-        setSize(500, 400);
-        setLocationRelativeTo(parent);
-        initUI(files);
+    if (!dlg.isConfirmed()) {
+        log("Commit cancelled by user\n");
+        return;
     }
 
-    private void initUI(List<String> files) {
+    List<String> selected = dlg.getSelectedFiles();
 
-        JPanel main = new JPanel(new BorderLayout(5, 5));
-
-        /* ================= FILE LIST ================= */
-        JPanel listPanel = new JPanel();
-        listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
-
-        for (String file : files) {
-            JCheckBox cb = new JCheckBox(file, true);
-            fileMap.put(cb, file);
-            listPanel.add(cb);
-        }
-
-        JScrollPane scroll = new JScrollPane(listPanel);
-
-        /* ================= BUTTON BAR ================= */
-        JButton selectAll = new JButton("Select All");
-        JButton deselectAll = new JButton("Deselect All");
-        JButton ok = new JButton("Commit");
-        JButton cancel = new JButton("Cancel");
-
-        selectAll.addActionListener(e ->
-            fileMap.keySet().forEach(cb -> cb.setSelected(true))
-        );
-
-        deselectAll.addActionListener(e ->
-            fileMap.keySet().forEach(cb -> cb.setSelected(false))
-        );
-
-        ok.addActionListener(e -> {
-            confirmed = true;
-            dispose();
-        });
-
-        cancel.addActionListener(e -> dispose());
-
-        JPanel btnBar = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        btnBar.add(selectAll);
-        btnBar.add(deselectAll);
-        btnBar.add(ok);
-        btnBar.add(cancel);
-
-        main.add(scroll, BorderLayout.CENTER);
-        main.add(btnBar, BorderLayout.SOUTH);
-
-        add(main);
+    if (selected.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "No files selected");
+        return;
     }
 
-    public boolean isConfirmed() {
-        return confirmed;
+    showCommitConfirmation(result.defaultMsg, selected);
+}
+
+
+private void showCommitConfirmation(
+    String defaultMsg,
+    List<String> selectedFiles) {
+
+    CommitMessageDialog msgDlg =
+        new CommitMessageDialog(this, defaultMsg);
+
+    msgDlg.setVisible(true);
+
+    if (!msgDlg.isConfirmed()) {
+        log("Commit cancelled by user\n");
+        return;
     }
 
-    public List<String> getSelectedFiles() {
+    String finalMsg = msgDlg.getCommitMessage();
 
-        List<String> selected = new ArrayList<>();
-
-        for (Map.Entry<JCheckBox, String> e : fileMap.entrySet()) {
-            if (e.getKey().isSelected()) {
-                selected.add(e.getValue());
-            }
-        }
-        return selected;
+    if (finalMsg.isEmpty()) {
+        JOptionPane.showMessageDialog(
+            this, "Commit message cannot be empty");
+        return;
     }
+
+    executeCommit(
+        regionBox.getSelectedItem().toString().toLowerCase(),
+        finalMsg,
+        selectedFiles);
+}
+
+
+private void setBusy(boolean busy, String msg) {
+    pushButton.setEnabled(!busy);
+    statusLabel.setText(busy ? msg : "");
+    setCursor(busy
+        ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
+        : Cursor.getDefaultCursor());
 }
