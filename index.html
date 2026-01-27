@@ -1,148 +1,21 @@
-private void runTask() {
+JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, gitPanel, jenkinsPanel);
+		split.setResizeWeight(0.5);
+		split.setDividerSize(6);
+		split.setContinuousLayout(true);
 
-    String region = regionBox.getSelectedItem().toString().toLowerCase();
-    String crNo = crField.getText().trim();
+		top.add(split, BorderLayout.CENTER);
 
-    if (!crNo.matches("\\d+")) {
-        JOptionPane.showMessageDialog(this, "Invalid CR Number");
-        return;
-    }
+		/* ================= OUTPUT AREA ================= */
+		outputArea = new JTextArea();
+		outputArea.setEditable(false);
+		outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
+		JScrollPane scroll = new JScrollPane(outputArea);
 
-    setBusy(true, "Preparing commit...");
+		/* ================= MAIN VERTICAL SPLIT ================= */
+		JSplitPane verticalSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, top, scroll);
 
-    SwingWorker<CommitPrepResult, Void> worker =
-        new SwingWorker<CommitPrepResult, Void>() {
+		verticalSplit.setResizeWeight(0.05); // 65% top, 35% output
+		verticalSplit.setDividerSize(6);
+		verticalSplit.setContinuousLayout(true);
 
-            @Override
-            protected CommitPrepResult doInBackground() throws Exception {
-
-                List<String> files =
-                    GitAutomationService.getChangedFiles(region);
-
-                if (files.isEmpty()) {
-                    return CommitPrepResult.noChanges();
-                }
-
-                File repo = new File(
-                    Config.get("git.repo.path." + region));
-
-                GitCli.run(repo, "fetch", "origin");
-
-                String defaultMsg =
-                    CommitMessageGenerator.generate(repo, crNo, region);
-
-                return CommitPrepResult.success(files, defaultMsg);
-            }
-
-            @Override
-            protected void done() {
-                setBusy(false, null);
-
-                try {
-                    CommitPrepResult result = get();
-
-                    if (result.noChanges) {
-                        JOptionPane.showMessageDialog(
-                            MainUI.this, "No changes to commit");
-                        return;
-                    }
-
-                    showFileSelection(result);
-
-                } catch (Exception ex) {
-                    log("ERROR: " + ex.getMessage() + "\n");
-                }
-            }
-        };
-
-    worker.execute();
-}
-
-
-class CommitPrepResult {
-
-    final boolean noChanges;
-    final List<String> files;
-    final String defaultMsg;
-
-    private CommitPrepResult(
-        boolean noChanges,
-        List<String> files,
-        String defaultMsg) {
-
-        this.noChanges = noChanges;
-        this.files = files;
-        this.defaultMsg = defaultMsg;
-    }
-
-    static CommitPrepResult noChanges() {
-        return new CommitPrepResult(true, null, null);
-    }
-
-    static CommitPrepResult success(
-        List<String> files, String msg) {
-
-        return new CommitPrepResult(false, files, msg);
-    }
-}
-
-
-private void showFileSelection(CommitPrepResult result) {
-
-    FileSelectionDialog dlg =
-        new FileSelectionDialog(this, result.files);
-
-    dlg.setVisible(true);
-
-    if (!dlg.isConfirmed()) {
-        log("Commit cancelled by user\n");
-        return;
-    }
-
-    List<String> selected = dlg.getSelectedFiles();
-
-    if (selected.isEmpty()) {
-        JOptionPane.showMessageDialog(this, "No files selected");
-        return;
-    }
-
-    showCommitConfirmation(result.defaultMsg, selected);
-}
-
-
-private void showCommitConfirmation(
-    String defaultMsg,
-    List<String> selectedFiles) {
-
-    CommitMessageDialog msgDlg =
-        new CommitMessageDialog(this, defaultMsg);
-
-    msgDlg.setVisible(true);
-
-    if (!msgDlg.isConfirmed()) {
-        log("Commit cancelled by user\n");
-        return;
-    }
-
-    String finalMsg = msgDlg.getCommitMessage();
-
-    if (finalMsg.isEmpty()) {
-        JOptionPane.showMessageDialog(
-            this, "Commit message cannot be empty");
-        return;
-    }
-
-    executeCommit(
-        regionBox.getSelectedItem().toString().toLowerCase(),
-        finalMsg,
-        selectedFiles);
-}
-
-
-private void setBusy(boolean busy, String msg) {
-    pushButton.setEnabled(!busy);
-    statusLabel.setText(busy ? msg : "");
-    setCursor(busy
-        ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
-        : Cursor.getDefaultCursor());
-}
+		add(verticalSplit, BorderLayout.CENTER);
