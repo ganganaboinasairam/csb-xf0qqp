@@ -1,5 +1,66 @@
-// Generate default commit message
-			GitCli.run(repo, "stash");
-			GitAutomationService.rebase(region, null);
-			String defaultMsg = CommitMessageGenerator.generate(new File(Config.get("git.repo.path." + region)), crNo);
-			GitCli.run(repo, "stash","apply");
+console output:
+in GitCli --> run with args [config, user.name]
+SSL verification DISABLED (DEV mode)
+in GitCli --> run with args [status, --porcelain]
+in GitCli --> run with args [status, --porcelain]
+in GitCli --> run with args [fetch, origin]
+in GitCli --> run with args [log, origin/PREDEV, --pretty=format:%s, --grep=123456_270126]
+in GitCli --> run with args [add, base_domain/CALJS/FUNCLEVEL/SYF_EXBL_GTFC_GRANT_ADVANCE_DEO.js]
+in GitCli --> run with args [config, user.name]
+in GitCli --> run with args [config, user.email]
+in GitCli --> run with args [pull, --rebase, origin, PREDEV]
+java.lang.RuntimeException: Git command failed(E:/git/GIT/bin/git.exe pull --rebase origin PREDEV)
+error: cannot pull with rebase: Your index contains uncommitted changes.
+error: please commit or stash them.
+
+in GitCli --> run with args [push, origin, PREDEV]
+	at com.tcs.git.GitCli.run(GitCli.java:45)
+	at com.tcs.git.GitAutomationService.commitSelected(GitAutomationService.java:69)
+	at com.tcs.git.MainUI$2.doInBackground(MainUI.java:335)
+	at com.tcs.git.MainUI$2.doInBackground(MainUI.java:1)
+	at javax.swing.SwingWorker$1.call(SwingWorker.java:295)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at javax.swing.SwingWorker.run(SwingWorker.java:334)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	at java.lang.Thread.run(Thread.java:748)
+java.lang.RuntimeException: Git command failed(E:/git/GIT/bin/git.exe push origin PREDEV)
+To https://10.177.140.236/gitlab/root/tf_ee_pre_dev.git
+ ! [rejected]              PREDEV -> PREDEV (non-fast-forward)
+error: failed to push some refs to 'https://V1013325:LWZ_pJKsaEHkAvFc6xWk@10.177.140.236/gitlab/root/tf_ee_pre_dev.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. Integrate the remote changes (e.g.
+hint: 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+
+	at com.tcs.git.GitCli.run(GitCli.java:45)
+	at com.tcs.git.GitAutomationService.commitSelected(GitAutomationService.java:78)
+	at com.tcs.git.MainUI$2.doInBackground(MainUI.java:335)
+	at com.tcs.git.MainUI$2.doInBackground(MainUI.java:1)
+	at javax.swing.SwingWorker$1.call(SwingWorker.java:295)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at javax.swing.SwingWorker.run(SwingWorker.java:334)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+	at java.lang.Thread.run(Thread.java:748)
+
+
+
+
+application output: 
+
+===============================================================================
+GIT STATUS CHECK || EE
+===============================================================================
+[INFO] Checking status in: E:\gitClone\tf_ee_pre_dev
+[FILE] base_domain/CALJS/FUNCLEVEL/SYF_EXBL_GTFC_GRANT_ADVANCE_DEO.js
+
+===================================DONE========================================
+Staging selected files...
+Added: base_domain/CALJS/FUNCLEVEL/SYF_EXBL_GTFC_GRANT_ADVANCE_DEO.js
+[INFO] Commit message generated: CR_123456_270126_6
+[INFO] Pulling latest changes (rebase)...
+[INFO] Pushing to origin/PREDEV...
+Commit pushed successfully
+
+===================================DONE========================================
