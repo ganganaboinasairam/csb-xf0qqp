@@ -1,246 +1,93 @@
-//MainUI code 
-
-private void runTask() {
-
-	    String region = regionBox.getSelectedItem().toString().toLowerCase();
-	    String crNo = crField.getText().trim();
-
-	    if (!crNo.matches("\\d+")) {
-	        JOptionPane.showMessageDialog(this, "Invalid CR Number");
-	        return;
-	    }
-
-	    setBusy(true, "Preparing commit...");
-
-	    SwingWorker<CommitPrepResult, Void> worker =
-	        new SwingWorker<CommitPrepResult, Void>() {
-
-	            @Override
-	            protected CommitPrepResult doInBackground() throws Exception {
-
-	                List<String> files =
-	                    GitAutomationService.getChangedFiles(region);
-
-	                if (files.isEmpty()) {
-	                    return CommitPrepResult.noChanges();
-	                }
-
-	                File repo = new File(
-	                    Config.get("git.repo.path." + region));
-
-	                GitCli.run(repo, "fetch", "origin");
-
-	                String defaultMsg =
-	                    CommitMessageGenerator.generate(repo, crNo, region);
-
-	                return CommitPrepResult.success(files, defaultMsg);
-	            }
-
-	            @Override
-	            protected void done() {
-	                setBusy(false, null);
-
-	                try {
-	                    CommitPrepResult result = get();
-
-	                    if (result.noChanges) {
-	                        JOptionPane.showMessageDialog(
-	                            MainUI.this, "No changes to commit");
-	                        return;
-	                    }
-
-	                    showFileSelection(result);
-
-	                } catch (Exception ex) {
-	                    log("ERROR: " + ex.getMessage() + "\n");
-	                }
-	            }
-	        };
-
-	    worker.execute();
-	}
-	
-	private void showFileSelection(CommitPrepResult result) {
-
-	    FileSelectionDialog dlg =
-	        new FileSelectionDialog(this, result.files);
-
-	    dlg.setVisible(true);
-
-	    if (!dlg.isConfirmed()) {
-	        log("Commit cancelled by user\n");
-	        return;
-	    }
-
-	    List<String> selected = dlg.getSelectedFiles();
-
-	    if (selected.isEmpty()) {
-	        JOptionPane.showMessageDialog(this, "No files selected");
-	        return;
-	    }
-
-	    showCommitConfirmation(result.defaultMsg, selected);
-	}
-	
-	private void showCommitConfirmation(
-		    String defaultMsg,
-		    List<String> selectedFiles) {
-
-		    CommitMessageDialog msgDlg =
-		        new CommitMessageDialog(this, defaultMsg);
-
-		    msgDlg.setVisible(true);
-
-		    if (!msgDlg.isConfirmed()) {
-		        log("Commit cancelled by user\n");
-		        return;
-		    }
-
-		    String finalMsg = msgDlg.getCommitMessage();
-
-		    if (finalMsg.isEmpty()) {
-		        JOptionPane.showMessageDialog(
-		            this, "Commit message cannot be empty");
-		        return;
-		    }
-
-		    executeCommit(
-		        regionBox.getSelectedItem().toString().toLowerCase(),
-		        finalMsg,
-		        selectedFiles);
-		}
-	
-	private void setBusy(boolean busy, String msg) {
-	    pushButton.setEnabled(!busy);
-		statusLabel.setText(busy ? msg : "");
-	    setCursor(busy
-	        ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
-	        : Cursor.getDefaultCursor());
-	}
-
-	private void executeCommit(String region, String commitMsg, List<String> files) {
-
-		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
-
-			protected Void doInBackground() throws Exception {
-
-				GitAutomationService.commitSelected(region, commitMsg, files, msg -> publish(msg));
-				return null;
-			}
-
-			protected void process(List<String> msgs) {
-				msgs.forEach(m -> log(m + "\n"));
-			}
-
-			@Override
-			protected void done() {
-				outputArea
-						.append("\n===================================DONE========================================\n");
-				pushButton.setEnabled(true);
-				try {
-					get();
-
-				} catch (ExecutionException ex) {
-					Throwable cause = ex.getCause();
-					log("\nERROR: " + cause.getMessage());
-					cause.printStackTrace();
-
-				} catch (InterruptedException ex) {
-					Thread.currentThread().interrupt();
-					log("\nERROR: Operation interrupted");
-				}
-			}
-
-		};
-
-		worker.execute();
-	}
+private void setBusy(boolean busy, String msg) {
+    pushButton.setEnabled(!busy);
+    progressBar.setVisible(busy);
+    progressBar.setIndeterminate(busy);
+    statusLabel.setText(msg != null ? msg : " ");
+    setCursor(busy
+        ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
+        : Cursor.getDefaultCursor());
+}
 
 
-//genkinsAutomaition code 
+public static void commitSelected(
+    String region,
+    String commitMsg,
+    List<String> files,
+    Consumer<String> log,
+    Consumer<CommitStage> stageUpdate,
+    IntConsumer progress
+)
 
-                public static void commitSelected(String region, String commitMsg, List<String> files, Consumer<String> log)
-			throws Exception {
 
-		File repo = new File(Config.get("git.repo.path." + region));
-		String branch = Config.get("git.branch.name." + region);
-
-		for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-
-			log.accept("Attempt " + attempt + " of " + MAX_RETRIES);
-
-			try {
-				// Sync first
-				try {
-					info(log, "Pulling latest changes (rebase)...");
-					rebase(region, log);
-				} catch (Exception e) {
-					error(log, "Rebase failed — resolve conflicts and retry");
-					exception(log, e);
-					return;
-				}
-
-				log.accept("Staging selected files...");
-
-				for (String f : files) {
-					GitCli.run(repo, "add", f);
-					log.accept("Added: " + f);
-				}
-
-				gitHelper.validateGitIdentity(repo, MainUI.getInstance());
-
-				try {
-					info(log, "Commiting changes .... with commit message: " + commitMsg);
-					GitCli.run(repo, "commit", "-m", commitMsg);
-				} catch (Exception e) {
-					error(log, "Failed to generate commit message");
-					exception(log, e);
-					return;
-				}
-				
-				try {
-					String commitHash = GitCli.run(repo, "rev-parse","HEAD").trim();
-					info(log, "Commiting Hash: " + commitHash);
-				} catch (Exception e) {
-					error(log, "Failed to get commit HASH");
-					exception(log, e);
-					return;
-				}
-
-				verifyCommitBeforePush(repo, branch, commitMsg, files, log);
-
-				try {
-					info(log, "Pushing to origin/" + branch + "...");
-					GitCli.run(repo, "push", "origin", branch);
-				} catch (Exception e) {
-					error(log, "Push failed (non-fast-forward or auth issue)");
-					exception(log, e);
-					return;
-				}
-
-				log.accept("Commit pushed successfully");
-				try {
-					MainUI.commitMsgField.setText(commitMsg);
-				} catch (Exception ignore) {
-				}
-				return;
-
-			} catch (RuntimeException e) {
-
-				String msg = e.getMessage();
-
-				if (msg.contains("non-fast-forward") && attempt < MAX_RETRIES) {
-					log.accept("Push rejected (non-fast-forward). Retrying...");
-					continue;
-				}
-
-				throw e; // real failure
-			}
-		}
-
-	}
+public enum CommitStage {
+    PREPARING,
+    REBASING,
+    STAGING,
+    COMMITTING,
+    VERIFYING,
+    PUSHING,
+    DONE
+}
 
 
 
-    iam observing very slow process in commiting and user is not knowing the process in the frontend , we can speed up the process and show graphical process
-            
+
+stageUpdate.accept(CommitStage.REBASING);
+progress.accept(15);
+info(log, "Rebasing with remote...");
+GitCli.run(repo, "pull", "--rebase", "--autostash", "origin", branch);
+
+stageUpdate.accept(CommitStage.STAGING);
+progress.accept(35);
+for (String f : files) {
+    GitCli.run(repo, "add", f);
+}
+
+stageUpdate.accept(CommitStage.COMMITTING);
+progress.accept(55);
+GitCli.run(repo, "commit", "-m", commitMsg);
+
+stageUpdate.accept(CommitStage.VERIFYING);
+progress.accept(70);
+verifyCommitBeforePush(repo, branch, commitMsg, files, log);
+
+stageUpdate.accept(CommitStage.PUSHING);
+progress.accept(85);
+GitCli.run(repo, "push", "origin", branch);
+
+stageUpdate.accept(CommitStage.DONE);
+progress.accept(100);
+log.accept("Commit pushed successfully");
+
+
+SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+
+    protected Void doInBackground() throws Exception {
+
+        GitAutomationService.commitSelected(
+            region,
+            commitMsg,
+            files,
+            msg -> publish(msg),
+            stage -> SwingUtilities.invokeLater(() ->
+                statusLabel.setText("Step: " + stage)
+            ),
+            percent -> SwingUtilities.invokeLater(() ->
+                progressBar.setValue(percent)
+            )
+        );
+        return null;
+    }
+
+    protected void process(List<String> msgs) {
+        msgs.forEach(m -> log(m + "\n"));
+    }
+
+    protected void done() {
+        setBusy(false, "Commit complete");
+        progressBar.setValue(0);
+    }
+};
+
+
+
