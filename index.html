@@ -1,35 +1,52 @@
 /* ================= SPLIT PANE ================= */
-		JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, gitPanel, jenkinsPanel);
-		split.setResizeWeight(0.5);
-		split.setDividerSize(6);
-		split.setContinuousLayout(true);
+JSplitPane split =
+    new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, gitPanel, jenkinsPanel);
+split.setResizeWeight(0.5);
+split.setDividerSize(6);
+split.setContinuousLayout(true);
 
-		top.add(split, BorderLayout.CENTER);
-		
+top.add(split, BorderLayout.CENTER);
 
-		/* ================= OUTPUT AREA ================= */
-		outputArea = new JTextArea();
-		outputArea.setEditable(false);
-		outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
-		JScrollPane scroll = new JScrollPane(outputArea);
 
-		/* ================= STATUS LABEL ================= */
-		statusLabel = new JLabel(" ");
-		statusLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
-		statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
-		statusLabel.setForeground(new Color(60, 60, 60));
+/* ================= OUTPUT AREA ================= */
+outputArea = new JTextArea();
+outputArea.setEditable(false);
+outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
+JScrollPane scroll = new JScrollPane(outputArea);
 
-		/* ================= CENTER WRAPPER ================= */
-		JPanel centerPanel = new JPanel(new BorderLayout());
-		centerPanel.add(statusLabel, BorderLayout.NORTH);
-		centerPanel.add(scroll, BorderLayout.CENTER);
 
-		/* ================= MAIN VERTICAL SPLIT ================= */
-		JSplitPane verticalSplit =
-		    new JSplitPane(JSplitPane.VERTICAL_SPLIT, top, centerPanel);
+/* ================= STATUS LABEL ================= */
+statusLabel = new JLabel(" ");
+statusLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 8, 2, 8));
+statusLabel.setForeground(new Color(60, 60, 60));
 
-		verticalSplit.setResizeWeight(0.045); // top vs output+status
-		verticalSplit.setDividerSize(6);
-		verticalSplit.setContinuousLayout(true);
 
-		add(verticalSplit, BorderLayout.CENTER);
+/* ================= PROGRESS BAR ================= */
+progressBar = new JProgressBar(0, 100);
+progressBar.setStringPainted(true);
+progressBar.setVisible(false);
+progressBar.setBorder(BorderFactory.createEmptyBorder(0, 8, 4, 8));
+
+
+/* ================= STATUS PANEL (LABEL + BAR) ================= */
+JPanel statusPanel = new JPanel(new BorderLayout());
+statusPanel.add(statusLabel, BorderLayout.NORTH);
+statusPanel.add(progressBar, BorderLayout.CENTER);
+
+
+/* ================= CENTER WRAPPER ================= */
+JPanel centerPanel = new JPanel(new BorderLayout());
+centerPanel.add(statusPanel, BorderLayout.NORTH);
+centerPanel.add(scroll, BorderLayout.CENTER);
+
+
+/* ================= MAIN VERTICAL SPLIT ================= */
+JSplitPane verticalSplit =
+    new JSplitPane(JSplitPane.VERTICAL_SPLIT, top, centerPanel);
+
+verticalSplit.setResizeWeight(0.06); // ~6% top, rest output
+verticalSplit.setDividerSize(6);
+verticalSplit.setContinuousLayout(true);
+
+add(verticalSplit, BorderLayout.CENTER);
