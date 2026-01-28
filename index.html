@@ -1,93 +1,35 @@
-private void setBusy(boolean busy, String msg) {
-    pushButton.setEnabled(!busy);
-    progressBar.setVisible(busy);
-    progressBar.setIndeterminate(busy);
-    statusLabel.setText(msg != null ? msg : " ");
-    setCursor(busy
-        ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)
-        : Cursor.getDefaultCursor());
-}
+/* ================= SPLIT PANE ================= */
+		JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, gitPanel, jenkinsPanel);
+		split.setResizeWeight(0.5);
+		split.setDividerSize(6);
+		split.setContinuousLayout(true);
 
+		top.add(split, BorderLayout.CENTER);
+		
 
-public static void commitSelected(
-    String region,
-    String commitMsg,
-    List<String> files,
-    Consumer<String> log,
-    Consumer<CommitStage> stageUpdate,
-    IntConsumer progress
-)
+		/* ================= OUTPUT AREA ================= */
+		outputArea = new JTextArea();
+		outputArea.setEditable(false);
+		outputArea.setFont(new Font("Consolas", Font.PLAIN, 12));
+		JScrollPane scroll = new JScrollPane(outputArea);
 
+		/* ================= STATUS LABEL ================= */
+		statusLabel = new JLabel(" ");
+		statusLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+		statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+		statusLabel.setForeground(new Color(60, 60, 60));
 
-public enum CommitStage {
-    PREPARING,
-    REBASING,
-    STAGING,
-    COMMITTING,
-    VERIFYING,
-    PUSHING,
-    DONE
-}
+		/* ================= CENTER WRAPPER ================= */
+		JPanel centerPanel = new JPanel(new BorderLayout());
+		centerPanel.add(statusLabel, BorderLayout.NORTH);
+		centerPanel.add(scroll, BorderLayout.CENTER);
 
+		/* ================= MAIN VERTICAL SPLIT ================= */
+		JSplitPane verticalSplit =
+		    new JSplitPane(JSplitPane.VERTICAL_SPLIT, top, centerPanel);
 
+		verticalSplit.setResizeWeight(0.045); // top vs output+status
+		verticalSplit.setDividerSize(6);
+		verticalSplit.setContinuousLayout(true);
 
-
-stageUpdate.accept(CommitStage.REBASING);
-progress.accept(15);
-info(log, "Rebasing with remote...");
-GitCli.run(repo, "pull", "--rebase", "--autostash", "origin", branch);
-
-stageUpdate.accept(CommitStage.STAGING);
-progress.accept(35);
-for (String f : files) {
-    GitCli.run(repo, "add", f);
-}
-
-stageUpdate.accept(CommitStage.COMMITTING);
-progress.accept(55);
-GitCli.run(repo, "commit", "-m", commitMsg);
-
-stageUpdate.accept(CommitStage.VERIFYING);
-progress.accept(70);
-verifyCommitBeforePush(repo, branch, commitMsg, files, log);
-
-stageUpdate.accept(CommitStage.PUSHING);
-progress.accept(85);
-GitCli.run(repo, "push", "origin", branch);
-
-stageUpdate.accept(CommitStage.DONE);
-progress.accept(100);
-log.accept("Commit pushed successfully");
-
-
-SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
-
-    protected Void doInBackground() throws Exception {
-
-        GitAutomationService.commitSelected(
-            region,
-            commitMsg,
-            files,
-            msg -> publish(msg),
-            stage -> SwingUtilities.invokeLater(() ->
-                statusLabel.setText("Step: " + stage)
-            ),
-            percent -> SwingUtilities.invokeLater(() ->
-                progressBar.setValue(percent)
-            )
-        );
-        return null;
-    }
-
-    protected void process(List<String> msgs) {
-        msgs.forEach(m -> log(m + "\n"));
-    }
-
-    protected void done() {
-        setBusy(false, "Commit complete");
-        progressBar.setValue(0);
-    }
-};
-
-
-
+		add(verticalSplit, BorderLayout.CENTER);
