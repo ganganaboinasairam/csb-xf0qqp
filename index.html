@@ -1,16 +1,6 @@
-// Verify selected files are clean after commit
-String status = GitCli.run(repo, "status", "--porcelain");
+private static final Pattern TOOL_COMMIT_PATTERN =
+    	    Pattern.compile("^(CR|IR)_\\d+_\\d{6}_(\\d+)$");
 
-for (String line : status.split("\\R")) {
-    if (line.length() < 4) continue;
 
-    String file = line.substring(3).trim();
 
-    if (selectedFiles.contains(file)) {
-        throw new RuntimeException(
-            "Commit verification failed: Selected file still modified -> " + file
-        );
-    }
-}
-
-info(log, " --> Selected files are clean after commit");
+the partten is changed to "CR_25110147_v1013325_1" change the regex accordingly
