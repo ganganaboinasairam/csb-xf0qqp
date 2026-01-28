@@ -2,12 +2,21 @@
 cd /d %~dp0
 
 set LOGDIR=logs
-if not exist %LOGDIR% mkdir %LOGDIR%
+if not exist "%LOGDIR%" mkdir "%LOGDIR%"
 
-javaw -jar git-auto-commit.jar > "%LOGDIR%\sysout.log" 2>&1
+REM Find latest versioned jar
+for /f "delims=" %%F in ('dir /b /o-n git-auto-commit_v*.jar') do (
+    set JAR=%%F
+    goto :found
+)
+
+echo No git-auto-commit jar found!
+pause
+exit /b 1
+
+:found
+echo Running %JAR%
+
+javaw -jar "%JAR%" > "%LOGDIR%\sysout.log" 2>&1
 
 exit
-
-
-
-i will maintain the jar name as versions like git-auto-commit_v1.0.jar, git-auto-commit_v2.0.jar make changes to run the jar
