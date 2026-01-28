@@ -1,116 +1,13 @@
-package com.tcs.git.ui;
+@echo off
+cd /d %~dp0
 
-import javax.swing.*;
-import java.awt.*;
+set LOGDIR=logs
+if not exist %LOGDIR% mkdir %LOGDIR%
 
-public class GitIdentityDialog extends JDialog {
+javaw -jar git-auto-commit.jar > "%LOGDIR%\sysout.log" 2>&1
 
-    private static final long serialVersionUID = 1L;
-
-    private JTextField nameField;
-    private JTextField emailField;
-    private boolean saved = false;
-
-    public GitIdentityDialog(Frame parent) {
-        super(parent, "Configure Git Identity", true);
-        setSize(420, 220);
-        setLocationRelativeTo(parent);
-        initUI();
-    }
-
-    private void initUI() {
-
-        JPanel main = new JPanel(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(6, 6, 6, 6);
-        c.fill = GridBagConstraints.HORIZONTAL;
-
-        c.gridx = 0; c.gridy = 0;
-        main.add(new JLabel("User Name:"), c);
-
-        c.gridx = 1;
-        nameField = new JTextField(20);
-        main.add(nameField, c);
-
-        c.gridx = 0; c.gridy = 1;
-        main.add(new JLabel("Email:"), c);
-
-        c.gridx = 1;
-        emailField = new JTextField(20);
-        main.add(emailField, c);
-
-        JButton saveBtn = new JButton("Save");
-        JButton cancelBtn = new JButton("Cancel");
-
-        saveBtn.addActionListener(e -> onSave());
-        cancelBtn.addActionListener(e -> dispose());
-
-        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        btns.add(saveBtn);
-        btns.add(cancelBtn);
-
-        add(main, BorderLayout.CENTER);
-        add(btns, BorderLayout.SOUTH);
-    }
-
-    private void onSave() {
-
-        if (nameField.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "User name is required");
-            return;
-        }
-
-        if (emailField.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Email is required");
-            return;
-        }
-
-        saved = true;
-        dispose();
-    }
-
-    public boolean isSaved() {
-        return saved;
-    }
-
-    public String getUserName() {
-        return nameField.getText().trim();
-    }
-
-    public String getEmail() {
-        return emailField.getText().trim();
-    }
-}
+exit
 
 
-public static void validateGitIdentity(File repo, Frame parent) {
 
-    try {
-        String name = GitCli.run(repo, "config", "user.name").trim();
-        String email = GitCli.run(repo, "config", "user.email").trim();
-
-        if (!name.isEmpty() && !email.isEmpty()) {
-            return; // already configured
-        }
-
-    } catch (Exception ignore) {
-        // fall through to dialog
-    }
-
-    // Open dialog
-    GitIdentityDialog dlg = new GitIdentityDialog(parent);
-    dlg.setVisible(true);
-
-    if (!dlg.isSaved()) {
-        throw new RuntimeException("Git identity not configured. Commit cancelled.");
-    }
-
-    try {
-        GitCli.run(repo, "config", "--global", "user.name", dlg.getUserName());
-        GitCli.run(repo, "config", "--global", "user.email", dlg.getEmail());
-    } catch (Exception e) {
-        throw new RuntimeException(
-            "Failed to save Git identity.\n" + e.getMessage()
-        );
-    }
-}
+i will maintain the jar name as versions like git-auto-commit_v1.0.jar, git-auto-commit_v2.0.jar make changes to run the jar
