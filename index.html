@@ -1,38 +1,48 @@
-private static boolean isRemoteAhead(File repo, String branch) throws Exception {
+private static void verifyCommitBeforePush(File repo, String branch, String expectedCommitMsg,
+			List<String> selectedFiles, Consumer<String> log) throws Exception {
 
-    String out = GitCli.run(
-        repo,
-        "rev-list",
-        "--count",
-        "HEAD..origin/" + branch
-    ).trim();
+		info(log, "Verifying commit before push...");
 
-    return !out.isEmpty() && Integer.parseInt(out) > 0;
-}
+		// Verify HEAD commit message
+		String headMsg = GitCli.run(repo, "log", "-1", "--pretty=format:%s").trim();
+
+		if (!headMsg.equals(expectedCommitMsg)) {
+			throw new RuntimeException("Commit verification failed: HEAD message mismatch\n" + "Expected: "
+					+ expectedCommitMsg + "\n" + "Actual  : " + headMsg);
+		}
+
+		info(log, " --> Commit message verified");
+
+		// Verify branch is ahead of remote
+		String ahead = GitCli.run(repo, "rev-list", "--count", "origin/" + branch + "..HEAD").trim();
+
+		if ("0".equals(ahead)) {
+			throw new RuntimeException("Commit verification failed: No new commits to push");
+		}
+
+		info(log, " --> Local branch ahead by " + ahead + " commit(s)");
+
+		// Verify committed files
+		String committedFiles = GitCli.run(repo, "show", "--name-only", "--pretty=format:", "HEAD");
+
+		for (String f : selectedFiles) {
+			if (!committedFiles.contains(f)) {
+				throw new RuntimeException("Commit verification failed: File missing in commit -> " + f);
+			}
+		}
+
+		info(log, " --> Selected files verified in commit");
+
+		// Verify clean working tree
+		String status = GitCli.run(repo, "status", "--porcelain").trim();
+		if (!status.isEmpty()) {
+			throw new RuntimeException("Working tree not clean after commit:\n" + status);
+		}
+
+		info(log, " --> Working tree clean");
+	}
 
 
-try {
-    stageUpdate.accept(CommitStage.REBASING);
 
-    info(log, "Checking remote changes...");
 
-    GitCli.run(repo, "fetch", "origin");
-
-    if (isRemoteAhead(repo, branch)) {
-
-        progress.accept(15);
-        info(log, "Remote branch is ahead. Rebasing...");
-
-        rebase(region, log);
-
-    } else {
-
-        progress.accept(15);
-        info(log, "Local branch is up-to-date. Skipping rebase.");
-    }
-
-} catch (Exception e) {
-    error(log, "Rebase failed — resolve conflicts and retry");
-    exception(log, e);
-    return;
-}
+if we have 2 changed files but i have selected only one file and click on commit but in // Verify clean working tree step it is checking status and throwing run time exception which is not expected behaviour , the user wants to commit only selected files 
