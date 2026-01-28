@@ -1,72 +1,77 @@
-public static boolean isConfigComplete() {
+public static void commitSelected(String region, String commitMsg, List<String> files, Consumer<String> log)
+			throws Exception {
 
-    String[] requiredKeys = {
-        // Git
-        "git.repo.path.ee",
-        "git.repo.path.ce",
-        "git.branch.name.ee",
-        "git.branch.name.ce",
-        "git.executable",
+		File repo = new File(Config.get("git.repo.path." + region));
+		String branch = Config.get("git.branch.name." + region);
 
-        // Jenkins
-        "jenkins.url",
-        "jenkins.user",
-        "jenkins.token",
-        "jenkins.job.ee",
-        "jenkins.job.ce",
+		for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
 
-        // Environment selection
-        "ee.sel",
-        "ce.sel"
-    };
+			log.accept("Attempt " + attempt + " of " + MAX_RETRIES);
 
-    for (String key : requiredKeys) {
-        String val = Config.get(key);
-        if (val == null || val.trim().isEmpty()) {
-            return false;
-        }
-    }
+			try {
+				// Sync first
+				try {
+					info(log, "Pulling latest changes (rebase)...");
+					rebase(region, log);
+				} catch (Exception e) {
+					error(log, "Rebase failed — resolve conflicts and retry");
+					exception(log, e);
+					return;
+				}
 
-    // At least one environment must be enabled
-    boolean ee = "true".equalsIgnoreCase(Config.get("ee.sel"));
-    boolean ce = "true".equalsIgnoreCase(Config.get("ce.sel"));
+				log.accept("Staging selected files...");
 
-    return ee || ce;
-}
+				for (String f : files) {
+					GitCli.run(repo, "add", f);
+					log.accept("Added: " + f);
+				}
+
+				gitHelper.validateGitIdentity(repo);
+
+				try {
+					info(log, "Commiting changes .... with commit message: " + commitMsg);
+					GitCli.run(repo, "commit", "-m", commitMsg);
+				} catch (Exception e) {
+					error(log, "Failed to generate commit message");
+					exception(log, e);
+					return;
+				}
+				
+				
+
+				try {
+					info(log, "Pushing to origin/" + branch + "...");
+					GitCli.run(repo, "push", "origin", branch);
+				} catch (Exception e) {
+					error(log, "Push failed (non-fast-forward or auth issue)");
+					exception(log, e);
+					return;
+				}
+
+				log.accept("Commit pushed successfully");
+				try {
+					MainUI.commitMsgField.setText(commitMsg);
+				} catch (Exception ignore) {
+				}
+				return;
+
+			} catch (RuntimeException e) {
+
+				String msg = e.getMessage();
+
+				if (msg.contains("non-fast-forward") && attempt < MAX_RETRIES) {
+					log.accept("Push rejected (non-fast-forward). Retrying...");
+					continue;
+				}
+
+				throw e; // real failure
+			}
+		}
+
+	}
 
 
-public static void main(String[] args) {
 
-    SSLUtil.disableSSLVerification();
 
-    AppLogger.logSeparator();
-    AppLogger.log("Application started");
-
-    try {
-        File repo = new File(Config.get("git.repo.path.ee"));
-        AppLogger.log("User: " + GitCli.run(repo, "config", "user.name"));
-    } catch (Exception e) {
-        AppLogger.log("Git user not configured yet");
-    }
-
-    AppLogger.logSeparator();
-
-    SwingUtilities.invokeLater(() -> {
-
-        // ✅ Open config dialog ONLY if config is incomplete
-        if (!ConfigManager.isConfigComplete()) {
-
-            ConfigDialog dialog = new ConfigDialog(null);
-            dialog.setVisible(true);
-
-            // ❌ User closed dialog without saving
-            if (!dialog.isSaved()) {
-                AppLogger.log("Application closed: configuration not completed");
-                System.exit(0);
-            }
-        }
-
-        // ✅ Config is valid → launch main UI
-        new MainUI().setVisible(true);
-    });
-}
+                    i need to check the commit before pushing 
+                    
