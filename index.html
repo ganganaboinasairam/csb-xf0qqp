@@ -1,70 +1,23 @@
-private static void verifyCommitBeforePush(
-        File repo,
-        String branch,
-        String expectedCommitMsg,
-        List<String> selectedFiles,
-        Consumer<String> log) throws Exception {
+public static void validateGitIdentity(File repo) {
 
-    info(log, "Verifying commit before push...");
+		try {
+			String name = GitCli.run(repo, "config", "user.name");
+			String email = GitCli.run(repo, "config", "user.email");
 
-    // 1️⃣ Verify HEAD commit message
-    String headMsg = GitCli.run(
-            repo,
-            "log", "-1", "--pretty=format:%s"
-    ).trim();
+			if (name.trim().isEmpty() || email.trim().isEmpty()) {
+				throw new RuntimeException("Git user identity not configured.\n" + "Please configure:\n"
+						+ "git config --global user.name \"Your Name\"\n"
+						+ "git config --global user.email \"you@company.com\"");
 
-    if (!headMsg.equals(expectedCommitMsg)) {
-        throw new RuntimeException(
-            "Commit verification failed: HEAD message mismatch\n" +
-            "Expected: " + expectedCommitMsg + "\n" +
-            "Actual  : " + headMsg
-        );
-    }
+			}
 
-    info(log, "✔ Commit message verified");
+		} catch (Exception e) {
+			throw new RuntimeException("Git user identity not configured.\n" + "Please configure:\n"
+					+ "git config --global user.name \"Your Name\"\n"
+					+ "git config --global user.email \"you@company.com\"");
+		}
+	}
 
-    // 2️⃣ Verify branch is ahead of remote
-    String ahead = GitCli.run(
-            repo,
-            "rev-list",
-            "--count",
-            "origin/" + branch + "..HEAD"
-    ).trim();
 
-    if ("0".equals(ahead)) {
-        throw new RuntimeException(
-            "Commit verification failed: No new commits to push"
-        );
-    }
 
-    info(log, "✔ Local branch ahead by " + ahead + " commit(s)");
-
-    // 3️⃣ Verify committed files
-    String committedFiles = GitCli.run(
-            repo,
-            "show",
-            "--name-only",
-            "--pretty=format:",
-            "HEAD"
-    );
-
-    for (String f : selectedFiles) {
-        if (!committedFiles.contains(f)) {
-            throw new RuntimeException(
-                "Commit verification failed: File missing in commit -> " + f
-            );
-        }
-    }
-
-    info(log, "✔ Selected files verified in commit");
-
-    // 4️⃣ Verify clean working tree
-    String status = GitCli.run(repo, "status", "--porcelain").trim();
-    if (!status.isEmpty()) {
-        throw new RuntimeException(
-            "Working tree not clean after commit:\n" + status
-        );
-    }
-
-    info(log, "✔ Working tree clean");
-}
+instered of throwing runtimeexception , we can display a small dialog to ask for the name and email and a button to save the glbal parameters 
