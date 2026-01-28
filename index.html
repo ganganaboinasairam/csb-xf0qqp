@@ -1,6 +1,1 @@
-private static final Pattern TOOL_COMMIT_PATTERN =
-    	    Pattern.compile("^(CR|IR)_\\d+_\\d{6}_(\\d+)$");
-
-
-
-the partten is changed to "CR_25110147_v1013325_1" change the regex accordingly
+Pattern.compile("^(CR|IR)_\\d+_[vV]\\d+_(\\d+)$");
