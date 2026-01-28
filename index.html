@@ -1,12 +1,38 @@
-try {
-					stageUpdate.accept(CommitStage.REBASING);
-					progress.accept(15);
-					info(log, "Pulling latest changes (rebase)...");
-					rebase(region, log);
-				} catch (Exception e) {
-					error(log, "Rebase failed — resolve conflicts and retry");
-					exception(log, e);
-					return;
-				}
+private static boolean isRemoteAhead(File repo, String branch) throws Exception {
 
-first cehck with the git log anf 
+    String out = GitCli.run(
+        repo,
+        "rev-list",
+        "--count",
+        "HEAD..origin/" + branch
+    ).trim();
+
+    return !out.isEmpty() && Integer.parseInt(out) > 0;
+}
+
+
+try {
+    stageUpdate.accept(CommitStage.REBASING);
+
+    info(log, "Checking remote changes...");
+
+    GitCli.run(repo, "fetch", "origin");
+
+    if (isRemoteAhead(repo, branch)) {
+
+        progress.accept(15);
+        info(log, "Remote branch is ahead. Rebasing...");
+
+        rebase(region, log);
+
+    } else {
+
+        progress.accept(15);
+        info(log, "Local branch is up-to-date. Skipping rebase.");
+    }
+
+} catch (Exception e) {
+    error(log, "Rebase failed — resolve conflicts and retry");
+    exception(log, e);
+    return;
+}
