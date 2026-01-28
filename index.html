@@ -1,6 +1,16 @@
- if (crNo.matches("^(CR|IR)_\\d+.*")) {
-			crNo.
-		}
+String input = crNo.trim();
 
+// Remove CR_ or IR_ prefix (case-insensitive)
+input = input.replaceFirst("(?i)^(CR|IR)_", "");
 
-    if the user already added CR_ or IR_ iR_ cR_ Cr_ to the cr number i want to trim the cr_part and proceed because i will add that afterwards 
+// Validate remaining part is numeric
+if (!input.matches("\\d+")) {
+    JOptionPane.showMessageDialog(
+        this,
+        "Invalid CR number. Please enter digits only (or CR_/IR_ prefixed)."
+    );
+    return;
+}
+
+// Now input contains ONLY the number
+String normalizedCrNo = input;
