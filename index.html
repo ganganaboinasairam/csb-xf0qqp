@@ -1,126 +1,48 @@
-public static RebaseResult rebase(
-        String region,
-        java.util.function.Consumer<String> log) {
+	private void checkStatus() {
 
-    File repo = new File(Config.get("git.repo.path." + region));
-    String branch = Config.get("git.branch.name." + region);
+		String region = regionBox.getSelectedItem().toString().toLowerCase();
 
-    log.accept("[INFO] Repository : " + repo.getAbsolutePath());
-    log.accept("[INFO] Rebasing from origin/" + branch);
-    log.accept("");
+		log("\n===============================================================================\n");
+		log("GIT STATUS CHECK || " + regionBox.getSelectedItem().toString());
+		log("\n===============================================================================\n");
 
-    try {
-        // 1️⃣ Capture HEAD before rebase
-        String beforeHead =
-            GitCli.run(repo, "rev-parse", "HEAD").trim();
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
 
-        log.accept("[DEBUG] HEAD before rebase: " + beforeHead);
+			@Override
+			protected Void doInBackground() throws Exception {
+				GitAutomationService.chkStatus(region, msg -> publish(msg));
+				return null;
+			}
 
-        // 2️⃣ Perform rebase
-        GitCli.run(repo, "pull", "--rebase", "--autostash", "origin", branch);
+			@Override
+			protected void process(java.util.List<String> chunks) {
+				for (String s : chunks) {
+					log(s + "\n");
+				}
+			}
 
-        // 3️⃣ Check conflicts
-        String conflicts =
-            GitCli.run(repo, "diff", "--name-only", "--diff-filter=U").trim();
+			@Override
+			protected void done() {
+				outputArea
+						.append("\n===================================DONE========================================\n");
+				pushButton.setEnabled(true);
+				try {
+					get();
 
-        if (!conflicts.isEmpty()) {
-            log.accept("[ERROR] Rebase stopped due to conflicts:");
-            for (String f : conflicts.split("\\R")) {
-                log.accept("  " + f);
-            }
-            return RebaseResult.conflict();
-        }
+				} catch (ExecutionException ex) {
+					Throwable cause = ex.getCause();
+					log("\nERROR: " + cause.getMessage());
+					cause.printStackTrace();
 
-        // 4️⃣ Capture HEAD after rebase
-        String afterHead =
-            GitCli.run(repo, "rev-parse", "HEAD").trim();
+				} catch (InterruptedException ex) {
+					Thread.currentThread().interrupt();
+					log("\nERROR: Operation interrupted");
+				}
+			}
+		};
 
-        log.accept("[DEBUG] HEAD after rebase : " + afterHead);
-
-        // 5️⃣ If HEAD unchanged → nothing rebased
-        if (beforeHead.equals(afterHead)) {
-            log.accept("[INFO] Rebase completed – branch already up to date.");
-            return RebaseResult.noChange();
-        }
-
-        // 6️⃣ Detect changed files between commits
-        String diff =
-            GitCli.run(
-                repo,
-                "diff-tree",
-                "--no-commit-id",
-                "--name-status",
-                "-r",
-                beforeHead,
-                afterHead
-            ).trim();
-
-        if (diff.isEmpty()) {
-            log.accept("[INFO] Rebase completed – commits changed, files identical.");
-            return RebaseResult.noFileChange();
-        }
-
-        List<String> files = new ArrayList<>();
-        log.accept("[INFO] Files changed due to rebase:");
-        log.accept("----------------------------------------------");
-
-        for (String line : diff.split("\\R")) {
-            log.accept("  " + line);
-            files.add(line);
-        }
-
-        log.accept("");
-        log.accept("[INFO] Total files changed: " + files.size());
-
-        return RebaseResult.changed(files);
-
-    } catch (Exception e) {
-        log.accept("[ERROR] Rebase failed");
-        log.accept("[ERROR] " + e.getMessage());
-        return RebaseResult.failed(e.getMessage());
-    }
-}
+		worker.execute();
+	}
 
 
-public class RebaseResult {
-
-    public final boolean success;
-    public final boolean conflict;
-    public final boolean fileChanged;
-    public final List<String> files;
-    public final String error;
-
-    private RebaseResult(
-            boolean success,
-            boolean conflict,
-            boolean fileChanged,
-            List<String> files,
-            String error) {
-
-        this.success = success;
-        this.conflict = conflict;
-        this.fileChanged = fileChanged;
-        this.files = files;
-        this.error = error;
-    }
-
-    public static RebaseResult conflict() {
-        return new RebaseResult(false, true, false, null, null);
-    }
-
-    public static RebaseResult noChange() {
-        return new RebaseResult(true, false, false, null, null);
-    }
-
-    public static RebaseResult noFileChange() {
-        return new RebaseResult(true, false, false, null, null);
-    }
-
-    public static RebaseResult changed(List<String> files) {
-        return new RebaseResult(true, false, true, files, null);
-    }
-
-    public static RebaseResult failed(String err) {
-        return new RebaseResult(false, false, false, null, err);
-    }
-}
+the files sould display which is modified and added or deleted while checking the status 
