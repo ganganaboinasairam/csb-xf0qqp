@@ -1,48 +1,61 @@
-	private void checkStatus() {
+public static void chkStatus(
+        String region,
+        java.util.function.Consumer<String> log) throws Exception {
 
-		String region = regionBox.getSelectedItem().toString().toLowerCase();
+    File repo = new File(Config.get("git.repo.path." + region));
 
-		log("\n===============================================================================\n");
-		log("GIT STATUS CHECK || " + regionBox.getSelectedItem().toString());
-		log("\n===============================================================================\n");
+    log.accept("[INFO] Checking status in: " + repo.getAbsolutePath());
+    log.accept("");
 
-		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+    String status = GitCli.run(repo, "status", "--porcelain");
 
-			@Override
-			protected Void doInBackground() throws Exception {
-				GitAutomationService.chkStatus(region, msg -> publish(msg));
-				return null;
-			}
+    if (status.trim().isEmpty()) {
+        log.accept("[CLEAN] Working tree clean");
+        return;
+    }
 
-			@Override
-			protected void process(java.util.List<String> chunks) {
-				for (String s : chunks) {
-					log(s + "\n");
-				}
-			}
+    log.accept("[INFO] Changes detected:");
+    log.accept("----------------------------------------------");
 
-			@Override
-			protected void done() {
-				outputArea
-						.append("\n===================================DONE========================================\n");
-				pushButton.setEnabled(true);
-				try {
-					get();
+    for (String line : status.split("\\R")) {
 
-				} catch (ExecutionException ex) {
-					Throwable cause = ex.getCause();
-					log("\nERROR: " + cause.getMessage());
-					cause.printStackTrace();
+        if (line.length() < 3) continue;
 
-				} catch (InterruptedException ex) {
-					Thread.currentThread().interrupt();
-					log("\nERROR: Operation interrupted");
-				}
-			}
-		};
+        String indexStatus = line.substring(0, 1);
+        String workTreeStatus = line.substring(1, 2);
+        String file = line.substring(3);
 
-		worker.execute();
-	}
+        // Untracked
+        if ("?".equals(indexStatus) && "?".equals(workTreeStatus)) {
+            log.accept("[UNTRACKED]  " + file);
+            continue;
+        }
 
+        // Added
+        if ("A".equals(indexStatus)) {
+            log.accept("[ADDED]      " + file);
+            continue;
+        }
 
-the files sould display which is modified and added or deleted while checking the status 
+        // Modified
+        if ("M".equals(indexStatus) || "M".equals(workTreeStatus)) {
+            log.accept("[MODIFIED]   " + file);
+            continue;
+        }
+
+        // Deleted
+        if ("D".equals(indexStatus) || "D".equals(workTreeStatus)) {
+            log.accept("[DELETED]    " + file);
+            continue;
+        }
+
+        // Renamed / Copied
+        if ("R".equals(indexStatus) || "C".equals(indexStatus)) {
+            log.accept("[RENAMED]    " + file);
+            continue;
+        }
+
+        // Fallback
+        log.accept("[CHANGED]    " + file);
+    }
+}
