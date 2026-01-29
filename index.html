@@ -1,39 +1,13 @@
-public class GitCli {
+[INFO] Pushing to origin/PREDEV...
+[ERROR] Push failed (non-fast-forward or auth issue)
+[ERROR] RuntimeException: Git command failed:
+E:/git/GIT/bin/git.exe push origin PREDEV
 
-    public static String run(File repo, String... args) throws Exception {
-
-        System.out.println("in GitCli --> run with args " + Arrays.asList(args));
-
-        List<String> command = new ArrayList<>();
-        command.add(Config.get("git.executable"));
-        command.addAll(Arrays.asList(args));
-
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.directory(repo);
-        pb.redirectErrorStream(true);
-
-        Process p = pb.start();
-
-        StringBuilder output = new StringBuilder();
-        try (BufferedReader br =
-                 new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-
-            String line;
-            while ((line = br.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-        }
-
-        int exit = p.waitFor();
-
-        if (exit != 0) {
-            throw new RuntimeException(
-                "Git command failed:\n" +
-                String.join(" ", command) + "\n\n" +
-                output.toString()
-            );
-        }
-
-        return output.toString();
-    }
-}
+To https://10.177.140.236/gitlab/root/tf_ee_pre_dev.git
+ ! [rejected]              PREDEV -> PREDEV (fetch first)
+error: failed to push some refs to 'https://V1013325:LWZ_pJKsaEHkAvFc6xWk@10.177.140.236/gitlab/root/tf_ee_pre_dev.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
