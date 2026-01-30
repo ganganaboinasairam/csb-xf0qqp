@@ -1,152 +1,60 @@
-public static void commitSelected(
+public static RebaseResult rebase(
         String region,
-        String commitMsg,
-        List<String> files,
-        Consumer<String> log,
-        Consumer<CommitStage> stageUpdate,
-        IntConsumer progress) throws Exception {
-
-    File repo = new File(Config.get("git.repo.path." + region));
-    String branch = Config.get("git.branch.name." + region);
-
-    for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-
-        log.accept("Attempt " + attempt + " of " + MAX_RETRIES);
-
-        try {
-
-            /* ================= FETCH ================= */
-            stageUpdate.accept(CommitStage.REBASING);
-            progress.accept(10);
-            info(log, "Fetching latest changes...");
-            GitCli.run(repo, "fetch", "--quiet", "--prune", "--no-tags", "origin");
-
-            /* ================= REBASE ONLY IF NEEDED ================= */
-            if (isRemoteAhead(repo, branch)) {
-                progress.accept(20);
-                info(log, "Remote ahead. Rebasing...");
-                rebase(region, log);
-            } else {
-                progress.accept(20);
-                info(log, "Local branch up-to-date. Skipping rebase.");
-            }
-
-            /* ================= STAGING ================= */
-            stageUpdate.accept(CommitStage.STAGING);
-            progress.accept(40);
-            log.accept("Staging selected files...");
-            for (String f : files) {
-                GitCli.run(repo, "add", f);
-                log.accept("Added: " + f);
-            }
-
-            /* ================= IDENTITY ================= */
-            gitHelper.validateGitIdentity(repo, MainUI.getInstance());
-
-            /* ================= COMMIT ================= */
-            stageUpdate.accept(CommitStage.COMMITTING);
-            progress.accept(60);
-
-            String beforeCommit = GitCli.run(repo, "rev-parse", "HEAD").trim();
-
-            info(log, "Committing...");
-            GitCli.run(repo, "commit", "-m", commitMsg);
-
-            String afterCommit = GitCli.run(repo, "rev-parse", "HEAD").trim();
-
-            if (beforeCommit.equals(afterCommit)) {
-                throw new RuntimeException("Commit failed: HEAD unchanged");
-            }
-
-            info(log, "Commit Hash: " + afterCommit);
-
-            /* ================= VERIFY AHEAD ================= */
-            stageUpdate.accept(CommitStage.VERIFYING);
-            progress.accept(75);
-
-            String ahead = GitCli.run(repo,
-                    "rev-list", "--count", "origin/" + branch + "..HEAD").trim();
-
-            if ("0".equals(ahead)) {
-                throw new RuntimeException("No new commits to push");
-            }
-
-            info(log, "Local branch ahead by " + ahead + " commit(s)");
-
-            /* ================= PUSH ================= */
-            stageUpdate.accept(CommitStage.PUSHING);
-            progress.accept(90);
-
-            info(log, "Pushing to origin/" + branch + "...");
-            GitCli.run(repo, "push", "origin", branch);
-
-            /* ================= DONE ================= */
-            stageUpdate.accept(CommitStage.DONE);
-            progress.accept(100);
-
-            log.accept("Commit pushed successfully");
-
-            try {
-                MainUI.commitMsgField.setText(commitMsg);
-                MainUI.statusLabel.setText("Commit pushed: " + commitMsg);
-            } catch (Exception ignore) {}
-
-            return;
-
-        } catch (RuntimeException e) {
-
-            String msg = e.getMessage();
-
-            if (gitHelper.isConcurrentPushError(msg) && attempt < MAX_RETRIES) {
-                log.accept("[WARN] Remote updated. Retrying...");
-                continue;
-            }
-
-            if (gitHelper.isAuthError(msg)) {
-                error(log, "Authentication issue.");
-                return;
-            }
-
-            if (gitHelper.isNetworkError(msg)) {
-                error(log, "Network issue.");
-                return;
-            }
-
-            throw e;
-        }
-    }
-}
-
-
-private static boolean isRemoteAhead(File repo, String branch) throws Exception {
-    String out = GitCli.run(repo,
-        "rev-list", "--count", "HEAD..origin/" + branch).trim();
-    return !out.isEmpty() && Integer.parseInt(out) > 0;
-}
-
-
-public static void rebase(String region, Consumer<String> log) {
+        java.util.function.Consumer<String> log) {
 
     File repo = new File(Config.get("git.repo.path." + region));
     String branch = Config.get("git.branch.name." + region);
 
     try {
 
-        String before = GitCli.run(repo, "rev-parse", "HEAD").trim();
+        log.accept("[INFO] Rebasing from origin/" + branch);
+        log.accept("");
 
-        GitCli.run(repo, "pull", "--rebase", "--autostash", "origin", branch);
+        /* ===== REAL GIT OUTPUT ===== */
+        String gitOutput = GitCli.run(
+            repo,
+            "pull",
+            "--rebase",
+            "--autostash",
+            "origin",
+            branch
+        );
 
-        String after = GitCli.run(repo, "rev-parse", "HEAD").trim();
-
-        if (before.equals(after)) {
-            log.accept("[INFO] Already up to date.");
-            return;
+        if (gitOutput == null || gitOutput.trim().isEmpty()) {
+            gitOutput = "(no console output)";
         }
 
-        log.accept("[INFO] Rebase completed.");
+        log.accept("----- GIT OUTPUT -----");
+        log.accept(gitOutput.trim());
+        log.accept("----------------------");
+
+        return RebaseResult.success(gitOutput);
 
     } catch (Exception e) {
-        log.accept("[ERROR] Rebase failed: " + e.getMessage());
+
+        log.accept("[ERROR] Rebase failed");
+        log.accept(e.getMessage());
+
+        return RebaseResult.failed(e.getMessage());
     }
 }
 
+
+public class RebaseResult {
+
+    public final boolean success;
+    public final String output;
+
+    private RebaseResult(boolean s, String o) {
+        success = s;
+        output = o;
+    }
+
+    public static RebaseResult success(String o) {
+        return new RebaseResult(true, o);
+    }
+
+    public static RebaseResult failed(String o) {
+        return new RebaseResult(false, o);
+    }
+}
