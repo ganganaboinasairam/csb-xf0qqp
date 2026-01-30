@@ -1,27 +1,119 @@
-JPanel envPanel = new JPanel(new GridBagLayout());
-envPanel.setBorder(
-    BorderFactory.createTitledBorder("Environment Selection")
-);
+	private void runTask() {
 
-GridBagConstraints gbc = new GridBagConstraints();
-gbc.insets = new Insets(2, 4, 2, 4);
-gbc.anchor = GridBagConstraints.WEST;
+		String region = regionBox.getSelectedItem().toString().toLowerCase();
+		String crNo = crField.getText().trim();
 
-// Row 0 – EE & CE
-gbc.gridx = 0;
-gbc.gridy = 0;
-envPanel.add(chkEE, gbc);
+		String input = crNo.trim();
+		
+		if (crNo.trim().isEmpty()) {
+			JOptionPane.showMessageDialog(this, "Enter valid CR or IR to generate valid commit message.", "Invalid Input",
+					JOptionPane.ERROR_MESSAGE);
+			return;
+		}
 
-gbc.gridx = 1;
-envPanel.add(chkCE, gbc);
+		// Remove CR_ or IR_ prefix (case-insensitive)
+		input = input.replaceFirst("(?i)^(CR|IR)_", "");
 
-// Row 1 – Check Files (below)
-gbc.gridx = 0;
-gbc.gridy = 1;
-gbc.gridwidth = 2;   // span across EE + CE width
-envPanel.add(chekFiles, gbc);
+		
 
-chkEE.addActionListener(e -> updateFieldStates());
-chkCE.addActionListener(e -> updateFieldStates());
+		// Now input contains ONLY the number
+		String normalizedCrNo = input;
 
-add(envPanel, BorderLayout.NORTH);
+		progressBar.setIndeterminate(true);
+		progressBar.setVisible(true);
+		setBusy(true, "Preparing commit...");
+
+		SwingWorker<CommitPrepResult, Void> worker = new SwingWorker<CommitPrepResult, Void>() {
+
+			@Override
+			protected CommitPrepResult doInBackground() throws Exception {
+
+				List<String> files = GitAutomationService.getChangedFiles(region);
+
+				if (files.isEmpty()) {
+					return CommitPrepResult.noChanges();
+				}
+				
+				System.out.println("All files changed "+files.size());
+				AllChangedFiles = files.size();
+
+				File repo = new File(Config.get("git.repo.path." + region));
+
+				String defaultMsg = CommitMessageGenerator.generate(repo, normalizedCrNo, region);
+
+				return CommitPrepResult.success(files, defaultMsg);
+			}
+
+			@Override
+			protected void done() {
+				setBusy(false, null);
+				progressBar.setValue(0);
+				try {
+					CommitPrepResult result = get();
+
+					if (result.noChanges) {
+						JOptionPane.showMessageDialog(MainUI.this, "No changes to commit");
+						return;
+					}
+
+					showFileSelection(result);
+
+				} catch (Exception ex) {
+					log("ERROR: " + ex.getMessage() + "\n");
+				}
+			}
+		};
+
+		worker.execute();
+	}
+
+	private void showFileSelection(CommitPrepResult result) {
+
+		FileSelectionDialog dlg = new FileSelectionDialog(this, result.files);
+
+		dlg.setVisible(true);
+
+		if (!dlg.isConfirmed()) {
+			log("Commit cancelled by user\n");
+			return;
+		}
+
+		List<String> selected = dlg.getSelectedFiles();
+
+		if (selected.isEmpty()) {
+			JOptionPane.showMessageDialog(this, "No files selected");
+			return;
+		}
+		
+		System.out.println("selected files "+selected.size());
+		SelectedFiles=selected.size();
+
+		showCommitConfirmation(result.defaultMsg, selected);
+	}
+
+	private void showCommitConfirmation(String defaultMsg, List<String> selectedFiles) {
+
+		CommitMessageDialog msgDlg = new CommitMessageDialog(this, defaultMsg);
+
+		msgDlg.setVisible(true);
+
+		if (!msgDlg.isConfirmed()) {
+			log("Commit cancelled by user\n");
+			return;
+		}
+
+		String finalMsg = msgDlg.getCommitMessage();
+
+		if (finalMsg.isEmpty()) {
+			JOptionPane.showMessageDialog(this, "Commit message cannot be empty");
+			return;
+		}
+
+		executeCommit(regionBox.getSelectedItem().toString().toLowerCase(), finalMsg, selectedFiles);
+	}
+
+
+
+
+
+    we added a property "check.files.before.commit" when it is only true the file selection dialog should appere if it is false then directly to the commit message dialog and allchanged files sould go to commmit and push
