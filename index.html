@@ -1,102 +1,17 @@
-private static boolean isConcurrentPushError(String msg) {
+[INFO]  --> Working tree clean
+[INFO] Pushing to origin/PREDEV...
+[ERROR] Push failed (non-fast-forward or auth issue)
+[ERROR] RuntimeException: Git command failed:
+E:/GIT/GIT/bin/git.exe push origin PREDEV
 
-    if (msg == null) return false;
-
-    msg = msg.toLowerCase();
-
-    return msg.contains("fetch first") ||
-           msg.contains("non-fast-forward") ||
-           msg.contains("failed to update ref") ||
-           msg.contains("cannot lock ref") ||
-           msg.contains("remote rejected") ||
-           msg.contains("tip of your current branch is behind") ||
-           msg.contains("updates were rejected") ||
-           msg.contains("contains work that you do not have locally") ||
-           msg.contains("is behind its remote counterpart") ||
-           msg.contains("please pull") ||
-           msg.contains("please fetch");
-}
+To https://10.177.140.236/gitlab/root/tf_ee_pre_dev.git
+ ! [rejected]            PREDEV -> PREDEV (fetch first)
+error: failed to push some refs to 'https://V1013352:LWZ_pJKsaEHkAvFc6xWk@10.177.140.236/gitlab/root/tf_ee_pre_dev.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 
 
-private static boolean isAuthError(String msg) {
-
-    if (msg == null) return false;
-
-    msg = msg.toLowerCase();
-
-    return msg.contains("authentication failed") ||
-           msg.contains("403") ||
-           msg.contains("401") ||
-           msg.contains("access denied") ||
-           msg.contains("permission denied") ||
-           msg.contains("not authorized") ||
-           msg.contains("invalid username or password") ||
-           msg.contains("failed to authenticate");
-}
-
-
-private static boolean isNetworkError(String msg) {
-
-    if (msg == null) return false;
-
-    msg = msg.toLowerCase();
-
-    return msg.contains("connection timed out") ||
-           msg.contains("unable to access") ||
-           msg.contains("failed to connect") ||
-           msg.contains("network is unreachable") ||
-           msg.contains("connection reset") ||
-           msg.contains("ssl") ||
-           msg.contains("timeout");
-}
-
-
-private static boolean isConflictError(String msg) {
-
-    if (msg == null) return false;
-
-    msg = msg.toLowerCase();
-
-    return msg.contains("merge conflict") ||
-           msg.contains("conflict") ||
-           msg.contains("needs merge") ||
-           msg.contains("unmerged files");
-}
-
-
-catch (RuntimeException e) {
-
-    String msg = e.getMessage();
-
-    if (isConcurrentPushError(msg)) {
-
-        if (attempt < MAX_RETRIES) {
-            log.accept("[WARN] Remote updated by another user. Retrying...");
-            continue;
-        }
-
-        error(log,
-            "Push failed after retries.\n" +
-            "Another user is pushing frequently.\n" +
-            "Please retry later.");
-        return;
-    }
-
-    if (isAuthError(msg)) {
-        error(log, "Authentication / Permission issue.\nCheck credentials.");
-        return;
-    }
-
-    if (isNetworkError(msg)) {
-        error(log, "Network issue detected.\nPlease retry.");
-        return;
-    }
-
-    if (isConflictError(msg)) {
-        error(log, "Merge conflict detected.\nResolve manually.");
-        return;
-    }
-
-    // Unknown error
-    throw e;
-}
+push failed , but no error in console and the app is not retried to push again by repulling , it exited process
