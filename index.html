@@ -1,60 +1,12 @@
-public static RebaseResult rebase(
-        String region,
-        java.util.function.Consumer<String> log) {
-
-    File repo = new File(Config.get("git.repo.path." + region));
-    String branch = Config.get("git.branch.name." + region);
-
-    try {
-
-        log.accept("[INFO] Rebasing from origin/" + branch);
-        log.accept("");
-
-        /* ===== REAL GIT OUTPUT ===== */
-        String gitOutput = GitCli.run(
-            repo,
-            "pull",
-            "--rebase",
-            "--autostash",
-            "origin",
-            branch
-        );
-
-        if (gitOutput == null || gitOutput.trim().isEmpty()) {
-            gitOutput = "(no console output)";
-        }
-
-        log.accept("----- GIT OUTPUT -----");
-        log.accept(gitOutput.trim());
-        log.accept("----------------------");
-
-        return RebaseResult.success(gitOutput);
-
-    } catch (Exception e) {
-
-        log.accept("[ERROR] Rebase failed");
-        log.accept(e.getMessage());
-
-        return RebaseResult.failed(e.getMessage());
-    }
-}
+in GitCli --> run with args [fetch, --quiet, --prune, --no-tags, origin]
+in GitCli --> run with args [rev-list, --count, HEAD..origin/PREDEV]
+in GitCli --> run with args [pull, --rebase, --autostash, origin, PREDEV]
+in GitCli --> run with args [add, .]
+in GitCli --> run with args [rev-parse, HEAD]
+in GitCli --> run with args [commit, -m, CR_25100174_v1013325_9]
+in GitCli --> run with args [rev-parse, HEAD]
+in GitCli --> run with args [rev-list, --count, origin/PREDEV..HEAD]
+in GitCli --> run with args [push, origin, PREDEV]
 
 
-public class RebaseResult {
-
-    public final boolean success;
-    public final String output;
-
-    private RebaseResult(boolean s, String o) {
-        success = s;
-        output = o;
-    }
-
-    public static RebaseResult success(String o) {
-        return new RebaseResult(true, o);
-    }
-
-    public static RebaseResult failed(String o) {
-        return new RebaseResult(false, o);
-    }
-}
+can we compromise any stage to increase speed
