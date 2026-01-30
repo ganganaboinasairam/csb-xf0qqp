@@ -1,12 +1,15 @@
-in GitCli --> run with args [fetch, --quiet, --prune, --no-tags, origin]
-in GitCli --> run with args [rev-list, --count, HEAD..origin/PREDEV]
-in GitCli --> run with args [pull, --rebase, --autostash, origin, PREDEV]
-in GitCli --> run with args [add, .]
-in GitCli --> run with args [rev-parse, HEAD]
-in GitCli --> run with args [commit, -m, CR_25100174_v1013325_9]
-in GitCli --> run with args [rev-parse, HEAD]
-in GitCli --> run with args [rev-list, --count, origin/PREDEV..HEAD]
-in GitCli --> run with args [push, origin, PREDEV]
+
+        JPanel envPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        envPanel.setBorder(BorderFactory.createTitledBorder("Environment Selection"));
+        envPanel.add(chkEE);
+        envPanel.add(chkCE);
+        envPanel.add(chekFiles);
+
+        chkEE.addActionListener(e -> updateFieldStates());
+        chkCE.addActionListener(e -> updateFieldStates());
+
+        add(envPanel, BorderLayout.NORTH);
 
 
-can we compromise any stage to increase speed
+
+        chekFiles check box should come below the envirment boxes , but in the same layout
