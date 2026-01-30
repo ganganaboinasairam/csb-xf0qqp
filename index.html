@@ -1,15 +1,27 @@
+JPanel envPanel = new JPanel(new GridBagLayout());
+envPanel.setBorder(
+    BorderFactory.createTitledBorder("Environment Selection")
+);
 
-        JPanel envPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        envPanel.setBorder(BorderFactory.createTitledBorder("Environment Selection"));
-        envPanel.add(chkEE);
-        envPanel.add(chkCE);
-        envPanel.add(chekFiles);
+GridBagConstraints gbc = new GridBagConstraints();
+gbc.insets = new Insets(2, 4, 2, 4);
+gbc.anchor = GridBagConstraints.WEST;
 
-        chkEE.addActionListener(e -> updateFieldStates());
-        chkCE.addActionListener(e -> updateFieldStates());
+// Row 0 – EE & CE
+gbc.gridx = 0;
+gbc.gridy = 0;
+envPanel.add(chkEE, gbc);
 
-        add(envPanel, BorderLayout.NORTH);
+gbc.gridx = 1;
+envPanel.add(chkCE, gbc);
 
+// Row 1 – Check Files (below)
+gbc.gridx = 0;
+gbc.gridy = 1;
+gbc.gridwidth = 2;   // span across EE + CE width
+envPanel.add(chekFiles, gbc);
 
+chkEE.addActionListener(e -> updateFieldStates());
+chkCE.addActionListener(e -> updateFieldStates());
 
-        chekFiles check box should come below the envirment boxes , but in the same layout
+add(envPanel, BorderLayout.NORTH);
