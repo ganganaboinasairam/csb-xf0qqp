@@ -1,17 +1,285 @@
-[INFO]  --> Working tree clean
-[INFO] Pushing to origin/PREDEV...
-[ERROR] Push failed (non-fast-forward or auth issue)
-[ERROR] RuntimeException: Git command failed:
-E:/GIT/GIT/bin/git.exe push origin PREDEV
+public static void commitSelected(String region, String commitMsg, List<String> files, Consumer<String> log,
+			Consumer<CommitStage> stageUpdate, IntConsumer progress) throws Exception {
 
-To https://10.177.140.236/gitlab/root/tf_ee_pre_dev.git
- ! [rejected]            PREDEV -> PREDEV (fetch first)
-error: failed to push some refs to 'https://V1013352:LWZ_pJKsaEHkAvFc6xWk@10.177.140.236/gitlab/root/tf_ee_pre_dev.git'
-hint: Updates were rejected because the remote contains work that you do
-hint: not have locally. This is usually caused by another repository pushing
-hint: to the same ref. You may want to first integrate the remote changes
-hint: (e.g., 'git pull ...') before pushing again.
-hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+		File repo = new File(Config.get("git.repo.path." + region));
+		String branch = Config.get("git.branch.name." + region);
+
+		for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+
+			log.accept("Attempt " + attempt + " of " + MAX_RETRIES);
+
+			try {
+				// Sync first
+				try {
+					stageUpdate.accept(CommitStage.REBASING);
+
+					info(log, "Checking remote changes...");
+
+					GitCli.run(repo, "fetch", "--quiet", "--prune", "--no-tags", "origin");
+
+					if (isRemoteAhead(repo, branch)) {
+
+						progress.accept(15);
+						info(log, "Remote branch is ahead. Rebasing...");
+
+						rebase(region, log);
+
+					} else {
+
+						progress.accept(15);
+						info(log, "Local branch is up-to-date. Skipping rebase.");
+					}
+
+				} catch (Exception e) {
+					error(log, "Rebase failed — resolve conflicts and retry");
+					exception(log, e);
+					return;
+				}
+
+				log.accept("Staging selected files...");
+				stageUpdate.accept(CommitStage.STAGING);
+				progress.accept(35);
+				for (String f : files) {
+					GitCli.run(repo, "add", f);
+					log.accept("Added: " + f);
+				}
+
+				gitHelper.validateGitIdentity(repo, MainUI.getInstance());
+
+				
+					stageUpdate.accept(CommitStage.COMMITTING);
+					progress.accept(55);
+					info(log, "Commiting changes .... with commit message: " + commitMsg);
+					GitCli.run(repo, "commit", "-m", commitMsg);
+				
+
+				try {
+					String commitHash = GitCli.run(repo, "rev-parse", "HEAD").trim();
+					info(log, "Commiting Hash: " + commitHash);
+				} catch (Exception e) {
+					error(log, "Failed to get commit HASH");
+					exception(log, e);
+				}
+
+				stageUpdate.accept(CommitStage.VERIFYING);
+				progress.accept(70);
+				verifyCommitBeforePush(repo, branch, commitMsg, files, log);
+
+				try {
+					stageUpdate.accept(CommitStage.PUSHING);
+					progress.accept(85);
+					info(log, "Pushing to origin/" + branch + "...");
+					GitCli.run(repo, "push", "origin", branch);
+				} catch (Exception e) {
+					exception(log, e);
+				}
+
+				stageUpdate.accept(CommitStage.DONE);
+				progress.accept(100);
+				log.accept("Commit pushed successfully");
+				try {
+					MainUI.commitMsgField.setText(commitMsg);
+					MainUI.statusLabel.setText("Commit message pushed : " + commitMsg);
+				} catch (Exception ignore) {
+				}
+				return;
+
+			} catch (RuntimeException e) {
+
+			    String msg = e.getMessage();
+
+			    if (gitHelper.isConcurrentPushError(msg)) {
+
+			        if (attempt < MAX_RETRIES) {
+			            log.accept("[WARN] Remote updated by another user. Retrying...");
+			            continue;
+			        }
+
+			        error(log,
+			            "Push failed after retries.\n" +
+			            "Another user is pushing frequently.\n" +
+			            "Please retry later.");
+			        return;
+			    }
+
+			    if (gitHelper.isAuthError(msg)) {
+			        error(log, "Authentication / Permission issue.\nCheck credentials.");
+			        return;
+			    }
+
+			    if (gitHelper.isNetworkError(msg)) {
+			        error(log, "Network issue detected.\nPlease retry.");
+			        return;
+			    }
+
+			    if (gitHelper.isConflictError(msg)) {
+			        error(log, "Merge conflict detected.\nResolve manually.");
+			        return;
+			    }
+
+			    // Unknown error
+			    throw e;
+			}
+		}
+
+	}
+
+	private static boolean isRemoteAhead(File repo, String branch) throws Exception {
+
+		String out = GitCli.run(repo, "rev-list", "--count", "HEAD..origin/" + branch).trim();
+
+		return !out.isEmpty() && Integer.parseInt(out) > 0;
+	}
+
+	private static void verifyCommitBeforePush(File repo, String branch, String expectedCommitMsg,
+			List<String> selectedFiles, Consumer<String> log) throws Exception {
+
+		info(log, "Verifying commit before push...");
+
+		// Verify HEAD commit message
+		String headMsg = GitCli.run(repo, "log", "-1", "--pretty=format:%s").trim();
+
+		if (!headMsg.equals(expectedCommitMsg)) {
+			throw new RuntimeException("Commit verification failed: HEAD message mismatch\n" + "Expected: "
+					+ expectedCommitMsg + "\n" + "Actual  : " + headMsg);
+		}
+
+		info(log, " --> Commit message verified");
+
+		// Verify branch is ahead of remote
+		String ahead = GitCli.run(repo, "rev-list", "--count", "origin/" + branch + "..HEAD").trim();
+
+		if ("0".equals(ahead)) {
+			throw new RuntimeException("Commit verification failed: No new commits to push");
+		}
+
+		info(log, " --> Local branch ahead by " + ahead + " commit(s)");
+
+		// Verify committed files
+		String committedFiles = GitCli.run(repo, "show", "--name-only", "--pretty=format:", "HEAD");
+
+		for (String f : selectedFiles) {
+			if (!committedFiles.contains(f)) {
+				throw new RuntimeException("Commit verification failed: File missing in commit -> " + f);
+			}
+		}
+
+		info(log, " --> Selected files verified in commit");
+
+		// Verify clean working tree
+		// Verify selected files are clean after commit
+		String status = GitCli.run(repo, "status", "--porcelain");
+
+		for (String line : status.split("\\R")) {
+			if (line.length() < 4)
+				continue;
+
+			String file = line.substring(3).trim();
+
+			if (selectedFiles.contains(file)) {
+				throw new RuntimeException("Commit verification failed: Selected file still modified -> " + file);
+			}
+		}
+
+		info(log, " --> Selected files are clean after commit");
+		info(log, " --> Working tree clean");
+	}
+public static RebaseResult rebase(String region, java.util.function.Consumer<String> log) {
+
+		File repo = new File(Config.get("git.repo.path." + region));
+		String branch = Config.get("git.branch.name." + region);
+
+		log.accept("[INFO] Repository : " + repo.getAbsolutePath());
+		log.accept("[INFO] Rebasing from origin/" + branch);
+		log.accept("");
+
+		try {
+			// 1 Capture HEAD before rebase
+			String beforeHead = GitCli.run(repo, "rev-parse", "HEAD").trim();
+
+			log.accept("[DEBUG] HEAD before rebase: " + beforeHead);
+
+			// 2 Perform rebase
+			GitCli.run(repo, "pull", "--rebase", "--autostash", "origin", branch);
+
+			// 3 Check conflicts
+			String conflicts = GitCli.run(repo, "diff", "--name-only", "--diff-filter=U").trim();
+
+			if (!conflicts.isEmpty()) {
+				log.accept("[ERROR] Rebase stopped due to conflicts:");
+				for (String f : conflicts.split("\\R")) {
+					log.accept("  " + f);
+				}
+				return RebaseResult.conflict();
+			}
+
+			// 4 Capture HEAD after rebase
+			String afterHead = GitCli.run(repo, "rev-parse", "HEAD").trim();
+
+			log.accept("[DEBUG] HEAD after rebase : " + afterHead);
+
+			// 5 If HEAD unchanged -> nothing rebased
+			if (beforeHead.equals(afterHead)) {
+				log.accept("[INFO] Rebase completed – branch already up to date.");
+				return RebaseResult.noChange();
+			}
+
+			// 6 Detect changed files between commits
+			String diff = GitCli.run(repo, "diff-tree", "--no-commit-id", "--name-status", "-r", beforeHead, afterHead)
+					.trim();
+
+			if (diff.isEmpty()) {
+				log.accept("[INFO] Rebase completed – commits changed, files identical.");
+				return RebaseResult.noFileChange();
+			}
+
+			List<String> files = new ArrayList<>();
+			log.accept("[INFO] Files changed due to rebase:");
+			log.accept("----------------------------------------------");
+
+			for (String line : diff.split("\\R")) {
+				log.accept("  " + line);
+				files.add(line);
+			}
+
+			log.accept("");
+			log.accept("[INFO] Total files changed: " + files.size());
+
+			return RebaseResult.changed(files);
+
+		} catch (Exception e) {
+			log.accept("[ERROR] Rebase failed");
+			log.accept("[ERROR] " + e.getMessage());
+			return RebaseResult.failed(e.getMessage());
+		}
+	}
 
 
-push failed , but no error in console and the app is not retried to push again by repulling , it exited process
+
+console output for one push: 
+    
+in GitCli --> run with args [status, --porcelain]
+in GitCli --> run with args [log, origin/PREDEV, --pretty=format:%s, --grep=25100174_v1013325]
+in GitCli --> run with args [fetch, --quiet, --prune, --no-tags, origin]
+in GitCli --> run with args [rev-list, --count, HEAD..origin/PREDEV]
+in GitCli --> run with args [rev-parse, HEAD]
+in GitCli --> run with args [pull, --rebase, --autostash, origin, PREDEV]
+in GitCli --> run with args [diff, --name-only, --diff-filter=U]
+in GitCli --> run with args [rev-parse, HEAD]
+in GitCli --> run with args [diff-tree, --no-commit-id, --name-status, -r, 0ab35aa6cdd7949f5191a30b9a9e4fa46ed3193a, 5f8cafaf838db1a109c7bb0826ba8f976e5f3acf]
+in GitCli --> run with args [add, base_domain/CALJS/FUNCLEVEL/SYF_IMCC_IMCC_BRU_Lodg_Direct_Pay_TF.js]
+in GitCli --> run with args [add, base_domain/CALJS/FUNCLEVEL/SYF_IMCC_IMCC_DEO_Lodg_Direct_Pay_TF.js]
+in GitCli --> run with args [add, base_domain/Default/SCRN/IMCC_Lodg_Pay_nonLC_BRU_TF.xml]
+in GitCli --> run with args [add, base_domain/Default/SCRN/IMCC_Lodg_Pay_nonLC_DEO_TF.xml]
+in GitCli --> run with args [add, base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Lodg_Pay_nonLC_BRU_TF.jsp]
+in GitCli --> run with args [add, base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Lodg_Pay_nonLC_DEO_TF.jsp]
+in GitCli --> run with args [commit, -m, CR_25100174_v1013325_5]
+in GitCli --> run with args [rev-parse, HEAD]
+in GitCli --> run with args [log, -1, --pretty=format:%s]
+in GitCli --> run with args [rev-list, --count, origin/PREDEV..HEAD]
+in GitCli --> run with args [show, --name-only, --pretty=format:, HEAD]
+in GitCli --> run with args [status, --porcelain]
+in GitCli --> run with args [push, origin, PREDEV]
+
+
+    i asume that the process is slow due to some unwanted commands and repeted commands .
