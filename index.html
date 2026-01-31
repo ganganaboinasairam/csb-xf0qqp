@@ -1,36 +1,47 @@
-@Override
-protected void done() {
-    setBusy(false, null);
-    progressBar.setValue(0);
+Attempt 1 of 3
+[INFO] Fetching latest changes...
+[INFO] Rebasing from origin/PREDEV
 
-    try {
-        CommitPrepResult result = get();
+----- GIT OUTPUT -----
+From https://10.177.140.236/gitlab/root/tf_ee_pre_dev
+ * branch                  PREDEV     -> FETCH_HEAD
+   eed5a2c301..f5c27877ab  PREDEV     -> origin/PREDEV
+Created autostash: 98e079cf7a
+First, rewinding head to replay your work on top of it...
+Fast-forwarded PREDEV to f5c27877abfb83cb2e2710e160c4b5e1025a58e9.
+Applied autostash.
+----------------------
+Staging selected files...
+[INFO] All files selected - > using git add *
+[INFO] Committing...CR_25100174_v1013325_11
+[INFO] Pushing to origin/PREDEV...
+[WARN] Remote updated. Retrying...
+Attempt 2 of 3
+[INFO] Fetching latest changes...
+[INFO] Rebasing from origin/PREDEV
 
-        if (result.noChanges) {
-            JOptionPane.showMessageDialog(
-                MainUI.this,
-                "No changes to commit"
-            );
-            return;
-        }
+----- GIT OUTPUT -----
+From https://10.177.140.236/gitlab/root/tf_ee_pre_dev
+ * branch                  PREDEV     -> FETCH_HEAD
+   f5c27877ab..cda6c3181d  PREDEV     -> origin/PREDEV
+First, rewinding head to replay your work on top of it...
+Applying: CR_25100174_v1013325_11
+----------------------
+Staging selected files...
+[INFO] All files selected - > using git add *
+[INFO] Committing...CR_25100174_v1013325_11
 
-        boolean checkFiles =
-            "true".equalsIgnoreCase(
-                Config.get("check.files.before.commit")
-            );
+===================================DONE========================================
 
-        if (checkFiles) {
-            showFileSelection(result);
-        } else {
-            // Direct commit of all changed files
-            SelectedFiles = result.files.size();
-            showCommitConfirmation(
-                result.defaultMsg,
-                result.files
-            );
-        }
+ERROR: Git command failed:
+E:\git\GIT\bin\git.exe commit -m CR_25100174_v1013325_11
 
-    } catch (Exception ex) {
-        log("ERROR: " + ex.getMessage() + "\n");
-    }
-}
+On branch PREDEV
+Your branch is ahead of 'origin/PREDEV' by 1 commit.
+  (use "git push" to publish your local commits)
+
+
+
+in second attemt iam facing issue because it is trying to comiit again 
+
+nothing to commit, working tree clean
