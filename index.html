@@ -1,154 +1,49 @@
-<%@ page import = "com.cs.ce.core.helper.ScriptConvHelper"%>
-<%@ taglib uri = "/EXIMTAGS" prefix = "EXIMTAGS"%>
-<%@ taglib uri = "/CETAGS" prefix = "CETAGS"%>
+package com.tcs.git;
 
-<jsp:include  page="EEBranches.jsp"/>
-<EXIMTAGS:IncludeFile filePath="../JS/NLRF_BaseFunc.js"/>
-<EXIMTAGS:IncludeFile filePath="../SYS_JS/SYS_ActionFunc_CAL.js"/>
-<EXIMTAGS:IncludeFile filePath="../SYS_JS/MainMenu.js"/>
+import java.io.File;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-<EXIMTAGS:IncludeFile filePath="../JS/templateViewAll.js"/>
+import com.tcs.git.config.Config;
 
-<EXIMTAGS:IncludeFile filePath="../JS/draftsViewAll.js"/>
+public class CommitMessageGenerator {
 
+    private static final Pattern TOOL_COMMIT_PATTERN =
+    		Pattern.compile("^(CR|IR)_\\d+_[vV]\\d+_(\\d+)$");
 
+    public static String generate(File repo, String crNo ,String region) throws Exception {
 
-<script type="text/javascript">
+        int maxSeq = 0;
+        
+        String branch = Config.get("git.branch.name."+region);
+        
+        String user = Config.get("jenkins.user").trim();
 
-var unitCodeValue =  '<%=((com.cs.core.pojo.UserInfo)session.getAttribute("SS_USER_INFO")).getUserInfoMap().get("C_DFLT_UNIT_CODE")%>';
-var createdByValue =  '<%=((com.cs.core.pojo.UserInfo)session.getAttribute("SS_USER_INFO")).getUserInfoMap().get("C_USER_ID")%>';
-var createdBuValue =  '<%=((com.cs.core.pojo.UserInfo)session.getAttribute("SS_USER_INFO")).getUserInfoMap().get("C_UNIT_CODE")%>';
-var C_BK_GROUP_ID = '<%=((com.cs.core.pojo.UserInfo)session.getAttribute("SS_USER_INFO")).getUserInfoMap().get("C_BK_GROUP_ID")%>';
-var unit_code_value=  '<%= ((com.cs.core.pojo.UserInfo)session.getAttribute("SS_USER_INFO")).getUserId() %>';
+        String log = GitCli.run(
+            repo,
+            "log",
+            "origin/"+branch,
+            "--pretty=format:%s",
+            "--grep=" + crNo + "_" + user
+        );
 
-$(document).ready(function(){
-$('#TrxSysBtnsDiv').hide();
-$("#TrxTabs").hide();
-$('#prim_confirm').hide();
-$("#prim_save").hide(); 
+        for (String line : log.split("\\R")) {
 
+            Matcher m = TOOL_COMMIT_PATTERN.matcher(line.trim());
 
-      setTimeout(function(){
-	if(sessionStorage.getItem('SingleAuthLC') == "Y"){
-			sessionStorage.setItem('SingleAuthLC','N');			
-			singleAuthorizeLC();
-			
-	}
-	
-	},2000);
-	
-	if(sessionStorage.getItem('role')=='C'){
-	
-		$('#COMMENT_BTN').hide();
-		$('#tabsForChecker').show();
+            if (!m.matches()) {
+                // Ignore user-edited or custom messages
+                continue;
+            }
 
-		$('[class^="DATE"]').attr('disabled','disabled');
-		
-		$('#PRE_BT').hide();
-		$("#TEMP_BT").hide();
-		$('#Id_DocUpload').hide();
-		$("#releaseitTd1").css("display","none");
-		$("#releaseitTd2").css("display","none");
-		$("#releaseitTd3").css("display","none");
-		$("#releaseitTd4").css("display","none");
-		$('.prim_release').removeAttr("disabled");
-		$('#unlockLCButton').removeAttr("disabled");
-		$('#viewLCButton1').removeAttr("disabled");
-		
-		$(".sec_cancel").prop("disabled","");
-		if(sessionStorage.getItem('AuthStatus')=='Auth'){
-			$("input[name=REJECT]").hide();
-		}else if(sessionStorage.getItem('AuthStatus')=='Rej'){
-						$("input[name=AUTHORISE]").show();
+            int seq = Integer.parseInt(m.group(2));
+            maxSeq = Math.max(maxSeq, seq);
+        }
 
-		}
-		$('#LD_clause_tr').hide();
-		$("#btnMaker").hide();
-		$("#btnChecker").show();
-		$("#Id_renderIcon").css('display','table-row');
-		$("#Id_renderName").css('display','table-row');
-		$("#TrxSysBtnsDivChecker").show();
-		$("#TrxSysBtnsDiv1").hide();
-		$(".subbacbutton").hide();
-		}
-	
-	if(sessionStorage.getItem('role')=='M'){
-		$("#TrxTabs").hide();
-		$('#TrxSysBtnsDiv').hide();
-		$('#tabsForChecker').hide();
-		$('#prim_confirm').hide();
-		$("#btnMaker").show();
-		$("#btnChecker").hide();
-		$("#prim_save").hide();
-	}
-	
-	$("#disableOctClass").removeClass("disableOctClass");
-	$("#divMenu").removeClass("disableOctClass");
-
-	$("#chatmsg").removeAttr("disabled");
-	$("#B_CONTENT").css("background-color","#e4e4e4");
-
-	$("#releaseitTd1").css("display","none");
-	$("#releaseitTd2").css("display","none");
-	$("#releaseitTd3").css("display","none");
-	$("#releaseitTd4").css("display","none");
-	$("#prim_template").hide();
-	
-});
-
-
-
-
-
-function csrfResolution(url){
-	var csrfDataArray = encodeUrl(url).split("?")[1].split("&");
-	var CSRFData = csrfDataArray[0].split("=");
-	var refreshTokenData = csrfDataArray[1].split("=");
-	var csrfObject = {"url":url,"csrf":CSRFData[1],"refreshToken":refreshTokenData[1]};
-	return csrfObject;
+        return "CR_" + crNo + "_" + user + "_" + (maxSeq + 1);
+    }
 }
 
 
 
-</script>
-
-<input name="COMPANY_UNIT_CODE" type="hidden" id="COMPANY_UNIT_CODE" title="Company Unit Code">
-<input name="EMAIL_SUBJECT" type="hidden" class="CHAR_O"id="EMAIL_SUBJECT" title="Email Subject" value="">
-<input name="EMAIL_FROM" type="hidden" class="CHAR_O"id="EMAIL_FROM" title="Email Send to" value="">
-<input name="EMAIL_TO" type="hidden" class="CHAR_O"id="EMAIL_TO" title="Email Send to" value="">
-<input name="HOME_BRANCH_CODE" type="hidden" id="HOME_BRANCH_CODE" title="Home Branch Code">
-<input name="C_UNIT_CODE" type="hidden" id="C_UNIT_CODE" title="Unit Code" size="35" maxlength="35">
-<input name="STATUS" type="hidden" class="CHAR_O" id="STATUS" title="Party address2" value="1">
-<input name="SOC_CODE" type="hidden" class="CHAR_O" id="SOC_CODE" title="SOC Code" value="">
-
-<input name="EMAIL_TEMP" type="hidden" class="CHAR_O" id="EMAIL_TEMP" title="Temporary EMAIL" value="">
-
-<table style="width: 100%; padding: 0px; border: 0px; text-align: center; margin: auto;">
-    <jsp:include  page="EFRX_Buttons.jsp"/>
-    <tr>
-        <td>
-                <div class="Create_LC">
-                    
-                    <div class="Create_LC1" onclick="getFuncIdOnClick_n('FMUL79IB5X37');" id="Id_createLC" style="text-align:center;" title="Allows to Create a New Quote.">
-                        <img src="/CEWeb/Images/icons/create new LC.svg" height="60%" width="20%" alt="Icon not found"><br>
-                      Create New Quote
-                    </div>
-					
-
-					<div class="Create_LC1" onclick="getFuncIdOnClick_n('HTDROP128I40');" id="Id_createLC_rail" style="text-align:center;" title="Allows to raise a request  for Rollover Quote.">
-                        <img src="/CEWeb/Images/icons/create new LC.svg" height="60%" width="20%" alt="Icon not found"><br>
-                        Rollover
-                    </div>
-					
-                </div>
-        </td>
-    </tr>
-
-</table>
-<jsp:include  page="MessageBox.jsp"/>
- 
-
-<%if("TRUE".equals(ScriptConvHelper.declareScriptVar(request.getParameter("VIEWHISTORY")))){%>
-<CETAGS:ViewReport />
-<%}%>
-                                                                                                                                                                    
+the commit message can be like this also "CR_EFOREX_v1013325" adjust the pattern
