@@ -1,47 +1,269 @@
-Attempt 1 of 3
-[INFO] Fetching latest changes...
-[INFO] Rebasing from origin/PREDEV
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fundamental Stock Analyzer</title>
 
------ GIT OUTPUT -----
-From https://10.177.140.236/gitlab/root/tf_ee_pre_dev
- * branch                  PREDEV     -> FETCH_HEAD
-   eed5a2c301..f5c27877ab  PREDEV     -> origin/PREDEV
-Created autostash: 98e079cf7a
-First, rewinding head to replay your work on top of it...
-Fast-forwarded PREDEV to f5c27877abfb83cb2e2710e160c4b5e1025a58e9.
-Applied autostash.
-----------------------
-Staging selected files...
-[INFO] All files selected - > using git add *
-[INFO] Committing...CR_25100174_v1013325_11
-[INFO] Pushing to origin/PREDEV...
-[WARN] Remote updated. Retrying...
-Attempt 2 of 3
-[INFO] Fetching latest changes...
-[INFO] Rebasing from origin/PREDEV
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    padding: 20px;
+}
 
------ GIT OUTPUT -----
-From https://10.177.140.236/gitlab/root/tf_ee_pre_dev
- * branch                  PREDEV     -> FETCH_HEAD
-   f5c27877ab..cda6c3181d  PREDEV     -> origin/PREDEV
-First, rewinding head to replay your work on top of it...
-Applying: CR_25100174_v1013325_11
-----------------------
-Staging selected files...
-[INFO] All files selected - > using git add *
-[INFO] Committing...CR_25100174_v1013325_11
+.container {
+    max-width: 800px;
+    margin: auto;
+    background: #ffffff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 0 12px rgba(0,0,0,0.1);
+}
 
-===================================DONE========================================
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
 
-ERROR: Git command failed:
-E:\git\GIT\bin\git.exe commit -m CR_25100174_v1013325_11
+.section {
+    font-weight: bold;
+    margin-top: 20px;
+    color: #333;
+}
 
-On branch PREDEV
-Your branch is ahead of 'origin/PREDEV' by 1 commit.
-  (use "git push" to publish your local commits)
+label {
+    font-weight: bold;
+    font-size: 14px;
+}
 
+input, select {
+    width: 100%;
+    padding: 8px;
+    margin: 6px 0 12px 0;
+}
 
+button {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    background: #1565c0;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
 
-in second attemt iam facing issue because it is trying to comiit again 
+button:hover {
+    background: #0d47a1;
+}
 
-nothing to commit, working tree clean
+.result {
+    margin-top: 25px;
+    background: #eef3f7;
+    padding: 20px;
+    border-radius: 6px;
+}
+
+/* ----- GRAPHICS ----- */
+
+.badge {
+    padding: 10px 15px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 15px;
+}
+
+.green { background: #2e7d32; color: white; }
+.yellow { background: #f9a825; color: black; }
+.red { background: #c62828; color: white; }
+
+.meter {
+    background: #ddd;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 8px 0 18px 0;
+}
+
+.meter-fill {
+    height: 16px;
+    background: #2e7d32;
+}
+
+.pillar {
+    margin-bottom: 12px;
+}
+
+.pillar-name {
+    font-size: 14px;
+}
+
+.pillar-bar {
+    background: #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.pillar-fill {
+    height: 10px;
+    background: #1565c0;
+}
+
+.good { color: green; }
+.warn { color: #d47f00; }
+.bad { color: red; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>📊 Fundamental Investment Analyzer</h2>
+
+<div class="section">Business Quality</div>
+<label>ROCE (%)</label><input id="roce" type="number">
+<label>Revenue Growth 5Y (%)</label><input id="revGrowth" type="number">
+<label>Profit Growth 5Y (%)</label><input id="profitGrowth" type="number">
+<label>Operating Margin (%)</label><input id="opMargin" type="number">
+
+<div class="section">Financial Safety</div>
+<label>Debt to Equity</label><input id="debt" type="number">
+<label>Interest Coverage</label><input id="interest" type="number">
+<label>Free Cash Flow</label>
+<select id="fcf">
+    <option value="yes">Positive</option>
+    <option value="no">Negative</option>
+</select>
+
+<div class="section">Valuation</div>
+<label>P/E</label><input id="pe" type="number">
+<label>Industry P/E</label><input id="industryPe" type="number">
+<label>PEG Ratio</label><input id="peg" type="number">
+
+<div class="section">Management</div>
+<label>Promoter Holding (%)</label><input id="holding" type="number">
+<label>Promoter Pledge (%)</label><input id="pledge" type="number">
+
+<button onclick="analyze()">Explain Investment Decision</button>
+
+<div class="result" id="result"></div>
+</div>
+
+<script>
+function analyze() {
+
+    let positives = [], warnings = [], negatives = [];
+
+    let roce = +document.getElementById("roce").value;
+    let rev = +document.getElementById("revGrowth").value;
+    let profit = +document.getElementById("profitGrowth").value;
+    let margin = +document.getElementById("opMargin").value;
+
+    let debt = +document.getElementById("debt").value;
+    let interest = +document.getElementById("interest").value;
+    let fcf = document.getElementById("fcf").value;
+
+    let pe = +document.getElementById("pe").value;
+    let indPe = +document.getElementById("industryPe").value;
+    let peg = +document.getElementById("peg").value;
+
+    let holding = +document.getElementById("holding").value;
+    let pledge = +document.getElementById("pledge").value;
+
+    let businessScore = 0, safetyScore = 0, valuationScore = 0, managementScore = 0;
+
+    // BUSINESS QUALITY
+    if (roce > 20) { positives.push("High ROCE shows excellent capital efficiency."); businessScore += 30; }
+    else if (roce < 12) negatives.push("Low ROCE indicates weak business efficiency.");
+
+    if (profit > rev) { positives.push("Profit growing faster than revenue."); businessScore += 20; }
+    else warnings.push("Profit growth not significantly better than revenue.");
+
+    if (margin > 18) { positives.push("Strong operating margins indicate pricing power."); businessScore += 20; }
+    else warnings.push("Operating margins are moderate.");
+
+    // FINANCIAL SAFETY
+    if (debt === 0) { positives.push("Debt-free company with strong balance sheet."); safetyScore += 30; }
+    else if (debt > 1) negatives.push("High debt increases financial risk.");
+
+    if (interest > 5) { positives.push("High interest coverage ensures debt safety."); safetyScore += 20; }
+    else if (interest < 3) negatives.push("Low interest coverage is risky.");
+
+    if (fcf === "yes") { positives.push("Positive free cash flow confirms real earnings."); safetyScore += 20; }
+    else negatives.push("Negative free cash flow is a red flag.");
+
+    // VALUATION
+    if (pe < indPe) { positives.push("Valuation is reasonable compared to industry."); valuationScore += 20; }
+    else warnings.push("Stock trades at premium valuation.");
+
+    if (peg < 1.5) valuationScore += 10;
+    else warnings.push("High PEG suggests expensive growth.");
+
+    // MANAGEMENT
+    if (holding > 50) { positives.push("High promoter holding shows confidence."); managementScore += 10; }
+    else warnings.push("Promoter holding is relatively low.");
+
+    if (pledge === 0) { positives.push("No promoter pledge – good governance."); managementScore += 10; }
+    else negatives.push("Promoter pledge is a governance risk.");
+
+    let totalScore = businessScore + safetyScore + valuationScore + managementScore;
+    let decision, badgeClass;
+
+    if (negatives.length >= 3) {
+        decision = "❌ AVOID INVESTING";
+        badgeClass = "red";
+    } else if (totalScore >= 65) {
+        decision = "✅ STRONG LONG-TERM INVESTMENT";
+        badgeClass = "green";
+    } else {
+        decision = "⚠ INVEST WITH CAUTION";
+        badgeClass = "yellow";
+    }
+
+    let html = `
+    <div class="badge ${badgeClass}">${decision}</div>
+
+    <b>Overall Strength</b>
+    <div class="meter">
+        <div class="meter-fill" style="width:${Math.min(totalScore,100)}%;"></div>
+    </div>
+
+    <div class="pillar">
+        <div class="pillar-name">Business Quality</div>
+        <div class="pillar-bar"><div class="pillar-fill" style="width:${businessScore}%;"></div></div>
+    </div>
+
+    <div class="pillar">
+        <div class="pillar-name">Financial Safety</div>
+        <div class="pillar-bar"><div class="pillar-fill" style="width:${safetyScore}%;"></div></div>
+    </div>
+
+    <div class="pillar">
+        <div class="pillar-name">Valuation</div>
+        <div class="pillar-bar"><div class="pillar-fill" style="width:${valuationScore}%;"></div></div>
+    </div>
+
+    <div class="pillar">
+        <div class="pillar-name">Management</div>
+        <div class="pillar-bar"><div class="pillar-fill" style="width:${managementScore * 10}%;"></div></div>
+    </div>
+
+    <hr>
+
+    <b>Why you SHOULD invest:</b><br>
+    ${positives.map(p => `<span class="good">✔ ${p}</span>`).join("<br>")}
+
+    <br><br><b>Why you should be CAUTIOUS:</b><br>
+    ${warnings.map(w => `<span class="warn">⚠ ${w}</span>`).join("<br>")}
+
+    <br><br><b>Why you should NOT invest:</b><br>
+    ${negatives.map(n => `<span class="bad">✖ ${n}</span>`).join("<br>")}
+    `;
+
+    document.getElementById("result").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
