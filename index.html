@@ -8,23 +8,25 @@ import com.tcs.git.config.Config;
 
 public class CommitMessageGenerator {
 
+    // CR_<KEY>_<USER>_<SEQ>
     private static final Pattern TOOL_COMMIT_PATTERN =
-    		Pattern.compile("^(CR|IR)_\\d+_[vV]\\d+_(\\d+)$");
+        Pattern.compile("^(CR|IR)_([A-Za-z0-9]+)_[vV]\\d+_(\\d+)$");
 
-    public static String generate(File repo, String crNo ,String region) throws Exception {
+    public static String generate(File repo, String crKey, String region)
+            throws Exception {
 
         int maxSeq = 0;
-        
-        String branch = Config.get("git.branch.name."+region);
-        
-        String user = Config.get("jenkins.user").trim();
 
+        String branch = Config.get("git.branch.name." + region);
+        String user   = Config.get("jenkins.user").trim();
+
+        // Search only tool-generated commits
         String log = GitCli.run(
             repo,
             "log",
-            "origin/"+branch,
+            "origin/" + branch,
             "--pretty=format:%s",
-            "--grep=" + crNo + "_" + user
+            "--grep=" + crKey + "_" + user
         );
 
         for (String line : log.split("\\R")) {
@@ -32,18 +34,31 @@ public class CommitMessageGenerator {
             Matcher m = TOOL_COMMIT_PATTERN.matcher(line.trim());
 
             if (!m.matches()) {
-                // Ignore user-edited or custom messages
+                // Ignore custom / manually edited messages
                 continue;
             }
 
-            int seq = Integer.parseInt(m.group(2));
+            String key = m.group(2);
+            if (!key.equalsIgnoreCase(crKey)) {
+                continue;
+            }
+
+            int seq = Integer.parseInt(m.group(3));
             maxSeq = Math.max(maxSeq, seq);
         }
 
-        return "CR_" + crNo + "_" + user + "_" + (maxSeq + 1);
+        return "CR_" + crKey + "_" + user + "_" + (maxSeq + 1);
     }
 }
 
 
+String input = crNo.trim();
 
-the commit message can be like this also "CR_EFOREX_v1013325" adjust the pattern
+// Remove CR_ / IR_ prefix (case-insensitive)
+input = input.replaceFirst("(?i)^(CR|IR)_", "");
+
+// Remove trailing sequence if user pasted old message
+input = input.replaceFirst("_[vV]\\d+_\\d+$", "");
+
+// Final CR key
+String crKey = input;
