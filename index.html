@@ -1,64 +1,49 @@
-package com.tcs.git;
+csFuncLevelProto.SYF_EXNE_SWFT_MSG_TYPE = function () {
+    try {
+        var acpStatus = document.MAINFORM.ACP_STATUS_NONLC.value;
+        var lcType    = document.MAINFORM.LC_NONLC.value;
+        var value     = "";
 
-import java.io.File;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+        // Determine value based on conditions
+        if (acpStatus == 2 && lcType == 1) value = 1;
+        else if (acpStatus == 1 && lcType == 1) value = 2;
+        else if (acpStatus == 2 && lcType == 2) value = 3;
+        else if (acpStatus == 1 && lcType == 2) value = 4;
 
-import com.tcs.git.config.Config;
+        var dropdown = document.getElementById("SWFT_MSG_TYPE");
 
-public class CommitMessageGenerator {
-
-    // CR_<KEY>_<USER>_<SEQ>
-    private static final Pattern TOOL_COMMIT_PATTERN =
-        Pattern.compile("^(CR|IR)_([A-Za-z0-9]+)_[vV]\\d+_(\\d+)$");
-
-    public static String generate(File repo, String crKey, String region)
-            throws Exception {
-
-        int maxSeq = 0;
-
-        String branch = Config.get("git.branch.name." + region);
-        String user   = Config.get("jenkins.user").trim();
-
-        // Search only tool-generated commits
-        String log = GitCli.run(
-            repo,
-            "log",
-            "origin/" + branch,
-            "--pretty=format:%s",
-            "--grep=" + crKey + "_" + user
-        );
-
-        for (String line : log.split("\\R")) {
-
-            Matcher m = TOOL_COMMIT_PATTERN.matcher(line.trim());
-
-            if (!m.matches()) {
-                // Ignore custom / manually edited messages
-                continue;
-            }
-
-            String key = m.group(2);
-            if (!key.equalsIgnoreCase(crKey)) {
-                continue;
-            }
-
-            int seq = Integer.parseInt(m.group(3));
-            maxSeq = Math.max(maxSeq, seq);
+        // If no valid value, clear dropdown
+        if (!value) {
+            dropdown.innerHTML = "<option></option>";
+            return;
         }
 
-        return "CR_" + crKey + "_" + user + "_" + (maxSeq + 1);
+        // DB query setup
+        var sTableName = "EXIMSYS.EE_FLDC_MASTER";
+        var sFieldList = "fldc_discription";
+        var sSQLWhere  =
+            "fldc_type='Swift Type' and fldc_type1='" + value + "'";
+
+        SYS_GetTableMultiDataToArray(
+            sTableName,
+            sSQLWhere,
+            sFieldList
+        );
+
+        var dbData = SYS_MULTI_DATA[0][1] || [];
+        var options = "<option value=''></option>";
+
+        for (var i = 0; i < dbData.length; i++) {
+            options += "<option value='" + dbData[i] + "'>" +
+                       dbData[i] + "</option>";
+        }
+
+        dropdown.innerHTML = options;
+
+    } catch (e) {
+        DisExcept(
+            "SYF_EXNE_EXNE_REG_ACC_MNL.js*SYF_EXNE_SWFT_MSG_TYPE",
+            e
+        );
     }
-}
-
-
-String input = crNo.trim();
-
-// Remove CR_ / IR_ prefix (case-insensitive)
-input = input.replaceFirst("(?i)^(CR|IR)_", "");
-
-// Remove trailing sequence if user pasted old message
-input = input.replaceFirst("_[vV]\\d+_\\d+$", "");
-
-// Final CR key
-String crKey = input;
+};
