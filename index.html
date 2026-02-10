@@ -21,7 +21,7 @@
     gap: 6px;
 }
 
-/* ✅ Uniform vertical white divider */
+/* ✅ Uniform divider for ALL buttons */
 .tabContainer .buttonContainer button:not(:last-child)::after {
     content: "";
     position: absolute;
@@ -29,30 +29,28 @@
     top: 25%;
     height: 50%;
     width: 1px;
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.85);
     transition: background-color 0.2s ease;
 }
 
-/* Hover button style */
+/* Button hover */
 .tabContainer .buttonContainer button:hover {
     background-color: #ffffff;
     color: #5b1d8d;
 }
 
-/* ✅ Bottom indicator */
+/* ✅ Divider turns purple ON HOVER */
+.tabContainer .buttonContainer button:hover::after {
+    background-color: #5b1d8d;
+}
+
+/* Bottom active indicator */
 .tabContainer .buttonContainer button:hover::before {
     content: "";
     position: absolute;
     bottom: 0;
     width: 40%;
     border-bottom: 2px solid #5b1d8d;
-}
-
-/* ✅ SPECIAL CASE:
-   When hovering Trade Dashboard,
-   change divider BETWEEN Forex & Trade */
-#acceptQuoteBtn:hover::after {
-    background-color: #5b1d8d;
 }
 
 /* Icons */
