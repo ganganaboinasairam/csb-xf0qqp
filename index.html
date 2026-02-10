@@ -1,210 +1,27 @@
-<script>
-/* ====== GLOBALS ====== */
-let runningOrdersData = [];
-let currentPage = 1;
-const rowsPerPage = 5;
+<table id="tbPagination" cellpadding="0" cellspacing="0" border="0" width="100%">
+   <tbody>
+      <tr style="height:40px;">
+         <td class="PaginationCont">
+            <div id="Pagination" class="pageNumbersTable" style="padding-right: 60px; padding-top: 15px;">
+               <table id="pageNumbersTable" cellspacing="0" cellpadding="0" border="0" align="right" class="pageNumbersTable" style="height: 10px; padding-right: 60px; padding-top: 15px;">
+                  <tbody id="pageNumbersTableBody">
+                     <tr id="pageNumbersRow">
+                        <td id="pageLinkCell" class="PaginationTable">
+						<a id="pageLinkA_1" href="#" class="PaginationCurrLink" style="background-color: rgb(101, 42, 132); color: rgb(255, 255, 255); border-radius: 10px; padding: 10px; font-size: 14px;">1</a>
+						<a id="pageLinkA_2" href="#" class="PaginationUnselectedLink" style="border-radius: 10px; padding: 10px; font-size: 14px;">2</a>
+						<a id="pageLinkA_3" href="#" class="PaginationUnselectedLink" style="border-radius: 10px; padding: 10px; font-size: 14px;">3</a>
+						<a id="pageLinkA_4" href="#" class="PaginationUnselectedLink" style="border-radius: 10px; padding: 10px; font-size: 14px;">4</a>
+						<a id="pageLinkA_5" href="#" class="PaginationUnselectedLink" style="border-radius: 10px; padding: 10px; font-size: 14px;">5</a>
+						</td>
+                        <td id="NextSectionCell" class="PaginationTable"><a id="NextSection_2" href="#" class="PaginationUnselectedLink" style="border-radius: 10px; padding: 10px; font-size: 17px;">&gt;</a></td>
+                     </tr>
+                  </tbody>
+               </table>
+            </div>
+         </td>
+      </tr>
+   </tbody>
+</table>
 
-/* ====== PAGE LOAD ====== */
-document.addEventListener("DOMContentLoaded", function () {
-    loadRunningOrders();
-});
 
-/* ====== MAIN FUNCTION ====== */
-function loadRunningOrders() {
-    // Simulated API response (10 fake records)
-    runningOrdersData = [
-        {
-            spotOrderNo: "RO1001",
-            currency1: "USD",
-            currency2: "INR",
-            orderType: "Limit",
-            buySell: "BUY",
-            amount: "1000",
-            limitRate: "83.25",
-            dueDate: "15-Mar-25",
-            StopLossRate: "82.90",
-            orderStatus: "Open"
-        },
-        {
-            spotOrderNo: "RO1002",
-            currency1: "EUR",
-            currency2: "INR",
-            orderType: "Market",
-            buySell: "SELL",
-            amount: "2000",
-            limitRate: "90.10",
-            dueDate: "16-Mar-25",
-            StopLossRate: "89.50",
-            orderStatus: "Pending"
-        },
-        {
-            spotOrderNo: "RO1003",
-            currency1: "GBP",
-            currency2: "INR",
-            orderType: "Limit",
-            buySell: "BUY",
-            amount: "1500",
-            limitRate: "105.40",
-            dueDate: "17-Mar-25",
-            StopLossRate: "104.80",
-            orderStatus: "Open"
-        },
-        {
-            spotOrderNo: "RO1004",
-            currency1: "USD",
-            currency2: "INR",
-            orderType: "Market",
-            buySell: "SELL",
-            amount: "2500",
-            limitRate: "83.90",
-            dueDate: "18-Mar-25",
-            StopLossRate: "83.30",
-            orderStatus: "Executed"
-        },
-        {
-            spotOrderNo: "RO1005",
-            currency1: "JPY",
-            currency2: "INR",
-            orderType: "Limit",
-            buySell: "BUY",
-            amount: "3000",
-            limitRate: "0.56",
-            dueDate: "19-Mar-25",
-            StopLossRate: "0.54",
-            orderStatus: "Open"
-        },
-        {
-            spotOrderNo: "RO1006",
-            currency1: "AUD",
-            currency2: "INR",
-            orderType: "Market",
-            buySell: "SELL",
-            amount: "1200",
-            limitRate: "54.30",
-            dueDate: "20-Mar-25",
-            StopLossRate: "53.80",
-            orderStatus: "Pending"
-        },
-        {
-            spotOrderNo: "RO1007",
-            currency1: "CAD",
-            currency2: "INR",
-            orderType: "Limit",
-            buySell: "BUY",
-            amount: "1800",
-            limitRate: "61.70",
-            dueDate: "21-Mar-25",
-            StopLossRate: "61.10",
-            orderStatus: "Open"
-        },
-        {
-            spotOrderNo: "RO1008",
-            currency1: "CHF",
-            currency2: "INR",
-            orderType: "Market",
-            buySell: "SELL",
-            amount: "2200",
-            limitRate: "94.20",
-            dueDate: "22-Mar-25",
-            StopLossRate: "93.60",
-            orderStatus: "Executed"
-        },
-        {
-            spotOrderNo: "RO1009",
-            currency1: "SGD",
-            currency2: "INR",
-            orderType: "Limit",
-            buySell: "BUY",
-            amount: "1600",
-            limitRate: "61.20",
-            dueDate: "23-Mar-25",
-            StopLossRate: "60.70",
-            orderStatus: "Open"
-        },
-        {
-            spotOrderNo: "RO1010",
-            currency1: "HKD",
-            currency2: "INR",
-            orderType: "Market",
-            buySell: "SELL",
-            amount: "1400",
-            limitRate: "10.65",
-            dueDate: "24-Mar-25",
-            StopLossRate: "10.40",
-            orderStatus: "Pending"
-        }
-    ];
-
-    currentPage = 1;
-    renderRunningOrders();
-    renderPagination();
-}
-
-/* ====== RENDER TABLE ====== */
-function renderRunningOrders() {
-    const table = document.querySelectorAll(".cata-tab")[0];
-    const tbody = table.querySelector("tbody");
-    tbody.innerHTML = "";
-
-    const start = (currentPage - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-    const pageData = runningOrdersData.slice(start, end);
-
-    pageData.forEach(order => {
-        const tr = document.createElement("tr");
-
-        tr.innerHTML = `
-            <td>${order.spotOrderNo}</td>
-            <td>${order.currency1}/${order.currency2}</td>
-            <td>${order.orderType}</td>
-            <td>${order.buySell}</td>
-            <td>${order.amount}</td>
-            <td>${order.limitRate}</td>
-            <td>${order.dueDate}</td>
-            <td>${order.StopLossRate}</td>
-            <td>${order.orderStatus}</td>
-            <td></td>
-        `;
-
-        tbody.appendChild(tr);
-    });
-}
-
-/* ====== PAGINATION ====== */
-function renderPagination() {
-    let paginationDiv = document.getElementById("runningOrderPagination");
-
-    if (!paginationDiv) {
-        paginationDiv = document.createElement("div");
-        paginationDiv.id = "runningOrderPagination";
-        paginationDiv.style.textAlign = "center";
-        paginationDiv.style.marginTop = "10px";
-
-        const table = document.querySelectorAll(".cata-tab")[0];
-        table.parentElement.appendChild(paginationDiv);
-    }
-
-    paginationDiv.innerHTML = "";
-
-    const totalPages = Math.ceil(runningOrdersData.length / rowsPerPage);
-
-    for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement("button");
-        btn.innerText = i;
-        btn.style.margin = "0 5px";
-        btn.style.cursor = "pointer";
-
-        if (i === currentPage) {
-            btn.disabled = true;
-        }
-
-        btn.onclick = function () {
-            currentPage = i;
-            renderRunningOrders();
-            renderPagination();
-        };
-
-        paginationDiv.appendChild(btn);
-    }
-}
-</script>
+i need pagination in above style in the table below and right side , in left side a text should come "Showing 1- 5 of 10 Records".
