@@ -1,59 +1,145 @@
-.tabContainer .buttonContainer {
-    display: flex;
-    height: 50px;
-    background-image: linear-gradient(to left, #280071, #A5235A 55%, #C72153);
-    font-family: roboto-regular;
-}
+<div style="display: flex; flex-direction: row; gap: 10px;">
+	<div class="leftDiv" style="width: 85%;">
+		<table
+			style="width: 100%; padding: 0px; border: 0px; text-align: center; margin: auto;">
 
-.tabContainer .buttonContainer button {
-    flex: 1;
-    position: relative;
-    background: transparent;
+			<jsp:include page="EFRX_Buttons.jsp" />
+			<tr>
+				<td>
+					<div class="Create_LC">
+
+						<div class="table-card" title="Running Orders">
+							<div class="tab-hed">
+    <span>Running Orders</span>
+
+    <div class="tab-icons">
+        <i class="icon filter-icon" style="margin-left: 0px;" title="Filter"></i>
+        <i class="icon refresh-icon" style="margin-left: 0px;" title="Refresh"></i>
+    </div>
+</div>
+							<table class="cata-tab">
+
+								<thead>
+
+									<tr>
+										<td class="tab-head-td">Ref ID</td>
+										<td class="tab-head-td">CC Pair</td>
+										<td class="tab-head-td">Type</td>
+										<td class="tab-head-td">Buy / Sell</td>
+										<td class="tab-head-td">Amount</td>
+										<td class="tab-head-td">Limit Rate</td>
+										<td class="tab-head-td">Due Date</td>
+										<td class="tab-head-td">Stop-loss Rate</td>
+										<td class="tab-head-td">Status</td>
+										<td class="tab-head-td">Actions</td>
+									</tr>
+								</thead>
+								<tbody>
+								</tbody>
+							</table>
+						</div>
+						</div>
+
+<div class="Create_LC">
+						<div class="table-card" title="Booked Trades">
+							<div class="tab-hed">
+    <span>Booked Trades</span>
+
+    <div class="tab-icons">
+        <i class="icon filter-icon" style="margin-left: 0px;" title="Filter"></i>
+        <i class="icon refresh-icon" style="margin-left: 0px;" title="Refresh"></i>
+        <i class="icon pdf-icon" style="margin-left: 0px;" title="Export PDF"></i>
+    </div>
+</div>
+							<div style="display: flex;margin-bottom: 5px;">
+			
+			<button type="button" id="issuanceButton" class="buttonClass activeButton">Active</button>
+			<button type="button" id="amendmentButton" class="buttonClass">Outstanding</button>
+			<button type="button" id="closeButton" class="buttonClass">Matured</button>
+			<button type="button" id="railLcButton" class="buttonClass">Document First</button>
+			<button type="button" id="mtdraftButton" class="buttonClass">All Deals</button>
+							</div>
+							<table class="cata-tab">
+								<thead>
+
+									<tr>
+										<td class="tab-head-td">Ref No.</td>
+										<td class="tab-head-td">Trans. Date</td>
+										<td class="tab-head-td">CC Pair</td>
+										<td class="tab-head-td">Buy / Sell</td>
+										<td class="tab-head-td">CCY</td>
+										<td class="tab-head-td">Amount</td>
+										<td class="tab-head-td">Rate</td>
+										<td class="tab-head-td">Due Date</td>
+										<td class="tab-head-td">Status</td>
+										<td class="tab-head-td">Actions</td>
+									</tr>
+								</thead>
+								<tbody>
+									<tr style="">
+										<td style="
+											color: #4da9f1;
+											padding-top: 8px;
+											padding-bottom: 8px;
+										">954225464000</td>
+										<td>17-May-25</td>
+										<td>USD/INR</td>
+										<td>BUY</td>
+										<td>USD</td>
+										<td>1321.00</td>
+										<td>78.00012</td>
+										<td>1-Apr-25 to 8-Apr-25</td>
+										<td style="
+											color: #4CAF50;
+										">Rate Booked</td>
+										<td></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+					</div>
+				</td>
+			</tr>
+
+		</table>
+	</div>
+	<div class="rightDiv" style="
+    width: 15%;
+    height: 30rem;
+    background-color: white;
+	margin-top: 2px;
+">
+        <div style="display: flex;flex-direction: column;height: 100%;box-shadow: 0px 3px 6px #b9b9b9;">
+            <div style="background-color: #280071;text-align: center;color: white;height: 50px;font-size: 20px;">
+                <p>Market Trends</p>
+            </div>
+        <div style="text-align: center;color: white;height: 15rem;font-size: 20px;">
+                <textarea id="cauText" name="cauText" style="
     border: none;
-    color: white;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
+    resize: none;
+    width: -webkit-fill-available;
+    height: 100%;
+    font-style: italic;
+    padding: 10px;
+">Please wait while we update markets trends...</textarea>
+            </div><div style="text-align: center;color: white;height: 18rem;font-size: 20px;word-wrap: break-word;background-color: #ebebeb;">
+    <p id="disclaimText" name="disclaimText" style="
+        border: none;
+        resize: none;
+        width: -webkit-fill-available;
+        height: -webkit-fill-available;
+        padding: 10px;
+        color: black;
+        white-space: normal;
+        font-size: 14px;
+        text-align: justify;
+    ">
+        <strong>Disclaimer</strong> : Although the information here is believed to be reliable, the State Bank of India does not make any claims for its accuracy or completeness. State Bank of India is not acting as the Company's agent and the decision to proceed with any transaction rests solely with the Company
+    </p>
+</div></div>
+    </div>
+</div>
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
 
-/* ✅ Uniform divider for ALL buttons */
-.tabContainer .buttonContainer button:not(:last-child)::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    top: 25%;
-    height: 50%;
-    width: 1px;
-    background-color: rgba(255, 255, 255, 0.85);
-    transition: background-color 0.2s ease;
-}
-
-/* Button hover */
-.tabContainer .buttonContainer button:hover {
-    background-color: #ffffff;
-    color: #5b1d8d;
-}
-
-/* ✅ Divider turns purple ON HOVER */
-.tabContainer .buttonContainer button:hover::after {
-    background-color: #5b1d8d;
-}
-
-/* Bottom active indicator */
-.tabContainer .buttonContainer button:hover::before {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    width: 40%;
-    border-bottom: 2px solid #5b1d8d;
-}
-
-/* Icons */
-.tabContainer .buttonContainer img {
-    height: 18px;
-}
+optimise and seperate css 
