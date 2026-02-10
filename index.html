@@ -1,259 +1,294 @@
-<style>
-.tabContainer .buttonContainer {
-	width: 100%;
-	height: 50px;
-	background-image: linear-gradient(to left, #280071, #A5235A 55%, #C72153);
+/* layout containers */
+.main-row {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
 }
-/* icon container */
+
+.leftDiv {
+    width: 85%;
+}
+
+.rightDiv {
+    width: 15%;
+    height: 30rem;
+    background-color: white;
+    margin-top: 2px;
+}
+
+/* table wrapper */
+.outer-table {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    text-align: center;
+    margin: auto;
+}
+
+/* table header row */
+.tab-hed {
+    text-align: left;
+    margin-bottom: 5px;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* icons */
 .tab-icons {
     display: flex;
     gap: 10px;
 }
-/* base icon */
-.tab-icons .icon {
+
+.icon {
     width: 16px;
     height: 16px;
     cursor: pointer;
     opacity: 0.7;
 }
-.tab-icons .icon:hover {
+
+.icon:hover {
     opacity: 1;
 }
-/* icons using CSS background (no external libs needed) */
+
 .filter-icon {
     background: url('/CEWeb/Images/icons/search.svg') no-repeat center / contain;
 }
+
 .refresh-icon {
     background: url('/CEWeb/Images/icons/refreshIcon1.png') no-repeat center / contain;
 }
+
 .pdf-icon {
     background: url('/CEWeb/Images/icons/export as pdf.svg') no-repeat center / contain;
 }
-.tab-hed {
-	text-align: left;
-	margin-bottom: 5px;
-	font-size: 20px;
-	display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.tab-head-td {
-	background-color: #652a84;
-	padding: 10px;
-	color: white;
-	text-align: center;
-}
-.buttonClass {
-    width: 10%;
-    height: 34px;
-    border-radius: 10px 10px 0px 0px;
-    border-width: 0 0 0 0;
-    background-color: #ffffff;
+
+/* table container */
+.table-cntnr {
+    width: 100%;
+    height: 100%;
+    box-shadow: 0px 3px 6px #b9b9b9;
+    font-size: 16px;
     color: #506070;
-    outline: slategray;
-    border: solid #cfcfcf 1px;
-    margin-right: 2px;
-	cursor: pointer; 
+    border: none;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
 }
-.activeButton{
-	background-color: rgb(0, 149, 218); 
-	color: rgb(255, 255, 255);
+
+.table-card {
+    margin: 10px;
+    padding: 5px;
+    float: left;
+    font-size: 16px;
 }
-.cata-tab{
-    width: 100%; 
-    text-align: center; 
-    margin: auto; 
-    border-spacing: 0px; 
-    border-collapse: collapse; 
-    font-size: 14px; 
+
+/* table */
+.cata-tab {
+    width: 100%;
+    text-align: center;
+    margin: auto;
+    border-spacing: 0;
+    border-collapse: collapse;
+    font-size: 14px;
     font-family: roboto-regular;
     border: 1px solid #ddd;
 }
-.tabContainer .buttonContainer button {
-	width: 25%;
-	height: 50px;
-	float: left;
-	border: none;
-	cursor: pointer;
-	padding: 10px;
-	font-size: 16px;
-	background-color: transparent;
-	border: 3px 4px 7px 3px solid #d3d3d3;
-	font-weight: bolder;
-	color: white;
+
+.tab-head-td {
+    background-color: #652a84;
+    padding: 10px;
+    color: white;
+    text-align: center;
 }
-.tabContainer .buttonContainer button:hover {
-	background-color: WHITE;
-	width: 25%;
-	height: 50px;
-	color: #5b1d8d;
-	position: relative;
+
+/* buttons */
+.buttonClass {
+    width: 10%;
+    height: 34px;
+    border-radius: 10px 10px 0 0;
+    border: solid #cfcfcf 1px;
+    background-color: #ffffff;
+    color: #506070;
+    margin-right: 2px;
+    cursor: pointer;
 }
-.tabContainer .buttonContainer button:hover::after {
-	content: "";
-	position: absolute;
-	right: 157px;
-	width: 140px;
-	bottom: 0;
-	border-bottom: 2px solid #5b1d8d;
+
+.activeButton {
+    background-color: rgb(0, 149, 218);
+    color: white;
 }
-#B_CONTENT>div>div.content>div>header>div>div>button:nth-child(4):hover::after
-	{
-	content: "";
-	position: absolute;
-	right: 55px;
-	width: 328px;
-	bottom: 0;
-	border-bottom: 2px solid #5b1d8d;
-	min-width: 1597px;
+
+.sub-btn-row {
+    display: flex;
+    margin-bottom: 5px;
 }
-.table-cntnr {
-	width: 100%;
-	height: 100%;
-	box-shadow: 0px 3px 6px #b9b9b9;
-	font-size: 16px;
-	color: #506070;
-	border: none;
-	background-color: white;
-	display: flex;
-	flex-direction: column;
-	margin-top: 20px;
+
+/* right panel */
+.market-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-shadow: 0px 3px 6px #b9b9b9;
 }
-.table-card {
-	margin: 10px;
-	padding: 5px;
-	float: left;
-	font-size: 16px;
+
+.market-header {
+    background-color: #280071;
+    text-align: center;
+    color: white;
+    height: 50px;
+    font-size: 20px;
 }
-</style>
- <div style="display: flex; flex-direction: row; gap: 10px;">
-	<div class="leftDiv" style="width: 85%;">
-		<table
-			style="width: 100%; padding: 0px; border: 0px; text-align: center; margin: auto;">
-			<jsp:include page="EFRX_Buttons.jsp" />
-			<tr>
-				<td>
-					<div class="table-cntnr">
-						<div class="table-card" title="Running Orders">
-							<div class="tab-hed">
-    <span>Running Orders</span>
-    <div class="tab-icons">
-        <i class="icon filter-icon" style="margin-left: 0px;" title="Filter"></i>
-        <i class="icon refresh-icon" style="margin-left: 0px;" title="Refresh"></i>
-    </div>
-</div>
-							<table class="cata-tab">
-								<thead>
-									<tr>
-										<td class="tab-head-td">Ref ID</td>
-										<td class="tab-head-td">CC Pair</td>
-										<td class="tab-head-td">Type</td>
-										<td class="tab-head-td">Buy / Sell</td>
-										<td class="tab-head-td">Amount</td>
-										<td class="tab-head-td">Limit Rate</td>
-										<td class="tab-head-td">Due Date</td>
-										<td class="tab-head-td">Stop-loss Rate</td>
-										<td class="tab-head-td">Status</td>
-										<td class="tab-head-td">Actions</td>
-									</tr>
-								</thead>
-								<tbody>
-								</tbody>
-							</table>
-						</div>
-						</div>
-<div class="table-cntnr">
-						<div class="table-card" title="Booked Trades">
-							<div class="tab-hed">
-    <span>Booked Trades</span>
-    <div class="tab-icons">
-        <i class="icon filter-icon" style="margin-left: 0px;" title="Filter"></i>
-        <i class="icon refresh-icon" style="margin-left: 0px;" title="Refresh"></i>
-        <i class="icon pdf-icon" style="margin-left: 0px;" title="Export PDF"></i>
-    </div>
-</div>
-							<div style="display: flex;margin-bottom: 5px;">
-			<button type="button" id="issuanceButton" class="buttonClass activeButton">Active</button>
-			<button type="button" id="amendmentButton" class="buttonClass">Outstanding</button>
-			<button type="button" id="closeButton" class="buttonClass">Matured</button>
-			<button type="button" id="railLcButton" class="buttonClass">Document First</button>
-			<button type="button" id="mtdraftButton" class="buttonClass">All Deals</button>
-							</div>
-							<table class="cata-tab">
-								<thead>
-									<tr>
-										<td class="tab-head-td">Ref No.</td>
-										<td class="tab-head-td">Trans. Date</td>
-										<td class="tab-head-td">CC Pair</td>
-										<td class="tab-head-td">Buy / Sell</td>
-										<td class="tab-head-td">CCY</td>
-										<td class="tab-head-td">Amount</td>
-										<td class="tab-head-td">Rate</td>
-										<td class="tab-head-td">Due Date</td>
-										<td class="tab-head-td">Status</td>
-										<td class="tab-head-td">Actions</td>
-									</tr>
-								</thead>
-								<tbody>
-									<tr style="">
-										<td style="
-											color: #4da9f1;
-											padding-top: 8px;
-											padding-bottom: 8px;
-										">954225464000</td>
-										<td>17-May-25</td>
-										<td>USD/INR</td>
-										<td>BUY</td>
-										<td>USD</td>
-										<td>1321.00</td>
-										<td>78.00012</td>
-										<td>1-Apr-25 to 8-Apr-25</td>
-										<td style="
-											color: #4CAF50;
-										">Rate Booked</td>
-										<td></td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-					</div>
-				</td>
-			</tr>
-		</table>
-	</div>
-	<div class="rightDiv" style="
-    width: 15%;
-    height: 30rem;
-    background-color: white;
-	margin-top: 2px;
-">
-        <div style="display: flex;flex-direction: column;height: 100%;box-shadow: 0px 3px 6px #b9b9b9;">
-            <div style="background-color: #280071;text-align: center;color: white;height: 50px;font-size: 20px;">
-                <p>Market Trends</p>
-            </div>
-        <div style="text-align: center;color: white;height: 15rem;font-size: 20px;">
-                <textarea id="cauText" name="cauText" style="
+
+.market-text {
+    text-align: center;
+    color: white;
+    height: 15rem;
+    font-size: 20px;
+}
+
+.market-text textarea {
     border: none;
     resize: none;
     width: -webkit-fill-available;
     height: 100%;
     font-style: italic;
     padding: 10px;
-">Please wait while we update markets trends...</textarea>
-            </div><div style="text-align: center;color: white;height: 18rem;font-size: 20px;word-wrap: break-word;background-color: #ebebeb;">
-    <p id="disclaimText" name="disclaimText" style="
-        border: none;
-        resize: none;
-        width: -webkit-fill-available;
-        height: -webkit-fill-available;
-        padding: 10px;
-        color: black;
-        white-space: normal;
-        font-size: 14px;
-        text-align: justify;
-    ">
-        <strong>Disclaimer</strong> : Although the information here is believed to be reliable, the State Bank of India does not make any claims for its accuracy or completeness. State Bank of India is not acting as the Company's agent and the decision to proceed with any transaction rests solely with the Company
-    </p>
-</div></div>
+}
+
+.disclaimer-box {
+    text-align: center;
+    height: 18rem;
+    background-color: #ebebeb;
+    word-wrap: break-word;
+}
+
+.disclaimer-box p {
+    border: none;
+    resize: none;
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+    padding: 10px;
+    color: black;
+    white-space: normal;
+    font-size: 14px;
+    text-align: justify;
+}
+
+
+
+<div class="main-row">
+    <div class="leftDiv">
+        <table class="outer-table">
+            <jsp:include page="EFRX_Buttons.jsp" />
+            <tr>
+                <td>
+
+                    <div class="table-cntnr">
+                        <div class="table-card" title="Running Orders">
+                            <div class="tab-hed">
+                                <span>Running Orders</span>
+                                <div class="tab-icons">
+                                    <i class="icon filter-icon" title="Filter"></i>
+                                    <i class="icon refresh-icon" title="Refresh"></i>
+                                </div>
+                            </div>
+
+                            <table class="cata-tab">
+                                <thead>
+                                    <tr>
+                                        <td class="tab-head-td">Ref ID</td>
+                                        <td class="tab-head-td">CC Pair</td>
+                                        <td class="tab-head-td">Type</td>
+                                        <td class="tab-head-td">Buy / Sell</td>
+                                        <td class="tab-head-td">Amount</td>
+                                        <td class="tab-head-td">Limit Rate</td>
+                                        <td class="tab-head-td">Due Date</td>
+                                        <td class="tab-head-td">Stop-loss Rate</td>
+                                        <td class="tab-head-td">Status</td>
+                                        <td class="tab-head-td">Actions</td>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="table-cntnr">
+                        <div class="table-card" title="Booked Trades">
+                            <div class="tab-hed">
+                                <span>Booked Trades</span>
+                                <div class="tab-icons">
+                                    <i class="icon filter-icon" title="Filter"></i>
+                                    <i class="icon refresh-icon" title="Refresh"></i>
+                                    <i class="icon pdf-icon" title="Export PDF"></i>
+                                </div>
+                            </div>
+
+                            <div class="sub-btn-row">
+                                <button class="buttonClass activeButton">Active</button>
+                                <button class="buttonClass">Outstanding</button>
+                                <button class="buttonClass">Matured</button>
+                                <button class="buttonClass">Document First</button>
+                                <button class="buttonClass">All Deals</button>
+                            </div>
+
+                            <table class="cata-tab">
+                                <thead>
+                                    <tr>
+                                        <td class="tab-head-td">Ref No.</td>
+                                        <td class="tab-head-td">Trans. Date</td>
+                                        <td class="tab-head-td">CC Pair</td>
+                                        <td class="tab-head-td">Buy / Sell</td>
+                                        <td class="tab-head-td">CCY</td>
+                                        <td class="tab-head-td">Amount</td>
+                                        <td class="tab-head-td">Rate</td>
+                                        <td class="tab-head-td">Due Date</td>
+                                        <td class="tab-head-td">Status</td>
+                                        <td class="tab-head-td">Actions</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="color:#4da9f1;padding:8px 0;">954225464000</td>
+                                        <td>17-May-25</td>
+                                        <td>USD/INR</td>
+                                        <td>BUY</td>
+                                        <td>USD</td>
+                                        <td>1321.00</td>
+                                        <td>78.00012</td>
+                                        <td>1-Apr-25 to 8-Apr-25</td>
+                                        <td style="color:#4CAF50;">Rate Booked</td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="rightDiv">
+        <div class="market-container">
+            <div class="market-header">
+                <p>Market Trends</p>
+            </div>
+
+            <div class="market-text">
+                <textarea>Please wait while we update markets trends...</textarea>
+            </div>
+
+            <div class="disclaimer-box">
+                <p>
+                    <strong>Disclaimer</strong> : Although the information here is believed to be reliable, the State Bank of India does not make any claims for its accuracy or completeness. State Bank of India is not acting as the Company's agent and the decision to proceed with any transaction rests solely with the Company
+                </p>
+            </div>
+        </div>
     </div>
 </div>
