@@ -1,27 +1,162 @@
-<table id="tbPagination" cellpadding="0" cellspacing="0" border="0" width="100%">
-   <tbody>
-      <tr style="height:40px;">
-         <td class="PaginationCont">
-            <div id="Pagination" class="pageNumbersTable" style="padding-right: 60px; padding-top: 15px;">
-               <table id="pageNumbersTable" cellspacing="0" cellpadding="0" border="0" align="right" class="pageNumbersTable" style="height: 10px; padding-right: 60px; padding-top: 15px;">
-                  <tbody id="pageNumbersTableBody">
-                     <tr id="pageNumbersRow">
-                        <td id="pageLinkCell" class="PaginationTable">
-						<a id="pageLinkA_1" href="#" class="PaginationCurrLink" style="background-color: rgb(101, 42, 132); color: rgb(255, 255, 255); border-radius: 10px; padding: 10px; font-size: 14px;">1</a>
-						<a id="pageLinkA_2" href="#" class="PaginationUnselectedLink" style="border-radius: 10px; padding: 10px; font-size: 14px;">2</a>
-						<a id="pageLinkA_3" href="#" class="PaginationUnselectedLink" style="border-radius: 10px; padding: 10px; font-size: 14px;">3</a>
-						<a id="pageLinkA_4" href="#" class="PaginationUnselectedLink" style="border-radius: 10px; padding: 10px; font-size: 14px;">4</a>
-						<a id="pageLinkA_5" href="#" class="PaginationUnselectedLink" style="border-radius: 10px; padding: 10px; font-size: 14px;">5</a>
-						</td>
-                        <td id="NextSectionCell" class="PaginationTable"><a id="NextSection_2" href="#" class="PaginationUnselectedLink" style="border-radius: 10px; padding: 10px; font-size: 17px;">&gt;</a></td>
-                     </tr>
-                  </tbody>
-               </table>
-            </div>
-         </td>
-      </tr>
-   </tbody>
-</table>
+<script>
+let runningOrdersData = [];
+let currentPage = 1;
+const rowsPerPage = 5;
 
+/* ===== PAGE LOAD ===== */
+document.addEventListener("DOMContentLoaded", function () {
+    loadRunningOrders();
+});
 
-i need pagination in above style in the table below and right side , in left side a text should come "Showing 1- 5 of 10 Records".
+/* ===== MAIN LOAD ===== */
+function loadRunningOrders() {
+    // Fake API response (10 records)
+    runningOrdersData = Array.from({ length: 10 }, (_, i) => ({
+        spotOrderNo: "RO10" + (i + 1),
+        currency1: "USD",
+        currency2: "INR",
+        orderType: i % 2 === 0 ? "Limit" : "Market",
+        buySell: i % 2 === 0 ? "BUY" : "SELL",
+        amount: (1000 + i * 100),
+        limitRate: (83 + i * 0.1).toFixed(2),
+        dueDate: "20-Mar-25",
+        StopLossRate: (82 + i * 0.1).toFixed(2),
+        orderStatus: "Open"
+    }));
+
+    currentPage = 1;
+    renderRunningOrders();
+    renderPagination();
+}
+
+/* ===== TABLE RENDER ===== */
+function renderRunningOrders() {
+    const table = document.querySelectorAll(".cata-tab")[0];
+    const tbody = table.querySelector("tbody");
+    tbody.innerHTML = "";
+
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    runningOrdersData.slice(start, end).forEach(order => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${order.spotOrderNo}</td>
+            <td>${order.currency1}/${order.currency2}</td>
+            <td>${order.orderType}</td>
+            <td>${order.buySell}</td>
+            <td>${order.amount}</td>
+            <td>${order.limitRate}</td>
+            <td>${order.dueDate}</td>
+            <td>${order.StopLossRate}</td>
+            <td>${order.orderStatus}</td>
+            <td></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+/* ===== PAGINATION RENDER ===== */
+function renderPagination() {
+    let paginationTable = document.getElementById("tbPagination");
+
+    if (!paginationTable) {
+        paginationTable = document.createElement("table");
+        paginationTable.id = "tbPagination";
+        paginationTable.width = "100%";
+        paginationTable.cellPadding = "0";
+        paginationTable.cellSpacing = "0";
+        paginationTable.border = "0";
+
+        paginationTable.innerHTML = `
+            <tbody>
+                <tr style="height:40px;">
+                    <td class="PaginationCont">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div id="paginationInfo" style="padding-left:15px; font-size:14px;"></div>
+
+                            <div id="Pagination" class="pageNumbersTable" style="padding-right: 60px; padding-top: 15px;">
+                                <table cellspacing="0" cellpadding="0" border="0" align="right" class="pageNumbersTable">
+                                    <tbody>
+                                        <tr id="pageNumbersRow"></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        `;
+
+        const table = document.querySelectorAll(".cata-tab")[0];
+        table.parentElement.appendChild(paginationTable);
+    }
+
+    updatePaginationContent();
+}
+
+/* ===== UPDATE PAGINATION ===== */
+function updatePaginationContent() {
+    const totalRecords = runningOrdersData.length;
+    const totalPages = Math.ceil(totalRecords / rowsPerPage);
+    const startRec = (currentPage - 1) * rowsPerPage + 1;
+    const endRec = Math.min(startRec + rowsPerPage - 1, totalRecords);
+
+    document.getElementById("paginationInfo").innerText =
+        `Showing ${startRec} - ${endRec} of ${totalRecords} Records`;
+
+    const row = document.getElementById("pageNumbersRow");
+    row.innerHTML = "";
+
+    const pageCell = document.createElement("td");
+    pageCell.className = "PaginationTable";
+
+    for (let i = 1; i <= totalPages; i++) {
+        const a = document.createElement("a");
+        a.href = "#";
+        a.id = "pageLinkA_" + i;
+        a.innerText = i;
+        a.style.borderRadius = "10px";
+        a.style.padding = "10px";
+        a.style.fontSize = "14px";
+
+        if (i === currentPage) {
+            a.className = "PaginationCurrLink";
+            a.style.backgroundColor = "rgb(101, 42, 132)";
+            a.style.color = "rgb(255, 255, 255)";
+        } else {
+            a.className = "PaginationUnselectedLink";
+            a.onclick = function () {
+                currentPage = i;
+                renderRunningOrders();
+                updatePaginationContent();
+            };
+        }
+        pageCell.appendChild(a);
+    }
+
+    const nextCell = document.createElement("td");
+    nextCell.className = "PaginationTable";
+
+    const nextA = document.createElement("a");
+    nextA.href = "#";
+    nextA.innerHTML = "&gt;";
+    nextA.style.borderRadius = "10px";
+    nextA.style.padding = "10px";
+    nextA.style.fontSize = "17px";
+    nextA.className = "PaginationUnselectedLink";
+
+    if (currentPage < totalPages) {
+        nextA.onclick = function () {
+            currentPage++;
+            renderRunningOrders();
+            updatePaginationContent();
+        };
+    }
+
+    nextCell.appendChild(nextA);
+
+    row.appendChild(pageCell);
+    row.appendChild(nextCell);
+}
+</script>
