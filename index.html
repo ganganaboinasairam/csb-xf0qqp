@@ -1,49 +1,11 @@
-csFuncLevelProto.SYF_EXNE_SWFT_MSG_TYPE = function () {
-    try {
-        var acpStatus = document.MAINFORM.ACP_STATUS_NONLC.value;
-        var lcType    = document.MAINFORM.LC_NONLC.value;
-        var value     = "";
-
-        // Determine value based on conditions
-        if (acpStatus == 2 && lcType == 1) value = 1;
-        else if (acpStatus == 1 && lcType == 1) value = 2;
-        else if (acpStatus == 2 && lcType == 2) value = 3;
-        else if (acpStatus == 1 && lcType == 2) value = 4;
-
-        var dropdown = document.getElementById("SWFT_MSG_TYPE");
-
-        // If no valid value, clear dropdown
-        if (!value) {
-            dropdown.innerHTML = "<option></option>";
-            return;
-        }
-
-        // DB query setup
-        var sTableName = "EXIMSYS.EE_FLDC_MASTER";
-        var sFieldList = "fldc_discription";
-        var sSQLWhere  =
-            "fldc_type='Swift Type' and fldc_type1='" + value + "'";
-
-        SYS_GetTableMultiDataToArray(
-            sTableName,
-            sSQLWhere,
-            sFieldList
-        );
-
-        var dbData = SYS_MULTI_DATA[0][1] || [];
-        var options = "<option value=''></option>";
-
-        for (var i = 0; i < dbData.length; i++) {
-            options += "<option value='" + dbData[i] + "'>" +
-                       dbData[i] + "</option>";
-        }
-
-        dropdown.innerHTML = options;
-
-    } catch (e) {
-        DisExcept(
-            "SYF_EXNE_EXNE_REG_ACC_MNL.js*SYF_EXNE_SWFT_MSG_TYPE",
-            e
-        );
-    }
-};
+<div style="text-align: center;color: white;height: 18rem;font-size: 20px;word-wrap: break-word;background-color: #e4e4e4;"><p id="disclaimText" name="disclaimText" style="
+    border: none;
+    resize: none;
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+    padding: 10px;
+    background-color: #e4e4e4;
+    color: black;
+    white-space: normal;
+">Disclaimer : Although the information here is belived to be reliable, the State Bank of India does not make any claims for its accuracy or completeness. State Bank of India is not acting as the Company's agent and the dession to proceed with any transaction rests soley with the Company</p>
+            </div>
