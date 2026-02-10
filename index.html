@@ -1,145 +1,249 @@
-<div style="display: flex; flex-direction: row; gap: 10px;">
-	<div class="leftDiv" style="width: 85%;">
-		<table
-			style="width: 100%; padding: 0px; border: 0px; text-align: center; margin: auto;">
+<div class="page-container">
 
-			<jsp:include page="EFRX_Buttons.jsp" />
-			<tr>
-				<td>
-					<div class="Create_LC">
+    <div class="leftDiv">
+        <table class="main-table">
 
-						<div class="table-card" title="Running Orders">
-							<div class="tab-hed">
-    <span>Running Orders</span>
+            <jsp:include page="EFRX_Buttons.jsp"/>
 
-    <div class="tab-icons">
-        <i class="icon filter-icon" style="margin-left: 0px;" title="Filter"></i>
-        <i class="icon refresh-icon" style="margin-left: 0px;" title="Refresh"></i>
+            <tr>
+                <td>
+
+                    <!-- Running Orders -->
+                    <div class="Create_LC">
+                        <div class="table-card" title="Running Orders">
+
+                            <div class="tab-hed">
+                                <span>Running Orders</span>
+                                <div class="tab-icons">
+                                    <i class="icon filter-icon" title="Filter"></i>
+                                    <i class="icon refresh-icon" title="Refresh"></i>
+                                </div>
+                            </div>
+
+                            <table class="cata-tab">
+                                <thead>
+                                    <tr>
+                                        <td class="tab-head-td">Ref ID</td>
+                                        <td class="tab-head-td">CC Pair</td>
+                                        <td class="tab-head-td">Type</td>
+                                        <td class="tab-head-td">Buy / Sell</td>
+                                        <td class="tab-head-td">Amount</td>
+                                        <td class="tab-head-td">Limit Rate</td>
+                                        <td class="tab-head-td">Due Date</td>
+                                        <td class="tab-head-td">Stop-loss Rate</td>
+                                        <td class="tab-head-td">Status</td>
+                                        <td class="tab-head-td">Actions</td>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+
+                        </div>
+                    </div>
+
+                    <!-- Booked Trades -->
+                    <div class="Create_LC">
+                        <div class="table-card" title="Booked Trades">
+
+                            <div class="tab-hed">
+                                <span>Booked Trades</span>
+                                <div class="tab-icons">
+                                    <i class="icon filter-icon" title="Filter"></i>
+                                    <i class="icon refresh-icon" title="Refresh"></i>
+                                    <i class="icon pdf-icon" title="Export PDF"></i>
+                                </div>
+                            </div>
+
+                            <div class="status-buttons">
+                                <button class="buttonClass activeButton">Active</button>
+                                <button class="buttonClass">Outstanding</button>
+                                <button class="buttonClass">Matured</button>
+                                <button class="buttonClass">Document First</button>
+                                <button class="buttonClass">All Deals</button>
+                            </div>
+
+                            <table class="cata-tab">
+                                <thead>
+                                    <tr>
+                                        <td class="tab-head-td">Ref No.</td>
+                                        <td class="tab-head-td">Trans. Date</td>
+                                        <td class="tab-head-td">CC Pair</td>
+                                        <td class="tab-head-td">Buy / Sell</td>
+                                        <td class="tab-head-td">CCY</td>
+                                        <td class="tab-head-td">Amount</td>
+                                        <td class="tab-head-td">Rate</td>
+                                        <td class="tab-head-td">Due Date</td>
+                                        <td class="tab-head-td">Status</td>
+                                        <td class="tab-head-td">Actions</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="ref-link">954225464000</td>
+                                        <td>17-May-25</td>
+                                        <td>USD/INR</td>
+                                        <td>BUY</td>
+                                        <td>USD</td>
+                                        <td>1321.00</td>
+                                        <td>78.00012</td>
+                                        <td>1-Apr-25 to 8-Apr-25</td>
+                                        <td class="status-success">Rate Booked</td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </div>
+
+                </td>
+            </tr>
+
+        </table>
     </div>
-</div>
-							<table class="cata-tab">
 
-								<thead>
+    <!-- Right Panel -->
+    <div class="rightDiv">
+        <div class="market-panel">
 
-									<tr>
-										<td class="tab-head-td">Ref ID</td>
-										<td class="tab-head-td">CC Pair</td>
-										<td class="tab-head-td">Type</td>
-										<td class="tab-head-td">Buy / Sell</td>
-										<td class="tab-head-td">Amount</td>
-										<td class="tab-head-td">Limit Rate</td>
-										<td class="tab-head-td">Due Date</td>
-										<td class="tab-head-td">Stop-loss Rate</td>
-										<td class="tab-head-td">Status</td>
-										<td class="tab-head-td">Actions</td>
-									</tr>
-								</thead>
-								<tbody>
-								</tbody>
-							</table>
-						</div>
-						</div>
+            <div class="market-header">Market Trends</div>
 
-<div class="Create_LC">
-						<div class="table-card" title="Booked Trades">
-							<div class="tab-hed">
-    <span>Booked Trades</span>
+            <div class="market-body">
+                <textarea id="cauText">Please wait while we update markets trends...</textarea>
+            </div>
 
-    <div class="tab-icons">
-        <i class="icon filter-icon" style="margin-left: 0px;" title="Filter"></i>
-        <i class="icon refresh-icon" style="margin-left: 0px;" title="Refresh"></i>
-        <i class="icon pdf-icon" style="margin-left: 0px;" title="Export PDF"></i>
+            <div class="disclaimer">
+                <p>
+                    <strong>Disclaimer</strong> : Although the information here is believed to be reliable, the State Bank of India does not make any claims for its accuracy or completeness. State Bank of India is not acting as the Company's agent and the decision to proceed with any transaction rests solely with the Company
+                </p>
+            </div>
+
+        </div>
     </div>
+
 </div>
-							<div style="display: flex;margin-bottom: 5px;">
-			
-			<button type="button" id="issuanceButton" class="buttonClass activeButton">Active</button>
-			<button type="button" id="amendmentButton" class="buttonClass">Outstanding</button>
-			<button type="button" id="closeButton" class="buttonClass">Matured</button>
-			<button type="button" id="railLcButton" class="buttonClass">Document First</button>
-			<button type="button" id="mtdraftButton" class="buttonClass">All Deals</button>
-							</div>
-							<table class="cata-tab">
-								<thead>
 
-									<tr>
-										<td class="tab-head-td">Ref No.</td>
-										<td class="tab-head-td">Trans. Date</td>
-										<td class="tab-head-td">CC Pair</td>
-										<td class="tab-head-td">Buy / Sell</td>
-										<td class="tab-head-td">CCY</td>
-										<td class="tab-head-td">Amount</td>
-										<td class="tab-head-td">Rate</td>
-										<td class="tab-head-td">Due Date</td>
-										<td class="tab-head-td">Status</td>
-										<td class="tab-head-td">Actions</td>
-									</tr>
-								</thead>
-								<tbody>
-									<tr style="">
-										<td style="
-											color: #4da9f1;
-											padding-top: 8px;
-											padding-bottom: 8px;
-										">954225464000</td>
-										<td>17-May-25</td>
-										<td>USD/INR</td>
-										<td>BUY</td>
-										<td>USD</td>
-										<td>1321.00</td>
-										<td>78.00012</td>
-										<td>1-Apr-25 to 8-Apr-25</td>
-										<td style="
-											color: #4CAF50;
-										">Rate Booked</td>
-										<td></td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
 
-					</div>
-				</td>
-			</tr>
+/* Layout */
+.page-container {
+    display: flex;
+    gap: 10px;
+}
 
-		</table>
-	</div>
-	<div class="rightDiv" style="
+.leftDiv {
+    width: 85%;
+}
+
+.rightDiv {
     width: 15%;
     height: 30rem;
+    margin-top: 2px;
     background-color: white;
-	margin-top: 2px;
-">
-        <div style="display: flex;flex-direction: column;height: 100%;box-shadow: 0px 3px 6px #b9b9b9;">
-            <div style="background-color: #280071;text-align: center;color: white;height: 50px;font-size: 20px;">
-                <p>Market Trends</p>
-            </div>
-        <div style="text-align: center;color: white;height: 15rem;font-size: 20px;">
-                <textarea id="cauText" name="cauText" style="
+}
+
+/* Tables */
+.main-table {
+    width: 100%;
+    margin: auto;
+    text-align: center;
+    border-collapse: collapse;
+}
+
+.table-card {
+    background: #fff;
+    box-shadow: 0 3px 6px #b9b9b9;
+    margin-bottom: 15px;
+}
+
+/* Header with icons */
+.tab-hed {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    font-weight: 600;
+}
+
+.tab-icons {
+    display: flex;
+    gap: 10px;
+}
+
+.icon {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Buttons above table */
+.status-buttons {
+    display: flex;
+    margin-bottom: 5px;
+}
+
+.buttonClass {
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+.activeButton {
+    background-color: #280071;
+    color: white;
+}
+
+/* Table styling */
+.cata-tab {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tab-head-td {
+    font-weight: 600;
+    padding: 8px;
+}
+
+.ref-link {
+    color: #4da9f1;
+    padding: 8px 0;
+}
+
+.status-success {
+    color: #4CAF50;
+}
+
+/* Right panel */
+.market-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-shadow: 0 3px 6px #b9b9b9;
+}
+
+.market-header {
+    background-color: #280071;
+    color: white;
+    text-align: center;
+    height: 50px;
+    line-height: 50px;
+    font-size: 20px;
+}
+
+.market-body textarea {
+    width: 100%;
+    height: 100%;
     border: none;
     resize: none;
-    width: -webkit-fill-available;
-    height: 100%;
-    font-style: italic;
     padding: 10px;
-">Please wait while we update markets trends...</textarea>
-            </div><div style="text-align: center;color: white;height: 18rem;font-size: 20px;word-wrap: break-word;background-color: #ebebeb;">
-    <p id="disclaimText" name="disclaimText" style="
-        border: none;
-        resize: none;
-        width: -webkit-fill-available;
-        height: -webkit-fill-available;
-        padding: 10px;
-        color: black;
-        white-space: normal;
-        font-size: 14px;
-        text-align: justify;
-    ">
-        <strong>Disclaimer</strong> : Although the information here is believed to be reliable, the State Bank of India does not make any claims for its accuracy or completeness. State Bank of India is not acting as the Company's agent and the decision to proceed with any transaction rests solely with the Company
-    </p>
-</div></div>
-    </div>
-</div>
+    font-style: italic;
+}
 
+.disclaimer {
+    background-color: #ebebeb;
+    padding: 10px;
+}
 
-optimise and seperate css 
+.disclaimer p {
+    font-size: 14px;
+    text-align: justify;
+    color: black;
+}
