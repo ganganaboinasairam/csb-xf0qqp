@@ -1,18 +1,210 @@
-the details for the runing order table will come from an api "/orderBoardEnq" , at present it is not developed , so we can hardcode the response in js 
+<script>
+/* ====== GLOBALS ====== */
+let runningOrdersData = [];
+let currentPage = 1;
+const rowsPerPage = 5;
 
-there are the key pair values :
-spotOrderNo - Ref ID
-currency1/currency2 - CC Pair
-orderType - Type
-buySell - Buy / Sell
-amount - Amount
-limitRate -  Limit Rate
-dueDate - Due Date
-StopLossRate - Stop-loss Rate
-orderStatus - Status
+/* ====== PAGE LOAD ====== */
+document.addEventListener("DOMContentLoaded", function () {
+    loadRunningOrders();
+});
 
-first one is the api field and 2nd one is the table coumn .
+/* ====== MAIN FUNCTION ====== */
+function loadRunningOrders() {
+    // Simulated API response (10 fake records)
+    runningOrdersData = [
+        {
+            spotOrderNo: "RO1001",
+            currency1: "USD",
+            currency2: "INR",
+            orderType: "Limit",
+            buySell: "BUY",
+            amount: "1000",
+            limitRate: "83.25",
+            dueDate: "15-Mar-25",
+            StopLossRate: "82.90",
+            orderStatus: "Open"
+        },
+        {
+            spotOrderNo: "RO1002",
+            currency1: "EUR",
+            currency2: "INR",
+            orderType: "Market",
+            buySell: "SELL",
+            amount: "2000",
+            limitRate: "90.10",
+            dueDate: "16-Mar-25",
+            StopLossRate: "89.50",
+            orderStatus: "Pending"
+        },
+        {
+            spotOrderNo: "RO1003",
+            currency1: "GBP",
+            currency2: "INR",
+            orderType: "Limit",
+            buySell: "BUY",
+            amount: "1500",
+            limitRate: "105.40",
+            dueDate: "17-Mar-25",
+            StopLossRate: "104.80",
+            orderStatus: "Open"
+        },
+        {
+            spotOrderNo: "RO1004",
+            currency1: "USD",
+            currency2: "INR",
+            orderType: "Market",
+            buySell: "SELL",
+            amount: "2500",
+            limitRate: "83.90",
+            dueDate: "18-Mar-25",
+            StopLossRate: "83.30",
+            orderStatus: "Executed"
+        },
+        {
+            spotOrderNo: "RO1005",
+            currency1: "JPY",
+            currency2: "INR",
+            orderType: "Limit",
+            buySell: "BUY",
+            amount: "3000",
+            limitRate: "0.56",
+            dueDate: "19-Mar-25",
+            StopLossRate: "0.54",
+            orderStatus: "Open"
+        },
+        {
+            spotOrderNo: "RO1006",
+            currency1: "AUD",
+            currency2: "INR",
+            orderType: "Market",
+            buySell: "SELL",
+            amount: "1200",
+            limitRate: "54.30",
+            dueDate: "20-Mar-25",
+            StopLossRate: "53.80",
+            orderStatus: "Pending"
+        },
+        {
+            spotOrderNo: "RO1007",
+            currency1: "CAD",
+            currency2: "INR",
+            orderType: "Limit",
+            buySell: "BUY",
+            amount: "1800",
+            limitRate: "61.70",
+            dueDate: "21-Mar-25",
+            StopLossRate: "61.10",
+            orderStatus: "Open"
+        },
+        {
+            spotOrderNo: "RO1008",
+            currency1: "CHF",
+            currency2: "INR",
+            orderType: "Market",
+            buySell: "SELL",
+            amount: "2200",
+            limitRate: "94.20",
+            dueDate: "22-Mar-25",
+            StopLossRate: "93.60",
+            orderStatus: "Executed"
+        },
+        {
+            spotOrderNo: "RO1009",
+            currency1: "SGD",
+            currency2: "INR",
+            orderType: "Limit",
+            buySell: "BUY",
+            amount: "1600",
+            limitRate: "61.20",
+            dueDate: "23-Mar-25",
+            StopLossRate: "60.70",
+            orderStatus: "Open"
+        },
+        {
+            spotOrderNo: "RO1010",
+            currency1: "HKD",
+            currency2: "INR",
+            orderType: "Market",
+            buySell: "SELL",
+            amount: "1400",
+            limitRate: "10.65",
+            dueDate: "24-Mar-25",
+            StopLossRate: "10.40",
+            orderStatus: "Pending"
+        }
+    ];
 
-the api will trigger on the page load .
+    currentPage = 1;
+    renderRunningOrders();
+    renderPagination();
+}
 
-write a js function "loadRunningOrders()" , it should fill the table values dinamically , create 10 fake records in response and only five records should show on the screen and pagination should given below table so that user can see another records ,but at a time 5 records only.
+/* ====== RENDER TABLE ====== */
+function renderRunningOrders() {
+    const table = document.querySelectorAll(".cata-tab")[0];
+    const tbody = table.querySelector("tbody");
+    tbody.innerHTML = "";
+
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const pageData = runningOrdersData.slice(start, end);
+
+    pageData.forEach(order => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${order.spotOrderNo}</td>
+            <td>${order.currency1}/${order.currency2}</td>
+            <td>${order.orderType}</td>
+            <td>${order.buySell}</td>
+            <td>${order.amount}</td>
+            <td>${order.limitRate}</td>
+            <td>${order.dueDate}</td>
+            <td>${order.StopLossRate}</td>
+            <td>${order.orderStatus}</td>
+            <td></td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+/* ====== PAGINATION ====== */
+function renderPagination() {
+    let paginationDiv = document.getElementById("runningOrderPagination");
+
+    if (!paginationDiv) {
+        paginationDiv = document.createElement("div");
+        paginationDiv.id = "runningOrderPagination";
+        paginationDiv.style.textAlign = "center";
+        paginationDiv.style.marginTop = "10px";
+
+        const table = document.querySelectorAll(".cata-tab")[0];
+        table.parentElement.appendChild(paginationDiv);
+    }
+
+    paginationDiv.innerHTML = "";
+
+    const totalPages = Math.ceil(runningOrdersData.length / rowsPerPage);
+
+    for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement("button");
+        btn.innerText = i;
+        btn.style.margin = "0 5px";
+        btn.style.cursor = "pointer";
+
+        if (i === currentPage) {
+            btn.disabled = true;
+        }
+
+        btn.onclick = function () {
+            currentPage = i;
+            renderRunningOrders();
+            renderPagination();
+        };
+
+        paginationDiv.appendChild(btn);
+    }
+}
+</script>
