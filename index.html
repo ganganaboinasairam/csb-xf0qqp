@@ -1,48 +1,91 @@
-<div class="tab-hed">
-    <span>Booked Trades</span>
-
-    <div class="tab-icons">
-        <i class="icon filter-icon" title="Filter"></i>
-        <i class="icon refresh-icon" title="Refresh"></i>
-        <i class="icon pdf-icon" title="Export PDF"></i>
-    </div>
-</div>
-
-
-
-.tab-hed {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+<style>
+.tabContainer{
+height: 15%;
+background-color: white;
 }
 
-/* icon container */
-.tab-icons {
-    display: flex;
-    gap: 10px;
+.tabContainer .buttonContainer{
+width: 100%;
+    height: 50px;
+   background-image: linear-gradient(to left, #280071, #A5235A 55%, #C72153);
+	opacity: 1;
+	font-family: roboto-regular;
+	
 }
 
-/* base icon */
-.tab-icons .icon {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    opacity: 0.7;
-}
+.tabContainer .buttonContainer button{
+						width: 25%;
+						height: 50px;
+						float: left;
+						border: none;
+						cursor: pointer;
+						padding: 10px;
+						font-size: 16px;
+						background-color: transparent;
+						border: 3px 4px 7px 3px solid #d3d3d3;
+						font-family: roboto-regular !important;
+						font-weight: bolder;
+						color: white;
+					}
 
-.tab-icons .icon:hover {
-    opacity: 1;
+.tabContainer .buttonContainer button:hover{
+background-color: WHITE;
+    width: 25%;
+    height: 50px;
+    color: #5b1d8d;
+	position: relative;
+	font-family: roboto-regular;
 }
+.tabContainer .buttonContainer button:hover::after
+{
+	content: "";
+	position: absolute;
+	right: 30%;
+	width: 40%;
+	bottom: 0;
+	border-bottom: 2px solid #5b1d8d;  
+	font-family: roboto-regular;
+}
+</style>
 
-/* icons using CSS background (no external libs needed) */
-.filter-icon {
-    background: url('filter.svg') no-repeat center / contain;
-}
+<tr>
+	<td style="background-color: #FFFFFF; border: 0px; border-spacing: 0px; border-collapse: collapse; margin: auto;padding: 0px;">
+		<div class="tabContainer">
+           <div class="buttonContainer" id="btnMaker" style="font-family:roboto-regular;">
+									
+									
+					<button onclick="getFuncIdOnClick_n('FEB36M8YJDRA');" title="Allows to raise a Request Quote."   class="BORDER_RIGHT_WHITE"  style="background-color : white; color: #5b1d8d; border-right: 1px solid white;"  id="requestQuoteBtn">
+					
+					    <img src="/CEWeb/Images/icons/Issue LC_White.svg" href="#" style="vertical-align: sub;" id="requestQuoteBtn_White"/>
+					    <img src="/CEWeb/Images/icons/Issue LC.svg" href="#"  style="vertical-align: sub; display: none;" id="requestQuoteBtn_Blue"/>
+					    &nbsp;Forex Dashboard
+				    </button>
+								
+					<button onclick="getFuncIdOnClick_n('WLNN8DTX7PWX');" class="BORDER_RIGHT_WHITE" title="Allows to raise a request to an Accept Quote."  style="font-family:Roboto-regular;"  id="acceptQuoteBtn">
+					
+						<img src="/CEWeb/Images/icons/Amend LC_White.svg" id="acceptQuoteBtn_White" href="#" style="vertical-align: sub;"/>
+						<img src="/CEWeb/Images/icons/Amend LC.svg" id="acceptQuoteBtn_Blue" href="#" style="vertical-align: sub; display: none;"/>
+						&nbsp;Trade Dashboard
+					</button>
+								
+					<button onclick="getFuncIdOnClick_n('YCQOK0JC0AJW');" class="BORDER_RIGHT_WHITE"  title="Allows to raise a request to Repayment."  style="font-family:Roboto-regular;" id="repaymentBtn">
+					
+						<img src="/CEWeb/Images/icons/Close LC_White.svg" id="repaymentBtn_White" href="#" style="vertical-align: sub;"/>
+            			<img src="/CEWeb/Images/icons/Close LC.svg" id="repaymentBtn_Blue" href="#" style="vertical-align: sub; display: none;"/>
+						&nbsp; Book Rate
+					</button>
+					
+					<button onclick="getFuncIdOnClick_n('FTDAZW5TL2qR');"  title="Allows to View all the active and past transactions and provides the option to delete and Modify the active transactions."  style="font-family:Roboto-regular;"  id="viewLCButton">
+							
+						<img src="/CEWeb/Images/icons/Policy LC_White.svg" id="viewLCButton_White" href="#" style="vertical-align: sub;"/>
+            			<img src="/CEWeb/Images/icons/Policy LC.svg" id="viewLCButton_Blue" href="#" style="vertical-align: sub; display: none;"/>
+						&nbsp; Upload Documents
+					</button>
+			</div>
+		</div>
+	</td>	
+</tr>
 
-.refresh-icon {
-    background: url('refresh.svg') no-repeat center / contain;
-}
 
-.pdf-icon {
-    background: url('pdf.svg') no-repeat center / contain;
-}
+
+optimise and fix any ui issues 
