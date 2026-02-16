@@ -14,7 +14,7 @@ function loadRunningOrders() {
     runningOrdersData = Array.from({ length: 10 }, (_, i) => ({
         spotOrderNo: "RO10" + (i + 1),
         currency1: "USD",
-        currency2: "INR",
+        currency2: "INR",ew
         orderType: i % 2 === 0 ? "Limit" : "Market",
         buySell: i % 2 === 0 ? "BUY" : "SELL",
         amount: (1000 + i * 100),
