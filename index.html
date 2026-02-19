@@ -1,15 +1,1 @@
-function getTrxnVoucherDtals(){
-    
-    var iEventTimes = SYS_I_EVENT_TIMES;
-    var cMainRef = document.MAINFORM.C_MAIN_REF.value;
-    var sTableName = "EXIMSYS.TRX_VOUCHER_DTAL";
-    var sWhereClause = "C_MAIN_REF='"+cMainRef+"' AND I_EVENT_TIMES='"+iEventTimes+"' AND C_DC_FLAG='D' AND C_CCY='INR' ORDER BY I_ENTRY_NUMBER";
-    var sFiledList = "C_AC_TITLE;C_DC_FLAG;C_GL_SL;N_AMT;C_CCY;C_CUST_ID;C_MODULE;EXCH_RATE1"
-    SYS_GetTableMultiDataToArray_S(sTableName,sWhereClause,sFiledList);
-    var debitAmt = SYS_GetMultiFldValueFromArray("N_AMT");
-    
-}
-
-
-
-i will get a object(SYS_MULTI_DATA) from js method  it contains the rows in json format as shown above , now first we need to check weather any amount in the N_AMT is more than 10000000 and C_CUST_ID is not null, if this condition is fails then return false , if condition meets then we need to append data in two fileds , we need to identify all the records which are having amount above 1cr, the accounts should be append in the screen filed "OPERA_ACC_NO_LEG_COMP" like "[C_GL_SL] : [N_AMT]" and account title should be appended in the "NATURE_LEG_COMP" like "[C_GL_SL] : [C_AC_TITLE]"
+"sai"
