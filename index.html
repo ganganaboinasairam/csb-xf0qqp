@@ -1,45 +1,11 @@
-function processLegalCompliance() {
-    if (!SYS_MULTI_DATA || SYS_MULTI_DATA.length === 0) return false;
-
-    // Helper to extract column
-    function getColumn(colName) {
-        for (var i = 0; i < SYS_MULTI_DATA.length; i++) {
-            if (SYS_MULTI_DATA[i][0] === colName) {
-                return SYS_MULTI_DATA[i][1];
-            }
-        }
-        return [];
-    }
-
-    var amounts = getColumn("N_AMT");
-    var custIds = getColumn("C_CUST_ID");
-    var glList = getColumn("C_GL_SL");
-    var titles = getColumn("C_AC_TITLE");
-
-    var accOutput = [];
-    var titleOutput = [];
-
-    for (var i = 0; i < amounts.length; i++) {
-        var amt = parseFloat(amounts[i] || 0);
-        var custId = (custIds[i] || "").trim();
-
-        if (amt > 10000000 && custId !== "") {
-            var gl = glList[i] || "";
-            var title = titles[i] || "";
-
-            accOutput.push(gl + " : " + amt);
-            titleOutput.push(gl + " : " + title);
-        }
-    }
-
-    // No qualifying records
-    if (accOutput.length === 0) {
-        return false;
-    }
-
-    // Append to screen fields
-    document.MAINFORM.OPERA_ACC_NO_LEG_COMP.value = accOutput.join(", ");
-    document.MAINFORM.NATURE_LEG_COMP.value = titleOutput.join(", ");
-
-    return true;
-}
+Dear Sir,
+I would like to explain the reason for the recent delay.
+Although the development effort for the IR is relatively small, the functional flow of the IR is quite complex. For the defects being raised by the testing team, we are putting in our best effort to clearly explain the scenarios and guide them on how to test and validate the flow.
+In addition, we need to verify around 40 different functions as part of the overall process. Each function must be carefully validated to ensure there are no impact issues, which requires detailed checking and coordination.
+Whenever we have any doubts regarding the existing functional flow, we immediately connect with the existing development team, explain the complete scenario, and work towards resolving the issue as quickly as possible.
+At times, the region performance is also slow. In such cases, we need to verify the complete transaction flow from CE to EE and from EE to CE. This detailed validation and rechecking process is contributing to the delay in testing.
+Please find the attachment for your reference.
+We are continuously working to resolve the issues faster and minimize delays. We appreciate your understanding and support.
+Thank you.
+Regards,
+Sravan Kumar
