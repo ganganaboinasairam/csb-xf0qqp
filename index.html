@@ -5,6 +5,8 @@
 <title>XML Workflow Visualizer</title>
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <style>
 body{
@@ -28,6 +30,7 @@ button{
     border:none;
     border-radius:6px;
     cursor:pointer;
+    margin-right:10px;
 }
 
 #chart{
@@ -42,11 +45,13 @@ button{
 
 <body>
 
-<h2>Workflow XML → Flowchart</h2>
+<h2>XML Workflow → Flowchart</h2>
 
 <textarea id="xmlInput" placeholder="Paste XML here"></textarea>
 <br>
+
 <button onclick="generateFlow()">Generate Flow</button>
+<button onclick="exportPDF()">Export PDF</button>
 
 <div id="chart"></div>
 
@@ -113,13 +118,32 @@ function generateFlow(){
     let mermaidText="graph LR\n";
 
     nodes.forEach(n=>mermaidText+=n+"\n");
-
     edges.forEach(e=>mermaidText+=e+"\n");
 
-    document.getElementById("chart").innerHTML=
+    document.getElementById("chart").innerHTML =
         `<div class="mermaid">${mermaidText}</div>`;
 
     mermaid.init(undefined, document.querySelectorAll(".mermaid"));
+}
+
+async function exportPDF(){
+
+    const { jsPDF } = window.jspdf;
+
+    let element = document.getElementById("chart");
+
+    const canvas = await html2canvas(element);
+
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF('l','mm','a4');
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    pdf.addImage(imgData,'PNG',10,10,pageWidth-20, pageHeight-20);
+
+    pdf.save("workflow.pdf");
 }
 
 </script>
