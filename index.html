@@ -1,152 +1,31 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>XML Workflow Visualizer</title>
-
-<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-
-<style>
-body{
-    font-family: Arial;
-    background:#f4f6fa;
-    padding:20px;
-}
-
-textarea{
-    width:100%;
-    height:250px;
-    padding:10px;
-    font-family: monospace;
-}
-
-button{
-    margin-top:10px;
-    padding:10px 20px;
-    background:#2c7be5;
-    color:white;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-    margin-right:10px;
-}
-
-#chart{
-    margin-top:30px;
-    background:white;
-    padding:20px;
-    border-radius:8px;
-}
-</style>
-
-</head>
-
-<body>
-
-<h2>XML Workflow → Flowchart</h2>
-
-<textarea id="xmlInput" placeholder="Paste XML here"></textarea>
-<br>
-
-<button onclick="generateFlow()">Generate Flow</button>
-<button onclick="exportPDF()">Export PDF</button>
-
-<div id="chart"></div>
-
-<script>
-
-mermaid.initialize({ startOnLoad:false });
-
-function getColumn(row,name){
-    let cols=row.getElementsByTagName("COLUMN");
-    for(let c of cols){
-        if(c.getAttribute("NAME")==name){
-            return c.textContent.trim();
-        }
-    }
-    return "";
-}
-
-function nodeId(step,func){
-    return (step+"_"+func).replace(/[^a-zA-Z0-9]/g,"");
-}
-
-function generateFlow(){
-
-    const xml=document.getElementById("xmlInput").value;
-
-    const parser=new DOMParser();
-    const xmlDoc=parser.parseFromString(xml,"text/xml");
-
-    const rows=xmlDoc.getElementsByTagName("ROW");
-
-    let nodes=new Map();
-    let edges=new Set();
-
-    for(let row of rows){
-
-        let step=getColumn(row,"C_STEP_NAME");
-        let funcId=getColumn(row,"C_FUNC_ID");
-        let funcDesc=getColumn(row,"C_FUNC_DESC");
-
-        let toStep=getColumn(row,"C_TO_STEP_NAME");
-        let toFuncId=getColumn(row,"C_TO_FUNC_ID");
-        let toFuncDesc=getColumn(row,"C_TO_FUNC_DESC");
-
-        let fromNode=nodeId(step,funcId);
-        let toNode=nodeId(toStep,toFuncId);
-
-        nodes.set(fromNode,
-            `${fromNode}["${step}<br>${funcId}<br>${funcDesc}"]`
-        );
-
-        if(toStep!="End"){
-            nodes.set(toNode,
-                `${toNode}["${toStep}<br>${toFuncId}<br>${toFuncDesc}"]`
-            );
-        }
-
-        if(toStep=="End"){
-            edges.add(`${fromNode} --> End`);
-        }else{
-            edges.add(`${fromNode} --> ${toNode}`);
-        }
-    }
-
-    let mermaidText="graph LR\n";
-
-    nodes.forEach(n=>mermaidText+=n+"\n");
-    edges.forEach(e=>mermaidText+=e+"\n");
-
-    document.getElementById("chart").innerHTML =
-        `<div class="mermaid">${mermaidText}</div>`;
-
-    mermaid.init(undefined, document.querySelectorAll(".mermaid"));
-}
-
 async function exportPDF(){
 
     const { jsPDF } = window.jspdf;
 
     let element = document.getElementById("chart");
 
-    const canvas = await html2canvas(element);
+    const canvas = await html2canvas(element,{
+        scale:4,               // Higher resolution
+        useCORS:true,
+        backgroundColor:"#ffffff"
+    });
 
     const imgData = canvas.toDataURL("image/png");
 
-    const pdf = new jsPDF('l','mm','a4');
+    const pdf = new jsPDF({
+        orientation:"landscape",
+        unit:"px",
+        format:[canvas.width, canvas.height]
+    });
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-    pdf.addImage(imgData,'PNG',10,10,pageWidth-20, pageHeight-20);
+    pdf.addImage(
+        imgData,
+        "PNG",
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
 
     pdf.save("workflow.pdf");
 }
-
-</script>
-
-</body>
-</html>
