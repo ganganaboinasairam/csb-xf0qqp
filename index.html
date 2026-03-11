@@ -1,105 +1,50 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>BG Invocation Flow</title>
-
-<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-
-<style>
-body{
-    font-family: Arial;
-    background:#f4f6f8;
-}
-
-h2{
-    text-align:center;
-}
-
-.mermaid{
-    background:white;
-    padding:30px;
-    border-radius:10px;
-    box-shadow:0 4px 10px rgba(0,0,0,0.1);
-}
-</style>
-
-</head>
-
-<body>
-
-<h2>BG Invocation Workflow</h2>
-
-<div class="mermaid">
-flowchart LR
-
-BRU1["BRU : Invocation/Settlement"]
-BRU2["BRU : Continue Saved Pending"]
-
-BCO["BCO/BM/CLO"]
-BGA1["BGA : Advisor"]
-BGA2["BGA : Continue Saved Pending"]
-
-DEO1["DEO : Inland Settlement"]
-DEO2["DEO : Continue Pending"]
-
-DSO["DSO : Supervisor Release"]
-
-BRUM["BRU MODIFY BG"]
-AGM["AGM"]
-BCO2["BCO"]
-CONTROL["Control Officer"]
-SWO["SWO"]
-DEOBATCH["DEO Batch"]
-
-END["END"]
-
-BRU1 --> BRU2
-BRU1 --> BCO
-BRU2 --> BRU2
-BRU2 --> BCO
-
-BCO --> BRU2
-BCO --> BGA1
-
-BGA1 --> BGA2
-BGA1 --> DEO1
-BGA1 --> BRUM
-BGA1 --> AGM
-
-BGA2 --> BGA2
-BGA2 --> DEO1
-BGA2 --> BRUM
-BGA2 --> AGM
-
-DEO1 --> DEO2
-DEO1 --> DSO
-
-DEO2 --> DEO2
-DEO2 --> DSO
-
-DSO --> END
-DSO --> DEO2
-DSO --> BRUM
-DSO --> BCO2
-DSO --> CONTROL
-DSO --> SWO
-
-BCO2 --> DEOBATCH
-CONTROL --> DEOBATCH
-
-DEOBATCH --> DSO
-
-SWO --> END
-
-AGM --> BGA1
-AGM --> DEO1
-
-</div>
-
-<script>
-mermaid.initialize({startOnLoad:true});
-</script>
-
-</body>
-</html>
+{"results":[{"columns":[{"name":"C_BG_DESC","type":"VARCHAR2"},{"name":"I_STEP_SEQ_NO","type":"NUMBER"},{"name":"C_STEP_NAME","type":"VARCHAR2"},{"name":"I_FUNC_SEQ_NO","type":"NUMBER"},{"name":"C_FUNC_ID","type":"VARCHAR2"},{"name":"C_FUNC_DESC","type":"VARCHAR2"},{"name":"I_TO_STEP_NO","type":"NUMBER"},{"name":"C_TO_STEP_NAME","type":"VARCHAR2"},{"name":"I_TO_FUNC_NO","type":"NUMBER"},{"name":"C_TO_FUNC_ID","type":"VARCHAR2"},{"name":"C_TO_FUNC_DESC","type":"VARCHAR2"}],"items":
+[
+{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":1,"c_step_name":"BRU","i_func_seq_no":1,"c_func_id":"efYSEoRQZCnN","c_func_desc":"Invocation\/Settlement","i_to_step_no":1,"c_to_step_name":"BRU","i_to_func_no":2,"c_to_func_id":"MmUgGnSfcdni","c_to_func_desc":"Continue Saved Pending"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":1,"c_step_name":"BRU","i_func_seq_no":1,"c_func_id":"efYSEoRQZCnN","c_func_desc":"Invocation\/Settlement","i_to_step_no":2,"c_to_step_name":"BCO\/BM\/CLO","i_to_func_no":1,"c_to_func_id":"Z9c8zACTnwu4","c_to_func_desc":"BCO\/BM\/CLO"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":1,"c_step_name":"BRU","i_func_seq_no":2,"c_func_id":"MmUgGnSfcdni","c_func_desc":"Continue Saved Pending","i_to_step_no":1,"c_to_step_name":"BRU","i_to_func_no":2,"c_to_func_id":"MmUgGnSfcdni","c_to_func_desc":"Continue Saved Pending"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":1,"c_step_name":"BRU","i_func_seq_no":2,"c_func_id":"MmUgGnSfcdni","c_func_desc":"Continue Saved Pending","i_to_step_no":2,"c_to_step_name":"BCO\/BM\/CLO","i_to_func_no":1,"c_to_func_id":"Z9c8zACTnwu4","c_to_func_desc":"BCO\/BM\/CLO"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":2,"c_step_name":"BCO\/BM\/CLO","i_func_seq_no":1,"c_func_id":"Z9c8zACTnwu4","c_func_desc":"BCO\/BM\/CLO","i_to_step_no":1,"c_to_step_name":"BRU","i_to_func_no":2,"c_to_func_id":"MmUgGnSfcdni","c_to_func_desc":"Continue Saved Pending"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":2,"c_step_name":"BCO\/BM\/CLO","i_func_seq_no":1,"c_func_id":"Z9c8zACTnwu4","c_func_desc":"BCO\/BM\/CLO","i_to_step_no":3,"c_to_step_name":"BGA","i_to_func_no":1,"c_to_func_id":"Y0jUcwoJiw7q","c_to_func_desc":"Bank Guarantee Advisor(BGA)"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":1,"c_func_id":"Y0jUcwoJiw7q","c_func_desc":"Bank Guarantee Advisor(BGA)","i_to_step_no":3,"c_to_step_name":"BGA","i_to_func_no":2,"c_to_func_id":"czm0eNEFEzvL","c_to_func_desc":"BGA Continue Saved Pending"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":1,"c_func_id":"Y0jUcwoJiw7q","c_func_desc":"Bank Guarantee Advisor(BGA)","i_to_step_no":4,"c_to_step_name":"DEO","i_to_func_no":1,"c_to_func_id":"haCy4fO8mvmq","c_to_func_desc":"Inland Settlement Claim"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":1,"c_func_id":"Y0jUcwoJiw7q","c_func_desc":"Bank Guarantee Advisor(BGA)","i_to_step_no":4,"c_to_step_name":"DEO","i_to_func_no":1,"c_to_func_id":"haCy4fO8mvmq","c_to_func_desc":"Inland Settlement Claim"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":1,"c_func_id":"Y0jUcwoJiw7q","c_func_desc":"Bank Guarantee Advisor(BGA)","i_to_step_no":6,"c_to_step_name":"BRU MODIFY BG INVOCATION","i_to_func_no":1,"c_to_func_id":"wm8p0HYKs7py","c_to_func_desc":"Modify Register Invocation"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":1,"c_func_id":"Y0jUcwoJiw7q","c_func_desc":"Bank Guarantee Advisor(BGA)","i_to_step_no":6,"c_to_step_name":"BRU MODIFY BG INVOCATION","i_to_func_no":1,"c_to_func_id":"wm8p0HYKs7py","c_to_func_desc":"Modify Register Invocation"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":1,"c_func_id":"Y0jUcwoJiw7q","c_func_desc":"Bank Guarantee Advisor(BGA)","i_to_step_no":11,"c_to_step_name":"AGM","i_to_func_no":1,"c_to_func_id":"TKQyuWHcsEVp","c_to_func_desc":"Assistant General Manager(AGM)"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":1,"c_func_id":"Y0jUcwoJiw7q","c_func_desc":"Bank Guarantee Advisor(BGA)","i_to_step_no":11,"c_to_step_name":"AGM","i_to_func_no":1,"c_to_func_id":"TKQyuWHcsEVp","c_to_func_desc":"Assistant General Manager(AGM)"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":2,"c_func_id":"czm0eNEFEzvL","c_func_desc":"BGA Continue Saved Pending","i_to_step_no":3,"c_to_step_name":"BGA","i_to_func_no":2,"c_to_func_id":"czm0eNEFEzvL","c_to_func_desc":"BGA Continue Saved Pending"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":2,"c_func_id":"czm0eNEFEzvL","c_func_desc":"BGA Continue Saved Pending","i_to_step_no":4,"c_to_step_name":"DEO","i_to_func_no":1,"c_to_func_id":"haCy4fO8mvmq","c_to_func_desc":"Inland Settlement Claim"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":2,"c_func_id":"czm0eNEFEzvL","c_func_desc":"BGA Continue Saved Pending","i_to_step_no":4,"c_to_step_name":"DEO","i_to_func_no":1,"c_to_func_id":"haCy4fO8mvmq","c_to_func_desc":"Inland Settlement Claim"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":2,"c_func_id":"czm0eNEFEzvL","c_func_desc":"BGA Continue Saved Pending","i_to_step_no":6,"c_to_step_name":"BRU MODIFY BG INVOCATION","i_to_func_no":1,"c_to_func_id":"wm8p0HYKs7py","c_to_func_desc":"Modify Register Invocation"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":2,"c_func_id":"czm0eNEFEzvL","c_func_desc":"BGA Continue Saved Pending","i_to_step_no":6,"c_to_step_name":"BRU MODIFY BG INVOCATION","i_to_func_no":1,"c_to_func_id":"wm8p0HYKs7py","c_to_func_desc":"Modify Register Invocation"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":2,"c_func_id":"czm0eNEFEzvL","c_func_desc":"BGA Continue Saved Pending","i_to_step_no":11,"c_to_step_name":"AGM","i_to_func_no":1,"c_to_func_id":"TKQyuWHcsEVp","c_to_func_desc":"Assistant General Manager(AGM)"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":3,"c_step_name":"BGA","i_func_seq_no":2,"c_func_id":"czm0eNEFEzvL","c_func_desc":"BGA Continue Saved Pending","i_to_step_no":11,"c_to_step_name":"AGM","i_to_func_no":1,"c_to_func_id":"TKQyuWHcsEVp","c_to_func_desc":"Assistant General Manager(AGM)"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":4,"c_step_name":"DEO","i_func_seq_no":1,"c_func_id":"haCy4fO8mvmq","c_func_desc":"Inland Settlement Claim","i_to_step_no":4,"c_to_step_name":"DEO","i_to_func_no":2,"c_to_func_id":"Meh3O0gexlmf","c_to_func_desc":"GTFC Continue Saved Pending"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":4,"c_step_name":"DEO","i_func_seq_no":1,"c_func_id":"haCy4fO8mvmq","c_func_desc":"Inland Settlement Claim","i_to_step_no":5,"c_to_step_name":"DSO","i_to_func_no":1,"c_to_func_id":"jewXbNlzQojW","c_to_func_desc":"BG Supervisor Release"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":4,"c_step_name":"DEO","i_func_seq_no":2,"c_func_id":"Meh3O0gexlmf","c_func_desc":"GTFC Continue Saved Pending","i_to_step_no":4,"c_to_step_name":"DEO","i_to_func_no":2,"c_to_func_id":"Meh3O0gexlmf","c_to_func_desc":"GTFC Continue Saved Pending"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":4,"c_step_name":"DEO","i_func_seq_no":2,"c_func_id":"Meh3O0gexlmf","c_func_desc":"GTFC Continue Saved Pending","i_to_step_no":5,"c_to_step_name":"DSO","i_to_func_no":1,"c_to_func_id":"jewXbNlzQojW","c_to_func_desc":"BG Supervisor Release"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":5,"c_step_name":"DSO","i_func_seq_no":1,"c_func_id":"jewXbNlzQojW","c_func_desc":"BG Supervisor Release","i_to_step_no":0,"c_to_step_name":"End","i_to_func_no":0,"c_to_func_id":"End","c_to_func_desc":"End"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":5,"c_step_name":"DSO","i_func_seq_no":1,"c_func_id":"jewXbNlzQojW","c_func_desc":"BG Supervisor Release","i_to_step_no":0,"c_to_step_name":"End","i_to_func_no":0,"c_to_func_id":"End","c_to_func_desc":"End"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":5,"c_step_name":"DSO","i_func_seq_no":1,"c_func_id":"jewXbNlzQojW","c_func_desc":"BG Supervisor Release","i_to_step_no":4,"c_to_step_name":"DEO","i_to_func_no":2,"c_to_func_id":"Meh3O0gexlmf","c_to_func_desc":"GTFC Continue Saved Pending"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":5,"c_step_name":"DSO","i_func_seq_no":1,"c_func_id":"jewXbNlzQojW","c_func_desc":"BG Supervisor Release","i_to_step_no":6,"c_to_step_name":"BRU MODIFY BG INVOCATION","i_to_func_no":1,"c_to_func_id":"wm8p0HYKs7py","c_to_func_desc":"Modify Register Invocation"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":5,"c_step_name":"DSO","i_func_seq_no":1,"c_func_id":"jewXbNlzQojW","c_func_desc":"BG Supervisor Release","i_to_step_no":6,"c_to_step_name":"BRU MODIFY BG INVOCATION","i_to_func_no":1,"c_to_func_id":"wm8p0HYKs7py","c_to_func_desc":"Modify Register Invocation"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":5,"c_step_name":"DSO","i_func_seq_no":1,"c_func_id":"jewXbNlzQojW","c_func_desc":"BG Supervisor Release","i_to_step_no":7,"c_to_step_name":"BCO","i_to_func_no":1,"c_to_func_id":"v5UQSoh9y4BI","c_to_func_desc":"BCO"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":5,"c_step_name":"DSO","i_func_seq_no":1,"c_func_id":"jewXbNlzQojW","c_func_desc":"BG Supervisor Release","i_to_step_no":7,"c_to_step_name":"BCO","i_to_func_no":1,"c_to_func_id":"v5UQSoh9y4BI","c_to_func_desc":"BCO"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":5,"c_step_name":"DSO","i_func_seq_no":1,"c_func_id":"jewXbNlzQojW","c_func_desc":"BG Supervisor Release","i_to_step_no":8,"c_to_step_name":"CONTROL OFFICER","i_to_func_no":1,"c_to_func_id":"TJPVFO12YwMJ","c_to_func_desc":"Control Officer Others"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":5,"c_step_name":"DSO","i_func_seq_no":1,"c_func_id":"jewXbNlzQojW","c_func_desc":"BG Supervisor Release","i_to_step_no":8,"c_to_step_name":"CONTROL OFFICER","i_to_func_no":1,"c_to_func_id":"TJPVFO12YwMJ","c_to_func_desc":"Control Officer Others"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":5,"c_step_name":"DSO","i_func_seq_no":1,"c_func_id":"jewXbNlzQojW","c_func_desc":"BG Supervisor Release","i_to_step_no":10,"c_to_step_name":"SWO","i_to_func_no":1,"c_to_func_id":"Autmcs9d83Fn","c_to_func_desc":"SWO"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":5,"c_step_name":"DSO","i_func_seq_no":1,"c_func_id":"jewXbNlzQojW","c_func_desc":"BG Supervisor Release","i_to_step_no":10,"c_to_step_name":"SWO","i_to_func_no":1,"c_to_func_id":"Autmcs9d83Fn","c_to_func_desc":"SWO"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":6,"c_step_name":"BRU MODIFY BG INVOCATION","i_func_seq_no":1,"c_func_id":"wm8p0HYKs7py","c_func_desc":"Modify Register Invocation","i_to_step_no":2,"c_to_step_name":"BCO\/BM\/CLO","i_to_func_no":1,"c_to_func_id":"Z9c8zACTnwu4","c_to_func_desc":"BCO\/BM\/CLO"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":6,"c_step_name":"BRU MODIFY BG INVOCATION","i_func_seq_no":1,"c_func_id":"wm8p0HYKs7py","c_func_desc":"Modify Register Invocation","i_to_step_no":6,"c_to_step_name":"BRU MODIFY BG INVOCATION","i_to_func_no":2,"c_to_func_id":"MmUgGnSfcdni","c_to_func_desc":"Continue Saved Pending"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":6,"c_step_name":"BRU MODIFY BG INVOCATION","i_func_seq_no":2,"c_func_id":"MmUgGnSfcdni","c_func_desc":"Continue Saved Pending","i_to_step_no":2,"c_to_step_name":"BCO\/BM\/CLO","i_to_func_no":1,"c_to_func_id":"Z9c8zACTnwu4","c_to_func_desc":"BCO\/BM\/CLO"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":6,"c_step_name":"BRU MODIFY BG INVOCATION","i_func_seq_no":2,"c_func_id":"MmUgGnSfcdni","c_func_desc":"Continue Saved Pending","i_to_step_no":6,"c_to_step_name":"BRU MODIFY BG INVOCATION","i_to_func_no":2,"c_to_func_id":"MmUgGnSfcdni","c_to_func_desc":"Continue Saved Pending"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":7,"c_step_name":"BCO","i_func_seq_no":1,"c_func_id":"v5UQSoh9y4BI","c_func_desc":"BCO","i_to_step_no":9,"c_to_step_name":"DEO BATCH","i_to_func_no":1,"c_to_func_id":"haCy4fO8mvmq","c_to_func_desc":"Inland Settlement Claim"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":8,"c_step_name":"CONTROL OFFICER","i_func_seq_no":1,"c_func_id":"TJPVFO12YwMJ","c_func_desc":"Control Officer Others","i_to_step_no":9,"c_to_step_name":"DEO BATCH","i_to_func_no":1,"c_to_func_id":"haCy4fO8mvmq","c_to_func_desc":"Inland Settlement Claim"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":9,"c_step_name":"DEO BATCH","i_func_seq_no":1,"c_func_id":"haCy4fO8mvmq","c_func_desc":"Inland Settlement Claim","i_to_step_no":5,"c_to_step_name":"DSO","i_to_func_no":1,"c_to_func_id":"jewXbNlzQojW","c_to_func_desc":"BG Supervisor Release"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":10,"c_step_name":"SWO","i_func_seq_no":1,"c_func_id":"Autmcs9d83Fn","c_func_desc":"SWO","i_to_step_no":0,"c_to_step_name":"End","i_to_func_no":0,"c_to_func_id":"End","c_to_func_desc":"End"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":11,"c_step_name":"AGM","i_func_seq_no":1,"c_func_id":"TKQyuWHcsEVp","c_func_desc":"Assistant General Manager(AGM)","i_to_step_no":3,"c_to_step_name":"BGA","i_to_func_no":1,"c_to_func_id":"Y0jUcwoJiw7q","c_to_func_desc":"Bank Guarantee Advisor(BGA)"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":11,"c_step_name":"AGM","i_func_seq_no":1,"c_func_id":"TKQyuWHcsEVp","c_func_desc":"Assistant General Manager(AGM)","i_to_step_no":3,"c_to_step_name":"BGA","i_to_func_no":1,"c_to_func_id":"Y0jUcwoJiw7q","c_to_func_desc":"Bank Guarantee Advisor(BGA)"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":11,"c_step_name":"AGM","i_func_seq_no":1,"c_func_id":"TKQyuWHcsEVp","c_func_desc":"Assistant General Manager(AGM)","i_to_step_no":4,"c_to_step_name":"DEO","i_to_func_no":1,"c_to_func_id":"haCy4fO8mvmq","c_to_func_desc":"Inland Settlement Claim"}
+,{"c_bg_desc":"BG INVOCATION 63933","i_step_seq_no":11,"c_step_name":"AGM","i_func_seq_no":1,"c_func_id":"TKQyuWHcsEVp","c_func_desc":"Assistant General Manager(AGM)","i_to_step_no":4,"c_to_step_name":"DEO","i_to_func_no":1,"c_to_func_id":"haCy4fO8mvmq","c_to_func_desc":"Inland Settlement Claim"}
+]}]}
