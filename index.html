@@ -23,31 +23,43 @@ function generateFlow(){
         let fromNode=nodeId(step,funcId);
         let toNode=nodeId(toStep,toFuncId);
 
-        nodes.set(fromNode,
-        `${fromNode}["${step}<br><b>${funcId}</b><br>${funcDesc}"]:::nodeStyle`);
+        if(!nodes.has(fromNode)){
+            nodes.set(fromNode,
+            `${fromNode}["${step}<br><b>${funcId}</b><br>${funcDesc}"]`);
+        }
 
-        if(toStep!="End"){
+        if(toStep!="End" && !nodes.has(toNode)){
             nodes.set(toNode,
-            `${toNode}["${toStep}<br><b>${toFuncId}</b><br>${toFuncDesc}"]:::nodeStyle`);
+            `${toNode}["${toStep}<br><b>${toFuncId}</b><br>${toFuncDesc}"]`);
         }
 
         if(toStep=="End"){
-            edges.add(`${fromNode} --> End`);
-        }else{
+            edges.add(`${fromNode} --> END`);
+        }
+        else{
             edges.add(`${fromNode} --> ${toNode}`);
         }
     }
 
-    let mermaidText="graph TD\n";
+    let mermaidText = `
+%%{init: {
+  "flowchart": {
+    "curve": "basis",
+    "nodeSpacing": 80,
+    "rankSpacing": 120
+  }
+}}%%
+flowchart TD
+`;
 
-    nodes.forEach(n=>mermaidText+=n+"\n");
-    edges.forEach(e=>mermaidText+=e+"\n");
+    nodes.forEach(n => mermaidText += n + "\n");
+    edges.forEach(e => mermaidText += e + "\n");
 
-    mermaidText+=`
-    classDef nodeStyle fill:#ffffff,stroke:#4a6cf7,stroke-width:2px,color:#222,font-size:14px;
-    `;
+    mermaidText += `
+classDef default fill:#ffffff,stroke:#4a6cf7,stroke-width:2px,color:#222;
+`;
 
-    document.getElementById("chart").innerHTML=
+    document.getElementById("chart").innerHTML =
         `<div class="mermaid">${mermaidText}</div>`;
 
     mermaid.init(undefined, document.querySelectorAll(".mermaid"));
