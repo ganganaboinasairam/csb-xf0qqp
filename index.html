@@ -1,63 +1,654 @@
-package com.tcs.git.util;
+<!DOCTYPE html>
+<html>
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+<head>
+  <meta charset='Cp1252'>
+  
+  <title>Result Data</title>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-public class AppLogger {
+  
+  
 
-    private static final String LOG_DIR = "logs";
-    private static final String LOG_FILE;
+</head>
 
-    static {
-        new File(LOG_DIR).mkdirs();
+<body>
+<table border='1px solid'><thead><tr>	<th>C_BG_DESC</th>
+	<th>I_STEP_SEQ_NO</th>
+	<th>C_STEP_NAME</th>
+	<th>I_FUNC_SEQ_NO</th>
+	<th>C_FUNC_ID</th>
+	<th>C_FUNC_DESC</th>
+	<th>I_TO_STEP_NO</th>
+	<th>C_TO_STEP_NAME</th>
+	<th>I_TO_FUNC_NO</th>
+	<th>C_TO_FUNC_ID</th>
+	<th>C_TO_FUNC_DESC</th>
+</tr></thead>
+<tbody id="data">
 
-        String ts = new SimpleDateFormat("yyyyMMdd").format(new Date());
-        LOG_FILE = LOG_DIR + File.separator + "git-tool-" + ts + ".log";
-    }
-
-    private AppLogger() {}
-
-    public static synchronized void log(String msg) {
-        try (FileWriter fw = new FileWriter(LOG_FILE, true);
-             BufferedWriter bw = new BufferedWriter(fw)) {
-
-            bw.write(timestamp() + " " + msg);
-            bw.newLine();
-
-        } catch (IOException e) {
-            // Fail silently – logging must never break app
-        }
-    }
-
-    public static synchronized void logSeparator() {
-        log("============================================================");
-    }
-
-    private static String timestamp() {
-        return new SimpleDateFormat("[HH:mm:ss]").format(new Date());
-    }
-
-    public static String getLogFilePath() {
-        return LOG_FILE;
-    }
-
-    public static String readAll() {
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader br =
-                new BufferedReader(new FileReader(LOG_FILE))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append("\n");
-            }
-        } catch (IOException e) {
-            // ignore
-        }
-        return sb.toString();
-    }
-}
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">1</td>
+<td>BRU</td>
+<td align="right">1</td>
+<td>efYSEoRQZCnN</td>
+<td>Invocation/Settlement</td>
+<td align="right">1</td>
+<td>BRU</td>
+<td align="right">2</td>
+<td>MmUgGnSfcdni</td>
+<td>Continue Saved Pending</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">1</td>
+<td>BRU</td>
+<td align="right">1</td>
+<td>efYSEoRQZCnN</td>
+<td>Invocation/Settlement</td>
+<td align="right">2</td>
+<td>BCO/BM/CLO</td>
+<td align="right">1</td>
+<td>Z9c8zACTnwu4</td>
+<td>BCO/BM/CLO</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">1</td>
+<td>BRU</td>
+<td align="right">2</td>
+<td>MmUgGnSfcdni</td>
+<td>Continue Saved Pending</td>
+<td align="right">1</td>
+<td>BRU</td>
+<td align="right">2</td>
+<td>MmUgGnSfcdni</td>
+<td>Continue Saved Pending</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">1</td>
+<td>BRU</td>
+<td align="right">2</td>
+<td>MmUgGnSfcdni</td>
+<td>Continue Saved Pending</td>
+<td align="right">2</td>
+<td>BCO/BM/CLO</td>
+<td align="right">1</td>
+<td>Z9c8zACTnwu4</td>
+<td>BCO/BM/CLO</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">2</td>
+<td>BCO/BM/CLO</td>
+<td align="right">1</td>
+<td>Z9c8zACTnwu4</td>
+<td>BCO/BM/CLO</td>
+<td align="right">1</td>
+<td>BRU</td>
+<td align="right">2</td>
+<td>MmUgGnSfcdni</td>
+<td>Continue Saved Pending</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">2</td>
+<td>BCO/BM/CLO</td>
+<td align="right">1</td>
+<td>Z9c8zACTnwu4</td>
+<td>BCO/BM/CLO</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">1</td>
+<td>Y0jUcwoJiw7q</td>
+<td>Bank Guarantee Advisor(BGA)</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">1</td>
+<td>Y0jUcwoJiw7q</td>
+<td>Bank Guarantee Advisor(BGA)</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">2</td>
+<td>czm0eNEFEzvL</td>
+<td>BGA Continue Saved Pending</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">1</td>
+<td>Y0jUcwoJiw7q</td>
+<td>Bank Guarantee Advisor(BGA)</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">1</td>
+<td>haCy4fO8mvmq</td>
+<td>Inland Settlement Claim</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">1</td>
+<td>Y0jUcwoJiw7q</td>
+<td>Bank Guarantee Advisor(BGA)</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">1</td>
+<td>haCy4fO8mvmq</td>
+<td>Inland Settlement Claim</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">1</td>
+<td>Y0jUcwoJiw7q</td>
+<td>Bank Guarantee Advisor(BGA)</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">1</td>
+<td>wm8p0HYKs7py</td>
+<td>Modify Register Invocation</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">1</td>
+<td>Y0jUcwoJiw7q</td>
+<td>Bank Guarantee Advisor(BGA)</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">1</td>
+<td>wm8p0HYKs7py</td>
+<td>Modify Register Invocation</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">1</td>
+<td>Y0jUcwoJiw7q</td>
+<td>Bank Guarantee Advisor(BGA)</td>
+<td align="right">11</td>
+<td>AGM</td>
+<td align="right">1</td>
+<td>TKQyuWHcsEVp</td>
+<td>Assistant General Manager(AGM)</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">1</td>
+<td>Y0jUcwoJiw7q</td>
+<td>Bank Guarantee Advisor(BGA)</td>
+<td align="right">11</td>
+<td>AGM</td>
+<td align="right">1</td>
+<td>TKQyuWHcsEVp</td>
+<td>Assistant General Manager(AGM)</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">2</td>
+<td>czm0eNEFEzvL</td>
+<td>BGA Continue Saved Pending</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">2</td>
+<td>czm0eNEFEzvL</td>
+<td>BGA Continue Saved Pending</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">2</td>
+<td>czm0eNEFEzvL</td>
+<td>BGA Continue Saved Pending</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">1</td>
+<td>haCy4fO8mvmq</td>
+<td>Inland Settlement Claim</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">2</td>
+<td>czm0eNEFEzvL</td>
+<td>BGA Continue Saved Pending</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">1</td>
+<td>haCy4fO8mvmq</td>
+<td>Inland Settlement Claim</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">2</td>
+<td>czm0eNEFEzvL</td>
+<td>BGA Continue Saved Pending</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">1</td>
+<td>wm8p0HYKs7py</td>
+<td>Modify Register Invocation</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">2</td>
+<td>czm0eNEFEzvL</td>
+<td>BGA Continue Saved Pending</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">1</td>
+<td>wm8p0HYKs7py</td>
+<td>Modify Register Invocation</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">2</td>
+<td>czm0eNEFEzvL</td>
+<td>BGA Continue Saved Pending</td>
+<td align="right">11</td>
+<td>AGM</td>
+<td align="right">1</td>
+<td>TKQyuWHcsEVp</td>
+<td>Assistant General Manager(AGM)</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">2</td>
+<td>czm0eNEFEzvL</td>
+<td>BGA Continue Saved Pending</td>
+<td align="right">11</td>
+<td>AGM</td>
+<td align="right">1</td>
+<td>TKQyuWHcsEVp</td>
+<td>Assistant General Manager(AGM)</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">1</td>
+<td>haCy4fO8mvmq</td>
+<td>Inland Settlement Claim</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">2</td>
+<td>Meh3O0gexlmf</td>
+<td>GTFC Continue Saved Pending</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">1</td>
+<td>haCy4fO8mvmq</td>
+<td>Inland Settlement Claim</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">2</td>
+<td>Meh3O0gexlmf</td>
+<td>GTFC Continue Saved Pending</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">2</td>
+<td>Meh3O0gexlmf</td>
+<td>GTFC Continue Saved Pending</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">2</td>
+<td>Meh3O0gexlmf</td>
+<td>GTFC Continue Saved Pending</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+<td align="right">0</td>
+<td>End</td>
+<td align="right">0</td>
+<td>End</td>
+<td>End</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+<td align="right">0</td>
+<td>End</td>
+<td align="right">0</td>
+<td>End</td>
+<td>End</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">2</td>
+<td>Meh3O0gexlmf</td>
+<td>GTFC Continue Saved Pending</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">1</td>
+<td>wm8p0HYKs7py</td>
+<td>Modify Register Invocation</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">1</td>
+<td>wm8p0HYKs7py</td>
+<td>Modify Register Invocation</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+<td align="right">7</td>
+<td>BCO</td>
+<td align="right">1</td>
+<td>v5UQSoh9y4BI</td>
+<td>BCO</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+<td align="right">7</td>
+<td>BCO</td>
+<td align="right">1</td>
+<td>v5UQSoh9y4BI</td>
+<td>BCO</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+<td align="right">8</td>
+<td>CONTROL OFFICER</td>
+<td align="right">1</td>
+<td>TJPVFO12YwMJ</td>
+<td>Control Officer Others</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+<td align="right">8</td>
+<td>CONTROL OFFICER</td>
+<td align="right">1</td>
+<td>TJPVFO12YwMJ</td>
+<td>Control Officer Others</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+<td align="right">10</td>
+<td>SWO</td>
+<td align="right">1</td>
+<td>Autmcs9d83Fn</td>
+<td>SWO</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+<td align="right">10</td>
+<td>SWO</td>
+<td align="right">1</td>
+<td>Autmcs9d83Fn</td>
+<td>SWO</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">1</td>
+<td>wm8p0HYKs7py</td>
+<td>Modify Register Invocation</td>
+<td align="right">2</td>
+<td>BCO/BM/CLO</td>
+<td align="right">1</td>
+<td>Z9c8zACTnwu4</td>
+<td>BCO/BM/CLO</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">1</td>
+<td>wm8p0HYKs7py</td>
+<td>Modify Register Invocation</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">2</td>
+<td>MmUgGnSfcdni</td>
+<td>Continue Saved Pending</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">2</td>
+<td>MmUgGnSfcdni</td>
+<td>Continue Saved Pending</td>
+<td align="right">2</td>
+<td>BCO/BM/CLO</td>
+<td align="right">1</td>
+<td>Z9c8zACTnwu4</td>
+<td>BCO/BM/CLO</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">2</td>
+<td>MmUgGnSfcdni</td>
+<td>Continue Saved Pending</td>
+<td align="right">6</td>
+<td>BRU MODIFY BG INVOCATION</td>
+<td align="right">2</td>
+<td>MmUgGnSfcdni</td>
+<td>Continue Saved Pending</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">7</td>
+<td>BCO</td>
+<td align="right">1</td>
+<td>v5UQSoh9y4BI</td>
+<td>BCO</td>
+<td align="right">9</td>
+<td>DEO BATCH</td>
+<td align="right">1</td>
+<td>haCy4fO8mvmq</td>
+<td>Inland Settlement Claim</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">8</td>
+<td>CONTROL OFFICER</td>
+<td align="right">1</td>
+<td>TJPVFO12YwMJ</td>
+<td>Control Officer Others</td>
+<td align="right">9</td>
+<td>DEO BATCH</td>
+<td align="right">1</td>
+<td>haCy4fO8mvmq</td>
+<td>Inland Settlement Claim</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">9</td>
+<td>DEO BATCH</td>
+<td align="right">1</td>
+<td>haCy4fO8mvmq</td>
+<td>Inland Settlement Claim</td>
+<td align="right">5</td>
+<td>DSO</td>
+<td align="right">1</td>
+<td>jewXbNlzQojW</td>
+<td>BG Supervisor Release</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">10</td>
+<td>SWO</td>
+<td align="right">1</td>
+<td>Autmcs9d83Fn</td>
+<td>SWO</td>
+<td align="right">0</td>
+<td>End</td>
+<td align="right">0</td>
+<td>End</td>
+<td>End</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">11</td>
+<td>AGM</td>
+<td align="right">1</td>
+<td>TKQyuWHcsEVp</td>
+<td>Assistant General Manager(AGM)</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">1</td>
+<td>Y0jUcwoJiw7q</td>
+<td>Bank Guarantee Advisor(BGA)</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">11</td>
+<td>AGM</td>
+<td align="right">1</td>
+<td>TKQyuWHcsEVp</td>
+<td>Assistant General Manager(AGM)</td>
+<td align="right">3</td>
+<td>BGA</td>
+<td align="right">1</td>
+<td>Y0jUcwoJiw7q</td>
+<td>Bank Guarantee Advisor(BGA)</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">11</td>
+<td>AGM</td>
+<td align="right">1</td>
+<td>TKQyuWHcsEVp</td>
+<td>Assistant General Manager(AGM)</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">1</td>
+<td>haCy4fO8mvmq</td>
+<td>Inland Settlement Claim</td>
+	</tr>
+	<tr>
+<td>BG INVOCATION 63933</td>
+<td align="right">11</td>
+<td>AGM</td>
+<td align="right">1</td>
+<td>TKQyuWHcsEVp</td>
+<td>Assistant General Manager(AGM)</td>
+<td align="right">4</td>
+<td>DEO</td>
+<td align="right">1</td>
+<td>haCy4fO8mvmq</td>
+<td>Inland Settlement Claim</td>
+	</tr>
+</tbody></table><!-- SQL:
+SELECT 
+C_BG_DESC ,
+I_STEP_SEQ_NO ,
+C_STEP_NAME ,
+I_FUNC_SEQ_NO ,
+C_FUNC_ID ,
+C_FUNC_DESC ,
+I_TO_STEP_NO ,
+C_TO_STEP_NAME ,
+I_TO_FUNC_NO ,
+C_TO_FUNC_ID ,
+C_TO_FUNC_DESC  FROM EXIMSYS.std_cond_dtl WHERE c_bg_id='BG00000093' ORDER BY i_step_seq_no,i_func_seq_no,i_to_step_no--></body></html>
