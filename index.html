@@ -1,66 +1,172 @@
-function generateFlow(){
+package com.cs.courier.services;
 
-    const xml=document.getElementById("xmlInput").value;
+import com.cs.eximap.log.CELogSTDExec;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.WebResource.Builder;
+import java.time.LocalTime;
+import java.util.Calendar;
+import org.json.JSONObject;
 
-    const parser=new DOMParser();
-    const xmlDoc=parser.parseFromString(xml,"text/xml");
+public class CourierTracking
+{
+  public static String responsestring = "";
+  CourierBO BO;
 
-    const rows=xmlDoc.getElementsByTagName("ROW");
+  public String getTrackingDetails(CourierBO BO)
+    throws Exception
+  {
+    this.BO = BO;
+    CELogSTDExec.info("******************Came to CourierTracking for trigaring tracking API ******************");
+    CELogSTDExec.info("WEB URL   : " + BO.getWebUrl());
+    CELogSTDExec.info("SOURCE_ID  : " + BO.getSOURCE_ID());
+    CELogSTDExec.info("eispublickeypathL   : " + BO.getEispublickeypath());
+    CELogSTDExec.info("tfprivatekeypathL   : " + BO.getTfprivatekeypath());
+    CELogSTDExec.info("host   : " + BO.getHost());
+    CELogSTDExec.info("port   : " + BO.getPort());
+    CELogSTDExec.info("Tellar_ID   : " + BO.getTELLER_ID());
 
-    let nodes=new Map();
-    let edges=new Set();
+    int doy = 0;
+    Calendar calendar = Calendar.getInstance();
+    int yr = calendar.get(1);
+    doy = calendar.get(6);
+    doy = 2;
+    String timestamp = timeStamp();
+    String transactionId = randTranId();
+    String sReqRefNum = "SBITF" + yr + String.format("%03d", new Object[] { Integer.valueOf(doy) }) + timestamp + transactionId.substring(0, 7);
+    CELogSTDExec.info("req_ref_number: " + sReqRefNum);
+    try
+    {
+      JSONObject trackingDetailsReqPayload = new JSONObject();
+      JSONObject trackingDetailsReq = new JSONObject();
 
-    for(let row of rows){
+      trackingDetailsReqPayload.put("TrkType", BO.getTrkType());
+      trackingDetailsReqPayload.put("strcnno", BO.getShippingRefNum());
+      trackingDetailsReqPayload.put("addtnlDtl", BO.getAddtnlDtl());
 
-        let step=getColumn(row,"C_STEP_NAME");
-        let funcId=getColumn(row,"C_FUNC_ID");
-        let funcDesc=getColumn(row,"C_FUNC_DESC");
+      trackingDetailsReq.put("REQUEST_REFERENCE_NUMBER", sReqRefNum);
+      trackingDetailsReq.put("SOURCE_ID", BO.getSOURCE_ID());
+      trackingDetailsReq.put("DESTINATION", BO.getsDestination());
+      trackingDetailsReq.put("TXN_TYPE", "CONSIGNMENT");
+      trackingDetailsReq.put("TXN_SUB_TYPE", "TRACK_CONSIGNMENT");
+      trackingDetailsReq.put("EIS_PAYLOAD", trackingDetailsReqPayload);
 
-        let toStep=getColumn(row,"C_TO_STEP_NAME");
-        let toFuncId=getColumn(row,"C_TO_FUNC_ID");
-        let toFuncDesc=getColumn(row,"C_TO_FUNC_DESC");
+      CELogSTDExec.info("Courier Tracking Details Request=========" + trackingDetailsReq);
 
-        let fromNode=nodeId(step,funcId);
-        let toNode=nodeId(toStep,toFuncId);
+      String AESkey = DigitalSign.KeyGenerator();
+      String sEncyptjsonReq = DigitalSign.AESEncrypt(trackingDetailsReq.toString(), AESkey);
+      CELogSTDExec.info("ENCRYPTED  JSON Request::" + sEncyptjsonReq);
+      String AccessToken = DigitalSign.RSAEncrypt_KEY(AESkey, BO.getEispublickeypath());
+      CELogSTDExec.info("ACCESS TOKEN::" + AccessToken);
+      String Digisign = DigitalSign.eisDigitalSignature(trackingDetailsReq.toString(), BO.getTfprivatekeypath());
+      JSONObject finalJson = new JSONObject();
+      finalJson.put("REQUEST_REFERENCE_NUMBER", sReqRefNum);
+      finalJson.put("REQUEST", sEncyptjsonReq);
+      finalJson.put("DIGI_SIGN", Digisign);
+      CELogSTDExec.info("Final  Request::" + finalJson);
 
-        if(!nodes.has(fromNode)){
-            nodes.set(fromNode,
-            `${fromNode}["${step}<br><b>${funcId}</b><br>${funcDesc}"]`);
-        }
-
-        if(toStep!="End" && !nodes.has(toNode)){
-            nodes.set(toNode,
-            `${toNode}["${toStep}<br><b>${toFuncId}</b><br>${toFuncDesc}"]`);
-        }
-
-        if(toStep=="End"){
-            edges.add(`${fromNode} --> END`);
-        }
-        else{
-            edges.add(`${fromNode} --> ${toNode}`);
-        }
+      String finalresponse = sendData(trackingDetailsReq.toString(), BO.getWebUrl(), BO.getHost(), BO.getPort(), AccessToken, AESkey, BO.getEispublickeypath(), BO.getSOURCE_ID(), finalJson.toString());
+      CELogSTDExec.info("Courier Tracking Details Response=========\n" + finalresponse);
+      return finalresponse;
     }
-
-    let mermaidText = `
-%%{init: {
-  "flowchart": {
-    "curve": "basis",
-    "nodeSpacing": 80,
-    "rankSpacing": 120
+    catch (Exception ex) {
+      CELogSTDExec.info("Exception while fetching courier tracking details  " + ex.getMessage());
+      ex.printStackTrace();
+      throw ex;
+    }
   }
-}}%%
-flowchart TD
-`;
 
-    nodes.forEach(n => mermaidText += n + "\n");
-    edges.forEach(e => mermaidText += e + "\n");
+  private static String sendData(String string, String webUrl, String host, String port, String accessToken, String aesKey, String eispublickeypath, String sourceid, String request)
+  {
+    CELogSTDExec.info("Inside sendData  : ");
+    try {
+      Client client = Client.create();
+      CELogSTDExec.info("Print Log at 115");
+      WebResource webResource = client.resource(webUrl);
+      CELogSTDExec.info("Print Log at 116");
+      System.setProperty("jdk.http.auth.tunneling.disabledSchemes", "");
+      System.setProperty("https.protocols", "TLSv1,TLSv1.1,TLSv1.2");
+      CELogSTDExec.info("Print Log at 117 SOURCE ID " + sourceid);
 
-    mermaidText += `
-classDef default fill:#ffffff,stroke:#4a6cf7,stroke-width:2px,color:#222;
-`;
+      ClientResponse response = 
+        (ClientResponse)((WebResource.Builder)((WebResource.Builder)((WebResource.Builder)webResource.accept(new String[] { "application/json" })
+        .type("application/json")).header("Accesstoken", accessToken)).header("Clientid", sourceid)).post(ClientResponse.class, request);
 
-    document.getElementById("chart").innerHTML =
-        `<div class="mermaid">${mermaidText}</div>`;
+      CELogSTDExec.info("Print Log at 118");
+      CELogSTDExec.info("API Response  : " + response);
 
-    mermaid.init(undefined, document.querySelectorAll(".mermaid"));
+      if (response.getStatus() != 200) {
+        CELogSTDExec.info("Failed : HTTP error code : " + response.getStatus());
+        throw new RuntimeException("Failed : HTTP error code : " + response.getStatus());
+      }
+
+      if (response.getStatus() != 200) {
+        System.exit(0);
+      }
+      String output = (String)response.getEntity(String.class);
+      output = output.toString();
+      CELogSTDExec.info("Received Encrypted Http Response:: :: " + output);
+      JSONObject jsonObject = new JSONObject(output.toString());
+      String MarginEncResponse = jsonObject.get("RESPONSE").toString();
+      String DigiSignVerify = jsonObject.get("DIGI_SIGN").toString();
+      String decResponse = DigitalSign.AESDecrypt(MarginEncResponse, aesKey);
+      CELogSTDExec.info("Received Decrypted Http Response:: ::" + decResponse);
+      DigitalSign.verify(decResponse, DigiSignVerify, eispublickeypath);
+      JSONObject jsonObject6 = new JSONObject(decResponse.toString());
+      int response_status = Integer.parseInt(jsonObject6.get("RESPONSE_STATUS").toString());
+      if ((output != null) && (!"".equals(output)))
+        if (response_status == 0) {
+          responsestring = decResponse;
+        }
+        else if (response_status == 1)
+        {
+          responsestring = decResponse;
+        }
+        else
+          responsestring = "{\"ERROR_CODE\":\"No Response\", \"ERROR_DESCRIPTION\":\"No Response From EIS, Please try again!\"}";
+    }
+    catch (Exception e)
+    {
+      e.printStackTrace();
+      responsestring = "Exception in sendData [" + e.getMessage() + "]";
+    }
+    return responsestring;
+  }
+  public static String randTranId() {
+    String caps = "";
+    String lowercase = "";
+    int charLength = CourierBO.getAlphabet().length();
+    for (int i = 0; i < charLength; ++i) {
+      caps = caps + CourierBO.getAlphabet().charAt((int)Math.floor(Math.random() * charLength));
+    }
+    for (int i = 0; i < charLength; ++i) {
+      lowercase = lowercase + CourierBO.getAlphabet().toLowerCase().charAt((int)Math.floor(Math.random() * charLength));
+    }
+    String randomTransId = String.valueOf((int)(Math.random() * 9999999.0D) + 10000000);
+    return randomTransId;
+  }
+
+  public static String timeStamp() {
+    LocalTime l = LocalTime.now();
+    String k = l.toString();
+
+    String[] k1 = k.split(":");
+    String timestamp = k1[0] + k1[1] + k1[2].substring(0, 2);
+    return timestamp;
+  }
+  public static String getTellerId(String TELLER_ID) {
+    String tellId = null;
+    try {
+      String tellerId = TELLER_ID;
+      StringBuilder sb = new StringBuilder();
+      while (sb.length() + tellerId.length() < 7)
+        sb.append('0');
+      sb.append(tellerId);
+      tellId = sb.toString();
+    } catch (Exception e) {
+      CELogSTDExec.info(e.getMessage());
+    }
+    return tellId;
+  }
 }
