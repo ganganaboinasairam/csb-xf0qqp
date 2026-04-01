@@ -1,74 +1,189 @@
-[start] [ERROR] [2026-04-01 12:27:05.004] [3687287] ---------------------Begin 2026-04-01 12:27:05 004 --------------------- 
-System Err Log: Thread ID:52 >> java.lang.NullPointerException
- at com.cs.eximweb.servlets.filter.EETrxFieldCheckFilter.doFilter(EETrxFieldCheckFilter.java:71)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at com.cs.eximweb.servlets.filter.EEXFrameDenyFilter.doFilter(EEXFrameDenyFilter.java:40)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at com.cs.eximweb.servlets.filter.EECheckCharacterFilter.doFilter(EECheckCharacterFilter.java:46)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at com.cs.eximweb.servlets.filter.EESessionFilter.doFilter(EESessionFilter.java:173)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at com.cs.eximweb.servlets.filter.EERequestFilter.doFilter(EERequestFilter.java:122)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at com.cs.eximweb.sso.servlets.PicketlinkFilter.doFilter(PicketlinkFilter.java:140)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.wrapRun(WebAppServletContext.java:3800)
- at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.run(WebAppServletContext.java:3766)
- at weblogic.security.acl.internal.AuthenticatedSubject.doAs(AuthenticatedSubject.java:344)
- at weblogic.security.service.SecurityManager.runAsForUserCode(SecurityManager.java:197)
- at weblogic.servlet.provider.WlsSecurityProvider.runAsForUserCode(WlsSecurityProvider.java:203)
- at weblogic.servlet.provider.WlsSubjectHandle.run(WlsSubjectHandle.java:71)
- at weblogic.servlet.internal.WebAppServletContext.doSecuredExecute(WebAppServletContext.java:2454)
- at weblogic.servlet.internal.WebAppServletContext.securedExecute(WebAppServletContext.java:2302)
- at weblogic.servlet.internal.WebAppServletContext.execute(WebAppServletContext.java:2280)
- at weblogic.servlet.internal.ServletRequestImpl.runInternal(ServletRequestImpl.java:1741)
- at weblogic.servlet.internal.ServletRequestImpl.run(ServletRequestImpl.java:1701)
- at weblogic.servlet.provider.ContainerSupportProviderImpl$WlsRequestExecutor.run(ContainerSupportProviderImpl.java:274)
- at weblogic.invocation.ComponentInvocationContextManager._runAs(ComponentInvocationContextManager.java:352)
- at weblogic.invocation.ComponentInvocationContextManager.runAs(ComponentInvocationContextManager.java:337)
- at weblogic.work.LivePartitionUtility.doRunWorkUnderContext(LivePartitionUtility.java:57)
- at weblogic.work.PartitionUtility.runWorkUnderContext(PartitionUtility.java:41)
- at weblogic.work.SelfTuningWorkManagerImpl.runWorkUnderContext(SelfTuningWorkManagerImpl.java:655)
- at weblogic.work.ExecuteThread.execute(ExecuteThread.java:420)
- at weblogic.work.ExecuteThread.run(ExecuteThread.java:360)
- 
----------------------- End 2026-04-01 12:27:05 004 ------------------------ 
- [end]
+package com.cs.eximweb.servlets.filter;
 
-[start] [DEBUG] [2026-04-01 12:27:33.678] [3687287] com.cs.eximweb.servlets.WSSFunctionLoader.performTask(WSSFunctionLoader.java:167) >> CURRENT_TRX_FUNC_ID:F05030705172 [end]
+import com.cs.base.xml.XMLManager;
+import com.cs.core.base.WebBase;
+import com.cs.core.err.ErrorHandling;
+import com.cs.core.utility.DataType;
+import com.cs.core.utility.SessionContext;
+import com.cs.core.utility.SessionUtil;
+import com.cs.encrypt.Base64Decoder;
+import com.cs.encrypt.EncryptUtil;
+import com.cs.eximweb.utility.WSPageManager;
+import com.cs.eximweb.utility.WSSearDomManage;
+import com.cs.eximweb.utility.WSTools;
+import com.cs.eximweb.utility.session.SessionManager;
+import java.io.IOException;
+import java.util.HashMap;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
-[start] [DEBUG] [2026-04-01 12:27:33.693] [3687287] com.cs.eximweb.servlets.WSSFunctionLoader.performTask(WSSFunctionLoader.java:196) >> Module:EXAD Function:Release Locked Transaction [end]
+public class EETrxFieldCheckFilter
+  implements Filter
+{
+  public void destroy()
+  {
+  }
 
-[start] [ERROR] [2026-04-01 12:27:39.941] [3687287] ---------------------Begin 2026-04-01 12:27:39 941 --------------------- 
-System Err Log: Thread ID:51 >> java.lang.NullPointerException
- at com.cs.eximweb.servlets.filter.EETrxFieldCheckFilter.doFilter(EETrxFieldCheckFilter.java:71)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at com.cs.eximweb.servlets.filter.EEXFrameDenyFilter.doFilter(EEXFrameDenyFilter.java:40)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at com.cs.eximweb.servlets.filter.EECheckCharacterFilter.doFilter(EECheckCharacterFilter.java:46)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at com.cs.eximweb.servlets.filter.EESessionFilter.doFilter(EESessionFilter.java:173)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at com.cs.eximweb.servlets.filter.EERequestFilter.doFilter(EERequestFilter.java:122)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at com.cs.eximweb.sso.servlets.PicketlinkFilter.doFilter(PicketlinkFilter.java:140)
- at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
- at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.wrapRun(WebAppServletContext.java:3800)
- at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.run(WebAppServletContext.java:3766)
- at weblogic.security.acl.internal.AuthenticatedSubject.doAs(AuthenticatedSubject.java:344)
- at weblogic.security.service.SecurityManager.runAsForUserCode(SecurityManager.java:197)
- at weblogic.servlet.provider.WlsSecurityProvider.runAsForUserCode(WlsSecurityProvider.java:203)
- at weblogic.servlet.provider.WlsSubjectHandle.run(WlsSubjectHandle.java:71)
- at weblogic.servlet.internal.WebAppServletContext.doSecuredExecute(WebAppServletContext.java:2454)
- at weblogic.servlet.internal.WebAppServletContext.securedExecute(WebAppServletContext.java:2302)
- at weblogic.servlet.internal.WebAppServletContext.execute(WebAppServletContext.java:2280)
- at weblogic.servlet.internal.ServletRequestImpl.runInternal(ServletRequestImpl.java:1741)
- at weblogic.servlet.internal.ServletRequestImpl.run(ServletRequestImpl.java:1701)
- at weblogic.servlet.provider.ContainerSupportProviderImpl$WlsRequestExecutor.run(ContainerSupportProviderImpl.java:274)
- at weblogic.invocation.ComponentInvocationContextManager._runAs(ComponentInvocationContextManager.java:352)
- at weblogic.invocation.ComponentInvocationContextManager.runAs(ComponentInvocationContextManager.java:337)
- at weblogic.work.LivePartitionUtility.doRunWorkUnderContext(LivePartitionUtility.java:57)
- at weblogic.work.PartitionUtility.runWorkUnderContext(PartitionUtility.java:41)
- at weblogic.work.SelfTuningWorkManagerImpl.runWorkUnderContext(SelfTuningWorkManagerImpl.java:655)
- at weblogic.work.ExecuteThread.execute(ExecuteThread.java:420)
- at weblogic.work.ExecuteThread.run(ExecuteThread.java:360)
+  public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain)
+    throws IOException, ServletException
+  {
+    HttpServletRequest request = (HttpServletRequest)req;
+    HttpServletResponse response = (HttpServletResponse)resp;
+
+    String trxStatus = request.getParameter("_TRX_STATUS");
+    if ("FIELD_NAME_STORE".equals(trxStatus)) {
+      String fieldNameStr = req.getParameter("FIELD_NAME_STR");
+      fieldNameStr = Base64Decoder.decodePwd(fieldNameStr);
+      String[] fieldNames = fieldNameStr.split(";");
+      SessionManager.setSessionAttribute(request, "FIELD_NAME_FILTER_CHECK", fieldNames);
+      WSSearDomManage.respText(response, String.valueOf("Init Success!"));
+      return;
+    }
+    try
+    {
+      String fieldValueEnc = request.getParameter("SYS_ENCVALUE");
+      String[] fieldNames = (String[])(String[])SessionManager.getSessionAttribute(request, "FIELD_NAME_FILTER_CHECK");
+
+      String errMsg = "";
+      if (fieldValueEnc != null) {
+        String suffixUnique = fieldNames[(fieldNames.length - 1)];
+        StringBuffer valueBuf = new StringBuffer();
+        for (int i = 0; i < fieldNames.length - 1; ++i) {
+          String fieldValue = request.getParameter(fieldNames[i]);  //71st line
+          valueBuf.append(fieldValue).append(";");
+        }
+        valueBuf.append(suffixUnique);
+        String valueStr = valueBuf.toString().replaceAll("\r\n", "<BR>");
+        valueStr = valueStr.replaceAll("\n", "<BR>");
+
+        String fieldValueByMD5 = EncryptUtil.getEncryptString(valueStr, "MD5");
+
+        if (!fieldValueEnc.equalsIgnoreCase(fieldValueByMD5))
+        {
+          errMsg = ErrorHandling.getErrMsg("833", null);
+        }
+      } else {
+        errMsg = checkField(request, fieldNames, WSTools.getModule(request));
+      }
+
+      if (errMsg.length() > 0) {
+        String postMode = req.getParameter("POST_MODE");
+        if ("AJAX".equalsIgnoreCase(postMode))
+          setErrorInfo(request, response, errMsg);
+        else {
+          WSPageManager.error(request, response, errMsg);
+        }
+
+        return;
+      }
+
+      chain.doFilter(request, response);
+    } catch (Exception e) {
+      DataType.writeSysErrLog(DataType.getErrorStackTrace(e));
+      WebBase.throwServletException(e, request, response);
+    } finally {
+      SessionManager.removeSessionAttribute(request, "FIELD_NAME_FILTER_CHECK");
+    }
+  }
+
+  private String checkField(HttpServletRequest request, String[] lsNeedCheck, String moduleName) throws Exception
+  {
+    if ((lsNeedCheck == null) || (lsNeedCheck.length == 0)) {
+      return "";
+    }
+    String fieldName = null;
+    String oriValue = null;
+    Document oriDom = null;
+    Element eRoot = null;
+    String key = null;
+    if (("STAN".equalsIgnoreCase(moduleName)) || ("SECU".equalsIgnoreCase(moduleName)))
+      key = moduleName + "_QUERY_RECORDS";
+    else {
+      key = "TRX_ORIGINAL_RECORD";
+    }
+
+    String oriRecord = (String)SessionManager.getSessionAttribute(request, key);
+    if (oriRecord != null) {
+      oriDom = XMLManager.xmlStrToDom(oriRecord);
+      eRoot = oriDom.getDocumentElement();
+      NodeList recordList = eRoot.getElementsByTagName("record");
+      if (recordList != null) {
+        HashMap recList = convertRecordtoHM(recordList);
+        if (recList == null) {
+          return "";
+        }
+        String[] select = request.getParameterValues("_Sel_CheckBox");
+        if (select == null) {
+          return "";
+        }
+
+        int j = 0; for (int s = select.length; j < s; ++j) {
+          int selected = Integer.parseInt(select[j]);
+          HashMap recs = (HashMap)recList.get(select[j]);
+          if (recs == null) {
+            return "";
+          }
+          for (int i = 0; i < lsNeedCheck.length - 1; ++i) {
+            fieldName = lsNeedCheck[i];
+            oriValue = (String)recs.get(fieldName);
+            if (fieldName.equals("_Sel_CheckBox"))
+              continue;
+            if ((oriValue == null) || (!oriValue.equals(request.getParameterValues(fieldName)[selected]))) {
+              SessionManager.removeSessionAttribute(request, "FIELD_NAME_FILTER_CHECK");
+              return ErrorHandling.getErrMsg("833", null);
+            }
+          }
+        }
+      }
+    }
+    return "";
+  }
+
+  private HashMap<Object, HashMap<String, String>> convertRecordtoHM(NodeList records) {
+    if ((records == null) || (records.getLength() < 1)) {
+      return null;
+    }
+    HashMap recList = new HashMap();
+    int i = 0; for (int len = records.getLength(); i < len; ++i) {
+      Node record = records.item(i);
+      NodeList flds = record.getChildNodes();
+      HashMap recs = new HashMap();
+      String key = null;
+      int j = 0; for (int s = flds.getLength(); j < s; ++j) {
+        Node fld = flds.item(j);
+        String fldName = fld.getNodeName();
+        String fldValue = XMLManager.getNodeValue(fld, true);
+        if ("_Sel_CheckBox".equals(fldName)) {
+          key = fldValue;
+        }
+        recs.put(fldName, fldValue);
+      }
+      recList.put((key == null) ? Integer.valueOf(i) : key, recs);
+    }
+    return recList;
+  }
+
+  public void init(FilterConfig arg0)
+    throws ServletException
+  {
+  }
+
+  private void setErrorInfo(HttpServletRequest req, HttpServletResponse resp, String errInfo)
+    throws Exception
+  {
+    SessionContext context = SessionUtil.getSessionContext(null);
+    context.addErrorInfo("833", new String[] { errInfo });
+    WebBase.genErrorScript(context, req, resp, false, false);
+    SessionUtil.close();
+  }
+}
