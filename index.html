@@ -1,10 +1,10 @@
-private static boolean isReleaseValidationJsp(Path file) {
-    try {
-        return Files.lines(file)
-                .anyMatch(line -> line.contains("RelVal.jsp"));
+i want to comsider only some folders in local repo, if the file is not present in that folder then it will be in UNMAPPED,
+\base_domain\CALJS
+\base_domain\EE.ear
+\base_domain\Default
+\base_domain\INT
+\base_domain\EE_SYS
+\base_domain\properties
 
-    } catch (IOException e) {
-        e.printStackTrace();
-    }
-    return false;
-}
+
+mantain this in a property file
