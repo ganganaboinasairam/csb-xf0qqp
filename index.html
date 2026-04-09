@@ -1,10 +1,150 @@
-i want to comsider only some folders in local repo, if the file is not present in that folder then it will be in UNMAPPED,
-\base_domain\CALJS
-\base_domain\EE.ear
-\base_domain\Default
-\base_domain\INT
-\base_domain\EE_SYS
-\base_domain\properties
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.stream.Stream;
+
+public class FolderReconstructor {
+
+    public static void main(String[] args) throws IOException {
+
+        Path localRepo = Paths.get("C:/local-repo");
+        Path prodFolder = Paths.get("C:/prod-dump");
+        Path outputFolder = Paths.get("C:/reconstructed");
+
+        List<String> allowedFolders = loadAllowedFolders();
+
+        Map<String, Path> fileMap = buildLocalFileMap(localRepo, allowedFolders);
+
+        Files.createDirectories(outputFolder);
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(prodFolder)) {
+
+            for (Path prodFile : stream) {
+
+                if (!Files.isRegularFile(prodFile)) continue;
+
+                String originalName = prodFile.getFileName().toString();
+                String normalizedName = normalizeFileName(originalName);
+
+                Path targetPath;
+
+                // 🔥 JSP SPECIAL HANDLING
+                if (normalizedName.toLowerCase().endsWith(".jsp")) {
+
+                    boolean isRelVal = isReleaseValidationJsp(prodFile);
+
+                    if (isRelVal) {
+                        targetPath = outputFolder.resolve(
+                                "base_domain/EE.ear/EximBillWeb.war/SCRN/releaseValidation/" + normalizedName
+                        );
+                        System.out.println("JSP (RelVal): " + normalizedName);
+                    } else {
+                        targetPath = outputFolder.resolve(
+                                "base_domain/EE.ear/EximBillWeb.war/SCRN/" + normalizedName
+                        );
+                        System.out.println("JSP (SCRN): " + normalizedName);
+                    }
+
+                } else {
+
+                    Path relativePath = fileMap.get(normalizedName.toLowerCase());
+
+                    if (relativePath != null) {
+                        targetPath = outputFolder.resolve(relativePath);
+                        System.out.println("Mapped: " + normalizedName);
+                    } else {
+                        targetPath = outputFolder.resolve("UNMAPPED/" + normalizedName);
+                        System.out.println("Unmapped: " + normalizedName);
+                    }
+                }
+
+                Files.createDirectories(targetPath.getParent());
+
+                Files.move(prodFile, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
+
+        System.out.println("\n✅ Reconstruction completed.");
+    }
+
+    // 🔹 Load allowed folders from properties
+    private static List<String> loadAllowedFolders() throws IOException {
+
+        Properties props = new Properties();
+
+        try (InputStream input = new FileInputStream("config.properties")) {
+            props.load(input);
+        }
+
+        String folders = props.getProperty("allowed.folders");
+
+        if (folders == null || folders.trim().isEmpty()) {
+            throw new RuntimeException("allowed.folders not configured!");
+        }
+
+        List<String> list = new ArrayList<>();
+        for (String f : folders.split(",")) {
+            list.add(f.trim().replace("\\", "/"));
+        }
+
+        return list;
+    }
+
+    // 🔹 Build file map ONLY for allowed folders
+    private static Map<String, Path> buildLocalFileMap(Path root, List<String> allowedFolders) throws IOException {
+
+        Map<String, Path> map = new HashMap<>();
+
+        Files.walk(root)
+                .filter(Files::isRegularFile)
+                .forEach(path -> {
+
+                    Path relativePath = root.relativize(path);
+                    String relativePathStr = relativePath.toString().replace("\\", "/");
+
+                    boolean isAllowed = allowedFolders.stream()
+                            .anyMatch(folder -> relativePathStr.toLowerCase().startsWith(folder.toLowerCase()));
+
+                    if (isAllowed) {
+                        String fileName = path.getFileName().toString().toLowerCase();
+
+                        if (map.containsKey(fileName)) {
+                            System.out.println("⚠ Duplicate in local repo: " + fileName);
+                        }
+
+                        map.put(fileName, relativePath);
+                    }
+                });
+
+        return map;
+    }
+
+    // 🔹 Normalize file name (.js.txt → .js)
+    private static String normalizeFileName(String fileName) {
+
+        if (fileName.toLowerCase().endsWith(".txt")) {
+            return fileName.substring(0, fileName.length() - 4);
+        }
+
+        return fileName;
+    }
+
+    // 🔹 JSP Rule (Java 8 compatible)
+    private static boolean isReleaseValidationJsp(Path file) {
+
+        try (Stream<String> lines = Files.lines(file)) {
+
+            return lines.anyMatch(line ->
+                    line.contains("<%@include") && line.contains("RelVal.jsp")
+            );
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+}
 
 
-mantain this in a property file
+allowed.folders=base_domain/CALJS,base_domain/EE.ear,base_domain/Default,base_domain/INT,base_domain/EE_SYS,base_domain/properties
