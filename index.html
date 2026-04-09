@@ -1,6 +1,7 @@
 package com.service;
 
-import java.io.*;
+import java.io.InputStream;
+import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Stream;
@@ -9,15 +10,15 @@ public class FolderReconstructor {
 
     public static void main(String[] args) throws IOException {
 
-        Path localRepo = Paths.get("E:\\gitClone\\tf_ee_pre_dev\\base_domain");
-        Path prodFolder = Paths.get("C:\\Users\\v1013325\\Downloads\\comp1\\comp1\\Comp\\App4_158");
+        Path baseDomain = Paths.get("E:/gitClone/tf_ee_pre_dev/base_domain");
+        Path prodFolder = Paths.get("C:/Users/v1013325/Downloads/comp1/comp1/Comp/App4_158");
         Path outputFolder = Paths.get("E:/reconstructed");
 
         List<String> allowedFolders = loadAllowedFolders();
-        
-        System.out.println("allowedFolders " +allowedFolders);
+        System.out.println("Allowed Folders: " + allowedFolders);
 
-        Map<String, Path> fileMap = buildLocalFileMap(localRepo, allowedFolders);
+        Map<String, List<Path>> fileMap = buildLocalFileMap(baseDomain, allowedFolders);
+        System.out.println("File map size: " + fileMap.size());
 
         Files.createDirectories(outputFolder);
 
@@ -32,31 +33,39 @@ public class FolderReconstructor {
 
                 Path targetPath;
 
-                //  JSP SPECIAL HANDLING
+                // 🔥 JSP SPECIAL HANDLING
                 if (normalizedName.toLowerCase().endsWith(".jsp")) {
 
                     boolean isRelVal = isReleaseValidationJsp(prodFile);
 
                     if (isRelVal) {
                         targetPath = outputFolder.resolve(
-                                "base_domain/EE.ear/EximBillWeb.war/SCRN/releaseValidation/" + normalizedName
+                                "EE.ear/EximBillWeb.war/SCRN/releaseValidation/" + normalizedName
                         );
                         System.out.println("JSP (RelVal): " + normalizedName);
                     } else {
                         targetPath = outputFolder.resolve(
-                                "base_domain/EE.ear/EximBillWeb.war/SCRN/" + normalizedName
+                                "EE.ear/EximBillWeb.war/SCRN/" + normalizedName
                         );
                         System.out.println("JSP (SCRN): " + normalizedName);
                     }
 
                 } else {
 
-                    Path relativePath = fileMap.get(normalizedName.toLowerCase());
+                    List<Path> matches = fileMap.get(normalizedName.toLowerCase());
 
-                    if (relativePath != null) {
-                        targetPath = outputFolder.resolve(relativePath);
+                    if (matches != null && matches.size() == 1) {
+
+                        targetPath = outputFolder.resolve(matches.get(0));
                         System.out.println("Mapped: " + normalizedName);
+
+                    } else if (matches != null && matches.size() > 1) {
+
+                        targetPath = outputFolder.resolve("DUPLICATES/" + normalizedName);
+                        System.out.println("⚠ Duplicate match: " + normalizedName);
+
                     } else {
+
                         targetPath = outputFolder.resolve("UNMAPPED/" + normalizedName);
                         System.out.println("Unmapped: " + normalizedName);
                     }
@@ -68,15 +77,22 @@ public class FolderReconstructor {
             }
         }
 
-        System.out.println("\n Reconstruction completed.");
+        System.out.println("\n✅ Reconstruction completed.");
     }
 
-    //  Load allowed folders from properties
+    // 🔹 Load allowed folders from classpath
     private static List<String> loadAllowedFolders() throws IOException {
 
         Properties props = new Properties();
 
-        try (InputStream input = new FileInputStream("config.properties")) {
+        try (InputStream input = FolderReconstructor.class
+                .getClassLoader()
+                .getResourceAsStream("config.properties")) {
+
+            if (input == null) {
+                throw new RuntimeException("config.properties not found in resources!");
+            }
+
             props.load(input);
         }
 
@@ -88,52 +104,61 @@ public class FolderReconstructor {
 
         List<String> list = new ArrayList<>();
         for (String f : folders.split(",")) {
-            list.add(f.trim().replace("\\", "/"));
+            list.add(f.trim().toLowerCase());
         }
 
         return list;
     }
 
-    //  Build file map ONLY for allowed folders
-    private static Map<String, Path> buildLocalFileMap(Path root, List<String> allowedFolders) throws IOException {
+    // 🔹 Build file map ONLY for allowed folders
+    private static Map<String, List<Path>> buildLocalFileMap(Path baseDomain, List<String> allowedFolders) throws IOException {
 
-        Map<String, Path> map = new HashMap<>();
+        Map<String, List<Path>> map = new HashMap<>();
 
-        Files.walk(root)
+        Files.walk(baseDomain, 10)
                 .filter(Files::isRegularFile)
                 .forEach(path -> {
 
-                    Path relativePath = root.relativize(path);
-                    String relativePathStr = relativePath.toString().replace("\\", "/");
+                    Path relativePath = baseDomain.relativize(path);
+                    String relativePathStr = relativePath.toString().replace("\\", "/").toLowerCase();
 
                     boolean isAllowed = allowedFolders.stream()
-                            .anyMatch(folder -> relativePathStr.toLowerCase().startsWith(folder.toLowerCase()));
+                            .anyMatch(relativePathStr::startsWith);
 
                     if (isAllowed) {
+
                         String fileName = path.getFileName().toString().toLowerCase();
 
-                        if (map.containsKey(fileName)) {
-                            System.out.println(" Duplicate in local repo: " + fileName);
-                        }
-
-                        map.put(fileName, relativePath);
+                        map.computeIfAbsent(fileName, k -> new ArrayList<>())
+                                .add(relativePath);
                     }
                 });
 
         return map;
     }
 
-    //  Normalize file name (.js.txt  .js)
+    // 🔹 Normalize file name (.js.txt → .js)
     private static String normalizeFileName(String fileName) {
 
-        if (fileName.toLowerCase().endsWith(".txt")) {
+        String lower = fileName.toLowerCase();
+
+        if (lower.endsWith(".js.txt") ||
+            lower.endsWith(".css.txt") ||
+            lower.endsWith(".jsp.txt") ||
+            lower.endsWith(".html.txt") ||
+            lower.endsWith(".json.txt")) {
+
+            return fileName.substring(0, fileName.length() - 4);
+        }
+
+        if (lower.endsWith(".txt")) {
             return fileName.substring(0, fileName.length() - 4);
         }
 
         return fileName;
     }
 
-    // JSP Rule (Java 8 compatible)
+    // 🔹 JSP Rule (Java 8 compatible)
     private static boolean isReleaseValidationJsp(Path file) {
 
         try (Stream<String> lines = Files.lines(file)) {
