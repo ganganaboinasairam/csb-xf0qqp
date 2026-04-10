@@ -1,14 +1,29 @@
-function handleRejectButton(){
-	//alert("test reject button")
-   var gtfcUnitCode= ['63933','61796'];
-   var unitCode = EEHtml.getFrameWindow("main", window).SYS_ORI_UNIT_CODE;
-   if(gtfcUnitCode.includes(unitCode)){
-      if(EEHtml.getFrameWindow("main", window).SYS_MODULE_NAME != 'INLC'){
-         document.getElementById('rejectBtnTr1').style.display='none';
-      }
-   }else{
-	if(EEHtml.getFrameWindow("main", window).SYS_MODULE_NAME != 'INLC'){
-		document.getElementById('rejectBtnTr').style.display='none';
-	}
-   }
+function handleRejectButton() {
+    try {
+        const frameWin = EEHtml?.getFrameWindow?.("main", window);
+        if (!frameWin) return;
+
+        const gtfcUnitCode = ['63933', '61796'];
+        const unitCode = frameWin.SYS_ORI_UNIT_CODE;
+        const moduleName = frameWin.SYS_MODULE_NAME;
+
+        // Validate required values
+        if (!unitCode || !moduleName) return;
+
+        if (moduleName !== 'INLC') {
+            if (gtfcUnitCode.includes(unitCode)) {
+                const el1 = document.getElementById('rejectBtnTr1');
+                if (el1) {
+                    el1.style.display = 'none';
+                }
+            } else {
+                const el2 = document.getElementById('rejectBtnTr');
+                if (el2) {
+                    el2.style.display = 'none';
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Error in handleRejectButton:", e);
+    }
 }
