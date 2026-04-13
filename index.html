@@ -1,37 +1,68 @@
-{
+function FLD_EXNE_DISC_BILL_onchange() {
     try {
-        var notNull = ['BILL_AMT', 'EBR_NONEBR'];
-        notNull.forEach(element => {
-            if (document.getElementById(element).value == "") {
-                var t = document.getElementById(element).title;
-                alert(t + " value is blank please check.")
-                return false;
+        const form = document.MAINFORM;
+
+        // ✅ 1. Mandatory field validation
+        const requiredFields = ['BILL_AMT', 'EBR_NONEBR'];
+
+        for (let i = 0; i < requiredFields.length; i++) {
+            const el = document.getElementById(requiredFields[i]);
+
+            if (!el || el.value.trim() === "") {
+                alert((el?.title || requiredFields[i]) + " value is blank please check.");
+                return false; // ✅ stops execution completely
             }
-        });
-        var DISC_BILL = document.MAINFORM.DISC_BILL.value;
-        var LcNonLC = document.MAINFORM.LC_NONLC.value;
-        var BillType = document.MAINFORM.NATURE_BILL.value;
-        var id = document.MAINFORM.BENE_ID.value;
-        var ccy = 'INR';
-        var br_code = document.MAINFORM.ORGI_BR_CODE.value;
-        var EbrNonEbr = document.MAINFORM.EBR_NONEBR.value;
-        if (DISC_BILL == 1) {
-            if (EbrNonEbr == 2) {
-                if (LcNonLC == 1 && BillType == 1) {
-                    document.MAINFORM.DISC_AC.value = SYT_Get_customerAccountNumber('C', '2', '24', '242', id, ccy, br_code);
-                }
-                else if (LcNonLC == 1 && BillType == 2) {
-                    document.MAINFORM.DISC_AC.value = SYT_Get_customerAccountNumber('C', '2', '24', '244', id, ccy, br_code);
-                }
-            }
-            else if ((EbrNonEbr == 1 && LcNonLC == 1) && (BillType == 1 || BillType == 2)) {
-                document.MAINFORM.DISC_AC.value = SYT_Get_customerAccountNumber('C', '3', '31', '312', id, ccy, br_code);
-            }
-            SYF_CHECK_DISC_AC_AVAL_BAL();
-        } else {
-            document.MAINFORM.DISC_AC.value = "";
-            document.MAINFORM.AVAL_LIMIT_BAL_DISC_BILL.value = "";
         }
+
+        // ✅ 2. Extract values once
+        const DISC_BILL = form.DISC_BILL.value;
+        const LcNonLC   = form.LC_NONLC.value;
+        const BillType  = form.NATURE_BILL.value;
+        const id        = form.BENE_ID.value;
+        const br_code   = form.ORGI_BR_CODE.value;
+        const EbrNonEbr = form.EBR_NONEBR.value;
+
+        const ccy = 'INR';
+
+        // ✅ 3. Reset fields if DISC_BILL != 1
+        if (DISC_BILL != 1) {
+            form.DISC_AC.value = "";
+            form.AVAL_LIMIT_BAL_DISC_BILL.value = "";
+            return;
+        }
+
+        let accountCode = null;
+
+        // ✅ 4. Business logic (flattened)
+        if (EbrNonEbr == 2 && LcNonLC == 1) {
+            if (BillType == 1) {
+                accountCode = '242';
+            } else if (BillType == 2) {
+                accountCode = '244';
+            }
+        } 
+        else if (EbrNonEbr == 1 && LcNonLC == 1 && (BillType == 1 || BillType == 2)) {
+            accountCode = '312';
+        }
+
+        // ✅ 5. Set account if applicable
+        if (accountCode) {
+            form.DISC_AC.value = SYT_Get_customerAccountNumber(
+                'C',
+                (accountCode === '312') ? '3' : '2',
+                (accountCode === '312') ? '31' : '24',
+                accountCode,
+                id,
+                ccy,
+                br_code
+            );
+        } else {
+            form.DISC_AC.value = "";
+        }
+
+        // ✅ 6. Balance check
+        SYF_CHECK_DISC_AC_AVAL_BAL();
+
     } catch (e) {
         DisExcpt("SYF_EXNE_Export_Bills_Negotiation_Purc_Disc.js*FLD_EXNE_DISC_BILL_onchange", e);
     }
