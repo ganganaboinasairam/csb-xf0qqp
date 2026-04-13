@@ -1,29 +1,38 @@
-function handleRejectButton() {
+{
     try {
-        const frameWin = EEHtml?.getFrameWindow?.("main", window);
-        if (!frameWin) return;
-
-        const gtfcUnitCode = ['63933', '61796'];
-        const unitCode = frameWin.SYS_ORI_UNIT_CODE;
-        const moduleName = frameWin.SYS_MODULE_NAME;
-
-        // Validate required values
-        if (!unitCode || !moduleName) return;
-
-        if (moduleName !== 'INLC') {
-            if (gtfcUnitCode.includes(unitCode)) {
-                const el1 = document.getElementById('rejectBtnTr1');
-                if (el1) {
-                    el1.style.display = 'none';
+        var notNull = ['BILL_AMT', 'EBR_NONEBR'];
+        notNull.forEach(element => {
+            if (document.getElementById(element).value == "") {
+                var t = document.getElementById(element).title;
+                alert(t + " value is blank please check.")
+                return false;
+            }
+        });
+        var DISC_BILL = document.MAINFORM.DISC_BILL.value;
+        var LcNonLC = document.MAINFORM.LC_NONLC.value;
+        var BillType = document.MAINFORM.NATURE_BILL.value;
+        var id = document.MAINFORM.BENE_ID.value;
+        var ccy = 'INR';
+        var br_code = document.MAINFORM.ORGI_BR_CODE.value;
+        var EbrNonEbr = document.MAINFORM.EBR_NONEBR.value;
+        if (DISC_BILL == 1) {
+            if (EbrNonEbr == 2) {
+                if (LcNonLC == 1 && BillType == 1) {
+                    document.MAINFORM.DISC_AC.value = SYT_Get_customerAccountNumber('C', '2', '24', '242', id, ccy, br_code);
                 }
-            } else {
-                const el2 = document.getElementById('rejectBtnTr');
-                if (el2) {
-                    el2.style.display = 'none';
+                else if (LcNonLC == 1 && BillType == 2) {
+                    document.MAINFORM.DISC_AC.value = SYT_Get_customerAccountNumber('C', '2', '24', '244', id, ccy, br_code);
                 }
             }
+            else if ((EbrNonEbr == 1 && LcNonLC == 1) && (BillType == 1 || BillType == 2)) {
+                document.MAINFORM.DISC_AC.value = SYT_Get_customerAccountNumber('C', '3', '31', '312', id, ccy, br_code);
+            }
+            SYF_CHECK_DISC_AC_AVAL_BAL();
+        } else {
+            document.MAINFORM.DISC_AC.value = "";
+            document.MAINFORM.AVAL_LIMIT_BAL_DISC_BILL.value = "";
         }
     } catch (e) {
-        console.error("Error in handleRejectButton:", e);
+        DisExcpt("SYF_EXNE_Export_Bills_Negotiation_Purc_Disc.js*FLD_EXNE_DISC_BILL_onchange", e);
     }
 }
