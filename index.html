@@ -1,3 +1,13 @@
-i need a developement suggestion,
-
-i have 2 fields "OPERA_ACC_NO_LEG_COMP" and "NATURE_LEG_COMP" , when the screen is opened a tab should be automatically open when the transaction amount is mote than 1 cr INR (which is already working as expected). the tab is maintained in the seperate library file , in the both mentioned fields account number and account title should be shown like , in OPERA_ACC_NO_LEG_COMP "Credit A/C No : 00002097663011116" in NATURE_LEG_COMP "Credit A/C No : 00002097663011116 : Nostro Bank Account" . at present iam sending the parametrs from the screen like "creDebAmt: [[C, "DRWE_AC_NO1", "COLL_AMT", "COLL_CCY"]]" , C means credit, D menas debit, 2nd param is account number field, 3rd param is amount field, 4th is currency field. i should send multiple sets of data
+try {
+		if (type == 'AN') {
+			var sp = "!`@#$%^&*()+=[]\\\';,:\/.{}|\"<>?~_-";
+			var val = ele.value;
+			for (var i = 0; i < val.length; i++) {
+				if (sp.indexOf(val.charAt(i)) != -1) {
+					SYS_CheckError(ele.value, "Special characters are not allowed");
+					ele.value = "";
+					break;
+				}
+			}
+		}
+	}
