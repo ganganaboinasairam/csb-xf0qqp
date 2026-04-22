@@ -1,13 +1,6 @@
-try {
-		if (type == 'AN') {
-			var sp = "!`@#$%^&*()+=[]\\\';,:\/.{}|\"<>?~_-";
-			var val = ele.value;
-			for (var i = 0; i < val.length; i++) {
-				if (sp.indexOf(val.charAt(i)) != -1) {
-					SYS_CheckError(ele.value, "Special characters are not allowed");
-					ele.value = "";
-					break;
-				}
-			}
-		}
-	}
+function validateANInput(ele) {
+    var sp = /[!`@#$%^&*()+=\[\]\\';,:\/.{}|"<>\?~_\-]/g;
+
+    // Replace invalid characters immediately
+    ele.value = ele.value.replace(sp, '');
+}
