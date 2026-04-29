@@ -1,144 +1,16 @@
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.*;
-import java.nio.file.*;
-import java.util.*;
-import java.util.regex.*;
-
-public class EvidenceExcelTool {
-
-    public static void main(String[] args) throws Exception {
-
-        if (args.length == 0) {
-            System.out.println("Usage: java -jar tool.jar <input-folder>");
-            return;
-        }
-
-        String inputFolder = args[0];
-        String outputFile = "D:/evidence.xlsx";
-
-        File folder = new File(inputFolder);
-
-        if (!folder.exists() || !folder.isDirectory()) {
-            throw new RuntimeException("Invalid folder path");
-        }
-
-        // Load images
-        File[] files = folder.listFiles((d, n) ->
-                n.toLowerCase().endsWith(".png") ||
-                n.toLowerCase().endsWith(".jpg") ||
-                n.toLowerCase().endsWith(".jpeg")
-        );
-
-        if (files == null || files.length == 0) {
-            throw new RuntimeException("No images found");
-        }
-
-        // Sort using number inside ()
-        Arrays.sort(files, Comparator.comparingInt(f -> extractNumber(f.getName())));
-
-        // Rename sequentially
-        files = renameSequential(folder, files);
-
-        // Generate Excel
-        generateExcel(files, outputFile);
-
-        System.out.println("Excel created: " + outputFile);
-    }
-
-    // Extract number from Screenshot(10).png
-    private static int extractNumber(String name) {
-        Matcher m = Pattern.compile("\\((\\d+)\\)").matcher(name);
-        return m.find() ? Integer.parseInt(m.group(1)) : Integer.MAX_VALUE;
-    }
-
-    // Safe 2-pass rename
-    private static File[] renameSequential(File folder, File[] files) throws Exception {
-
-        List<File> tempFiles = new ArrayList<>();
-        int tempIndex = 1;
-
-        for (File f : files) {
-            File temp = new File(folder, "temp_" + tempIndex++ + ".png");
-            Files.move(f.toPath(), temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            tempFiles.add(temp);
-        }
-
-        List<File> finalFiles = new ArrayList<>();
-        int finalIndex = 1;
-
-        for (File f : tempFiles) {
-            File target = new File(folder, String.format("%03d.png", finalIndex++));
-            Files.move(f.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            finalFiles.add(target);
-        }
-
-        return finalFiles.toArray(new File[0]);
-    }
-
-    // Resize image to fixed size
-    private static byte[] resizeImage(File file, int width, int height) throws Exception {
-
-        BufferedImage original = ImageIO.read(file);
-
-        BufferedImage resized = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = resized.createGraphics();
-
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g.drawImage(original, 0, 0, width, height, null);
-        g.dispose();
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(resized, "png", baos);
-
-        return baos.toByteArray();
-    }
-
-    // Excel generation (POI 5.3.0 safe)
-    private static void generateExcel(File[] files, String outputPath) throws Exception {
-
-        Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("Evidence");
-
-        CreationHelper helper = workbook.getCreationHelper();
-        Drawing<?> drawing = sheet.createDrawingPatriarch();
-
-        // Set column width once
-        sheet.setColumnWidth(0, 120 * 256);
-
-        int rowIndex = 0;
-
-        for (File file : files) {
-
-            byte[] imageBytes = resizeImage(file, 800, 450);
-
-            int pictureIdx = workbook.addPicture(imageBytes, Workbook.PICTURE_TYPE_PNG);
-
-            Row row = sheet.createRow(rowIndex);
-            row.setHeightInPoints(340);
-
-            ClientAnchor anchor = helper.createClientAnchor();
-            anchor.setCol1(0);
-            anchor.setRow1(rowIndex);
-            anchor.setCol2(1);
-            anchor.setRow2(rowIndex + 1);
-
-            Picture pict = drawing.createPicture(anchor, pictureIdx);
-
-            // Important: DO NOT rely on resize() alone
-            pict.resize(1.0);
-
-            rowIndex += 20; // spacing to avoid overlap
-        }
-
-        try (FileOutputStream fos = new FileOutputStream(outputPath)) {
-            workbook.write(fos);
-        }
-
-        workbook.close();
-    }
-}
+E:\sairam\myJars>java -jar EvidenceExcelTool.jar C:\Users\v1013325\Pictures\Screenshots 123456
+Exception in thread "main" java.lang.reflect.InvocationTargetException
+        at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+        at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.lang.reflect.Method.invoke(Method.java:498)
+        at org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader.main(JarRsrcLoader.java:61)
+Caused by: java.lang.NoClassDefFoundError: org/apache/commons/io/output/UnsynchronizedByteArrayOutputStream
+        at com.report.EvidenceExcelTool.generateExcel(EvidenceExcelTool.java:123)
+        at com.report.EvidenceExcelTool.main(EvidenceExcelTool.java:67)
+        ... 5 more
+Caused by: java.lang.ClassNotFoundException: org.apache.commons.io.output.UnsynchronizedByteArrayOutputStream
+        at java.net.URLClassLoader.findClass(URLClassLoader.java:381)
+        at java.lang.ClassLoader.loadClass(ClassLoader.java:424)
+        at java.lang.ClassLoader.loadClass(ClassLoader.java:357)
+        ... 7 more
