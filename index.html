@@ -6,18 +6,11 @@ private static void generateExcel(File[] files, String outputPath) throws Except
     Drawing drawing = sheet.createDrawingPatriarch();
     CreationHelper helper = workbook.getCreationHelper();
 
-    // layout config
-    int imageWidthPx = 500;   // adjust based on your screenshots
-    int imageHeightPx = 300;
+    // 2 images per row
+    int imagesPerRow = 2;
 
-    int gapX = 40;  // horizontal spacing
-    int gapY = 40;  // vertical spacing
-
-    int maxPerRow = 2; // desktop screenshots → 2 per row
-
-    int currentX = 0;
-    int currentY = 0;
-    int countInRow = 0;
+    int rowIndex = 0;
+    int colIndex = 0;
 
     for (File file : files) {
 
@@ -26,33 +19,27 @@ private static void generateExcel(File[] files, String outputPath) throws Except
 
         ClientAnchor anchor = helper.createClientAnchor();
 
-        // Always anchor to (0,0) but move using offsets
-        anchor.setCol1(0);
-        anchor.setRow1(0);
+        anchor.setCol1(colIndex);
+        anchor.setRow1(rowIndex);
 
-        // Convert pixels → EMU (1 px = 9525 EMU)
-        int dx1 = currentX * 9525;
-        int dy1 = currentY * 9525;
+        // IMPORTANT: define size using col2/row2
+        anchor.setCol2(colIndex + 1);
+        anchor.setRow2(rowIndex + 1);
 
-        int dx2 = (currentX + imageWidthPx) * 9525;
-        int dy2 = (currentY + imageHeightPx) * 9525;
-
-        anchor.setDx1(dx1);
-        anchor.setDy1(dy1);
-        anchor.setDx2(dx2);
-        anchor.setDy2(dy2);
+        // Set exact size in EMU
+        anchor.setDx1(0);
+        anchor.setDy1(0);
+        anchor.setDx2(9144000); // 10 inch width
+        anchor.setDy2(5486400); // 6 inch height
 
         drawing.createPicture(anchor, pictureIdx);
 
-        // move horizontally
-        currentX += imageWidthPx + gapX;
-        countInRow++;
+        // Move horizontally
+        colIndex++;
 
-        // wrap to next row
-        if (countInRow == maxPerRow) {
-            currentX = 0;
-            currentY += imageHeightPx + gapY;
-            countInRow = 0;
+        if (colIndex == imagesPerRow) {
+            colIndex = 0;
+            rowIndex += 15; // spacing between rows
         }
     }
 
