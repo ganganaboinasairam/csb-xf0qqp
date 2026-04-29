@@ -1,167 +1,46 @@
-package com.report;
+private static void generateExcel(File[] files, String outputPath) throws Exception {
 
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+    Workbook workbook = new XSSFWorkbook();
+    Sheet sheet = workbook.createSheet("Evidence");
 
-import javax.imageio.ImageIO;
+    Drawing drawing = sheet.createDrawingPatriarch();
+    CreationHelper helper = workbook.getCreationHelper();
 
-import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.poi.ss.usermodel.ClientAnchor;
-import org.apache.poi.ss.usermodel.CreationHelper;
-import org.apache.poi.ss.usermodel.Drawing;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+    int imagesPerRow = 2;
 
-public class EvidenceExcelTool {
+    // Set proper column width for large images
+    for (int i = 0; i < imagesPerRow; i++) {
+        sheet.setColumnWidth(i, 100 * 256);
+    }
 
-	public static void main(String[] args) throws Exception {
+    int rowIndex = 0;
+    int colIndex = 0;
 
-		if (args.length == 0) {
-			System.out.println("Usage: java -jar tool.jar <input-folder>");
-			return;
-		}
+    for (File file : files) {
 
-		String cr_no = args[1];
+        // USE ORIGINAL IMAGE (no resize)
+        byte[] bytes = Files.readAllBytes(file.toPath());
 
-		String inputFolder = args[0];
-		String outputFile = "D:/evidence" + cr_no + ".xlsx";
+        int pictureIdx = workbook.addPicture(bytes, Workbook.PICTURE_TYPE_PNG);
 
-		File folder = new File(inputFolder);
+        ClientAnchor anchor = helper.createClientAnchor();
+        anchor.setCol1(colIndex);
+        anchor.setRow1(rowIndex);
 
-		File[] files = folder.listFiles(new FilenameFilter() {
-			public boolean accept(File dir, String name) {
-				String n = name.toLowerCase();
-				return n.endsWith(".png") || n.endsWith(".jpg") || n.endsWith(".jpeg");
-			}
-		});
+        Picture pict = drawing.createPicture(anchor, pictureIdx);
 
-		if (files == null || files.length == 0) {
-			throw new RuntimeException("No images found");
-		}
+        // Scale image to approx 10x6 inch visually
+        pict.resize(1.5);  // tweak between 1.2–2.0 based on need
 
-		// Sort by Screenshot(number)
-		Arrays.sort(files, new Comparator<File>() {
-			public int compare(File f1, File f2) {
-				return extractNumber(f1.getName()) - extractNumber(f2.getName());
-			}
-		});
+        colIndex++;
 
-		// Rename sequentially
-		files = renameSequential(folder, files);
+        if (colIndex == imagesPerRow) {
+            colIndex = 0;
+            rowIndex += 20; // vertical spacing
+        }
+    }
 
-		// Generate Excel
-		generateExcel(files, outputFile);
-
-		System.out.println("Excel created at: " + outputFile);
-	}
-
-	private static int extractNumber(String name) {
-		Matcher m = Pattern.compile("\\((\\d+)\\)").matcher(name);
-		if (m.find())
-			return Integer.parseInt(m.group(1));
-		return Integer.MAX_VALUE;
-	}
-
-	private static File[] renameSequential(File folder, File[] files) throws Exception {
-
-		List<File> tempFiles = new ArrayList<File>();
-		int tempIndex = 1;
-
-		for (File f : files) {
-			File temp = new File(folder, "temp_" + tempIndex++ + ".png");
-			Files.move(f.toPath(), temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
-			tempFiles.add(temp);
-		}
-
-		List<File> finalFiles = new ArrayList<File>();
-		int index = 1;
-
-		for (File f : tempFiles) {
-			File target = new File(folder, String.format("%03d.png", index++));
-			Files.move(f.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
-			finalFiles.add(target);
-		}
-
-		return finalFiles.toArray(new File[0]);
-	}
-
-	private static byte[] resizeImage(File file, int width, int height) throws Exception {
-
-		BufferedImage original = ImageIO.read(file);
-
-		BufferedImage resized = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-		Graphics2D g = resized.createGraphics();
-
-		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-		g.drawImage(original, 0, 0, width, height, null);
-		g.dispose();
-
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ImageIO.write(resized, "png", baos);
-
-		return baos.toByteArray();
-	}
-
-	private static void generateExcel(File[] files, String outputPath) throws Exception {
-
-	    Workbook workbook = new XSSFWorkbook();
-	    Sheet sheet = workbook.createSheet("Evidence");
-
-	    Drawing drawing = sheet.createDrawingPatriarch();
-	    CreationHelper helper = workbook.getCreationHelper();
-
-	    // 2 images per row
-	    int imagesPerRow = 2;
-
-	    int rowIndex = 0;
-	    int colIndex = 0;
-
-	    for (File file : files) {
-
-	        byte[] bytes = resizeImage(file, 800, 450);
-	        int pictureIdx = workbook.addPicture(bytes, Workbook.PICTURE_TYPE_PNG);
-
-	        ClientAnchor anchor = helper.createClientAnchor();
-
-	        anchor.setCol1(colIndex);
-	        anchor.setRow1(rowIndex);
-
-	        // IMPORTANT: define size using col2/row2
-	        anchor.setCol2(colIndex + 1);
-	        anchor.setRow2(rowIndex + 1);
-
-	        // Set exact size in EMU
-	        anchor.setDx1(0);
-	        anchor.setDy1(0);
-	        anchor.setDx2(9144000); // 10 inch width
-	        anchor.setDy2(5486400); // 6 inch height
-
-	        drawing.createPicture(anchor, pictureIdx);
-
-	        // Move horizontally
-	        colIndex++;
-
-	        if (colIndex == imagesPerRow) {
-	            colIndex = 0;
-	            rowIndex += 15; // spacing between rows
-	        }
-	    }
-
-	    FileOutputStream fos = new FileOutputStream(outputPath);
-	    workbook.write(fos);
-	    fos.close();
-	}
+    FileOutputStream fos = new FileOutputStream(outputPath);
+    workbook.write(fos);
+    fos.close();
 }
