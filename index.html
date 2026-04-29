@@ -1,10 +1,141 @@
-private static boolean isReleaseValidationJsp(Path file) {
-    try {
-        byte[] content = Files.readAllBytes(file);
-        String text = new String(content, java.nio.charset.StandardCharsets.ISO_8859_1);
-        return text.contains("<%@include") && text.contains("RelVal.jsp");
-    } catch (IOException e) {
-        e.printStackTrace();
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class EvidenceExcelTool {
+
+    public static void main(String[] args) throws Exception {
+
+        if (args.length == 0) {
+            System.out.println("Usage: java -jar tool.jar <screenshot-folder>");
+            return;
+        }
+
+        String inputFolderPath = args[0];
+        String outputFilePath = "D:/evidence.xlsx";
+
+        File folder = new File(inputFolderPath);
+
+        if (!folder.exists() || !folder.isDirectory()) {
+            throw new RuntimeException("Invalid folder path");
+        }
+
+        // STEP 1: Load files
+        File[] files = folder.listFiles((d, n) ->
+                n.toLowerCase().endsWith(".png") ||
+                n.toLowerCase().endsWith(".jpg") ||
+                n.toLowerCase().endsWith(".jpeg")
+        );
+
+        if (files == null || files.length == 0) {
+            throw new RuntimeException("No images found");
+        }
+
+        // STEP 2: Sort by number inside ()
+        Arrays.sort(files, Comparator.comparingInt(f -> extractNumber(f.getName())));
+
+        // STEP 3: Rename (2-pass to avoid conflict)
+        files = renameFilesSequentially(folder, files);
+
+        // STEP 4: Generate Excel
+        generateExcel(files, outputFilePath);
+
+        System.out.println("Done. File created at: " + outputFilePath);
     }
-    return false;
+
+    // Extract number from Screenshot(10).png
+    private static int extractNumber(String name) {
+        Matcher m = Pattern.compile("\\((\\d+)\\)").matcher(name);
+        return m.find() ? Integer.parseInt(m.group(1)) : Integer.MAX_VALUE;
+    }
+
+    // 2-pass rename
+    private static File[] renameFilesSequentially(File folder, File[] files) throws Exception {
+
+        // PASS 1: rename to temp
+        int tempCounter = 1;
+        List<File> tempFiles = new ArrayList<>();
+
+        for (File file : files) {
+            File temp = new File(folder, "temp_" + tempCounter++ + ".png");
+            Files.move(file.toPath(), temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            tempFiles.add(temp);
+        }
+
+        // PASS 2: rename to final
+        List<File> finalFiles = new ArrayList<>();
+        int finalCounter = 1;
+
+        for (File file : tempFiles) {
+            String newName = String.format("%03d.png", finalCounter++);
+            File target = new File(folder, newName);
+            Files.move(file.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            finalFiles.add(target);
+        }
+
+        return finalFiles.toArray(new File[0]);
+    }
+
+    // Resize image
+    private static byte[] resizeImage(File file, int width, int height) throws Exception {
+        BufferedImage original = ImageIO.read(file);
+
+        BufferedImage resized = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = resized.createGraphics();
+
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(original, 0, 0, width, height, null);
+        g.dispose();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(resized, "png", baos);
+
+        return baos.toByteArray();
+    }
+
+    // Excel generation
+    private static void generateExcel(File[] files, String outputPath) throws Exception {
+
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Evidence");
+
+        CreationHelper helper = workbook.getCreationHelper();
+        Drawing<?> drawing = sheet.createDrawingPatriarch();
+
+        int rowIndex = 0;
+
+        for (File file : files) {
+
+            byte[] imageBytes = resizeImage(file, 800, 450);
+
+            int pictureIdx = workbook.addPicture(imageBytes, Workbook.PICTURE_TYPE_PNG);
+
+            Row row = sheet.createRow(rowIndex);
+            row.setHeightInPoints(340);
+
+            sheet.setColumnWidth(0, 120 * 256);
+
+            ClientAnchor anchor = helper.createClientAnchor();
+            anchor.setCol1(0);
+            anchor.setRow1(rowIndex);
+
+            Picture pict = drawing.createPicture(anchor, pictureIdx);
+            pict.resize(1.0);
+
+            rowIndex += 20;
+        }
+
+        FileOutputStream fos = new FileOutputStream(outputPath);
+        workbook.write(fos);
+        fos.close();
+        workbook.close();
+    }
 }
