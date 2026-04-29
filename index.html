@@ -6,22 +6,25 @@ private static void generateExcel(File[] files, String outputPath) throws Except
     CreationHelper helper = workbook.getCreationHelper();
     Drawing drawing = sheet.createDrawingPatriarch();
 
-    // 3 columns for 3 images
-    for (int i = 0; i < 3; i++) {
-        sheet.setColumnWidth(i, 40 * 256);
+    int imagesPerRow = 2;
+
+    // Set column width (wide for desktop screenshots)
+    for (int i = 0; i < imagesPerRow; i++) {
+        sheet.setColumnWidth(i, 80 * 256);
     }
 
     int rowIndex = 0;
     int colIndex = 0;
 
     Row row = sheet.createRow(rowIndex);
-    row.setHeightInPoints(450); // adjust height for phone screenshot
+    row.setHeightInPoints(300); // moderate height
 
     for (int i = 0; i < files.length; i++) {
 
         File file = files[i];
 
-        byte[] imageBytes = resizeImage(file, 300, 600); // smaller size
+        // KEEP ORIGINAL QUALITY
+        byte[] imageBytes = Files.readAllBytes(file.toPath());
 
         int pictureIdx = workbook.addPicture(imageBytes, Workbook.PICTURE_TYPE_PNG);
 
@@ -30,16 +33,17 @@ private static void generateExcel(File[] files, String outputPath) throws Except
         anchor.setRow1(rowIndex);
 
         Picture pict = drawing.createPicture(anchor, pictureIdx);
-        pict.resize();
+
+        // Controlled resize (not aggressive)
+        pict.resize(0.5); // tweak: 0.4 to 0.7 depending on size
 
         colIndex++;
 
-        // move to next row after 3 images
-        if (colIndex == 3) {
+        if (colIndex == imagesPerRow) {
             colIndex = 0;
             rowIndex++;
             row = sheet.createRow(rowIndex);
-            row.setHeightInPoints(450);
+            row.setHeightInPoints(300);
         }
     }
 
