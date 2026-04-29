@@ -3,47 +3,56 @@ private static void generateExcel(File[] files, String outputPath) throws Except
     Workbook workbook = new XSSFWorkbook();
     Sheet sheet = workbook.createSheet("Evidence");
 
-    CreationHelper helper = workbook.getCreationHelper();
     Drawing drawing = sheet.createDrawingPatriarch();
+    CreationHelper helper = workbook.getCreationHelper();
 
-    int imagesPerRow = 2;
+    // layout config
+    int imageWidthPx = 500;   // adjust based on your screenshots
+    int imageHeightPx = 300;
 
-    // Set column width (wide for desktop screenshots)
-    for (int i = 0; i < imagesPerRow; i++) {
-        sheet.setColumnWidth(i, 80 * 256);
-    }
+    int gapX = 40;  // horizontal spacing
+    int gapY = 40;  // vertical spacing
 
-    int rowIndex = 0;
-    int colIndex = 0;
+    int maxPerRow = 2; // desktop screenshots → 2 per row
 
-    Row row = sheet.createRow(rowIndex);
-    row.setHeightInPoints(300); // moderate height
+    int currentX = 0;
+    int currentY = 0;
+    int countInRow = 0;
 
-    for (int i = 0; i < files.length; i++) {
+    for (File file : files) {
 
-        File file = files[i];
-
-        // KEEP ORIGINAL QUALITY
-        byte[] imageBytes = Files.readAllBytes(file.toPath());
-
-        int pictureIdx = workbook.addPicture(imageBytes, Workbook.PICTURE_TYPE_PNG);
+        byte[] bytes = Files.readAllBytes(file.toPath());
+        int pictureIdx = workbook.addPicture(bytes, Workbook.PICTURE_TYPE_PNG);
 
         ClientAnchor anchor = helper.createClientAnchor();
-        anchor.setCol1(colIndex);
-        anchor.setRow1(rowIndex);
 
-        Picture pict = drawing.createPicture(anchor, pictureIdx);
+        // Always anchor to (0,0) but move using offsets
+        anchor.setCol1(0);
+        anchor.setRow1(0);
 
-        // Controlled resize (not aggressive)
-        pict.resize(0.5); // tweak: 0.4 to 0.7 depending on size
+        // Convert pixels → EMU (1 px = 9525 EMU)
+        int dx1 = currentX * 9525;
+        int dy1 = currentY * 9525;
 
-        colIndex++;
+        int dx2 = (currentX + imageWidthPx) * 9525;
+        int dy2 = (currentY + imageHeightPx) * 9525;
 
-        if (colIndex == imagesPerRow) {
-            colIndex = 0;
-            rowIndex++;
-            row = sheet.createRow(rowIndex);
-            row.setHeightInPoints(300);
+        anchor.setDx1(dx1);
+        anchor.setDy1(dy1);
+        anchor.setDx2(dx2);
+        anchor.setDy2(dy2);
+
+        drawing.createPicture(anchor, pictureIdx);
+
+        // move horizontally
+        currentX += imageWidthPx + gapX;
+        countInRow++;
+
+        // wrap to next row
+        if (countInRow == maxPerRow) {
+            currentX = 0;
+            currentY += imageHeightPx + gapY;
+            countInRow = 0;
         }
     }
 
