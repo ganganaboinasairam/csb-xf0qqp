@@ -1,46 +1,112 @@
-private static void generateExcel(File[] files, String outputPath) throws Exception {
 
-    Workbook workbook = new XSSFWorkbook();
-    Sheet sheet = workbook.createSheet("Evidence");
+i want a tool to identify weather the component is safe to go to production or not, i will the give the below text as input to the tool and a excel, the excel will conttain all the ir numbers with the status of it shown below
 
-    Drawing drawing = sheet.createDrawingPatriarch();
-    CreationHelper helper = workbook.getCreationHelper();
+excel sheet:
 
-    int imagesPerRow = 2;
 
-    // Set proper column width for large images
-    for (int i = 0; i < imagesPerRow; i++) {
-        sheet.setColumnWidth(i, 100 * 256);
-    }
+CR	Current Status	Module
+26040206	CR RAISED	TF-CE
+26040193	WBT APPROVED	TF-EximBills
+26040186	UAT BYPASS	TF-EximBills
+26040184	ST PASSED	TF-EximBills
+26040178	UAT PASSED	TF-CE
+26040150	REQ - FS APPROVED BY PERFORMANCE TEAM	TF-EximBills
+26040139	RESL - DUPLICATE	TF-EximBills
+26040131	REQ - FS PENDING CAB APPROVAL	TF-EximBills
+26040129	REQ - FS SUBMITTED	TF-EximBills
+26040121	RESL - CANCELLED	TF-CE
+26040120	TECHNICAL REVIEW PASSED	TF-CE
+26040070	UNDER UAT	TF-EximBills
+26040032	REQ - UNDER FEASIBILITY ANALYSIS	TF-CE
+26040026	PROD PROMOTED	TF-EximBills
+26040011	REQ - FS APPROVED BY FUNCTIONAL TEAM	TF-EximBills
+26040010	AWAITED CLARIFICATION FROM BUSINESS	TF-EximBills
+26030195	REQ - AWAITED CONFIRMATION	TF-EximBills
+26030194	REQ - FS UNDER PREPARATION	TF-EximBills
+26030193	UAT TEST FAILED	TF-CE
+26030169	REQ - AWAITED CLARIFICATION	TF-CE
+26030167	PREPROD BYPASS	TF-EximBills
+26030162	RESL - REVERTED	TF-EximBills
+26030160	PENDING IN ST	TF-EximBills
+26030159	RESL - DATA RELATED	TF-EximBills
+26030155	FS - FUNCTIONALLY APPROVED & PENDING EEC	TF-CE
 
-    int rowIndex = 0;
-    int colIndex = 0;
 
-    for (File file : files) {
 
-        // USE ORIGINAL IMAGE (no resize)
-        byte[] bytes = Files.readAllBytes(file.toPath());
 
-        int pictureIdx = workbook.addPicture(bytes, Workbook.PICTURE_TYPE_PNG);
 
-        ClientAnchor anchor = helper.createClientAnchor();
-        anchor.setCol1(colIndex);
-        anchor.setRow1(rowIndex);
+input text: 
 
-        Picture pict = drawing.createPicture(anchor, pictureIdx);
+\\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\EE.ear\EximBillWeb.war\SCRN\IMCC_Outward_Remittance_BRU.jsp-arc(IMCC_Outward_Remittance_BRU.jsp)
+-----------------------------------
+Rev 4.22
+Checked in:     Apr 27 2026 13:38:48
+Last modified:  Apr 27 2026 13:14:20
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 26020174/TFEX-20260318-007908
+Desc:TF-Revamp-Implementation of Legal Compliance certificate in IMCC Module
+BRD in 25090065
+Vani Sri 
+-----------------------------------
+Rev 4.20
+Checked in:     Apr 15 2026 17:53:28
+Last modified:  Apr 15 2026 14:01:54
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 26040053/TRADE-20260415-008055
+Desc:child CR against the main CR 26020253 for Amendment- Surematch.
+Yaswitha 
+-----------------------------------
+Rev 4.19
+Checked in:     Apr 08 2026 21:09:24
+Last modified:  Apr 08 2026 18:03:18
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 26020253/TFRE-20260226-007772
+Desc:Document splitting in other than BG modules in SureMatch
+Yaswitha
+-----------------------------------
+Rev 4.18
+Checked in:     Apr 01 2026 17:37:54
+Last modified:  Apr 01 2026 16:44:02
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 26020174/TFEX-20260318-007908
+Desc:TF-Revamp-Implementation of Legal Compliance certificate in IMCC Module
+BRD in 25090065
+Vani Sri
+-----------------------------------
+Rev 4.15
+Checked in:     Mar 30 2026 11:09:40
+Last modified:  Mar 27 2026 17:52:30
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25110041/TFRE-20260210-007666
+Desc:Import journey fields editable BRU-DEO
+Mahesh Chinnaboska
+-----------------------------------
+Rev 4.13
+Checked in:     Mar 17 2026 14:48:52
+Last modified:  Mar 17 2026 12:33:10
+Author id: tfml     lines deleted/added/moved: 0/0/0
+Detachment done as per the developer request on 8th April 2026 from yaswitha hyderabad
+-----------------------------------
+Rev 4.12
+Checked in:     Mar 10 2026 14:30:40
+Last modified:  Mar 10 2026 12:23:26
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25100174/TFRE-20260202-007616/Change/Desc:New Certificate for BRC in all forex journeys
+Divya
+-----------------------------------
+Rev 4.0
+Checked in:     Aug 18 2025 15:17:56
+Last modified:  Aug 13 2025 16:42:04
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25080098/TFRE-20250816-006616
+Desc:Regularizations of all the direct fixes related revamp in non-production region through PVCS.
+TF-REVAMP
+-----------------------------------
+Rev 1.0
+Checked in:     Aug 13 2025 20:08:52
+Last modified:  Aug 13 2025 16:42:04
+Author id: tfml     lines deleted/added/moved: 0/0/0
+Initial revision.
+===================================
 
-        // Scale image to approx 10x6 inch visually
-        pict.resize(1.5);  // tweak between 1.2–2.0 based on need
 
-        colIndex++;
-
-        if (colIndex == imagesPerRow) {
-            colIndex = 0;
-            rowIndex += 20; // vertical spacing
-        }
-    }
-
-    FileOutputStream fos = new FileOutputStream(outputPath);
-    workbook.write(fos);
-    fos.close();
-}
