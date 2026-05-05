@@ -1,25 +1,44 @@
-int baseRow = 0;
+private static void generateExcel(File[] files, String outputPath) throws Exception {
 
-for (int i = 0; i < files.length; i++) {
+    Workbook workbook = new XSSFWorkbook();
+    Sheet sheet = workbook.createSheet("Evidence");
 
-    File file = files[i];
+    CreationHelper helper = workbook.getCreationHelper();
+    Drawing<?> drawing = sheet.createDrawingPatriarch();
 
-    byte[] imageBytes = Files.readAllBytes(file.toPath());
-    int pictureIdx = workbook.addPicture(imageBytes, Workbook.PICTURE_TYPE_PNG);
-
-    int col = (i % 2 == 0) ? 0 : 5;              // left or right
-    int row = baseRow + (i / 2) * 10;            // new row every 2 images
-
-    Row r = sheet.getRow(row);
-    if (r == null) {
-        r = sheet.createRow(row);
+    // Set column widths (0 to 6)
+    for (int c = 0; c <= 6; c++) {
+        sheet.setColumnWidth(c, 30 * 256);
     }
-    r.setHeightInPoints(340);
 
-    ClientAnchor anchor = helper.createClientAnchor();
-    anchor.setCol1(col);
-    anchor.setRow1(row);
+    for (int i = 0; i < files.length; i++) {
 
-    Picture pict = drawing.createPicture(anchor, pictureIdx);
-    pict.resize();
+        File file = files[i];
+
+        byte[] imageBytes = Files.readAllBytes(file.toPath());
+        int pictureIdx = workbook.addPicture(imageBytes, Workbook.PICTURE_TYPE_PNG);
+
+        // Grid logic
+        int col = (i % 2 == 0) ? 0 : 5;     // left / right
+        int row = (i / 2) * 10;             // block of 10 rows per pair
+
+        // Ensure rows exist and set height for 10-row block
+        for (int r = row; r < row + 10; r++) {
+            Row tempRow = sheet.getRow(r);
+            if (tempRow == null) tempRow = sheet.createRow(r);
+            tempRow.setHeightInPoints(34);
+        }
+
+        // Anchor image
+        ClientAnchor anchor = helper.createClientAnchor();
+        anchor.setCol1(col);
+        anchor.setRow1(row);
+
+        Picture pict = drawing.createPicture(anchor, pictureIdx);
+        pict.resize();
+    }
+
+    FileOutputStream fos = new FileOutputStream(outputPath);
+    workbook.write(fos);
+    fos.close();
 }
