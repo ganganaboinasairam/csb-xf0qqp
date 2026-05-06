@@ -1,44 +1,7 @@
-private static void generateExcel(File[] files, String outputPath) throws Exception {
+Dear Sir,
 
-    Workbook workbook = new XSSFWorkbook();
-    Sheet sheet = workbook.createSheet("Evidence");
+As we have checked in production, the CE-15 tracer Functionality is Working Fine.
 
-    CreationHelper helper = workbook.getCreationHelper();
-    Drawing<?> drawing = sheet.createDrawingPatriarch();
+Last date of successful email sent was on 27th Apr 2026. If the issue is with the Specific transaction we need to check with it.
 
-    // Set column widths (0 to 6)
-    for (int c = 0; c <= 6; c++) {
-        sheet.setColumnWidth(c, 30 * 256);
-    }
-
-    for (int i = 0; i < files.length; i++) {
-
-        File file = files[i];
-
-        byte[] imageBytes = Files.readAllBytes(file.toPath());
-        int pictureIdx = workbook.addPicture(imageBytes, Workbook.PICTURE_TYPE_PNG);
-
-        // Grid logic
-        int col = (i % 2 == 0) ? 0 : 5;     // left / right
-        int row = (i / 2) * 10;             // block of 10 rows per pair
-
-        // Ensure rows exist and set height for 10-row block
-        for (int r = row; r < row + 10; r++) {
-            Row tempRow = sheet.getRow(r);
-            if (tempRow == null) tempRow = sheet.createRow(r);
-            tempRow.setHeightInPoints(34);
-        }
-
-        // Anchor image
-        ClientAnchor anchor = helper.createClientAnchor();
-        anchor.setCol1(col);
-        anchor.setRow1(row);
-
-        Picture pict = drawing.createPicture(anchor, pictureIdx);
-        pict.resize();
-    }
-
-    FileOutputStream fos = new FileOutputStream(outputPath);
-    workbook.write(fos);
-    fos.close();
-}
+Please find the below Screenshot for your reference.
