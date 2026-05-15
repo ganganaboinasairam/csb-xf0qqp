@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SLAB Group SQL Generator</title>
+<title>SLA BCO CO SQL Generator</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
 
@@ -336,7 +336,7 @@
 
 <header>
   <div class="logo-dot"></div>
-  <h1>SLAB Group SQL Generator</h1>
+  <h1>SLA BCO CO SQL Generator</h1>
   <span>EXIMSYS · Dynamic Insert Script Builder</span>
 </header>
 
@@ -387,7 +387,7 @@
         </div>
         <div class="field">
           <label><span class="param-name">New Function Description</span><span class="required">*</span></label>
-          <input type="text" id="C_FUNC_DESC" placeholder="e.g. BCO Control Officer">
+          <input type="text" id="C_FUNC_DESC" value='BCO Control Officer' disabled placeholder="e.g. BCO Control Officer">
           <div class="err-msg" id="err-C_FUNC_DESC">This field is required</div>
         </div>
         <div class="field">
@@ -402,12 +402,12 @@
         </div>
         <div class="field">
           <label><span class="param-name">New Function Group Description</span><span class="required">*</span></label>
-          <input type="text" id="C_FUNCGRP_DESC" placeholder="e.g. BCO and Control Officer">
+          <input type="text" id="C_FUNCGRP_DESC" value='BCO and Control Officer' disabled placeholder="e.g. BCO and Control Officer">
           <div class="err-msg" id="err-C_FUNCGRP_DESC">This field is required</div>
         </div>
         <div class="field">
           <label><span class="param-name">New Step Sequence Description (BCO_CO)</span><span class="required">*</span></label>
-          <input type="text" id="BCO_CO_STEP_NAME" placeholder="e.g. BCO_CO">
+          <input type="text" id="BCO_CO_STEP_NAME" value='BCO_CO' disabled placeholder="e.g. BCO_CO">
           <div class="hint">C_STEP_NAME for the new BCO_CO step</div>
           <div class="err-msg" id="err-BCO_CO_STEP_NAME">This field is required</div>
         </div>
@@ -698,7 +698,7 @@ function generate(){
   lines.push(`REM INSERTING into EXIMSYS.STD_SLABG_STEP`);
   lines.push(`SET DEFINE OFF;`);
   lines.push(`Insert into EXIMSYS.STD_SLABG_STEP (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,C_IS_MANDATORY,C_PROCESS_BY,C_STEP_MIN_TIME,D_BG_ACTIVE_DATE) values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},'O',null,'00:00:05',null);`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},'O',null,'00:00:05',null);`);
   lines.push('');
 
   // ── STT_SLABG_STEP (SELECT) ──
@@ -720,7 +720,7 @@ function generate(){
   lines.push(`REM INSERTING into EXIMSYS.STT_SLABG_STEP`);
   lines.push(`SET DEFINE OFF;`);
   lines.push(`Insert into EXIMSYS.STT_SLABG_STEP (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,C_IS_MANDATORY,C_PROCESS_BY,C_STEP_MIN_TIME,D_BG_ACTIVE_DATE) values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},'O',null,'00:00:05',null);`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},'O',null,'00:00:05',null);`);
   lines.push('');
 
   // ── STD_SLABG_ASGNSTEP ──
@@ -742,7 +742,7 @@ function generate(){
   lines.push(`REM INSERTING into EXIMSYS.STD_SLABG_ASGNSTEP`);
   lines.push(`SET DEFINE OFF;`);
   lines.push(`Insert into EXIMSYS.STD_SLABG_ASGNSTEP (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,C_IS_MANDATORY,C_PROCESS_BY,C_STEP_MIN_TIME,C_USER_ID,C_GROUP_ID) values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},'O',null,'00:00:05',null,/* C_GROUP_ID */);`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},'O',null,'00:00:05',null,'1000000095');`);
   lines.push('');
   sep();
   lines.push('');
@@ -771,7 +771,7 @@ function generate(){
   lines.push(`REM INSERTING into EXIMSYS.STD_SLABG_FUNCTION`);
   lines.push(`SET DEFINE OFF;`);
   lines.push(`Insert into EXIMSYS.STD_SLABG_FUNCTION (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNC_ID,C_FUNC_DESC,C_MODU_NAME,C_FUNCGRP_ID,C_FUNCGRP_DESC,C_CUST_FIELD,C_FUNCGRP_TYPE,C_FUNC_TYPE,D_BG_ACTIVE_DATE) values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FUNC_ID)},${q(FUNC_DESC)},${q(MODU)},${q(FGRP_ID)},${q(FGRP_DESC)},null,null,null,null);`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FUNC_ID)},${q(FUNC_DESC)},${q(MODU)},${q(FGRP_ID)},${q(FGRP_DESC)},null,null,null,null);`);
   lines.push('');
 
   // ── STT_SLABG_FUNCTION ──
@@ -798,7 +798,7 @@ function generate(){
   lines.push(`REM INSERTING into EXIMSYS.STT_SLABG_FUNCTION`);
   lines.push(`SET DEFINE OFF;`);
   lines.push(`Insert into EXIMSYS.STT_SLABG_FUNCTION (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNC_ID,C_FUNC_DESC,C_MODU_NAME,C_FUNCGRP_ID,C_FUNCGRP_DESC,C_CUST_FIELD,C_FUNCGRP_TYPE,C_FUNC_TYPE,D_BG_ACTIVE_DATE) values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FUNC_ID)},${q(FUNC_DESC)},${q(MODU)},${q(FGRP_ID)},${q(FGRP_DESC)},null,null,null,null);`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FUNC_ID)},${q(FUNC_DESC)},${q(MODU)},${q(FGRP_ID)},${q(FGRP_DESC)},null,null,null,null);`);
   lines.push('');
   sep();
   lines.push('');
@@ -838,21 +838,21 @@ function generate(){
 
   lines.push(`--From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO`);
   lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
   lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO_CO','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO_CO','Y');`);
   lines.push('');
   lines.push(`--From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO`);
   lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
   lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO','Y');`);
   lines.push('');
   lines.push(`--From BCO_CO to CO  ||||  Change to I_TO_STEP_NO`);
   lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
   lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','CO','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','CO','Y');`);
   lines.push('');
   sep();
   lines.push('');
@@ -891,21 +891,21 @@ function generate(){
   const STT_DTL = `EXIMSYS.STt_COND_DTL`;
   lines.push(`--From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO`);
   lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
   lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO_CO','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO_CO','Y');`);
   lines.push('');
   lines.push(`--From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO`);
   lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
   lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO','Y');`);
   lines.push('');
   lines.push(`--From BCO_CO to CO  ||||  Change to I_TO_STEP_NO`);
   lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
   lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','CO','Y');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','CO','Y');`);
   lines.push('');
   sep();
   lines.push('');
@@ -938,15 +938,15 @@ function generate(){
   lines.push(`SET DEFINE OFF;`);
   lines.push(`--From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO`);
   lines.push(`Insert into EXIMSYS.STD_COND_HEADER ${HDR_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},'S');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},'S');`);
   lines.push('');
   lines.push(`--From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO`);
   lines.push(`Insert into EXIMSYS.STD_COND_HEADER ${HDR_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},'S');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},'S');`);
   lines.push('');
   lines.push(`--From BCO_CO to CO  ||||  Change to I_TO_STEP_NO`);
   lines.push(`Insert into EXIMSYS.STD_COND_HEADER ${HDR_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},'S');`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},'S');`);
   lines.push('');
   sep();
   lines.push('');
@@ -985,15 +985,15 @@ function generate(){
   lines.push(`SET DEFINE OFF;`);
   lines.push(`--From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO`);
   lines.push(`Insert into EXIMSYS.STT_COND_HEADER ${STT_HDR_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},'S',to_date('${getTodayOracle()}','DD-MON-RR'),'T','M','F',null,null);`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},'S',to_date('${getTodayOracle()}','DD-MON-RR'),'T','M','F',null,null);`);
   lines.push('');
   lines.push(`--From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO`);
   lines.push(`Insert into EXIMSYS.STT_COND_HEADER ${STT_HDR_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},'S',to_date('${getTodayOracle()}','DD-MON-RR'),'T','M','F',null,null);`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},'S',to_date('${getTodayOracle()}','DD-MON-RR'),'T','M','F',null,null);`);
   lines.push('');
   lines.push(`--From BCO_CO to CO  ||||  Change to I_TO_STEP_NO`);
   lines.push(`Insert into EXIMSYS.STT_COND_HEADER ${STT_HDR_COLS} values `);
-  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},'S',to_date('${getTodayOracle()}','DD-MON-RR'),'T','M','F',null,null);`);
+  lines.push(`('SBI','IN','63933',${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},'S',to_date('${getTodayOracle()}','DD-MON-RR'),'T','M','F',null,null);`);
   lines.push('');
   sep();
 
