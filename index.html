@@ -1,477 +1,1044 @@
-I need a HTML tool to create dinamic sql queries as given below , but some parameters will change in the queries , the parameters are given below . tool should provide input fields for the parametrs . descriprion of the parameter is aslo given it should be shown in the front end . the same descriprion parameters can be taken one time only.on click of the "generate" button the sql script need to be genetared with the given parameters, all the params are mandatory
---------------------------------------------------------------------------------------------------------
-parameters need to be changed :
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLAB Group SQL Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
 
-STD_SLABG_HEADER.C_BG_ID   ---> C_BG_ID same in all queries
-STT_SLABG_HEADER.C_BG_ID   ---> C_BG_ID same in all queries
-STD_SLABG_ASGNHDR.C_BG_ID   ---> C_BG_ID same in all queries
-STD_SLABG_STEP.C_BG_ID   ---> C_BG_ID same in all queries
-STD_SLABG_STEP.C_BG_DESC  ---> C_BG_DESC same in all queries
-STD_SLABG_STEP.I_STEP_SEQ_NO   --->New Step Sequence(add one for last step)
-STT_SLABG_STEP.C_BG_ID   ---> C_BG_ID same in all queries
-STT_SLABG_STEP.C_BG_DESC  ---> C_BG_DESC same in all queries
-STT_SLABG_STEP.I_STEP_SEQ_NO   --->New Step Sequence(add one for last step)
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e28;
+    --border: #252a38;
+    --border-accent: #2e3650;
+    --accent: #4a9eff;
+    --accent-dim: #1e3a5f;
+    --green: #3ddc84;
+    --green-dim: #1a3d2c;
+    --amber: #ffb347;
+    --amber-dim: #3d2c0f;
+    --red: #ff5c5c;
+    --text: #c8d0e0;
+    --text-dim: #6b7590;
+    --text-bright: #eef2ff;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
 
-STD_SLABG_ASGNSTEP.C_BG_ID   ---> C_BG_ID same in all queries
-STD_SLABG_ASGNSTEP.C_BG_DESC  ---> C_BG_DESC same in all queries
-STD_SLABG_ASGNSTEP.I_STEP_SEQ_NO   --->New Step Sequence(add one for last step)
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-STD_SLABG_FUNCTION.C_BG_ID   ---> C_BG_ID same in all queries
-STD_SLABG_FUNCTION.C_BG_DESC  ---> C_BG_DESC same in all queries
-STD_SLABG_FUNCTION.I_STEP_SEQ_NO   --->New Step Sequence(add one for last step)
-STD_SLABG_FUNCTION.C_FUNC_ID   ---> New Function ID
-STD_SLABG_FUNCTION.C_FUNC_DESC   ---> New Function Description
-STD_SLABG_FUNCTION.C_MODU_NAME   ---> Working module name
-STD_SLABG_FUNCTION.C_FUNCGRP_ID   ---> New Function Group ID
-STD_SLABG_FUNCTION.C_FUNCGRP_DESC   ---> New Function Group Description
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
 
-STT_SLABG_FUNCTION.C_BG_ID   ---> C_BG_ID same in all queries
-STT_SLABG_FUNCTION.C_BG_DESC  ---> C_BG_DESC same in all queries
-STT_SLABG_FUNCTION.I_STEP_SEQ_NO   --->New Step Sequence(add one for last step)
-STD_SLABG_FUNCTION.C_FUNC_ID   ---> New Function ID
-STD_SLABG_FUNCTION.C_FUNC_DESC   ---> New Function Description
-STD_SLABG_FUNCTION.C_MODU_NAME   ---> Working module name
-STD_SLABG_FUNCTION.C_FUNCGRP_ID   ---> New Function Group ID
-STD_SLABG_FUNCTION.C_FUNCGRP_DESC   ---> New Function Group Description
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100%{ box-shadow: 0 0 6px var(--accent); }
+    50%{ box-shadow: 0 0 18px var(--accent); }
+  }
+  header h1 {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-bright);
+  }
+  header span {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
 
-STD_COND_DTL.I_STEP_SEQ_NO   --->DSO Sequence number
-STD_COND_DTL.C_STEP_NAME   --->DSO Step Description
-STD_COND_DTL.C_FUNCGRP_ID  --->DSO Grp ID
-STD_COND_DTL.C_FUNC_ID  --->DSO Func ID
-STD_COND_DTL.C_FUNC_DESC  --->DSO Func Description
-STD_COND_DTL.I_TO_STEP_NO  --->New Step Sequence(add one for last step)
-STD_COND_DTL.C_TO_FUNCGRP_ID   ---> New Function Group ID
-STD_COND_DTL.C_TO_FUNC_ID    ---> New Function ID
-STD_COND_DTL.C_TO_FUNC_DESC   ---> New Function Description
+  /* ── Layout ── */
+  .container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
 
-STT_COND_DTL.I_STEP_SEQ_NO   --->DSO Sequence number
-STT_COND_DTL.C_STEP_NAME   --->DSO Step Description
-STT_COND_DTL.C_FUNCGRP_ID  --->DSO Grp ID
-STT_COND_DTL.C_FUNC_ID  --->DSO Func ID
-STT_COND_DTL.C_FUNC_DESC  --->DSO Func Description
-STT_COND_DTL.I_TO_STEP_NO  --->New Step Sequence(add one for last step)
-STT_COND_DTL.C_TO_FUNCGRP_ID   ---> New Function Group ID
-STT_COND_DTL.C_TO_FUNC_ID    ---> New Function ID
-STT_COND_DTL.C_TO_FUNC_DESC   ---> New Function Description
+  /* ── Panel ── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .panel-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .panel-header .badge {
+    margin-left: auto;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 1px 7px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+  .panel-body { padding: 20px 18px; }
 
-STD_COND_HEADER.C_BG_ID   ---> C_BG_ID same in all queries
-STD_COND_HEADER.C_BG_DESC  ---> C_BG_DESC same in all queries
+  /* ── Section within form ── */
+  .section {
+    margin-bottom: 24px;
+  }
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::before {
+    content: '//';
+    color: var(--text-dim);
+    font-weight: 300;
+  }
 
---From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO
-STD_COND_HEADER.I_STEP_SEQ_NO   --->DSO Sequence number
-STD_COND_HEADER.C_STEP_NAME   --->DSO Step Description
-STD_COND_HEADER.C_FUNCGRP_ID   --->DSO Grp ID 
-STD_COND_HEADER.C_FUNC_ID  --->DSO Func ID
-STD_COND_HEADER.C_FUNC_DESC  --->DSO Func Description
-STD_COND_HEADER.I_TO_STEP_NO  --->New Step Sequence(add one for last step)
-STD_COND_HEADER.C_TO_FUNCGRP_ID   ---> New Function Group ID
-STD_COND_HEADER.C_TO_FUNC_ID    ---> New Function ID
-STD_COND_HEADER.C_TO_FUNC_DESC   ---> New Function Description
+  /* ── Form Fields ── */
+  .field {
+    margin-bottom: 14px;
+  }
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    letter-spacing: 0.05em;
+  }
+  .field label .param-name {
+    color: var(--amber);
+    font-weight: 600;
+  }
+  .field label .required {
+    color: var(--red);
+    margin-left: 4px;
+  }
+  .field input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border-accent);
+    border-radius: 4px;
+    color: var(--text-bright);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 8px 12px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+  }
+  .field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(74,158,255,0.12);
+  }
+  .field input.error {
+    border-color: var(--red);
+    box-shadow: 0 0 0 2px rgba(255,92,92,0.12);
+  }
+  .field .hint {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    font-style: italic;
+  }
 
+  /* Sub-section (DSO / BCO / CO blocks) */
+  .subsection {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .subsection-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .subsection-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
 
---From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO
-STD_COND_HEADER.I_STEP_SEQ_NO  --->New Step Sequence(add one for last step)
-STD_COND_HEADER.C_STEP_NAME   --->New Step Sequence Description(BCO_CO)
-STD_COND_HEADER.C_FUNCGRP_ID   ---> New Function Group ID
-STD_COND_HEADER.C_FUNC_ID    ---> New Function ID
-STD_COND_HEADER.C_FUNC_DESC   ---> New Function Description
-STD_COND_HEADER.I_TO_STEP_NO  --->Old BCO Sequence
-STD_COND_HEADER.C_TO_FUNCGRP_ID   ---> Old BCO Function Group ID
-STD_COND_HEADER.C_TO_FUNC_ID    ---> Old BCO Function ID
-STD_COND_HEADER.C_TO_FUNC_DESC   ---> Old BCO Function Description
+  /* ── Generate Button ── */
+  .btn-generate {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 13px 20px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    margin-top: 8px;
+  }
+  .btn-generate:hover {
+    background: #5badff;
+    box-shadow: 0 0 20px rgba(74,158,255,0.4);
+    transform: translateY(-1px);
+  }
+  .btn-generate:active { transform: translateY(0); }
 
---From BCO_CO to CO  ||||  Change to I_TO_STEP_NO
-STD_COND_HEADER.I_STEP_SEQ_NO  --->New Step Sequence(add one for last step)
-STD_COND_HEADER.C_STEP_NAME   --->New Step Sequence Description(BCO_CO)
-STD_COND_HEADER.C_FUNCGRP_ID   ---> New Function Group ID
-STD_COND_HEADER.C_FUNC_ID    ---> New Function ID
-STD_COND_HEADER.C_FUNC_DESC   ---> New Function Description
-STD_COND_HEADER.I_TO_STEP_NO  --->Old CO Sequence
-STD_COND_HEADER.C_TO_FUNCGRP_ID   ---> Old CO Function Group ID
-STD_COND_HEADER.C_TO_FUNC_ID    ---> Old CO Function ID
-STD_COND_HEADER.C_TO_FUNC_DESC   ---> Old CO Function Description
+  /* ── Output panel ── */
+  .output-panel { position: sticky; top: 81px; }
 
-STT_COND_HEADER.C_BG_ID   ---> C_BG_ID same in all queries
-STT_COND_HEADER.C_BG_DESC  ---> C_BG_DESC same in all queries
+  .output-controls {
+    display: flex;
+    gap: 8px;
+    padding: 10px 18px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+  .btn-copy, .btn-clear {
+    background: transparent;
+    border: 1px solid var(--border-accent);
+    border-radius: 3px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    padding: 5px 12px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .btn-copy:hover { border-color: var(--green); color: var(--green); }
+  .btn-clear:hover { border-color: var(--red); color: var(--red); }
+  .line-count {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
 
---From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO
-STT_COND_HEADER.I_STEP_SEQ_NO   --->DSO Sequence number
-STT_COND_HEADER.C_STEP_NAME   --->DSO Step Description
-STT_COND_HEADER.C_FUNCGRP_ID   --->DSO Grp ID 
-STT_COND_HEADER.C_FUNC_ID  --->DSO Func ID
-STT_COND_HEADER.C_FUNC_DESC  --->DSO Func Description
-STT_COND_HEADER.I_TO_STEP_NO  --->New Step Sequence(add one for last step)
-STT_COND_HEADER.C_TO_FUNCGRP_ID   ---> New Function Group ID
-STT_COND_HEADER.C_TO_FUNC_ID    ---> New Function ID
-STT_COND_HEADER.C_TO_FUNC_DESC   ---> New Function Description
+  #output {
+    background: #080a0f;
+    color: #a8c4a2;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1.65;
+    padding: 20px 18px;
+    min-height: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    white-space: pre;
+    overflow-x: auto;
+    border-radius: 0 0 6px 6px;
+  }
+  #output:empty::before {
+    content: '-- Generated SQL will appear here.\n-- Fill in all parameters and click GENERATE.';
+    color: var(--text-dim);
+    font-style: italic;
+  }
 
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-dim); }
 
---From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO
-STT_COND_HEADER.I_STEP_SEQ_NO  --->New Step Sequence(add one for last step)
-STT_COND_HEADER.C_STEP_NAME   --->New Step Sequence Description(BCO_CO)
-STT_COND_HEADER.C_FUNCGRP_ID   ---> New Function Group ID
-STT_COND_HEADER.C_FUNC_ID    ---> New Function ID
-STT_COND_HEADER.C_FUNC_DESC   ---> New Function Description
-STT_COND_HEADER.I_TO_STEP_NO  --->Old BCO Sequence
-STT_COND_HEADER.C_TO_FUNCGRP_ID   ---> Old BCO Function Group ID
-STT_COND_HEADER.C_TO_FUNC_ID    ---> Old BCO Function ID
-STT_COND_HEADER.C_TO_FUNC_DESC   ---> Old BCO Function Description
+  /* validation tooltip */
+  .err-msg {
+    font-size: 10px;
+    color: var(--red);
+    margin-top: 3px;
+    display: none;
+  }
+  .err-msg.show { display: block; }
 
---From BCO_CO to CO  ||||  Change to I_TO_STEP_NO
-STT_COND_HEADER.I_STEP_SEQ_NO  --->New Step Sequence(add one for last step)
-STT_COND_HEADER.C_STEP_NAME   --->New Step Sequence Description(BCO_CO)
-STT_COND_HEADER.C_FUNCGRP_ID   ---> New Function Group ID
-STT_COND_HEADER.C_FUNC_ID    ---> New Function ID
-STT_COND_HEADER.C_FUNC_DESC   ---> New Function Description
-STT_COND_HEADER.I_TO_STEP_NO  --->Old CO Sequence
-STT_COND_HEADER.C_TO_FUNCGRP_ID   ---> Old CO Function Group ID
-STT_COND_HEADER.C_TO_FUNC_ID    ---> Old CO Function ID
-STT_COND_HEADER.C_TO_FUNC_DESC   ---> Old CO Function Description
---------------------------------------------------------------------------------------------------------
-sample SQL queries:
+  /* toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--green-dim);
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 18px;
+    border-radius: 4px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
 
-INSERT INTO eximsys.STD_SLABG_HEADER
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,C_FIRST_FUNC_ID
-,C_CUST_FIELD
-,D_BG_ACTIVE_DATE
-,C_FIRST_FUNCGRP_ID
-,C_MAIN_REF
-,ORGI_BR_CODE
-,CUST_BR_CODE
-,C_FUNC_SHORT_NAME
-,DRFT_FR_INT_REQ
-,STATUS
-,C_TRX_STATUS from  eximsys.STD_SLABG_HEADER where c_bg_id='BG00000039';
+  @media (max-width: 900px) {
+    .container { grid-template-columns: 1fr; }
+    .output-panel { position: static; }
+    #output { max-height: 500px; }
+  }
+</style>
+</head>
+<body>
 
-INSERT INTO eximsys.STT_SLABG_HEADER
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,C_FIRST_FUNC_ID
-,C_CUST_FIELD
-,D_BG_ACTIVE_DATE
-,C_TRX_CONTENT
-,T_LAST_MODIFY_TIME
-,C_ADD_FLAG
-,C_TRX_STATUS
-,C_LOCKED_FLAG
-,C_LOCKED_OP
-,C_REFUSE_REASON
-,C_FIRST_FUNCGRP_ID from  eximsys.STT_SLABG_HEADER where c_bg_id='BG00000039';
+<header>
+  <div class="logo-dot"></div>
+  <h1>SLAB Group SQL Generator</h1>
+  <span>EXIMSYS · Dynamic Insert Script Builder</span>
+</header>
 
-INSERT INTO eximsys.STD_SLABG_ASGNHDR
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,C_FIRST_FUNCGRP_ID
-,C_FIRST_FUNC_ID
-,C_CUST_FIELD
-,D_BG_ACTIVE_DATE
-,C_DEPLOY_FLAG
-,C_USED_FLAG
-,C_LOCKED_FLAG
-,C_LOCKED_OP from  eximsys.STD_SLABG_ASGNHDR  where c_bg_id='BG00000039';
+<div class="container">
+  <!-- ═══ LEFT: INPUT FORM ═══ -->
+  <div class="panel">
+    <div class="panel-header">
+      Parameters
+      <span class="badge">ALL REQUIRED</span>
+    </div>
+    <div class="panel-body">
 
----------------------------------------------------------------------------------------------------------------------
+      <!-- GLOBAL -->
+      <div class="section">
+        <div class="section-label">Global Identifiers</div>
+        <div class="field">
+          <label><span class="param-name">C_BG_ID</span><span class="required">*</span></label>
+          <input type="text" id="C_BG_ID" placeholder="e.g. BG00000039">
+          <div class="hint">Business Group ID — used in all queries</div>
+          <div class="err-msg" id="err-C_BG_ID">This field is required</div>
+        </div>
+        <div class="field">
+          <label><span class="param-name">C_BG_DESC</span><span class="required">*</span></label>
+          <input type="text" id="C_BG_DESC" placeholder="e.g. LC BILL PRE-PAYMENT 63933">
+          <div class="hint">Business Group Description — used in all queries</div>
+          <div class="err-msg" id="err-C_BG_DESC">This field is required</div>
+        </div>
+      </div>
 
-Insert into EXIMSYS.STD_SLABG_STEP
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,I_STEP_SEQ_NO
-,C_STEP_NAME
-,C_IS_MANDATORY
-,C_PROCESS_BY
-,C_STEP_MIN_TIME
-,D_BG_ACTIVE_DATE from  eximsys.STD_SLABG_STEP where c_bg_id='BG00000039' ORDER BY i_step_seq_no;
+      <!-- STEP -->
+      <div class="section">
+        <div class="section-label">New BCO_CO Step</div>
+        <div class="field">
+          <label><span class="param-name">New Step Sequence</span><span class="required">*</span></label>
+          <input type="number" id="NEW_STEP_SEQ" placeholder="e.g. 10">
+          <div class="hint">I_STEP_SEQ_NO — add one to the last existing step number</div>
+          <div class="err-msg" id="err-NEW_STEP_SEQ">This field is required</div>
+        </div>
+      </div>
 
-REM INSERTING into EXIMSYS.STD_SLABG_STEP
-SET DEFINE OFF;
-Insert into EXIMSYS.STD_SLABG_STEP (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,C_IS_MANDATORY,C_PROCESS_BY,C_STEP_MIN_TIME,D_BG_ACTIVE_DATE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO','O',null,'00:00:05',null);
+      <!-- FUNCTION -->
+      <div class="section">
+        <div class="section-label">New BCO_CO Function</div>
+        <div class="field">
+          <label><span class="param-name">New Function ID</span><span class="required">*</span></label>
+          <input type="text" id="C_FUNC_ID" placeholder="e.g. FINLCBCOCOPA">
+          <div class="err-msg" id="err-C_FUNC_ID">This field is required</div>
+        </div>
+        <div class="field">
+          <label><span class="param-name">New Function Description</span><span class="required">*</span></label>
+          <input type="text" id="C_FUNC_DESC" placeholder="e.g. BCO Control Officer">
+          <div class="err-msg" id="err-C_FUNC_DESC">This field is required</div>
+        </div>
+        <div class="field">
+          <label><span class="param-name">Working Module Name</span><span class="required">*</span></label>
+          <input type="text" id="C_MODU_NAME" placeholder="e.g. INLC">
+          <div class="err-msg" id="err-C_MODU_NAME">This field is required</div>
+        </div>
+        <div class="field">
+          <label><span class="param-name">New Function Group ID</span><span class="required">*</span></label>
+          <input type="text" id="C_FUNCGRP_ID" placeholder="e.g. GINLCBCOCOPA">
+          <div class="err-msg" id="err-C_FUNCGRP_ID">This field is required</div>
+        </div>
+        <div class="field">
+          <label><span class="param-name">New Function Group Description</span><span class="required">*</span></label>
+          <input type="text" id="C_FUNCGRP_DESC" placeholder="e.g. BCO and Control Officer">
+          <div class="err-msg" id="err-C_FUNCGRP_DESC">This field is required</div>
+        </div>
+        <div class="field">
+          <label><span class="param-name">New Step Sequence Description (BCO_CO)</span><span class="required">*</span></label>
+          <input type="text" id="BCO_CO_STEP_NAME" placeholder="e.g. BCO_CO">
+          <div class="hint">C_STEP_NAME for the new BCO_CO step</div>
+          <div class="err-msg" id="err-BCO_CO_STEP_NAME">This field is required</div>
+        </div>
+      </div>
 
-Insert into EXIMSYS.STT_SLABG_STEP
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,I_STEP_SEQ_NO
-,C_STEP_NAME
-,C_IS_MANDATORY
-,C_PROCESS_BY
-,C_STEP_MIN_TIME
-,D_BG_ACTIVE_DATE from  eximsys.STT_SLABG_STEP where c_bg_id='BG00000039' ORDER BY i_step_seq_no;
+      <!-- DSO -->
+      <div class="section">
+        <div class="section-label">DSO (Source Step)</div>
+        <div class="subsection">
+          <div class="subsection-title">DSO Details</div>
+          <div class="field">
+            <label><span class="param-name">DSO Sequence Number</span><span class="required">*</span></label>
+            <input type="number" id="DSO_STEP_SEQ" placeholder="e.g. 4">
+            <div class="hint">I_STEP_SEQ_NO of the existing DSO step</div>
+            <div class="err-msg" id="err-DSO_STEP_SEQ">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">DSO Step Description</span><span class="required">*</span></label>
+            <input type="text" id="DSO_STEP_NAME" placeholder="e.g. DSO PC CHECKER">
+            <div class="err-msg" id="err-DSO_STEP_NAME">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">DSO Group ID</span><span class="required">*</span></label>
+            <input type="text" id="DSO_FUNCGRP_ID" placeholder="e.g. G490823X0803">
+            <div class="err-msg" id="err-DSO_FUNCGRP_ID">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">DSO Func ID</span><span class="required">*</span></label>
+            <input type="text" id="DSO_FUNC_ID" placeholder="e.g. F050307X4890">
+            <div class="err-msg" id="err-DSO_FUNC_ID">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">DSO Func Description</span><span class="required">*</span></label>
+            <input type="text" id="DSO_FUNC_DESC" placeholder="e.g. Supervisor Release">
+            <div class="err-msg" id="err-DSO_FUNC_DESC">This field is required</div>
+          </div>
+        </div>
+      </div>
 
-REM INSERTING into EXIMSYS.STT_SLABG_STEP
-SET DEFINE OFF;
-Insert into EXIMSYS.STT_SLABG_STEP (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,C_IS_MANDATORY,C_PROCESS_BY,C_STEP_MIN_TIME,D_BG_ACTIVE_DATE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO','O',null,'00:00:05',null);
+      <!-- BCO -->
+      <div class="section">
+        <div class="section-label">Old BCO (Target Step)</div>
+        <div class="subsection">
+          <div class="subsection-title">BCO Details</div>
+          <div class="field">
+            <label><span class="param-name">Old BCO Sequence</span><span class="required">*</span></label>
+            <input type="number" id="BCO_STEP_SEQ" placeholder="e.g. 6">
+            <div class="err-msg" id="err-BCO_STEP_SEQ">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">Old BCO Step Name</span><span class="required">*</span></label>
+            <input type="text" id="BCO_STEP_NAME" placeholder="e.g. BCO">
+            <div class="err-msg" id="err-BCO_STEP_NAME">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">Old BCO Function Group ID</span><span class="required">*</span></label>
+            <input type="text" id="BCO_FUNCGRP_ID" placeholder="e.g. G49082301113">
+            <div class="err-msg" id="err-BCO_FUNCGRP_ID">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">Old BCO Function ID</span><span class="required">*</span></label>
+            <input type="text" id="BCO_FUNC_ID" placeholder="e.g. F05030706130">
+            <div class="err-msg" id="err-BCO_FUNC_ID">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">Old BCO Function Description</span><span class="required">*</span></label>
+            <input type="text" id="BCO_FUNC_DESC" placeholder="e.g. BCO">
+            <div class="err-msg" id="err-BCO_FUNC_DESC">This field is required</div>
+          </div>
+        </div>
+      </div>
 
-Insert into EXIMSYS.STD_SLABG_ASGNSTEP
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,I_STEP_SEQ_NO
-,C_STEP_NAME
-,C_IS_MANDATORY
-,C_PROCESS_BY
-,C_STEP_MIN_TIME
-,C_USER_ID
-,C_GROUP_ID from  eximsys.STD_SLABG_ASGNSTEP where c_bg_id='BG00000039' ORDER BY i_step_seq_no;
-----FOR BCO_CO LAST STEP NUMBER NEEDS TO BE ADDED.C_BG_ID,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME
-REM INSERTING into EXIMSYS.STD_SLABG_ASGNSTEP
-SET DEFINE OFF;
-Insert into EXIMSYS.STD_SLABG_ASGNSTEP (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,C_IS_MANDATORY,C_PROCESS_BY,C_STEP_MIN_TIME,C_USER_ID,C_GROUP_ID) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO','O',null,'00:00:05',null,'1000000095');
+      <!-- CO -->
+      <div class="section">
+        <div class="section-label">Old CO (Target Step)</div>
+        <div class="subsection">
+          <div class="subsection-title">CO Details</div>
+          <div class="field">
+            <label><span class="param-name">Old CO Sequence</span><span class="required">*</span></label>
+            <input type="number" id="CO_STEP_SEQ" placeholder="e.g. 7">
+            <div class="err-msg" id="err-CO_STEP_SEQ">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">Old CO Step Name</span><span class="required">*</span></label>
+            <input type="text" id="CO_STEP_NAME" placeholder="e.g. CONTROL OFFICER">
+            <div class="err-msg" id="err-CO_STEP_NAME">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">Old CO Function Group ID</span><span class="required">*</span></label>
+            <input type="text" id="CO_FUNCGRP_ID" placeholder="e.g. G49082301117">
+            <div class="err-msg" id="err-CO_FUNCGRP_ID">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">Old CO Function ID</span><span class="required">*</span></label>
+            <input type="text" id="CO_FUNC_ID" placeholder="e.g. F05030706152">
+            <div class="err-msg" id="err-CO_FUNC_ID">This field is required</div>
+          </div>
+          <div class="field">
+            <label><span class="param-name">Old CO Function Description</span><span class="required">*</span></label>
+            <input type="text" id="CO_FUNC_DESC" placeholder="e.g. Control Officer Others">
+            <div class="err-msg" id="err-CO_FUNC_DESC">This field is required</div>
+          </div>
+        </div>
+      </div>
 
----------------------------------------------------------------------------------------------------------------------
+      <button class="btn-generate" onclick="generate()">⚡ Generate SQL Script</button>
+    </div>
+  </div>
 
-Insert into EXIMSYS.STD_SLABG_FUNCTION
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,I_STEP_SEQ_NO
-,C_STEP_NAME
-,I_FUNC_SEQ_NO
-,C_FUNC_ID
-,C_FUNC_DESC
-,C_MODU_NAME
-,C_FUNCGRP_ID
-,C_FUNCGRP_DESC
-,C_CUST_FIELD
-,C_FUNCGRP_TYPE
-,C_FUNC_TYPE
-,D_BG_ACTIVE_DATE from  eximsys.STD_SLABG_FUNCTION where c_bg_id='BG00000039' ORDER BY i_step_seq_no,i_func_seq_no;
+  <!-- ═══ RIGHT: OUTPUT ═══ -->
+  <div class="panel output-panel">
+    <div class="panel-header">
+      Generated SQL
+      <span class="badge" id="status-badge">EMPTY</span>
+    </div>
+    <div class="output-controls">
+      <button class="btn-copy" onclick="copyOutput()">Copy</button>
+      <button class="btn-clear" onclick="clearOutput()">Clear</button>
+      <span class="line-count" id="line-count"></span>
+    </div>
+    <pre id="output"></pre>
+  </div>
+</div>
 
-REM INSERTING into EXIMSYS.STD_SLABG_FUNCTION
-SET DEFINE OFF;
-Insert into EXIMSYS.STD_SLABG_FUNCTION (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNC_ID,C_FUNC_DESC,C_MODU_NAME,C_FUNCGRP_ID,C_FUNCGRP_DESC,C_CUST_FIELD,C_FUNCGRP_TYPE,C_FUNC_TYPE,D_BG_ACTIVE_DATE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'FINLCBCOCOPA','BCO Control Officer','INLC','GINLCBCOCOPA','BCO and Control Officer',null,null,null,null);
+<div id="toast">✓ Copied to clipboard</div>
 
-Insert into EXIMSYS.STT_SLABG_FUNCTION
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,I_STEP_SEQ_NO
-,C_STEP_NAME
-,I_FUNC_SEQ_NO
-,C_FUNC_ID
-,C_FUNC_DESC
-,C_MODU_NAME
-,C_FUNCGRP_ID
-,C_FUNCGRP_DESC
-,C_CUST_FIELD
-,C_FUNCGRP_TYPE
-,C_FUNC_TYPE
-,D_BG_ACTIVE_DATE from  eximsys.STT_SLABG_FUNCTION where c_bg_id='BG00000039' ORDER BY i_step_seq_no,i_func_seq_no;
+<script>
+const FIELDS = [
+  'C_BG_ID','C_BG_DESC','NEW_STEP_SEQ',
+  'C_FUNC_ID','C_FUNC_DESC','C_MODU_NAME','C_FUNCGRP_ID','C_FUNCGRP_DESC','BCO_CO_STEP_NAME',
+  'DSO_STEP_SEQ','DSO_STEP_NAME','DSO_FUNCGRP_ID','DSO_FUNC_ID','DSO_FUNC_DESC',
+  'BCO_STEP_SEQ','BCO_STEP_NAME','BCO_FUNCGRP_ID','BCO_FUNC_ID','BCO_FUNC_DESC',
+  'CO_STEP_SEQ','CO_STEP_NAME','CO_FUNCGRP_ID','CO_FUNC_ID','CO_FUNC_DESC'
+];
 
-REM INSERTING into EXIMSYS.STT_SLABG_FUNCTION
-SET DEFINE OFF;
-Insert into EXIMSYS.STT_SLABG_FUNCTION (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNC_ID,C_FUNC_DESC,C_MODU_NAME,C_FUNCGRP_ID,C_FUNCGRP_DESC,C_CUST_FIELD,C_FUNCGRP_TYPE,C_FUNC_TYPE,D_BG_ACTIVE_DATE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'FINLCBCOCOPA','BCO Control Officer','INLC','GINLCBCOCOPA','BCO and Control Officer',null,null,null,null);
+function v(id){ return document.getElementById(id).value.trim(); }
+function q(s){ return `'${s}'`; }
 
----------------------------------------------------------------------------------------------------------------------
+function validate(){
+  let ok = true;
+  FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    const err = document.getElementById('err-'+id);
+    const val = el.value.trim();
+    if(!val){
+      el.classList.add('error');
+      if(err) err.classList.add('show');
+      ok = false;
+    } else {
+      el.classList.remove('error');
+      if(err) err.classList.remove('show');
+    }
+  });
+  return ok;
+}
 
-Insert into EXIMSYS.STD_COND_DTL
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,I_STEP_SEQ_NO
-,C_STEP_NAME
-,I_FUNC_SEQ_NO
-,C_FUNCGRP_ID
-,C_FUNC_ID
-,C_FUNC_DESC
-,I_TO_STEP_NO
-,C_TO_STEP_NAME
-,I_TO_FUNC_NO
-,C_TO_FUNCGRP_ID
-,C_TO_FUNC_ID
-,C_TO_FUNC_DESC
-,I_COND_SEQ_NO
-,C_AND_OR
-,C_FIELD_ID
-,C_FIELD_TYPE
-,C_OPERATOR
-,C_FIELD_VALUE
-,C_CASE_SENSTIVE from  eximsys.STD_COND_DTL where c_bg_id='BG00000039';
+// Clear validation on input
+FIELDS.forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', function(){
+    this.classList.remove('error');
+    const err = document.getElementById('err-'+id);
+    if(err) err.classList.remove('show');
+  });
+});
 
-REM INSERTING into EXIMSYS.STD_COND_DTL
-SET DEFINE OFF;
---From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO
-Insert into EXIMSYS.STD_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',4,'DSO PC CHECKER',1,'G490823X0803','F050307X4890','Supervisor Release',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',1,null,'C_TRX_STATUS','CHAR','==','M','Y');
-Insert into EXIMSYS.STD_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',4,'DSO PC CHECKER',1,'G490823X0803','F050307X4890','Supervisor Release',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO_CO','Y');
+function generate(){
+  if(!validate()) return;
 
---From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO
-Insert into EXIMSYS.STD_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',6,'BCO',1,'G49082301113','F05030706130','BCO',1,null,'C_TRX_STATUS','CHAR','==','M','Y');
-Insert into EXIMSYS.STD_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',6,'BCO',1,'G49082301113','F05030706130','BCO',2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO','Y');
+  const BG_ID       = v('C_BG_ID');
+  const BG_DESC     = v('C_BG_DESC');
+  const NEW_SEQ     = parseInt(v('NEW_STEP_SEQ'));
+  const FUNC_ID     = v('C_FUNC_ID');
+  const FUNC_DESC   = v('C_FUNC_DESC');
+  const MODU        = v('C_MODU_NAME');
+  const FGRP_ID     = v('C_FUNCGRP_ID');
+  const FGRP_DESC   = v('C_FUNCGRP_DESC');
+  const BCOCOSTEP   = v('BCO_CO_STEP_NAME');
 
---From BCO_CO to CO  ||||  Change to I_TO_STEP_NO
-Insert into EXIMSYS.STD_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',7,'CONTROL OFFICER',1,'G49082301117','F05030706152','Control Officer Others',1,null,'C_TRX_STATUS','CHAR','==','M','Y');
-Insert into EXIMSYS.STD_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',7,'CONTROL OFFICER',1,'G49082301117','F05030706152','Control Officer Others',2,'AND','C_SLA_RULE_VALUE','CHAR','==','CO','Y');
+  const DSO_SEQ     = parseInt(v('DSO_STEP_SEQ'));
+  const DSO_NAME    = v('DSO_STEP_NAME');
+  const DSO_FGRP    = v('DSO_FUNCGRP_ID');
+  const DSO_FUNC    = v('DSO_FUNC_ID');
+  const DSO_FDESC   = v('DSO_FUNC_DESC');
 
----------------------------------------------------------------------------------------------------------------------
+  const BCO_SEQ     = parseInt(v('BCO_STEP_SEQ'));
+  const BCO_NAME    = v('BCO_STEP_NAME');
+  const BCO_FGRP    = v('BCO_FUNCGRP_ID');
+  const BCO_FUNC    = v('BCO_FUNC_ID');
+  const BCO_FDESC   = v('BCO_FUNC_DESC');
 
-Insert into EXIMSYS.STt_COND_DTL
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,I_STEP_SEQ_NO
-,C_STEP_NAME
-,I_FUNC_SEQ_NO
-,C_FUNCGRP_ID
-,C_FUNC_ID
-,C_FUNC_DESC
-,I_TO_STEP_NO
-,C_TO_STEP_NAME
-,I_TO_FUNC_NO
-,C_TO_FUNCGRP_ID
-,C_TO_FUNC_ID
-,C_TO_FUNC_DESC
-,I_COND_SEQ_NO
-,C_AND_OR
-,C_FIELD_ID
-,C_FIELD_TYPE
-,C_OPERATOR
-,C_FIELD_VALUE
-,C_CASE_SENSTIVE from  eximsys.STt_COND_DTL where c_bg_id='BG00000039';
+  const CO_SEQ      = parseInt(v('CO_STEP_SEQ'));
+  const CO_NAME     = v('CO_STEP_NAME');
+  const CO_FGRP     = v('CO_FUNCGRP_ID');
+  const CO_FUNC     = v('CO_FUNC_ID');
+  const CO_FDESC    = v('CO_FUNC_DESC');
 
-REM INSERTING into EXIMSYS.STt_COND_DTL
-SET DEFINE OFF;
---From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO
-Insert into EXIMSYS.STt_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',4,'DSO PC CHECKER',1,'G490823X0803','F050307X4890','Supervisor Release',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',1,null,'C_TRX_STATUS','CHAR','==','M','Y');
-Insert into EXIMSYS.STt_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',4,'DSO PC CHECKER',1,'G490823X0803','F050307X4890','Supervisor Release',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO_CO','Y');
+  const lines = [];
+  const sep = () => lines.push('---------------------------------------------------------------------------------------------------------------------');
 
---From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO
-Insert into EXIMSYS.STt_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',6,'BCO',1,'G49082301113','F05030706130','BCO',1,null,'C_TRX_STATUS','CHAR','==','M','Y');
-Insert into EXIMSYS.STt_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',6,'BCO',1,'G49082301113','F05030706130','BCO',2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO','Y');
+  lines.push(`-- ============================================================`);
+  lines.push(`-- GENERATED SQL SCRIPT`);
+  lines.push(`-- C_BG_ID  : ${BG_ID}`);
+  lines.push(`-- C_BG_DESC: ${BG_DESC}`);
+  lines.push(`-- Generated: ${new Date().toISOString()}`);
+  lines.push(`-- ============================================================`);
+  lines.push('');
 
---From BCO_CO to CO  ||||  Change to I_TO_STEP_NO
-Insert into EXIMSYS.STt_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',7,'CONTROL OFFICER',1,'G49082301117','F05030706152','Control Officer Others',1,null,'C_TRX_STATUS','CHAR','==','M','Y');
-Insert into EXIMSYS.STt_COND_DTL (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',7,'CONTROL OFFICER',1,'G49082301117','F05030706152','Control Officer Others',2,'AND','C_SLA_RULE_VALUE','CHAR','==','CO','Y');
+  // ── STD_SLABG_HEADER ──
+  lines.push(`INSERT INTO eximsys.STD_SLABG_HEADER`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,C_FIRST_FUNC_ID`);
+  lines.push(`,C_CUST_FIELD`);
+  lines.push(`,D_BG_ACTIVE_DATE`);
+  lines.push(`,C_FIRST_FUNCGRP_ID`);
+  lines.push(`,C_MAIN_REF`);
+  lines.push(`,ORGI_BR_CODE`);
+  lines.push(`,CUST_BR_CODE`);
+  lines.push(`,C_FUNC_SHORT_NAME`);
+  lines.push(`,DRFT_FR_INT_REQ`);
+  lines.push(`,STATUS`);
+  lines.push(`,C_TRX_STATUS from  eximsys.STD_SLABG_HEADER where c_bg_id=${q(BG_ID)};`);
+  lines.push('');
 
----------------------------------------------------------------------------------------------------------------------
+  // ── STT_SLABG_HEADER ──
+  lines.push(`INSERT INTO eximsys.STT_SLABG_HEADER`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,C_FIRST_FUNC_ID`);
+  lines.push(`,C_CUST_FIELD`);
+  lines.push(`,D_BG_ACTIVE_DATE`);
+  lines.push(`,C_TRX_CONTENT`);
+  lines.push(`,T_LAST_MODIFY_TIME`);
+  lines.push(`,C_ADD_FLAG`);
+  lines.push(`,C_TRX_STATUS`);
+  lines.push(`,C_LOCKED_FLAG`);
+  lines.push(`,C_LOCKED_OP`);
+  lines.push(`,C_REFUSE_REASON`);
+  lines.push(`,C_FIRST_FUNCGRP_ID from  eximsys.STT_SLABG_HEADER where c_bg_id=${q(BG_ID)};`);
+  lines.push('');
 
-Insert into EXIMSYS.STD_COND_HEADER
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,I_STEP_SEQ_NO
-,C_STEP_NAME
-,I_FUNC_SEQ_NO
-,C_FUNCGRP_ID
-,C_FUNC_ID
-,C_FUNC_DESC
-,I_TO_STEP_NO
-,C_TO_STEP_NAME
-,I_TO_FUNC_NO
-,C_TO_FUNCGRP_ID
-,C_TO_FUNC_ID
-,C_TO_FUNC_DESC
-,C_GATEWAY_TYPE from  eximsys.STD_COND_HEADER where c_bg_id='BG00000039';
+  // ── STD_SLABG_ASGNHDR ──
+  lines.push(`INSERT INTO eximsys.STD_SLABG_ASGNHDR`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,C_FIRST_FUNCGRP_ID`);
+  lines.push(`,C_FIRST_FUNC_ID`);
+  lines.push(`,C_CUST_FIELD`);
+  lines.push(`,D_BG_ACTIVE_DATE`);
+  lines.push(`,C_DEPLOY_FLAG`);
+  lines.push(`,C_USED_FLAG`);
+  lines.push(`,C_LOCKED_FLAG`);
+  lines.push(`,C_LOCKED_OP from  eximsys.STD_SLABG_ASGNHDR  where c_bg_id=${q(BG_ID)};`);
+  lines.push('');
+  sep();
+  lines.push('');
 
-REM INSERTING into EXIMSYS.STD_COND_HEADER
-SET DEFINE OFF;
---From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO
-Insert into EXIMSYS.STD_COND_HEADER (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,C_GATEWAY_TYPE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',4,'DSO PC CHECKER',1,'G490823X0803','F050307X4890','Supervisor Release',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer','S');
+  // ── STD_SLABG_STEP (SELECT) ──
+  lines.push(`Insert into EXIMSYS.STD_SLABG_STEP`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,I_STEP_SEQ_NO`);
+  lines.push(`,C_STEP_NAME`);
+  lines.push(`,C_IS_MANDATORY`);
+  lines.push(`,C_PROCESS_BY`);
+  lines.push(`,C_STEP_MIN_TIME`);
+  lines.push(`,D_BG_ACTIVE_DATE from  eximsys.STD_SLABG_STEP where c_bg_id=${q(BG_ID)} ORDER BY i_step_seq_no;`);
+  lines.push('');
 
---From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO
-Insert into EXIMSYS.STD_COND_HEADER (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,C_GATEWAY_TYPE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',6,'BCO',1,'G49082301113','F05030706130','BCO','S');
+  // STD_SLABG_STEP VALUES (new BCO_CO step)
+  lines.push(`REM INSERTING into EXIMSYS.STD_SLABG_STEP`);
+  lines.push(`SET DEFINE OFF;`);
+  lines.push(`Insert into EXIMSYS.STD_SLABG_STEP (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,C_IS_MANDATORY,C_PROCESS_BY,C_STEP_MIN_TIME,D_BG_ACTIVE_DATE) values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},'O',null,'00:00:05',null);`);
+  lines.push('');
 
---From BCO_CO to CO  ||||  Change to I_TO_STEP_NO
-Insert into EXIMSYS.STD_COND_HEADER (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,C_GATEWAY_TYPE) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',7,'CONTROL OFFICER',1,'G49082301117','F05030706152','Control Officer Others','S');
+  // ── STT_SLABG_STEP (SELECT) ──
+  lines.push(`Insert into EXIMSYS.STT_SLABG_STEP`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,I_STEP_SEQ_NO`);
+  lines.push(`,C_STEP_NAME`);
+  lines.push(`,C_IS_MANDATORY`);
+  lines.push(`,C_PROCESS_BY`);
+  lines.push(`,C_STEP_MIN_TIME`);
+  lines.push(`,D_BG_ACTIVE_DATE from  eximsys.STT_SLABG_STEP where c_bg_id=${q(BG_ID)} ORDER BY i_step_seq_no;`);
+  lines.push('');
 
----------------------------------------------------------------------------------------------------------------------
+  lines.push(`REM INSERTING into EXIMSYS.STT_SLABG_STEP`);
+  lines.push(`SET DEFINE OFF;`);
+  lines.push(`Insert into EXIMSYS.STT_SLABG_STEP (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,C_IS_MANDATORY,C_PROCESS_BY,C_STEP_MIN_TIME,D_BG_ACTIVE_DATE) values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},'O',null,'00:00:05',null);`);
+  lines.push('');
 
-Insert into EXIMSYS.STT_COND_HEADER
-select C_BK_GROUP_ID
-,C_CNTY_CODE
-,C_CP_UNIT_CODE
-,C_BG_ID
-,'2' C_BG_VERSION
-,C_BG_DESC
-,I_STEP_SEQ_NO
-,C_STEP_NAME
-,I_FUNC_SEQ_NO
-,C_FUNCGRP_ID
-,C_FUNC_ID
-,C_FUNC_DESC
-,I_TO_STEP_NO
-,C_TO_STEP_NAME
-,I_TO_FUNC_NO
-,C_TO_FUNCGRP_ID
-,C_TO_FUNC_ID
-,C_TO_FUNC_DESC
-,C_GATEWAY_TYPE
-,T_LAST_MODIFY_TIME
-,C_ADD_FLAG
-,C_TRX_STATUS
-,C_LOCKED_FLAG
-,C_LOCKED_OP
-,C_REFUSE_REASON from  eximsys.STT_COND_HEADER where c_bg_id='BG00000039';
+  // ── STD_SLABG_ASGNSTEP ──
+  lines.push(`Insert into EXIMSYS.STD_SLABG_ASGNSTEP`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,I_STEP_SEQ_NO`);
+  lines.push(`,C_STEP_NAME`);
+  lines.push(`,C_IS_MANDATORY`);
+  lines.push(`,C_PROCESS_BY`);
+  lines.push(`,C_STEP_MIN_TIME`);
+  lines.push(`,C_USER_ID`);
+  lines.push(`,C_GROUP_ID from  eximsys.STD_SLABG_ASGNSTEP where c_bg_id=${q(BG_ID)} ORDER BY i_step_seq_no;`);
+  lines.push(`----FOR BCO_CO LAST STEP NUMBER NEEDS TO BE ADDED.C_BG_ID,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME`);
+  lines.push(`REM INSERTING into EXIMSYS.STD_SLABG_ASGNSTEP`);
+  lines.push(`SET DEFINE OFF;`);
+  lines.push(`Insert into EXIMSYS.STD_SLABG_ASGNSTEP (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,C_IS_MANDATORY,C_PROCESS_BY,C_STEP_MIN_TIME,C_USER_ID,C_GROUP_ID) values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},'O',null,'00:00:05',null,/* C_GROUP_ID */);`);
+  lines.push('');
+  sep();
+  lines.push('');
 
-REM INSERTING into EXIMSYS.STT_COND_HEADER
-SET DEFINE OFF;
---From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO
-Insert into EXIMSYS.STT_COND_HEADER (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,C_GATEWAY_TYPE,T_LAST_MODIFY_TIME,C_ADD_FLAG,C_TRX_STATUS,C_LOCKED_FLAG,C_LOCKED_OP,C_REFUSE_REASON) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',4,'DSO PC CHECKER',1,'G490823X0803','F050307X4890','Supervisor Release',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer','S',to_date('24-NOV-25','DD-MON-RR'),'T','M','F',null,null);
+  // ── STD_SLABG_FUNCTION ──
+  lines.push(`Insert into EXIMSYS.STD_SLABG_FUNCTION`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,I_STEP_SEQ_NO`);
+  lines.push(`,C_STEP_NAME`);
+  lines.push(`,I_FUNC_SEQ_NO`);
+  lines.push(`,C_FUNC_ID`);
+  lines.push(`,C_FUNC_DESC`);
+  lines.push(`,C_MODU_NAME`);
+  lines.push(`,C_FUNCGRP_ID`);
+  lines.push(`,C_FUNCGRP_DESC`);
+  lines.push(`,C_CUST_FIELD`);
+  lines.push(`,C_FUNCGRP_TYPE`);
+  lines.push(`,C_FUNC_TYPE`);
+  lines.push(`,D_BG_ACTIVE_DATE from  eximsys.STD_SLABG_FUNCTION where c_bg_id=${q(BG_ID)} ORDER BY i_step_seq_no,i_func_seq_no;`);
+  lines.push('');
+  lines.push(`REM INSERTING into EXIMSYS.STD_SLABG_FUNCTION`);
+  lines.push(`SET DEFINE OFF;`);
+  lines.push(`Insert into EXIMSYS.STD_SLABG_FUNCTION (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNC_ID,C_FUNC_DESC,C_MODU_NAME,C_FUNCGRP_ID,C_FUNCGRP_DESC,C_CUST_FIELD,C_FUNCGRP_TYPE,C_FUNC_TYPE,D_BG_ACTIVE_DATE) values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FUNC_ID)},${q(FUNC_DESC)},${q(MODU)},${q(FGRP_ID)},${q(FGRP_DESC)},null,null,null,null);`);
+  lines.push('');
 
---From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO
-Insert into EXIMSYS.STT_COND_HEADER (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,C_GATEWAY_TYPE,T_LAST_MODIFY_TIME,C_ADD_FLAG,C_TRX_STATUS,C_LOCKED_FLAG,C_LOCKED_OP,C_REFUSE_REASON) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',6,'BCO',1,'G49082301113','F05030706130','BCO','S',to_date('24-NOV-25','DD-MON-RR'),'T','M','F',null,null);
+  // ── STT_SLABG_FUNCTION ──
+  lines.push(`Insert into EXIMSYS.STT_SLABG_FUNCTION`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,I_STEP_SEQ_NO`);
+  lines.push(`,C_STEP_NAME`);
+  lines.push(`,I_FUNC_SEQ_NO`);
+  lines.push(`,C_FUNC_ID`);
+  lines.push(`,C_FUNC_DESC`);
+  lines.push(`,C_MODU_NAME`);
+  lines.push(`,C_FUNCGRP_ID`);
+  lines.push(`,C_FUNCGRP_DESC`);
+  lines.push(`,C_CUST_FIELD`);
+  lines.push(`,C_FUNCGRP_TYPE`);
+  lines.push(`,C_FUNC_TYPE`);
+  lines.push(`,D_BG_ACTIVE_DATE from  eximsys.STT_SLABG_FUNCTION where c_bg_id=${q(BG_ID)} ORDER BY i_step_seq_no,i_func_seq_no;`);
+  lines.push('');
+  lines.push(`REM INSERTING into EXIMSYS.STT_SLABG_FUNCTION`);
+  lines.push(`SET DEFINE OFF;`);
+  lines.push(`Insert into EXIMSYS.STT_SLABG_FUNCTION (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNC_ID,C_FUNC_DESC,C_MODU_NAME,C_FUNCGRP_ID,C_FUNCGRP_DESC,C_CUST_FIELD,C_FUNCGRP_TYPE,C_FUNC_TYPE,D_BG_ACTIVE_DATE) values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FUNC_ID)},${q(FUNC_DESC)},${q(MODU)},${q(FGRP_ID)},${q(FGRP_DESC)},null,null,null,null);`);
+  lines.push('');
+  sep();
+  lines.push('');
 
---From BCO_CO to CO  ||||  Change to I_TO_STEP_NO
-Insert into EXIMSYS.STT_COND_HEADER (C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,C_GATEWAY_TYPE,T_LAST_MODIFY_TIME,C_ADD_FLAG,C_TRX_STATUS,C_LOCKED_FLAG,C_LOCKED_OP,C_REFUSE_REASON) values 
-('SBI','IN','63933','BG00000039','2','LC BILL PRE-PAYMENT 63933',10,'BCO_CO',1,'GINLCBCOCOPA','FINLCBCOCOPA','BCO Control Officer',7,'CONTROL OFFICER',1,'G49082301117','F05030706152','Control Officer Others','S',to_date('24-NOV-25','DD-MON-RR'),'T','M','F',null,null);
+  // ── STD_COND_DTL ──
+  lines.push(`Insert into EXIMSYS.STD_COND_DTL`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,I_STEP_SEQ_NO`);
+  lines.push(`,C_STEP_NAME`);
+  lines.push(`,I_FUNC_SEQ_NO`);
+  lines.push(`,C_FUNCGRP_ID`);
+  lines.push(`,C_FUNC_ID`);
+  lines.push(`,C_FUNC_DESC`);
+  lines.push(`,I_TO_STEP_NO`);
+  lines.push(`,C_TO_STEP_NAME`);
+  lines.push(`,I_TO_FUNC_NO`);
+  lines.push(`,C_TO_FUNCGRP_ID`);
+  lines.push(`,C_TO_FUNC_ID`);
+  lines.push(`,C_TO_FUNC_DESC`);
+  lines.push(`,I_COND_SEQ_NO`);
+  lines.push(`,C_AND_OR`);
+  lines.push(`,C_FIELD_ID`);
+  lines.push(`,C_FIELD_TYPE`);
+  lines.push(`,C_OPERATOR`);
+  lines.push(`,C_FIELD_VALUE`);
+  lines.push(`,C_CASE_SENSTIVE from  eximsys.STD_COND_DTL where c_bg_id=${q(BG_ID)};`);
+  lines.push('');
+  lines.push(`REM INSERTING into EXIMSYS.STD_COND_DTL`);
+  lines.push(`SET DEFINE OFF;`);
 
----------------------------------------------------------------------------------------------------------------------
+  const COND_DTL_COLS = `(C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,I_COND_SEQ_NO,C_AND_OR,C_FIELD_ID,C_FIELD_TYPE,C_OPERATOR,C_FIELD_VALUE,C_CASE_SENSTIVE)`;
+
+  lines.push(`--From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO`);
+  lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO_CO','Y');`);
+  lines.push('');
+  lines.push(`--From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO`);
+  lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO','Y');`);
+  lines.push('');
+  lines.push(`--From BCO_CO to CO  ||||  Change to I_TO_STEP_NO`);
+  lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`Insert into EXIMSYS.STD_COND_DTL ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','CO','Y');`);
+  lines.push('');
+  sep();
+  lines.push('');
+
+  // ── STT_COND_DTL ──
+  lines.push(`Insert into EXIMSYS.STt_COND_DTL`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,I_STEP_SEQ_NO`);
+  lines.push(`,C_STEP_NAME`);
+  lines.push(`,I_FUNC_SEQ_NO`);
+  lines.push(`,C_FUNCGRP_ID`);
+  lines.push(`,C_FUNC_ID`);
+  lines.push(`,C_FUNC_DESC`);
+  lines.push(`,I_TO_STEP_NO`);
+  lines.push(`,C_TO_STEP_NAME`);
+  lines.push(`,I_TO_FUNC_NO`);
+  lines.push(`,C_TO_FUNCGRP_ID`);
+  lines.push(`,C_TO_FUNC_ID`);
+  lines.push(`,C_TO_FUNC_DESC`);
+  lines.push(`,I_COND_SEQ_NO`);
+  lines.push(`,C_AND_OR`);
+  lines.push(`,C_FIELD_ID`);
+  lines.push(`,C_FIELD_TYPE`);
+  lines.push(`,C_OPERATOR`);
+  lines.push(`,C_FIELD_VALUE`);
+  lines.push(`,C_CASE_SENSTIVE from  eximsys.STt_COND_DTL where c_bg_id=${q(BG_ID)};`);
+  lines.push('');
+  lines.push(`REM INSERTING into EXIMSYS.STt_COND_DTL`);
+  lines.push(`SET DEFINE OFF;`);
+
+  const STT_DTL = `EXIMSYS.STt_COND_DTL`;
+  lines.push(`--From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO`);
+  lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO_CO','Y');`);
+  lines.push('');
+  lines.push(`--From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO`);
+  lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','BCO','Y');`);
+  lines.push('');
+  lines.push(`--From BCO_CO to CO  ||||  Change to I_TO_STEP_NO`);
+  lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},1,null,'C_TRX_STATUS','CHAR','==','M','Y');`);
+  lines.push(`Insert into ${STT_DTL} ${COND_DTL_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},2,'AND','C_SLA_RULE_VALUE','CHAR','==','CO','Y');`);
+  lines.push('');
+  sep();
+  lines.push('');
+
+  // ── STD_COND_HEADER ──
+  const HDR_COLS = `(C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,C_GATEWAY_TYPE)`;
+
+  lines.push(`Insert into EXIMSYS.STD_COND_HEADER`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,I_STEP_SEQ_NO`);
+  lines.push(`,C_STEP_NAME`);
+  lines.push(`,I_FUNC_SEQ_NO`);
+  lines.push(`,C_FUNCGRP_ID`);
+  lines.push(`,C_FUNC_ID`);
+  lines.push(`,C_FUNC_DESC`);
+  lines.push(`,I_TO_STEP_NO`);
+  lines.push(`,C_TO_STEP_NAME`);
+  lines.push(`,I_TO_FUNC_NO`);
+  lines.push(`,C_TO_FUNCGRP_ID`);
+  lines.push(`,C_TO_FUNC_ID`);
+  lines.push(`,C_TO_FUNC_DESC`);
+  lines.push(`,C_GATEWAY_TYPE from  eximsys.STD_COND_HEADER where c_bg_id=${q(BG_ID)};`);
+  lines.push('');
+  lines.push(`REM INSERTING into EXIMSYS.STD_COND_HEADER`);
+  lines.push(`SET DEFINE OFF;`);
+  lines.push(`--From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO`);
+  lines.push(`Insert into EXIMSYS.STD_COND_HEADER ${HDR_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},'S');`);
+  lines.push('');
+  lines.push(`--From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO`);
+  lines.push(`Insert into EXIMSYS.STD_COND_HEADER ${HDR_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},'S');`);
+  lines.push('');
+  lines.push(`--From BCO_CO to CO  ||||  Change to I_TO_STEP_NO`);
+  lines.push(`Insert into EXIMSYS.STD_COND_HEADER ${HDR_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},'S');`);
+  lines.push('');
+  sep();
+  lines.push('');
+
+  // ── STT_COND_HEADER ──
+  const STT_HDR_COLS = `(C_BK_GROUP_ID,C_CNTY_CODE,C_CP_UNIT_CODE,C_BG_ID,C_BG_VERSION,C_BG_DESC,I_STEP_SEQ_NO,C_STEP_NAME,I_FUNC_SEQ_NO,C_FUNCGRP_ID,C_FUNC_ID,C_FUNC_DESC,I_TO_STEP_NO,C_TO_STEP_NAME,I_TO_FUNC_NO,C_TO_FUNCGRP_ID,C_TO_FUNC_ID,C_TO_FUNC_DESC,C_GATEWAY_TYPE,T_LAST_MODIFY_TIME,C_ADD_FLAG,C_TRX_STATUS,C_LOCKED_FLAG,C_LOCKED_OP,C_REFUSE_REASON)`;
+
+  lines.push(`Insert into EXIMSYS.STT_COND_HEADER`);
+  lines.push(`select C_BK_GROUP_ID`);
+  lines.push(`,C_CNTY_CODE`);
+  lines.push(`,C_CP_UNIT_CODE`);
+  lines.push(`,C_BG_ID`);
+  lines.push(`,'2' C_BG_VERSION`);
+  lines.push(`,C_BG_DESC`);
+  lines.push(`,I_STEP_SEQ_NO`);
+  lines.push(`,C_STEP_NAME`);
+  lines.push(`,I_FUNC_SEQ_NO`);
+  lines.push(`,C_FUNCGRP_ID`);
+  lines.push(`,C_FUNC_ID`);
+  lines.push(`,C_FUNC_DESC`);
+  lines.push(`,I_TO_STEP_NO`);
+  lines.push(`,C_TO_STEP_NAME`);
+  lines.push(`,I_TO_FUNC_NO`);
+  lines.push(`,C_TO_FUNCGRP_ID`);
+  lines.push(`,C_TO_FUNC_ID`);
+  lines.push(`,C_TO_FUNC_DESC`);
+  lines.push(`,C_GATEWAY_TYPE`);
+  lines.push(`,T_LAST_MODIFY_TIME`);
+  lines.push(`,C_ADD_FLAG`);
+  lines.push(`,C_TRX_STATUS`);
+  lines.push(`,C_LOCKED_FLAG`);
+  lines.push(`,C_LOCKED_OP`);
+  lines.push(`,C_REFUSE_REASON from  eximsys.STT_COND_HEADER where c_bg_id=${q(BG_ID)};`);
+  lines.push('');
+  lines.push(`REM INSERTING into EXIMSYS.STT_COND_HEADER`);
+  lines.push(`SET DEFINE OFF;`);
+  lines.push(`--From DSO to BCO_CO  ||||  Change to I_STEP_SEQ_NO & I_TO_STEP_NO`);
+  lines.push(`Insert into EXIMSYS.STT_COND_HEADER ${STT_HDR_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${DSO_SEQ},${q(DSO_NAME)},1,${q(DSO_FGRP)},${q(DSO_FUNC)},${q(DSO_FDESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},'S',to_date('${getTodayOracle()}','DD-MON-RR'),'T','M','F',null,null);`);
+  lines.push('');
+  lines.push(`--From BCO_CO to BCO  ||||  Change to I_TO_STEP_NO`);
+  lines.push(`Insert into EXIMSYS.STT_COND_HEADER ${STT_HDR_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${BCO_SEQ},${q(BCO_NAME)},1,${q(BCO_FGRP)},${q(BCO_FUNC)},${q(BCO_FDESC)},'S',to_date('${getTodayOracle()}','DD-MON-RR'),'T','M','F',null,null);`);
+  lines.push('');
+  lines.push(`--From BCO_CO to CO  ||||  Change to I_TO_STEP_NO`);
+  lines.push(`Insert into EXIMSYS.STT_COND_HEADER ${STT_HDR_COLS} values `);
+  lines.push(`(/* C_BK_GROUP_ID */,/* C_CNTY_CODE */,/* C_CP_UNIT_CODE */,${q(BG_ID)},'2',${q(BG_DESC)},${NEW_SEQ},${q(BCOCOSTEP)},1,${q(FGRP_ID)},${q(FUNC_ID)},${q(FUNC_DESC)},${CO_SEQ},${q(CO_NAME)},1,${q(CO_FGRP)},${q(CO_FUNC)},${q(CO_FDESC)},'S',to_date('${getTodayOracle()}','DD-MON-RR'),'T','M','F',null,null);`);
+  lines.push('');
+  sep();
+
+  const sql = lines.join('\n');
+  const out = document.getElementById('output');
+  out.textContent = sql;
+
+  const lineCount = lines.length;
+  document.getElementById('line-count').textContent = `${lineCount} lines`;
+  document.getElementById('status-badge').textContent = 'READY';
+  document.getElementById('status-badge').style.background = 'var(--green-dim)';
+  document.getElementById('status-badge').style.color = 'var(--green)';
+  document.getElementById('status-badge').style.borderColor = 'var(--green)';
+
+  out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function getTodayOracle() {
+  const d = new Date();
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const day = String(d.getDate()).padStart(2,'0');
+  const mon = months[d.getMonth()];
+  const yr = String(d.getFullYear()).slice(-2);
+  return `${day}-${mon}-${yr}`;
+}
+
+function copyOutput() {
+  const text = document.getElementById('output').textContent;
+  if(!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  });
+}
+
+function clearOutput() {
+  document.getElementById('output').textContent = '';
+  document.getElementById('line-count').textContent = '';
+  const b = document.getElementById('status-badge');
+  b.textContent = 'EMPTY';
+  b.style.background = 'var(--accent-dim)';
+  b.style.color = 'var(--accent)';
+  b.style.borderColor = 'var(--accent)';
+}
+</script>
+</body>
+</html>
