@@ -1,49 +1,59 @@
-.file-item{
-  display:flex;
-  align-items:flex-start;
-  gap:10px;
 
-  padding:10px;
-  border-bottom:1px solid #eee;
+Request URL
+https://10.XXX.37.XX/TCSSBITF?jsp=getrevision
+Request Method
+POST
+Status Code
+200 OK
+Remote Address
+10.XXX.37.XX:443
+Referrer Policy
+strict-origin-when-cross-origin
 
-  font-size:14px;
-}
 
-.file-check{
-  appearance:none;
-  -webkit-appearance:none;
+RESPONSE HEADERS :
 
-  width:18px;
-  height:18px;
-  min-width:18px;
-  max-width:18px;
+HTTP/1.1 200
+Strict-Transport-Security: max-age=0
+X-Frame-Options: SAMEORIGIN
+X-Content-Type-Options: nosniff
+Content-Type: text/html;charset=UTF-8
+Transfer-Encoding: chunked
+Date: Thu, 21 May 2026 09:14:28 GMT
+Keep-Alive: timeout=60
+Connection: keep-alive
 
-  border:1px solid #555;
-  border-radius:3px;
+REQUEST HEADERS:
 
-  cursor:pointer;
-  position:relative;
+POST /TCSSBITF?jsp=getrevision HTTP/1.1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+Cache-Control: max-age=0
+Connection: keep-alive
+Content-Length: 740
+Content-Type: application/x-www-form-urlencoded
+Cookie: JSESSIONID=B24F0A82949B3E46B9BE9C7B5F711BE8
+Host: 10.XXX.37.XX
+Origin: https://10.XXX.37.XX
+Referer: https://10.XXX.37.XX/TCSSBITF?jsp=getrevision&viewmode=&IS_THREE_WAY=false
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
 
-  display:inline-block;
-  vertical-align:middle;
+QUERY STRING PARAMS :
 
-  flex:none;
-}
+jsp=getrevision
 
-.file-check:checked{
-  background:#222;
-}
+FORM DATA:
 
-.file-check:checked::after{
-  content:'✓';
+viewmode=&LOOKUP_REVISION=0&BRANCH_PERMITTED=2&MULTILOCK=2&WORKING_FOLDER=D%3A%5Cbase_domain%5CCALJS%5CFUNCLEVEL%5CSYF_GTEE_Issue_Gtee.js&USE_WORKPATH_ATTRIBUTE=false&REVISION=4.9&WRITABLE=true&CREATE_EMPTY_WORKFILE_DIRECTORIES=&OVERWRITE_WORKITEM=2&TO_PROMOTION_GROUP=&CHECKOUT_BY_DATE=&CHECKOUT_BY_DATE_RADIO_CHOICE=&AFTER_DATE=&ON_OR_BEFORE_DATE=&UPDATE_WORKITEM_TIMESTAMP=&ENABLE_LOOKUP=&WORKING_FOLDER_ORIGINAL_VALUE=D%3A%5Cbase_domain%5CCALJS%5CFUNCLEVEL%5CSYF_GTEE_Issue_Gtee.js&BASE_PROJECT_PATH=%2FEximbill_Enterprise_5.3.1%2Fbase_domain%2FCALJS%2FFUNCLEVEL&ALLOW_EOL_TRANSLATION=false&ONE_VERSIONED_FILE=true&Base_Entity_Path=&File=%2FEximbill_Enterprise_5.3.1%2Fbase_domain%2FCALJS%2FFUNCLEVEL%2FSYF_GTEE_Issue_Gtee.js&RECURSIVE=
 
-  position:absolute;
-  top:50%;
-  left:50%;
 
-  transform:translate(-50%,-50%);
-
-  color:#fff;
-  font-size:12px;
-  line-height:1;
-}
+CAN I HIT THIS URL FROM JAVA OR HTML TOOL
