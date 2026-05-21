@@ -1,16 +1,33 @@
+.file-item{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+
+  padding:10px;
+  border-bottom:1px solid #eee;
+
+  font-size:14px;
+}
+
 .file-check{
   appearance:none;
   -webkit-appearance:none;
 
   width:18px;
   height:18px;
+  min-width:18px;
+  max-width:18px;
 
   border:1px solid #555;
   border-radius:3px;
 
   cursor:pointer;
   position:relative;
-  flex-shrink:0;
+
+  display:inline-block;
+  vertical-align:middle;
+
+  flex:none;
 }
 
 .file-check:checked{
@@ -19,12 +36,14 @@
 
 .file-check:checked::after{
   content:'✓';
-  color:#fff;
-  font-size:12px;
 
   position:absolute;
   top:50%;
   left:50%;
 
   transform:translate(-50%,-50%);
+
+  color:#fff;
+  font-size:12px;
+  line-height:1;
 }
