@@ -1,103 +1,30 @@
-<!-- Replace renderFiles() with this -->
+.file-check{
+  appearance:none;
+  -webkit-appearance:none;
 
-function renderFiles(files){
+  width:18px;
+  height:18px;
 
-  const list = document.getElementById('fileList');
+  border:1px solid #555;
+  border-radius:3px;
 
-  if(!files.length){
-    list.innerHTML = '<div class="empty">No files found</div>';
-    return;
-  }
-
-  list.innerHTML = files.map((f,index) => `
-    <div class="file-item">
-      <input
-        type="checkbox"
-        class="file-check"
-        value="${f}"
-        id="f${index}"
-      />
-
-      <label for="f${index}" style="flex:1;cursor:pointer;">
-        ${f}
-      </label>
-    </div>
-  `).join('');
+  cursor:pointer;
+  position:relative;
+  flex-shrink:0;
 }
 
-<!-- Add this inside results section below toolbar -->
-
-<div style="margin-bottom:10px;">
-  <button onclick="generatePromoterMail()">
-    Generate Promoter Mail
-  </button>
-</div>
-
-<textarea
-  id="promoterBox"
-  style="
-    width:100%;
-    height:220px;
-    padding:10px;
-    border:1px solid #ccc;
-    border-radius:4px;
-    font-size:13px;
-    font-family:monospace;
-    resize:vertical;
-    margin-bottom:15px;
-  "
-  placeholder="Generated promoter mail content..."
-></textarea>
-
-<!-- Replace .file-item css -->
-
-.file-item{
-  padding:10px;
-  border-bottom:1px solid #eee;
-  font-size:14px;
-  word-break:break-all;
-
-  display:flex;
-  align-items:center;
-  gap:10px;
+.file-check:checked{
+  background:#222;
 }
 
-<!-- Add this function inside script -->
+.file-check:checked::after{
+  content:'✓';
+  color:#fff;
+  font-size:12px;
 
-function generatePromoterMail(){
+  position:absolute;
+  top:50%;
+  left:50%;
 
-  const checked = [
-    ...document.querySelectorAll('.file-check:checked')
-  ];
-
-  if(!checked.length){
-    setStatus('Select at least one file');
-    return;
-  }
-
-  const irRaw = document
-    .getElementById('irInput')
-    .value
-    .trim();
-
-  const irNumber = irRaw
-    .split(/[\s,]+/)[0];
-
-  const lines = checked.map(c => {
-
-    let file = c.value;
-
-    file = file.replace(/Regiongroups/gi,'TRADEFINST6');
-
-    return `${file} 4.7 SPR ${irNumber} TRADEFINST6`;
-
-  });
-
-  const output =
-`Special Instructions : Overridebranch
-${lines.join('\n')}`;
-
-  document.getElementById('promoterBox').value = output;
-
-  setStatus('Promoter mail generated');
+  transform:translate(-50%,-50%);
 }
