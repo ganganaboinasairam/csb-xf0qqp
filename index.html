@@ -1,11 +1,103 @@
-check button beside every file fetched, user will select the check button and click on generate promoter mail and the selected files need to come in another text box like this 
+<!-- Replace renderFiles() with this -->
 
-"
-Special Instructions : Overridebranch
-/Eximbill_Enterprise_5.3.1/base_domain/EE.ear/EximBillWeb.war/SCRN/GTEE_Foreign_RegisterGuarantee.jsp 4.7 SPR 26020167 TRADEFINST6
-/Eximbill_Enterprise_5.3.1/base_domain/EE.ear/EximBillWeb.war/SCRN/GTEE_Issue_Foreign_Amd_BG.jsp 4.9 SPR 26020167 TRADEFINST6
-/Eximbill_Enterprise_5.3.1/base_domain/EE.ear/EximBillWeb.war/SCRN/GTEE_Issue_Foreign_Guarantee.jsp 4.7 SPR 26020167 TRADEFINST6
-/Eximbill_Enterprise_5.3.1/base_domain/EE.ear/EximBillWeb.war/SCRN/GTEE_Modify_Amd_Foreign_BG.jsp 4.7 SPR 26020167 TRADEFINST6
-"
+function renderFiles(files){
 
-Regiongroups need to be replaced with TRADEFINST6 and sigle space need to maintain between words
+  const list = document.getElementById('fileList');
+
+  if(!files.length){
+    list.innerHTML = '<div class="empty">No files found</div>';
+    return;
+  }
+
+  list.innerHTML = files.map((f,index) => `
+    <div class="file-item">
+      <input
+        type="checkbox"
+        class="file-check"
+        value="${f}"
+        id="f${index}"
+      />
+
+      <label for="f${index}" style="flex:1;cursor:pointer;">
+        ${f}
+      </label>
+    </div>
+  `).join('');
+}
+
+<!-- Add this inside results section below toolbar -->
+
+<div style="margin-bottom:10px;">
+  <button onclick="generatePromoterMail()">
+    Generate Promoter Mail
+  </button>
+</div>
+
+<textarea
+  id="promoterBox"
+  style="
+    width:100%;
+    height:220px;
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:4px;
+    font-size:13px;
+    font-family:monospace;
+    resize:vertical;
+    margin-bottom:15px;
+  "
+  placeholder="Generated promoter mail content..."
+></textarea>
+
+<!-- Replace .file-item css -->
+
+.file-item{
+  padding:10px;
+  border-bottom:1px solid #eee;
+  font-size:14px;
+  word-break:break-all;
+
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+<!-- Add this function inside script -->
+
+function generatePromoterMail(){
+
+  const checked = [
+    ...document.querySelectorAll('.file-check:checked')
+  ];
+
+  if(!checked.length){
+    setStatus('Select at least one file');
+    return;
+  }
+
+  const irRaw = document
+    .getElementById('irInput')
+    .value
+    .trim();
+
+  const irNumber = irRaw
+    .split(/[\s,]+/)[0];
+
+  const lines = checked.map(c => {
+
+    let file = c.value;
+
+    file = file.replace(/Regiongroups/gi,'TRADEFINST6');
+
+    return `${file} 4.7 SPR ${irNumber} TRADEFINST6`;
+
+  });
+
+  const output =
+`Special Instructions : Overridebranch
+${lines.join('\n')}`;
+
+  document.getElementById('promoterBox').value = output;
+
+  setStatus('Promoter mail generated');
+}
