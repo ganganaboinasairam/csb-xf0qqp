@@ -98,7 +98,7 @@ public class FolderReconstructorService {
                 Files.createDirectories(
                         targetPath.getParent());
 
-                Files.move(
+                Files.copy(
                         prodFile,
                         targetPath,
                         StandardCopyOption.REPLACE_EXISTING);
@@ -197,32 +197,28 @@ public class FolderReconstructorService {
 }
 
 
+                
 
-public class FolderReconstructor {
+package com.utility;
+import java.io.IOException;
 
-    public static void main(String[] args)
-            throws Exception {
-
-        FolderReconstructorService.execute(
-                args[0],
-                args[1]);
-    }
-}
-
-
-
-
-package com.servlet;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import com.service.FolderReconstructorService;
 
-import javax.servlet.*;
-import javax.servlet.http.*;
-import java.io.IOException;
-
+@WebServlet("/FolderServlet")
 public class FolderServlet extends HttpServlet {
 
-    @Override
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	@Override
     protected void doPost(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -233,11 +229,28 @@ public class FolderServlet extends HttpServlet {
 
         String baseDomainPath =
                 request.getParameter("baseDomainPath");
+        if(prodPath.trim().isEmpty()) {
+        	try {
+				throw new Exception("Invalid Prod Files path");
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
+        
+        if(baseDomainPath.trim().isEmpty()) {
+        	try {
+				throw new Exception("Invalid base Domain path");
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
 
         try {
 
             String result =
-                    FolderReconstructorService.execute(
+            		FolderReconstructorService.execute(
                             prodPath,
                             baseDomainPath);
 
@@ -256,7 +269,15 @@ public class FolderServlet extends HttpServlet {
 
 
 
-<input id="prodPath">
+                <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Folder Structure Regex Generator</title>
+</head>
+<body>
+    <input id="prodPath">
 <input id="baseDomainPath">
 
 <button onclick="runTool()">
@@ -281,7 +302,7 @@ async function runTool(){
         document.getElementById("baseDomainPath").value);
 
     const response =
-        await fetch("/app/folderTool",{
+        await fetch("../FolderServlet",{
             method:"POST",
             body:data,
             headers:{
@@ -298,3 +319,10 @@ async function runTool(){
 }
 
 </script>
+</body>
+</html>
+
+
+
+
+                earlier i used to get output from the runnable jar like every flile status , that i need to get in the front end and check the issues mentioned previously , and improve the UI
