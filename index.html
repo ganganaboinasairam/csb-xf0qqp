@@ -1,431 +1,815 @@
-package com.service;
+package com.tcs.git;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
-public class FolderReconstructorService {
+import com.tcs.git.config.Config;
+import com.tcs.git.util.CommitStage;
+import com.tcs.git.util.RebaseResult;
 
-    private static final Logger LOGGER =
-            Logger.getLogger(
-                    FolderReconstructorService.class.getName());
+public class GitAutomationService {
 
-    public static String execute(
-            String productionPath,
-            String baseDomainPath) throws IOException {
+	/*
+	 * ========================================================= COMMON HELPERS
+	 * =========================================================
+	 */
 
-        StringBuilder logs = new StringBuilder();
+	public static void info(java.util.function.Consumer<String> log, String msg) {
+		log.accept("[INFO] " + msg);
+	}
 
-        int mappedCount = 0;
-        int unmappedCount = 0;
-        int duplicateCount = 0;
-        int jspCount = 0;
-        int totalFiles = 0;
+	private static void warn(java.util.function.Consumer<String> log, String msg) {
+		log.accept("[WARN] " + msg);
+	}
 
-        validateInputs(
-                productionPath,
-                baseDomainPath);
+	private static void error(java.util.function.Consumer<String> log, String msg) {
+		log.accept("[ERROR] " + msg);
+	}
 
-        Date date = new Date();
+	private static void exception(java.util.function.Consumer<String> log, Exception e) {
+		log.accept("[ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage());
+	}
 
-        SimpleDateFormat sdf =
-                new SimpleDateFormat("_ddMMyyyy_HHmm");
+	private static final int MAX_RETRIES = 3;
 
-        String strDate = sdf.format(date);
+	/*
+	 * ========================================================= COMMIT + PUSH
+	 * =========================================================
+	 */
 
-        Path baseDomain =
-                Paths.get(baseDomainPath);
+	public static void commitSelected(String region, String commitMsg, List<String> files, Consumer<String> log,
+			Consumer<CommitStage> stageUpdate, IntConsumer progress, int commitAll) throws Exception {
 
-        Path prodFolder =
-                Paths.get(productionPath);
+		File repo = new File(Config.get("git.repo.path." + region));
+		String branch = Config.get("git.branch.name." + region);
 
-        Path outputFolder =
-                Paths.get(
-                        "E:/Reconstructed/base_domain"
-                                + strDate);
+		for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
 
-        LOGGER.info(
-                "Production Folder : "
-                        + prodFolder.toAbsolutePath());
+			log.accept("Attempt " + attempt + " of " + MAX_RETRIES);
 
-        LOGGER.info(
-                "Base Domain Folder : "
-                        + baseDomain.toAbsolutePath());
+			try {
 
-        LOGGER.info(
-                "Output Folder : "
-                        + outputFolder.toAbsolutePath());
+				/* ================= FETCH ================= */
+				stageUpdate.accept(CommitStage.REBASING);
+				progress.accept(10);
+				info(log, "Fetching latest changes...");
+				rebase(region, log);
 
-        logs.append("====================================\n");
-        logs.append("Folder Reconstruction Started\n");
-        logs.append("====================================\n\n");
+				if (attempt < 2) {
+					/* ================= STAGING ================= */
+					stageUpdate.accept(CommitStage.STAGING);
+					progress.accept(40);
+					log.accept("Staging selected files...");
 
-        logs.append("Production Folder : ")
-                .append(prodFolder.toAbsolutePath())
-                .append("\n");
+					if (commitAll > 0) {
+						for (String f : files) {
+							GitCli.run(repo, "add", f);
+							log.accept("Added: " + f);
+						}
+					} else {
+						info(log, "All files selected - > using git add *");
+						GitCli.run(repo, "add", ".");
+					}
 
-        logs.append("Base Domain Folder : ")
-                .append(baseDomain.toAbsolutePath())
-                .append("\n");
+					/* ================= IDENTITY ================= */
+					gitHelper.validateGitIdentity(repo, MainUI.getInstance());
 
-        logs.append("Output Folder : ")
-                .append(outputFolder.toAbsolutePath())
-                .append("\n\n");
+					/* ================= COMMIT ================= */
+					stageUpdate.accept(CommitStage.COMMITTING);
+					progress.accept(60);
 
-        List<String> allowedFolders =
-                loadAllowedFolders();
+					// String beforeCommit = GitCli.run(repo, "rev-parse", "HEAD").trim();
 
-        logs.append("Allowed Folders : ")
-                .append(allowedFolders)
-                .append("\n\n");
+					info(log, "Committing..." + commitMsg);
+					GitCli.run(repo, "commit", "-m", commitMsg);
+				}
 
-        Map<String, List<Path>> fileMap =
-                buildLocalFileMap(
-                        baseDomain,
-                        allowedFolders);
 
-        logs.append("Indexed File Map Size : ")
-                .append(fileMap.size())
-                .append("\n\n");
+				/* ================= PUSH ================= */
+				stageUpdate.accept(CommitStage.PUSHING);
+				progress.accept(90);
 
-        Files.createDirectories(outputFolder);
+				info(log, "Pushing to origin/" + branch + "...");
+				GitCli.run(repo, "push", "origin", branch);
 
-        try (DirectoryStream<Path> stream =
-                     Files.newDirectoryStream(prodFolder)) {
+				/* ================= DONE ================= */
+				stageUpdate.accept(CommitStage.DONE);
+				progress.accept(100);
 
-            for (Path prodFile : stream) {
+				log.accept("Commit pushed successfully : " + commitMsg);
 
-                if (!Files.isRegularFile(prodFile)) {
+				try {
+					MainUI.commitMsgField.setText(commitMsg);
+					MainUI.statusLabel.setText("Commit pushed: " + commitMsg);
+				} catch (Exception ignore) {
+				}
 
-                    LOGGER.warning(
-                            "Skipping Non Regular File : "
-                                    + prodFile);
+				return;
 
-                    continue;
-                }
+			} catch (RuntimeException e) {
 
-                totalFiles++;
+				String msg = e.getMessage();
 
-                String originalName =
-                        prodFile.getFileName().toString();
+				if (gitHelper.isConcurrentPushError(msg) && attempt < MAX_RETRIES) {
+					log.accept("[WARN] Remote updated. Retrying...");
+					continue;
+				}
 
-                String normalizedName =
-                        normalizeFileName(originalName);
+				if (gitHelper.isAuthError(msg)) {
+					error(log, "Authentication issue.");
+					return;
+				}
 
-                LOGGER.info(
-                        "Processing File : "
-                                + normalizedName);
+				if (gitHelper.isNetworkError(msg)) {
+					error(log, "Network issue.");
+					return;
+				}
 
-                logs.append("------------------------------------\n");
-                logs.append("FILE : ")
-                        .append(normalizedName)
-                        .append("\n");
+				throw e;
+			}
+		}
+	}
 
-                Path targetPath;
 
-                if (normalizedName
-                        .toLowerCase()
-                        .endsWith(".jsp")) {
+	public static List<String> getChangedFiles(String region) throws Exception {
 
-                    jspCount++;
+		File repo = new File(Config.get("git.repo.path." + region));
+		String status = GitCli.run(repo, "status", "--porcelain");
 
-                    boolean isRelVal =
-                            isReleaseValidationJsp(prodFile);
+		List<String> files = new ArrayList<>();
 
-                    if (isRelVal) {
+		for (String line : status.split("\\R")) {
+			if (line.length() > 3) {
+				files.add(line.substring(3).trim());
+			}
+		}
+		return files;
+	}
 
-                        targetPath =
-                                outputFolder.resolve(
-                                        "EE.ear/EximBillWeb.war/SCRN/releaseValidation/"
-                                                + normalizedName);
+	/*
+	 * ========================================================= CUSTOM GIT COMMAND
+	 * =========================================================
+	 */
 
-                        logs.append("TYPE : JSP RELEASE VALIDATION\n");
+	public static String runCustom(String region, String command) throws Exception {
 
-                        LOGGER.info(
-                                "JSP Release Validation : "
-                                        + normalizedName);
+		if (!command.startsWith("git ")) {
+			throw new IllegalArgumentException("Only git commands are allowed");
+		}
 
-                    } else {
+		String gitExe = Config.get("git.executable");
+		File repo = new File(Config.get("git.repo.path." + region));
 
-                        targetPath =
-                                outputFolder.resolve(
-                                        "EE.ear/EximBillWeb.war/SCRN/"
-                                                + normalizedName);
+		gitHelper.validateGitIdentity(repo, MainUI.getInstance());
 
-                        logs.append("TYPE : JSP SCRN\n");
+		List<String> cmd = new ArrayList<>();
+		cmd.add(gitExe);
 
-                        LOGGER.info(
-                                "JSP SCRN : "
-                                        + normalizedName);
-                    }
+		for (String p : command.substring(4).split(" ")) {
+			if (!p.trim().isEmpty()) {
+				cmd.add(p.trim());
+			}
+		}
 
-                } else {
+		ProcessBuilder pb = new ProcessBuilder(cmd);
+		pb.directory(repo);
+		pb.redirectErrorStream(true);
 
-                    List<Path> matches =
-                            fileMap.get(
-                                    normalizedName.toLowerCase());
+		Process p = pb.start();
 
-                    if (matches != null
-                            && matches.size() == 1) {
+		StringBuilder out = new StringBuilder();
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
 
-                        mappedCount++;
+			String line;
+			while ((line = br.readLine()) != null) {
+				out.append(line).append("\n");
+			}
+		}
 
-                        targetPath =
-                                outputFolder.resolve(
-                                        matches.get(0));
+		int exit = p.waitFor();
+		out.append("\n[INFO] Exit code: ").append(exit);
 
-                        logs.append("STATUS : MAPPED\n");
+		return out.toString();
+	}
 
-                        logs.append("TARGET : ")
-                                .append(targetPath)
-                                .append("\n");
+	/*
+	 * ========================================================= STATUS
+	 * =========================================================
+	 */
 
-                        LOGGER.info(
-                                "Mapped : "
-                                        + normalizedName);
+	public static void chkStatus(String region, java.util.function.Consumer<String> log) throws Exception {
 
-                    } else if (matches != null
-                            && matches.size() > 1) {
+		File repo = new File(Config.get("git.repo.path." + region));
 
-                        duplicateCount++;
+		log.accept("[INFO] Checking status in: " + repo.getAbsolutePath());
+		log.accept("");
 
-                        targetPath =
-                                outputFolder.resolve(
-                                        "FOUND_IN_MULTIPLE_FOLDERS/"
-                                                + normalizedName);
+		String status = GitCli.run(repo, "status", "--porcelain");
 
-                        logs.append("STATUS : DUPLICATE MATCH\n");
+		if (status.trim().isEmpty()) {
+			log.accept("[CLEAN] Working tree clean");
+			return;
+		}
 
-                        logs.append("MATCHES : ")
-                                .append(matches)
-                                .append("\n");
+		log.accept("[INFO] Changes detected:");
+		log.accept("----------------------------------------------");
 
-                        LOGGER.warning(
-                                "Duplicate Match : "
-                                        + normalizedName);
+		for (String line : status.split("\\R")) {
 
-                    } else {
+			if (line.length() < 3)
+				continue;
 
-                        unmappedCount++;
+			String indexStatus = line.substring(0, 1);
+			String workTreeStatus = line.substring(1, 2);
+			String file = line.substring(3);
 
-                        targetPath =
-                                outputFolder.resolve(
-                                        "UNMAPPED/"
-                                                + normalizedName);
+			// Untracked
+			if ("?".equals(indexStatus) && "?".equals(workTreeStatus)) {
+				log.accept("[UNTRACKED]  " + file);
+				continue;
+			}
 
-                        logs.append("STATUS : UNMAPPED\n");
+			// Added
+			if ("A".equals(indexStatus)) {
+				log.accept("[ADDED]      " + file);
+				continue;
+			}
 
-                        LOGGER.warning(
-                                "Unmapped : "
-                                        + normalizedName);
-                    }
-                }
+			// Modified
+			if ("M".equals(indexStatus) || "M".equals(workTreeStatus)) {
+				log.accept("[MODIFIED]   " + file);
+				continue;
+			}
 
-                Files.createDirectories(
-                        targetPath.getParent());
+			// Deleted
+			if ("D".equals(indexStatus) || "D".equals(workTreeStatus)) {
+				log.accept("[DELETED]    " + file);
+				continue;
+			}
 
-                Files.copy(
-                        prodFile,
-                        targetPath,
-                        StandardCopyOption.REPLACE_EXISTING);
+			// Renamed / Copied
+			if ("R".equals(indexStatus) || "C".equals(indexStatus)) {
+				log.accept("[RENAMED]    " + file);
+				continue;
+			}
 
-                logs.append("COPIED TO : ")
-                        .append(targetPath)
-                        .append("\n");
+			// Fallback
+			log.accept("[CHANGED]    " + file);
+		}
+	}
+
+	/*
+	 * ========================================================= REBASE
+	 * =========================================================
+	 */
+
+	public static RebaseResult rebase(String region, java.util.function.Consumer<String> log) {
+
+		File repo = new File(Config.get("git.repo.path." + region));
+		String branch = Config.get("git.branch.name." + region);
+
+		try {
+
+			log.accept("[INFO] Rebasing from origin/" + branch);
+			log.accept("");
+
+			/* ===== REAL GIT OUTPUT ===== */
+			String gitOutput = GitCli.run(repo, "pull", "--rebase", "--autostash", "origin", branch);
+
+			if (gitOutput == null || gitOutput.trim().isEmpty()) {
+				gitOutput = "(no console output)";
+			}
+
+			log.accept("----- GIT OUTPUT -----");
+			log.accept(gitOutput.trim());
+			log.accept("----------------------");
+
+			return RebaseResult.success(gitOutput);
+
+		} catch (Exception e) {
+
+			log.accept("[ERROR] Rebase failed");
+			log.accept(e.getMessage());
+
+			return RebaseResult.failed(e.getMessage());
+		}
+	}
+
+	/*
+	 * ========================================================= RETRIEVE FILES
+	 * (WITH PROGRESS) =========================================================
+	 */
+
+	public static void retrieveFiles(String region, String crOrIr, java.util.function.Consumer<String> log,
+			java.util.function.IntConsumer progress) {
+
+		File repo = new File(Config.get("git.repo.path." + region));
+		Set<String> files = new TreeSet<>();
+
+		info(log, "Searching commit history for: " + crOrIr);
+
+		final int BATCH = 50;
+		int offset = 0;
+		int scanned = 0;
+
+		try {
+			while (true) {
+
+				String out = GitCli.run(repo, "log", "--skip=" + offset, "--max-count=" + BATCH, "--name-only",
+						"--pretty=format:", "--grep=" + crOrIr);
+
+				scanned += BATCH;
+				progress.accept(Math.min(95, scanned));
+
+				if (out.trim().isEmpty()) {
+					break;
+				}
+
+				for (String line : out.split("\\R")) {
+					if (!line.trim().isEmpty()) {
+						files.add(line.trim());
+					}
+				}
+
+				break;
+			}
+
+			if (files.isEmpty()) {
+				warn(log, "No files found for " + crOrIr);
+			} else {
+				info(log, "Files found:");
+				for (String f : files) {
+					log.accept("  " + f);
+				}
+			}
+
+		} catch (Exception e) {
+			error(log, "Failed while scanning commit history");
+			exception(log, e);
+		} finally {
+			progress.accept(100);
+		}
+	}
+}
+
+
+package com.tcs.git;
+
+import java.awt.Frame;
+import java.io.File;
+import java.util.List;
+
+import com.tcs.git.config.Config;
+import com.tcs.git.ui.GitIdentityDialog;
+
+public class gitHelper {
+	public static void validateGitIdentity(File repo, Frame parent) {
+
+	    try {
+	        String name = GitCli.run(repo, "config", "user.name").trim();
+	        String email = GitCli.run(repo, "config", "user.email").trim();
+
+	        if (!name.isEmpty() && !email.isEmpty()) {
+	            return; // already configured
+	        }
+
+	    } catch (Exception ignore) {
+	        // fall through to dialog
+	    }
+
+	    // Open dialog
+	    GitIdentityDialog dlg = new GitIdentityDialog(parent);
+	    dlg.setVisible(true);
+
+	    if (!dlg.isSaved()) {
+	        throw new RuntimeException("Git identity not configured. Commit cancelled.");
+	    }
+
+	    try {
+	        GitCli.run(repo, "config", "--global", "user.name", dlg.getUserName());
+	        GitCli.run(repo, "config", "--global", "user.email", dlg.getEmail());
+	    } catch (Exception e) {
+	        throw new RuntimeException(
+	            "Failed to save Git identity.\n" + e.getMessage()
+	        );
+	    }
+	}
+
+	public static boolean isConfigComplete() {
+
+		String[] requiredKeys = {
+				// Git
+				"git.repo.path.ee", "git.repo.path.ce", "git.branch.name.ee", "git.branch.name.ce", "git.executable",
+
+				// Jenkins
+				"jenkins.url", "jenkins.user", "jenkins.token", "jenkins.job.ee", "jenkins.job.ce",
+
+				// Environment selection
+				"ee.sel", "ce.sel" };
+
+		for (String key : requiredKeys) {
+			String val = Config.get(key);
+			if (val == null || val.trim().isEmpty()) {
+				return false;
+			}
+		}
+
+		// At least one environment must be enabled
+		boolean ee = "true".equalsIgnoreCase(Config.get("ee.sel"));
+		boolean ce = "true".equalsIgnoreCase(Config.get("ce.sel"));
+
+		return ee || ce;
+	}
+	
+	public static boolean isConcurrentPushError(String msg) {
+
+	    if (msg == null) return false;
+
+	    msg = msg.toLowerCase();
+
+	    return msg.contains("fetch first") ||
+	           msg.contains("non-fast-forward") ||
+	           msg.contains("failed to update ref") ||
+	           msg.contains("cannot lock ref") ||
+	           msg.contains("remote rejected") ||
+	           msg.contains("tip of your current branch is behind") ||
+	           msg.contains("updates were rejected") ||
+	           msg.contains("contains work that you do not have locally") ||
+	           msg.contains("is behind its remote counterpart") ||
+	           msg.contains("please pull") ||
+	           msg.contains("please fetch");
+	}
+	
+	public static boolean isAuthError(String msg) {
+
+	    if (msg == null) return false;
+
+	    msg = msg.toLowerCase();
+
+	    return msg.contains("authentication failed") ||
+	           msg.contains("403") ||
+	           msg.contains("401") ||
+	           msg.contains("access denied") ||
+	           msg.contains("permission denied") ||
+	           msg.contains("not authorized") ||
+	           msg.contains("invalid username or password") ||
+	           msg.contains("failed to authenticate");
+	}
+	
+	public static boolean isNetworkError(String msg) {
+
+	    if (msg == null) return false;
+
+	    msg = msg.toLowerCase();
+
+	    return msg.contains("connection timed out") ||
+	           msg.contains("unable to access") ||
+	           msg.contains("failed to connect") ||
+	           msg.contains("network is unreachable") ||
+	           msg.contains("connection reset") ||
+	           msg.contains("ssl") ||
+	           msg.contains("timeout");
+	}
+
+
+	public static boolean isConflictError(String msg) {
+
+	    if (msg == null) return false;
+
+	    msg = msg.toLowerCase();
+
+	    return msg.contains("merge conflict") ||
+	           msg.contains("conflict") ||
+	           msg.contains("needs merge") ||
+	           msg.contains("unmerged files");
+	}
+}
+
+class CommitPrepResult {
+
+	final boolean noChanges;
+	final List<String> files;
+	final String defaultMsg;
+
+	private CommitPrepResult(boolean noChanges, List<String> files, String defaultMsg) {
+
+		this.noChanges = noChanges;
+		this.files = files;
+		this.defaultMsg = defaultMsg;
+	}
+
+	static CommitPrepResult noChanges() {
+		return new CommitPrepResult(true, null, null);
+	}
+
+	static CommitPrepResult success(List<String> files, String msg) {
+
+		return new CommitPrepResult(false, files, msg);
+	}
+}
+
+
+
+
+package com.tcs.git;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import com.tcs.git.config.Config;
+
+public class GitCli {
+
+    public static String run(File repo, String... args) throws Exception {
+
+        System.out.println("in GitCli --> run with args " + Arrays.asList(args));
+
+        List<String> command = new ArrayList<>();
+        command.add(Config.get("git.executable"));
+        command.addAll(Arrays.asList(args));
+
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.directory(repo);
+        pb.redirectErrorStream(true);
+
+        Process p = pb.start();
+
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader br =
+                 new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                output.append(line).append("\n");
+                System.out.println(line);
             }
         }
 
-        logs.append("\n====================================\n");
-        logs.append("EXECUTION SUMMARY\n");
-        logs.append("====================================\n");
+        int exit = p.waitFor();
 
-        logs.append("Total Files      : ")
-                .append(totalFiles)
-                .append("\n");
-
-        logs.append("Mapped Files     : ")
-                .append(mappedCount)
-                .append("\n");
-
-        logs.append("Unmapped Files   : ")
-                .append(unmappedCount)
-                .append("\n");
-
-        logs.append("Duplicate Files  : ")
-                .append(duplicateCount)
-                .append("\n");
-
-        logs.append("JSP Files        : ")
-                .append(jspCount)
-                .append("\n");
-
-        logs.append("\nOutput Folder : ")
-                .append(outputFolder.toAbsolutePath())
-                .append("\n");
-
-        logs.append("\n====================================\n");
-        logs.append("Execution Completed Successfully");
-        logs.append("\n====================================\n");
-
-        LOGGER.info("Execution Completed Successfully");
-
-        return logs.toString();
-    }
-
-    private static void validateInputs(
-            String productionPath,
-            String baseDomainPath) {
-
-        if (productionPath == null
-                || productionPath.trim().isEmpty()) {
-
-            throw new IllegalArgumentException(
-                    "Production path is mandatory");
+        if (exit != 0) {
+            throw new RuntimeException(
+                "Git command failed:\n" +
+                String.join(" ", command) + "\n\n" +
+                output.toString()
+            );
         }
-
-        if (baseDomainPath == null
-                || baseDomainPath.trim().isEmpty()) {
-
-            throw new IllegalArgumentException(
-                    "Base domain path is mandatory");
-        }
-
-        Path prodFolder =
-                Paths.get(productionPath);
-
-        Path baseDomain =
-                Paths.get(baseDomainPath);
-
-        if (!Files.exists(prodFolder)) {
-
-            throw new IllegalArgumentException(
-                    "Production folder does not exist");
-        }
-
-        if (!Files.isDirectory(prodFolder)) {
-
-            throw new IllegalArgumentException(
-                    "Production path is not a directory");
-        }
-
-        if (!Files.exists(baseDomain)) {
-
-            throw new IllegalArgumentException(
-                    "Base domain folder does not exist");
-        }
-
-        if (!Files.isDirectory(baseDomain)) {
-
-            throw new IllegalArgumentException(
-                    "Base domain path is not a directory");
-        }
-    }
-
-    private static List<String> loadAllowedFolders() {
-
-        return Arrays.asList(
-                "caljs",
-                "ee.ear",
-                "default",
-                "int",
-                "ee_sys",
-                "properties",
-                "lib");
-    }
-
-    private static Map<String, List<Path>> buildLocalFileMap(
-            Path baseDomain,
-            List<String> allowedFolders)
-            throws IOException {
-
-        Map<String, List<Path>> map =
-                new HashMap<>();
-
-        LOGGER.info(
-                "Building Local File Map");
-
-        Files.walk(baseDomain, 10)
-                .filter(Files::isRegularFile)
-                .forEach(path -> {
-
-                    Path relativePath =
-                            baseDomain.relativize(path);
-
-                    String relativePathStr =
-                            relativePath.toString()
-                                    .replace("\\", "/")
-                                    .toLowerCase();
-
-                    boolean isAllowed =
-                            allowedFolders.stream()
-                                    .anyMatch(
-                                            relativePathStr::startsWith);
-
-                    if (isAllowed) {
-
-                        String fileName =
-                                path.getFileName()
-                                        .toString()
-                                        .toLowerCase();
-
-                        map.computeIfAbsent(
-                                        fileName,
-                                        k -> new ArrayList<>())
-                                .add(relativePath);
-                    }
-                });
-
-        LOGGER.info(
-                "File Map Created Successfully");
-
-        return map;
-    }
-
-    private static String normalizeFileName(
-            String fileName) {
-
-        String lower =
-                fileName.toLowerCase();
-
-        if (lower.endsWith(".txt")) {
-
-            return fileName.substring(
-                    0,
-                    fileName.length() - 4);
-        }
-
-        return fileName;
-    }
-
-    private static boolean isReleaseValidationJsp(
-            Path file) {
-
-        try {
-
-            byte[] content =
-                    Files.readAllBytes(file);
-
-            String text =
-                    new String(
-                            content,
-                            StandardCharsets.ISO_8859_1);
-
-            return text.contains("<%@include")
-                    && text.contains("RelVal.jsp");
-
-        } catch (IOException e) {
-
-            LOGGER.log(
-                    Level.SEVERE,
-                    "Error Reading JSP File : "
-                            + file,
-                    e);
-        }
-
-        return false;
+        
+        return output.toString();
     }
 }
+
+
+package com.tcs.git.util;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class AppLogger {
+
+    private static final String LOG_DIR = "logs";
+    private static String LOG_FILE;
+
+    static {
+        new File(LOG_DIR).mkdirs();
+
+    }
+
+    private AppLogger() {}
+
+    public static synchronized void log(String msg) {
+    	
+    	 LOG_FILE = getCurrentLogFile();
+    	
+        try (FileWriter fw = new FileWriter(LOG_FILE, true);
+             BufferedWriter bw = new BufferedWriter(fw)) {
+
+            bw.write(timestamp() + " " + msg);
+            bw.newLine();
+
+        } catch (IOException e) {
+            // Fail silently – logging must never break app
+        }
+    }
+
+    private static String getCurrentLogFile() {
+    	String ts = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+    	return LOG_DIR + File.separator + "GIT-TOOL-" + ts + ".log";
+	}
+
+	public static synchronized void logSeparator() {
+        log("============================================================");
+    }
+
+    private static String timestamp() {
+        return new SimpleDateFormat("[HH:mm:ss]").format(new Date());
+    }
+
+    public static String getLogFilePath() {
+        return LOG_FILE;
+    }
+
+    public static String readAll() {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader br =
+                new BufferedReader(new FileReader(LOG_FILE))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+        } catch (IOException e) {
+            // ignore
+        }
+        return sb.toString();
+    }
+}
+
+
+package com.tcs.git.util;
+
+public enum CommitStage {
+    PREPARING,
+    REBASING,
+    STAGING,
+    COMMITTING,
+    VERIFYING,
+    PUSHING,
+    DONE
+}
+
+
+package com.tcs.git.util;
+
+public class RebaseResult {
+
+    public final boolean success;
+    public final String output;
+
+    private RebaseResult(boolean s, String o) {
+        success = s;
+        output = o;
+    }
+
+    public static RebaseResult success(String o) {
+        return new RebaseResult(true, o);
+    }
+
+    public static RebaseResult failed(String o) {
+        return new RebaseResult(false, o);
+    }
+}
+
+
+package com.tcs.git;
+
+import javax.net.ssl.*;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+
+public final class SSLUtil {
+
+    private SSLUtil() {}
+
+    public static void disableSSLVerification() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
+                    }
+                    public void checkClientTrusted(
+                            X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(
+                            X509Certificate[] certs, String authType) {}
+                }
+            };
+
+            SSLContext sc = SSLContext.getInstance("TLS");
+            sc.init(null, trustAllCerts, new SecureRandom());
+
+            HttpsURLConnection.setDefaultSSLSocketFactory(
+                    sc.getSocketFactory());
+
+            HttpsURLConnection.setDefaultHostnameVerifier(
+                    (hostname, session) -> true);
+
+            System.out.println("SSL verification DISABLED (DEV mode)");
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to disable SSL", e);
+        }
+    }
+}
+
+
+package com.tcs.git.config;
+
+import java.util.Properties;
+
+public class Config {
+
+    private static Properties props = new Properties();
+    
+    static {
+    	load();
+    }
+
+    private static void load() {
+        props = ConfigManager.load();
+    }
+
+    public static String get(String key) {
+        return props.getProperty(key);
+    }
+
+    public static int getInt(String key) {
+        return Integer.parseInt(props.getProperty(key));
+    }
+    
+    public static void reload() {
+    	load();
+    }
+}
+
+
+package com.tcs.git.config;
+
+import java.io.*;
+import java.util.Properties;
+
+public class ConfigManager {
+
+    private static final String CONFIG_FILE = "application.properties";
+
+    public static Properties load() {
+        Properties p = new Properties();
+        File f = new File(CONFIG_FILE);
+        if (f.exists()) {
+            try (FileInputStream fis = new FileInputStream(f)) {
+                p.load(fis);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return p;
+    }
+
+    public static void save(Properties p) throws IOException {
+        try (FileOutputStream fos = new FileOutputStream(CONFIG_FILE)) {
+            p.store(fos, "Git & Jenkins Tool Configuration");
+        }
+    }
+
+    public static boolean exists() {
+        return new File(CONFIG_FILE).exists();
+    }
+}
+
+properties:
+
+
+#Git & Jenkins Tool Configuration
+#Sat Jan 31 16:55:06 IST 2026
+git.log.scan.limit=50
+jenkins.job.ee=EE_PRE_DEV_DEPLOYMENT
+jenkins.user=v1013325
+git.executable=E\:/git/GIT/bin/git.exe
+git.repo.path.ce=E\:/gitClone/tf_ce_dev
+ee.sel=true
+git.branch.name.ce=DEV
+check.files.before.commit=true
+git.repo.path.ee=E\:/gitClone/tf_ee_pre_dev
+ce.sel=true
+git.branch.name.ee=PREDEV
+jenkins.token=11e972f49bd42ee02e42cf9cf258ff89b8
+jenkins.job.ce=CE_DEV_DEPLOYMENT
+jenkins.url=https\://10.177.140.236/jenkins
+
+
+
+basically i have a java tool which works on the swing UI, but now i want to switch to web based UI , the above are the classes used in the tool.
+
+using that develope a html page and helper servlets to acheive the functionaility 
+
+basically i have a 1. toogle button to select the region CE or EE 
+2. input field for CR number input 
+3 , buttons for commit and push , status, rebase , retrive files.
+4, input field for git custom command and a button to trigger it 
+5. and a output area
