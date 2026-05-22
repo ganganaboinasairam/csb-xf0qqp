@@ -1,159 +1,300 @@
 package com.service;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
+import java.util.*;
+
+public class FolderReconstructorService {
+
+    public static String execute(
+            String productionPath,
+            String baseDomainPath) throws IOException {
+
+        Date date = new Date();
+
+        SimpleDateFormat sdf =
+                new SimpleDateFormat("_ddMMyyyy_HHmm");
+
+        String strDate = sdf.format(date);
+
+        Path baseDomain = Paths.get(baseDomainPath);
+
+        Path prodFolder = Paths.get(productionPath);
+
+        Path outputFolder =
+                Paths.get("E:/Reconstructed/base_domain" + strDate);
+
+        List<String> allowedFolders =
+                loadAllowedFolders();
+
+        Map<String, List<Path>> fileMap =
+                buildLocalFileMap(baseDomain, allowedFolders);
+
+        Files.createDirectories(outputFolder);
+
+        try (DirectoryStream<Path> stream =
+                     Files.newDirectoryStream(prodFolder)) {
+
+            for (Path prodFile : stream) {
+
+                if (!Files.isRegularFile(prodFile))
+                    continue;
+
+                String originalName =
+                        prodFile.getFileName().toString();
+
+                String normalizedName =
+                        normalizeFileName(originalName);
+
+                Path targetPath;
+
+                if (normalizedName.toLowerCase().endsWith(".jsp")) {
+
+                    boolean isRelVal =
+                            isReleaseValidationJsp(prodFile);
+
+                    if (isRelVal) {
+
+                        targetPath =
+                                outputFolder.resolve(
+                                        "EE.ear/EximBillWeb.war/SCRN/releaseValidation/"
+                                                + normalizedName);
+
+                    } else {
+
+                        targetPath =
+                                outputFolder.resolve(
+                                        "EE.ear/EximBillWeb.war/SCRN/"
+                                                + normalizedName);
+                    }
+
+                } else {
+
+                    List<Path> matches =
+                            fileMap.get(normalizedName.toLowerCase());
+
+                    if (matches != null && matches.size() == 1) {
+
+                        targetPath =
+                                outputFolder.resolve(matches.get(0));
+
+                    } else if (matches != null && matches.size() > 1) {
+
+                        targetPath =
+                                outputFolder.resolve(
+                                        "FOUND_IN_MULTIPLE_FOLDERS/"
+                                                + normalizedName);
+
+                    } else {
+
+                        targetPath =
+                                outputFolder.resolve(
+                                        "UNMAPPED/"
+                                                + normalizedName);
+                    }
+                }
+
+                Files.createDirectories(
+                        targetPath.getParent());
+
+                Files.move(
+                        prodFile,
+                        targetPath,
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
+
+        return outputFolder.toString();
+    }
+
+    private static List<String> loadAllowedFolders() {
+
+        return Arrays.asList(
+                "caljs",
+                "ee.ear",
+                "default",
+                "int",
+                "ee_sys",
+                "properties",
+                "lib");
+    }
+
+    private static Map<String, List<Path>> buildLocalFileMap(
+            Path baseDomain,
+            List<String> allowedFolders)
+            throws IOException {
+
+        Map<String, List<Path>> map = new HashMap<>();
+
+        Files.walk(baseDomain, 10)
+                .filter(Files::isRegularFile)
+                .forEach(path -> {
+
+                    Path relativePath =
+                            baseDomain.relativize(path);
+
+                    String relativePathStr =
+                            relativePath.toString()
+                                    .replace("\\", "/")
+                                    .toLowerCase();
+
+                    boolean isAllowed =
+                            allowedFolders.stream()
+                                    .anyMatch(relativePathStr::startsWith);
+
+                    if (isAllowed) {
+
+                        String fileName =
+                                path.getFileName()
+                                        .toString()
+                                        .toLowerCase();
+
+                        map.computeIfAbsent(
+                                        fileName,
+                                        k -> new ArrayList<>())
+                                .add(relativePath);
+                    }
+                });
+
+        return map;
+    }
+
+    private static String normalizeFileName(String fileName) {
+
+        String lower = fileName.toLowerCase();
+
+        if (lower.endsWith(".txt")) {
+            return fileName.substring(0,
+                    fileName.length() - 4);
+        }
+
+        return fileName;
+    }
+
+    private static boolean isReleaseValidationJsp(Path file) {
+
+        try {
+
+            byte[] content =
+                    Files.readAllBytes(file);
+
+            String text =
+                    new String(
+                            content,
+                            java.nio.charset.StandardCharsets.ISO_8859_1);
+
+            return text.contains("<%@include")
+                    && text.contains("RelVal.jsp");
+
+        } catch (IOException e) {
+
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+}
+
+
 
 public class FolderReconstructor {
 
-	public static void main(String[] args) throws IOException {
-		
-		if (args.length < 2) {
-			System.err.println(
-					"\"Use Case ::::: java -jar FolderReconstructor.jar <PRODUCTION FILES PATH> <SPACE> <LOCAL GIT REPO PATH UPTO 'base_domain'>\"");
-			System.exit(1);
-		}
+    public static void main(String[] args)
+            throws Exception {
 
-
-		Date date = new Date();
-		SimpleDateFormat sdf = new SimpleDateFormat("_ddMMyyyy_HHmm");
-		String strDate = sdf.format(date);
-
-		Path baseDomain = Paths.get(args[1]);
-		Path prodFolder = Paths.get(args[0]);
-
-		Path outputFolder = Paths.get("E:/Reconstructed/base_domain" + strDate);
-
-		List<String> allowedFolders = loadAllowedFolders();
-		System.out.println("Allowed Folders: " + allowedFolders);
-
-		Map<String, List<Path>> fileMap = buildLocalFileMap(baseDomain, allowedFolders);
-		System.out.println("File map size: " + fileMap.size());
-
-		Files.createDirectories(outputFolder);
-
-		try (DirectoryStream<Path> stream = Files.newDirectoryStream(prodFolder)) {
-
-			for (Path prodFile : stream) {
-
-				if (!Files.isRegularFile(prodFile))
-					continue;
-
-				String originalName = prodFile.getFileName().toString();
-				String normalizedName = normalizeFileName(originalName);
-
-				Path targetPath;
-
-				// JSP SPECIAL HANDLING
-				if (normalizedName.toLowerCase().endsWith(".jsp")) {
-
-					boolean isRelVal = isReleaseValidationJsp(prodFile);
-
-					if (isRelVal) {
-						targetPath = outputFolder
-								.resolve("EE.ear/EximBillWeb.war/SCRN/releaseValidation/" + normalizedName);
-						System.out.println("JSP (RelVal): " + normalizedName);
-					} else {
-						targetPath = outputFolder.resolve("EE.ear/EximBillWeb.war/SCRN/" + normalizedName);
-						System.out.println("JSP (SCRN): " + normalizedName);
-					}
-
-				} else {
-
-					List<Path> matches = fileMap.get(normalizedName.toLowerCase());
-
-					if (matches != null && matches.size() == 1) {
-
-						targetPath = outputFolder.resolve(matches.get(0));
-						System.out.println("Mapped: " + normalizedName);
-
-					} else if (matches != null && matches.size() > 1) {
-
-						targetPath = outputFolder.resolve("FOUND_IN_MULTIPLE_FOLDERS/" + normalizedName);
-						System.out.println("Duplicate match: " + normalizedName);
-
-					} else {
-
-						targetPath = outputFolder.resolve("UNMAPPED/" + normalizedName);
-						System.out.println("Unmapped: " + normalizedName);
-					}
-				}
-
-				Files.createDirectories(targetPath.getParent());
-
-				Files.move(prodFile, targetPath, StandardCopyOption.REPLACE_EXISTING);
-			}
-		}
-
-		System.out.println("\n Reconstruction completed. Folder path is '" + outputFolder + "'");
-	}
-
-	private static List<String> loadAllowedFolders() throws IOException {
-		return Arrays.asList("caljs", "ee.ear", "default", "int", "ee_sys", "properties", "lib");
-	}
-
-	// Build file map ONLY for allowed folders
-	private static Map<String, List<Path>> buildLocalFileMap(Path baseDomain, List<String> allowedFolders)
-			throws IOException {
-
-		Map<String, List<Path>> map = new HashMap<>();
-
-		Files.walk(baseDomain, 10).filter(Files::isRegularFile).forEach(path -> {
-
-			Path relativePath = baseDomain.relativize(path);
-			String relativePathStr = relativePath.toString().replace("\\", "/").toLowerCase();
-
-			boolean isAllowed = allowedFolders.stream().anyMatch(relativePathStr::startsWith);
-
-			if (isAllowed) {
-
-				String fileName = path.getFileName().toString().toLowerCase();
-
-				map.computeIfAbsent(fileName, k -> new ArrayList<>()).add(relativePath);
-			}
-		});
-
-		return map;
-	}
-
-	// Normalize file name (.js.txt .js)
-	private static String normalizeFileName(String fileName) {
-
-		String lower = fileName.toLowerCase();
-
-		if (lower.endsWith(".js.txt") || lower.endsWith(".css.txt") || lower.endsWith(".jsp.txt")
-				|| lower.endsWith(".html.txt") || lower.endsWith(".json.txt")) {
-
-			return fileName.substring(0, fileName.length() - 4);
-		}
-
-		if (lower.endsWith(".txt")) {
-			return fileName.substring(0, fileName.length() - 4);
-		}
-
-		return fileName;
-	}
-
-	// JSP Rule (Java 8 compatible)
-	private static boolean isReleaseValidationJsp(Path file) {
-	    try {
-	        byte[] content = Files.readAllBytes(file);
-	        String text = new String(content, java.nio.charset.StandardCharsets.ISO_8859_1);
-	        return text.contains("<%@include") && text.contains("RelVal.jsp");
-	    } catch (IOException e) {
-	        e.printStackTrace();
-	    }
-	    return false;
-	}
+        FolderReconstructorService.execute(
+                args[0],
+                args[1]);
+    }
 }
+
+
+
+
+package com.servlet;
+
+import com.service.FolderReconstructorService;
+
+import javax.servlet.*;
+import javax.servlet.http.*;
+import java.io.IOException;
+
+public class FolderServlet extends HttpServlet {
+
+    @Override
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String prodPath =
+                request.getParameter("prodPath");
+
+        String baseDomainPath =
+                request.getParameter("baseDomainPath");
+
+        try {
+
+            String result =
+                    FolderReconstructorService.execute(
+                            prodPath,
+                            baseDomainPath);
+
+            response.getWriter()
+                    .write("SUCCESS : " + result);
+
+        } catch (Exception e) {
+
+            response.setStatus(500);
+
+            response.getWriter()
+                    .write("ERROR : " + e.getMessage());
+        }
+    }
+}
+
+
+
+<input id="prodPath">
+<input id="baseDomainPath">
+
+<button onclick="runTool()">
+    Execute
+</button>
+
+<pre id="result"></pre>
+
+<script>
+
+async function runTool(){
+
+    const data =
+        new URLSearchParams();
+
+    data.append(
+        "prodPath",
+        document.getElementById("prodPath").value);
+
+    data.append(
+        "baseDomainPath",
+        document.getElementById("baseDomainPath").value);
+
+    const response =
+        await fetch("/app/folderTool",{
+            method:"POST",
+            body:data,
+            headers:{
+                "Content-Type":
+                    "application/x-www-form-urlencoded"
+            }
+        });
+
+    const text =
+        await response.text();
+
+    document.getElementById("result")
+        .innerText = text;
+}
+
+</script>
