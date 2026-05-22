@@ -1,299 +1,204 @@
-@WebServlet("/FolderServlet")
-public class FolderServlet extends HttpServlet {
+package com.service;
 
-    protected void doPost(
-            HttpServletRequest request,
-            HttpServletResponse response)
-            throws ServletException, IOException {
+import java.io.IOException;
+import java.nio.file.*;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
-        response.setContentType(
-                "text/plain;charset=UTF-8");
+public class FolderReconstructorService {
 
-        String prodPath =
-                request.getParameter("prodPath");
+    public static String execute(
+            String productionPath,
+            String baseDomainPath) throws IOException {
 
-        String baseDomainPath =
-                request.getParameter("baseDomainPath");
+        Date date = new Date();
 
-        if(prodPath == null ||
-                prodPath.trim().isEmpty()) {
+        SimpleDateFormat sdf =
+                new SimpleDateFormat("_ddMMyyyy_HHmm");
 
-            response.setStatus(400);
+        String strDate = sdf.format(date);
 
-            response.getWriter()
-                    .write("Production path is mandatory");
+        Path baseDomain = Paths.get(baseDomainPath);
 
-            return;
+        Path prodFolder = Paths.get(productionPath);
+
+        Path outputFolder =
+                Paths.get("E:/Reconstructed/base_domain" + strDate);
+
+        List<String> allowedFolders =
+                loadAllowedFolders();
+
+        Map<String, List<Path>> fileMap =
+                buildLocalFileMap(baseDomain, allowedFolders);
+
+        Files.createDirectories(outputFolder);
+
+        try (DirectoryStream<Path> stream =
+                     Files.newDirectoryStream(prodFolder)) {
+
+            for (Path prodFile : stream) {
+
+                if (!Files.isRegularFile(prodFile))
+                    continue;
+
+                String originalName =
+                        prodFile.getFileName().toString();
+
+                String normalizedName =
+                        normalizeFileName(originalName);
+
+                Path targetPath;
+
+                if (normalizedName.toLowerCase().endsWith(".jsp")) {
+
+                    boolean isRelVal =
+                            isReleaseValidationJsp(prodFile);
+
+                    if (isRelVal) {
+
+                        targetPath =
+                                outputFolder.resolve(
+                                        "EE.ear/EximBillWeb.war/SCRN/releaseValidation/"
+                                                + normalizedName);
+
+                    } else {
+
+                        targetPath =
+                                outputFolder.resolve(
+                                        "EE.ear/EximBillWeb.war/SCRN/"
+                                                + normalizedName);
+                    }
+
+                } else {
+
+                    List<Path> matches =
+                            fileMap.get(normalizedName.toLowerCase());
+
+                    if (matches != null && matches.size() == 1) {
+
+                        targetPath =
+                                outputFolder.resolve(matches.get(0));
+
+                    } else if (matches != null && matches.size() > 1) {
+
+                        targetPath =
+                                outputFolder.resolve(
+                                        "FOUND_IN_MULTIPLE_FOLDERS/"
+                                                + normalizedName);
+
+                    } else {
+
+                        targetPath =
+                                outputFolder.resolve(
+                                        "UNMAPPED/"
+                                                + normalizedName);
+                    }
+                }
+
+                Files.createDirectories(
+                        targetPath.getParent());
+
+                Files.copy(
+                        prodFile,
+                        targetPath,
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
         }
 
-        if(baseDomainPath == null ||
-                baseDomainPath.trim().isEmpty()) {
+        return outputFolder.toString();
+    }
 
-            response.setStatus(400);
+    private static List<String> loadAllowedFolders() {
 
-            response.getWriter()
-                    .write("Base domain path is mandatory");
+        return Arrays.asList(
+                "caljs",
+                "ee.ear",
+                "default",
+                "int",
+                "ee_sys",
+                "properties",
+                "lib");
+    }
 
-            return;
+    private static Map<String, List<Path>> buildLocalFileMap(
+            Path baseDomain,
+            List<String> allowedFolders)
+            throws IOException {
+
+        Map<String, List<Path>> map = new HashMap<>();
+
+        Files.walk(baseDomain, 10)
+                .filter(Files::isRegularFile)
+                .forEach(path -> {
+
+                    Path relativePath =
+                            baseDomain.relativize(path);
+
+                    String relativePathStr =
+                            relativePath.toString()
+                                    .replace("\\", "/")
+                                    .toLowerCase();
+
+                    boolean isAllowed =
+                            allowedFolders.stream()
+                                    .anyMatch(relativePathStr::startsWith);
+
+                    if (isAllowed) {
+
+                        String fileName =
+                                path.getFileName()
+                                        .toString()
+                                        .toLowerCase();
+
+                        map.computeIfAbsent(
+                                        fileName,
+                                        k -> new ArrayList<>())
+                                .add(relativePath);
+                    }
+                });
+
+        return map;
+    }
+
+    private static String normalizeFileName(String fileName) {
+
+        String lower = fileName.toLowerCase();
+
+        if (lower.endsWith(".txt")) {
+            return fileName.substring(0,
+                    fileName.length() - 4);
         }
+
+        return fileName;
+    }
+
+    private static boolean isReleaseValidationJsp(Path file) {
 
         try {
 
-            String result =
-                    FolderReconstructorService.execute(
-                            prodPath,
-                            baseDomainPath);
+            byte[] content =
+                    Files.readAllBytes(file);
 
-            response.getWriter().write(result);
+            String text =
+                    new String(
+                            content,
+                            java.nio.charset.StandardCharsets.ISO_8859_1);
 
-        } catch (Exception e) {
+            return text.contains("<%@include")
+                    && text.contains("RelVal.jsp");
 
-            response.setStatus(500);
+        } catch (IOException e) {
 
-            response.getWriter()
-                    .write("ERROR : " + e.getMessage());
-        }
-    }
-}
-
-
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-
-<meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
-
-<title>Folder Reconstructor</title>
-
-<style>
-
-body{
-    margin:0;
-    padding:20px;
-    background:#f1f5f9;
-    font-family:Arial;
-}
-
-.container{
-    max-width:1100px;
-    margin:auto;
-}
-
-.card{
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    box-shadow:0 2px 10px rgba(0,0,0,0.1);
-}
-
-h2{
-    margin-top:0;
-    color:#1e293b;
-}
-
-.input-group{
-    margin-bottom:15px;
-}
-
-label{
-    display:block;
-    margin-bottom:6px;
-    font-weight:bold;
-}
-
-input{
-    width:100%;
-    padding:12px;
-    border:1px solid #cbd5e1;
-    border-radius:6px;
-    font-size:14px;
-}
-
-button{
-    background:#2563eb;
-    color:white;
-    border:none;
-    padding:12px 20px;
-    border-radius:6px;
-    cursor:pointer;
-    font-size:14px;
-}
-
-button:hover{
-    background:#1d4ed8;
-}
-
-button:disabled{
-    background:#94a3b8;
-    cursor:not-allowed;
-}
-
-.status{
-    margin-top:15px;
-    font-weight:bold;
-}
-
-.output{
-    margin-top:20px;
-    background:#0f172a;
-    color:#22c55e;
-    padding:15px;
-    border-radius:8px;
-    height:500px;
-    overflow:auto;
-    white-space:pre-wrap;
-    font-family:Consolas;
-    font-size:13px;
-}
-
-.error{
-    color:#ef4444;
-}
-
-.success{
-    color:#22c55e;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="container">
-
-    <div class="card">
-
-        <h2>Folder Reconstructor Utility</h2>
-
-        <div class="input-group">
-            <label>Production Files Folder</label>
-
-            <input
-                id="prodPath"
-                placeholder="E:/ProductionFiles">
-        </div>
-
-        <div class="input-group">
-            <label>Base Domain Folder</label>
-
-            <input
-                id="baseDomainPath"
-                placeholder="D:/base_domain">
-        </div>
-
-        <button id="executeBtn"
-                onclick="runTool()">
-
-            Execute
-        </button>
-
-        <div class="status" id="status"></div>
-
-        <div class="output"
-             id="result">
-
-Waiting for execution...
-
-        </div>
-
-    </div>
-
-</div>
-
-<script>
-
-async function runTool(){
-
-    const prodPath =
-        document.getElementById("prodPath").value.trim();
-
-    const baseDomainPath =
-        document.getElementById("baseDomainPath").value.trim();
-
-    const result =
-        document.getElementById("result");
-
-    const status =
-        document.getElementById("status");
-
-    const button =
-        document.getElementById("executeBtn");
-
-    if(!prodPath){
-
-        status.innerHTML =
-            "<span class='error'>Production path is mandatory</span>";
-
-        return;
-    }
-
-    if(!baseDomainPath){
-
-        status.innerHTML =
-            "<span class='error'>Base domain path is mandatory</span>";
-
-        return;
-    }
-
-    button.disabled = true;
-
-    status.innerHTML =
-        "<span>Executing...</span>";
-
-    result.innerText =
-        "Processing...\n";
-
-    try{
-
-        const data =
-            new URLSearchParams();
-
-        data.append("prodPath",prodPath);
-
-        data.append(
-            "baseDomainPath",
-            baseDomainPath);
-
-        const response =
-            await fetch("../FolderServlet",{
-                method:"POST",
-                body:data,
-                headers:{
-                    "Content-Type":
-                    "application/x-www-form-urlencoded"
-                }
-            });
-
-        const text =
-            await response.text();
-
-        result.innerText = text;
-
-        if(response.ok){
-
-            status.innerHTML =
-                "<span class='success'>Execution Completed</span>";
-
-        }else{
-
-            status.innerHTML =
-                "<span class='error'>Execution Failed</span>";
+            e.printStackTrace();
         }
 
-    }catch(e){
-
-        status.innerHTML =
-            "<span class='error'>"+e+"</span>";
+        return false;
     }
-
-    button.disabled = false;
 }
 
-</script>
 
-</body>
-</html>
+
+
+
+
+add loggers and rewrite
