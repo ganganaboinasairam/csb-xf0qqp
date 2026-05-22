@@ -1,15 +1,34 @@
 package com.service;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class FolderReconstructorService {
+
+    private static final Logger LOGGER =
+            Logger.getLogger(
+                    FolderReconstructorService.class.getName());
 
     public static String execute(
             String productionPath,
             String baseDomainPath) throws IOException {
+
+        StringBuilder logs = new StringBuilder();
+
+        int mappedCount = 0;
+        int unmappedCount = 0;
+        int duplicateCount = 0;
+        int jspCount = 0;
+        int totalFiles = 0;
+
+        validateInputs(
+                productionPath,
+                baseDomainPath);
 
         Date date = new Date();
 
@@ -18,18 +37,60 @@ public class FolderReconstructorService {
 
         String strDate = sdf.format(date);
 
-        Path baseDomain = Paths.get(baseDomainPath);
+        Path baseDomain =
+                Paths.get(baseDomainPath);
 
-        Path prodFolder = Paths.get(productionPath);
+        Path prodFolder =
+                Paths.get(productionPath);
 
         Path outputFolder =
-                Paths.get("E:/Reconstructed/base_domain" + strDate);
+                Paths.get(
+                        "E:/Reconstructed/base_domain"
+                                + strDate);
+
+        LOGGER.info(
+                "Production Folder : "
+                        + prodFolder.toAbsolutePath());
+
+        LOGGER.info(
+                "Base Domain Folder : "
+                        + baseDomain.toAbsolutePath());
+
+        LOGGER.info(
+                "Output Folder : "
+                        + outputFolder.toAbsolutePath());
+
+        logs.append("====================================\n");
+        logs.append("Folder Reconstruction Started\n");
+        logs.append("====================================\n\n");
+
+        logs.append("Production Folder : ")
+                .append(prodFolder.toAbsolutePath())
+                .append("\n");
+
+        logs.append("Base Domain Folder : ")
+                .append(baseDomain.toAbsolutePath())
+                .append("\n");
+
+        logs.append("Output Folder : ")
+                .append(outputFolder.toAbsolutePath())
+                .append("\n\n");
 
         List<String> allowedFolders =
                 loadAllowedFolders();
 
+        logs.append("Allowed Folders : ")
+                .append(allowedFolders)
+                .append("\n\n");
+
         Map<String, List<Path>> fileMap =
-                buildLocalFileMap(baseDomain, allowedFolders);
+                buildLocalFileMap(
+                        baseDomain,
+                        allowedFolders);
+
+        logs.append("Indexed File Map Size : ")
+                .append(fileMap.size())
+                .append("\n\n");
 
         Files.createDirectories(outputFolder);
 
@@ -38,8 +99,16 @@ public class FolderReconstructorService {
 
             for (Path prodFile : stream) {
 
-                if (!Files.isRegularFile(prodFile))
+                if (!Files.isRegularFile(prodFile)) {
+
+                    LOGGER.warning(
+                            "Skipping Non Regular File : "
+                                    + prodFile);
+
                     continue;
+                }
+
+                totalFiles++;
 
                 String originalName =
                         prodFile.getFileName().toString();
@@ -47,9 +116,22 @@ public class FolderReconstructorService {
                 String normalizedName =
                         normalizeFileName(originalName);
 
+                LOGGER.info(
+                        "Processing File : "
+                                + normalizedName);
+
+                logs.append("------------------------------------\n");
+                logs.append("FILE : ")
+                        .append(normalizedName)
+                        .append("\n");
+
                 Path targetPath;
 
-                if (normalizedName.toLowerCase().endsWith(".jsp")) {
+                if (normalizedName
+                        .toLowerCase()
+                        .endsWith(".jsp")) {
+
+                    jspCount++;
 
                     boolean isRelVal =
                             isReleaseValidationJsp(prodFile);
@@ -61,37 +143,85 @@ public class FolderReconstructorService {
                                         "EE.ear/EximBillWeb.war/SCRN/releaseValidation/"
                                                 + normalizedName);
 
+                        logs.append("TYPE : JSP RELEASE VALIDATION\n");
+
+                        LOGGER.info(
+                                "JSP Release Validation : "
+                                        + normalizedName);
+
                     } else {
 
                         targetPath =
                                 outputFolder.resolve(
                                         "EE.ear/EximBillWeb.war/SCRN/"
                                                 + normalizedName);
+
+                        logs.append("TYPE : JSP SCRN\n");
+
+                        LOGGER.info(
+                                "JSP SCRN : "
+                                        + normalizedName);
                     }
 
                 } else {
 
                     List<Path> matches =
-                            fileMap.get(normalizedName.toLowerCase());
+                            fileMap.get(
+                                    normalizedName.toLowerCase());
 
-                    if (matches != null && matches.size() == 1) {
+                    if (matches != null
+                            && matches.size() == 1) {
+
+                        mappedCount++;
 
                         targetPath =
-                                outputFolder.resolve(matches.get(0));
+                                outputFolder.resolve(
+                                        matches.get(0));
 
-                    } else if (matches != null && matches.size() > 1) {
+                        logs.append("STATUS : MAPPED\n");
+
+                        logs.append("TARGET : ")
+                                .append(targetPath)
+                                .append("\n");
+
+                        LOGGER.info(
+                                "Mapped : "
+                                        + normalizedName);
+
+                    } else if (matches != null
+                            && matches.size() > 1) {
+
+                        duplicateCount++;
 
                         targetPath =
                                 outputFolder.resolve(
                                         "FOUND_IN_MULTIPLE_FOLDERS/"
                                                 + normalizedName);
 
+                        logs.append("STATUS : DUPLICATE MATCH\n");
+
+                        logs.append("MATCHES : ")
+                                .append(matches)
+                                .append("\n");
+
+                        LOGGER.warning(
+                                "Duplicate Match : "
+                                        + normalizedName);
+
                     } else {
+
+                        unmappedCount++;
 
                         targetPath =
                                 outputFolder.resolve(
                                         "UNMAPPED/"
                                                 + normalizedName);
+
+                        logs.append("STATUS : UNMAPPED\n");
+
+                        LOGGER.warning(
+                                "Unmapped : "
+                                        + normalizedName);
                     }
                 }
 
@@ -102,10 +232,97 @@ public class FolderReconstructorService {
                         prodFile,
                         targetPath,
                         StandardCopyOption.REPLACE_EXISTING);
+
+                logs.append("COPIED TO : ")
+                        .append(targetPath)
+                        .append("\n");
             }
         }
 
-        return outputFolder.toString();
+        logs.append("\n====================================\n");
+        logs.append("EXECUTION SUMMARY\n");
+        logs.append("====================================\n");
+
+        logs.append("Total Files      : ")
+                .append(totalFiles)
+                .append("\n");
+
+        logs.append("Mapped Files     : ")
+                .append(mappedCount)
+                .append("\n");
+
+        logs.append("Unmapped Files   : ")
+                .append(unmappedCount)
+                .append("\n");
+
+        logs.append("Duplicate Files  : ")
+                .append(duplicateCount)
+                .append("\n");
+
+        logs.append("JSP Files        : ")
+                .append(jspCount)
+                .append("\n");
+
+        logs.append("\nOutput Folder : ")
+                .append(outputFolder.toAbsolutePath())
+                .append("\n");
+
+        logs.append("\n====================================\n");
+        logs.append("Execution Completed Successfully");
+        logs.append("\n====================================\n");
+
+        LOGGER.info("Execution Completed Successfully");
+
+        return logs.toString();
+    }
+
+    private static void validateInputs(
+            String productionPath,
+            String baseDomainPath) {
+
+        if (productionPath == null
+                || productionPath.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Production path is mandatory");
+        }
+
+        if (baseDomainPath == null
+                || baseDomainPath.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Base domain path is mandatory");
+        }
+
+        Path prodFolder =
+                Paths.get(productionPath);
+
+        Path baseDomain =
+                Paths.get(baseDomainPath);
+
+        if (!Files.exists(prodFolder)) {
+
+            throw new IllegalArgumentException(
+                    "Production folder does not exist");
+        }
+
+        if (!Files.isDirectory(prodFolder)) {
+
+            throw new IllegalArgumentException(
+                    "Production path is not a directory");
+        }
+
+        if (!Files.exists(baseDomain)) {
+
+            throw new IllegalArgumentException(
+                    "Base domain folder does not exist");
+        }
+
+        if (!Files.isDirectory(baseDomain)) {
+
+            throw new IllegalArgumentException(
+                    "Base domain path is not a directory");
+        }
     }
 
     private static List<String> loadAllowedFolders() {
@@ -125,7 +342,11 @@ public class FolderReconstructorService {
             List<String> allowedFolders)
             throws IOException {
 
-        Map<String, List<Path>> map = new HashMap<>();
+        Map<String, List<Path>> map =
+                new HashMap<>();
+
+        LOGGER.info(
+                "Building Local File Map");
 
         Files.walk(baseDomain, 10)
                 .filter(Files::isRegularFile)
@@ -141,7 +362,8 @@ public class FolderReconstructorService {
 
                     boolean isAllowed =
                             allowedFolders.stream()
-                                    .anyMatch(relativePathStr::startsWith);
+                                    .anyMatch(
+                                            relativePathStr::startsWith);
 
                     if (isAllowed) {
 
@@ -157,22 +379,30 @@ public class FolderReconstructorService {
                     }
                 });
 
+        LOGGER.info(
+                "File Map Created Successfully");
+
         return map;
     }
 
-    private static String normalizeFileName(String fileName) {
+    private static String normalizeFileName(
+            String fileName) {
 
-        String lower = fileName.toLowerCase();
+        String lower =
+                fileName.toLowerCase();
 
         if (lower.endsWith(".txt")) {
-            return fileName.substring(0,
+
+            return fileName.substring(
+                    0,
                     fileName.length() - 4);
         }
 
         return fileName;
     }
 
-    private static boolean isReleaseValidationJsp(Path file) {
+    private static boolean isReleaseValidationJsp(
+            Path file) {
 
         try {
 
@@ -182,23 +412,20 @@ public class FolderReconstructorService {
             String text =
                     new String(
                             content,
-                            java.nio.charset.StandardCharsets.ISO_8859_1);
+                            StandardCharsets.ISO_8859_1);
 
             return text.contains("<%@include")
                     && text.contains("RelVal.jsp");
 
         } catch (IOException e) {
 
-            e.printStackTrace();
+            LOGGER.log(
+                    Level.SEVERE,
+                    "Error Reading JSP File : "
+                            + file,
+                    e);
         }
 
         return false;
     }
 }
-
-
-
-
-
-
-add loggers and rewrite
