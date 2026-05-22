@@ -1,101 +1,93 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Utility Dashboard</title>
-
 <style>
-    *{
-        margin:0;
-        padding:0;
-        box-sizing:border-box;
-        font-family:Arial,sans-serif;
-    }
 
-    body{
-        height:100vh;
-        display:flex;
-        flex-direction:column;
-        overflow:hidden;
-    }
+body{
+    margin:0;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+}
 
-    .topbar{
-        height:60px;
-        background:#1e293b;
-        display:flex;
-        align-items:center;
-        gap:10px;
-        padding:10px;
-        border-bottom:2px solid #0f172a;
-    }
+.topbar{
+    background:#222;
+    padding:10px;
+}
 
-    .topbar button{
-        padding:10px 18px;
-        border:none;
-        border-radius:6px;
-        background:#334155;
-        color:white;
-        cursor:pointer;
-        transition:0.2s;
-    }
+button{
+    padding:10px;
+    margin-right:5px;
+    cursor:pointer;
+}
 
-    .topbar button:hover{
-        background:#475569;
-    }
+.container{
+    flex:1;
+    position:relative;
+}
 
-    .topbar button.active{
-        background:#2563eb;
-    }
+.tool-frame{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    border:none;
+    display:none;
+}
 
-    .content{
-        flex:1;
-    }
+.tool-frame.active{
+    display:block;
+}
 
-    iframe{
-        width:100%;
-        height:100%;
-        border:none;
-        background:white;
-    }
 </style>
 </head>
 
 <body>
 
 <div class="topbar">
-    <button onclick="loadPage(this,'tools/sql-generator.html')" class="active">
-        SQL Tool
-    </button>
-
-    <button onclick="loadPage(this,'tools/tracker.html')">
-        Tracker
-    </button>
-
-    <button onclick="loadPage(this,'tools/mq-tool.html')">
-        MQ Tool
-    </button>
-
-    <button onclick="loadPage(this,'tools/report.html')">
-        Reports
-    </button>
+    <button onclick="showTab('tool1')">Tool 1</button>
+    <button onclick="showTab('tool2')">Tool 2</button>
+    <button onclick="showTab('tool3')">Tool 3</button>
 </div>
 
-<div class="content">
-    <iframe id="toolFrame" src="tools/sql-generator.html"></iframe>
+<div class="container">
+
+    <iframe
+        id="tool1"
+        class="tool-frame active"
+        src="tools/tool1.html">
+    </iframe>
+
+    <iframe
+        id="tool2"
+        class="tool-frame"
+        src="tools/tool2.html">
+    </iframe>
+
+    <iframe
+        id="tool3"
+        class="tool-frame"
+        src="tools/tool3.html">
+    </iframe>
+
 </div>
 
 <script>
-    function loadPage(button, page){
 
-        document.querySelectorAll(".topbar button")
-            .forEach(btn => btn.classList.remove("active"));
+function showTab(id){
 
-        button.classList.add("active");
+    document
+        .querySelectorAll('.tool-frame')
+        .forEach(frame => {
+            frame.classList.remove('active');
+        });
 
-        document.getElementById("toolFrame").src = page;
-    }
+    document
+        .getElementById(id)
+        .classList.add('active');
+}
+
 </script>
 
 </body>
