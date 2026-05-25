@@ -1,120 +1,108 @@
-package com.tcs.git.servlet;
+const selected = Array.from(
+    document.querySelectorAll('.add-file-check:checked')
+).map(el => el.value);
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Consumer;
+if (!selected.length) {
+    showToast('Select at least one file to add', 'err');
+    return;
+}
 
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+out(`[INFO] Starting commit and push for ${cmtMsg} on ${currentRegion.toUpperCase()}...`);
 
-import com.tcs.git.GitAutomationService;
-import com.tcs.git.util.AppLogger;
+const isAllFilesChecked =
+    document.getElementById("isAllFilesChecked").value;
 
-/**
- * Streams commit-and-push progress via Server-Sent Events (SSE).
- *
- * Step 1 â€” uses AppLogger.combined() so every log line goes to both
- *           the browser terminal and the daily log file simultaneously.
- *
- * GET /api/git/commit/stream?region=ee&cr=CR-1234
- */
+try {
 
-@WebServlet("/api/git/commit/stream")
-public class CommitServlet extends HttpServlet {
+    const response = await fetch(
+        `${API}/commit/stream?region=${currentRegion}&cr=${encodeURIComponent(cmtMsg)}&isAllFilesChecked=${isAllFilesChecked}`,
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain'
+            },
+            body: selected.join('\n')
+        }
+    );
 
-    private static final long serialVersionUID = 1L;
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
 
-	@Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
-        String region = sanitize(req.getParameter("region"));
-        String cr     = req.getParameter("cr");
-        int commitAll = Integer.parseInt(req.getParameter("isAllFilesChecked"));
-        List<String> files = readLines(req);
+    let buffer = '';
 
-        if (region == null || cr == null || cr.isEmpty()) {
-            resp.sendError(400, "region and cr are required");
-            return;
+    while (true) {
+
+        const { done, value } = await reader.read();
+
+        if (done) {
+            break;
         }
 
-        resp.setContentType("text/event-stream");
-        resp.setCharacterEncoding("UTF-8");
-        resp.setHeader("Cache-Control", "no-cache");
-        resp.setHeader("X-Accel-Buffering", "no");
+        buffer += decoder.decode(value, { stream: true });
 
-        PrintWriter out = resp.getWriter();
+        const events = buffer.split('\n\n');
 
-        // Step 1: combined logger = file AND browser SSE stream 
-        AppLogger.logSeparator();
-        AppLogger.log("[COMMIT] region=" + region + "  cr=" + cr);
+        buffer = events.pop();
 
-        Consumer<String> logger = AppLogger.combined(
-            line -> sendEvent(out, "log", line)
-        );
+        for (const evt of events) {
 
-        try {
-            boolean committed = GitAutomationService.commitSelected(
-                region,
-                cr,
-                files,
-                logger,
-                stage -> {
-                    AppLogger.log("[STAGE] " + stage.name());
-                    sendEvent(out, "stage", stage.name());
-                },
-                pct -> sendEvent(out, "progress", String.valueOf(pct)),
-                commitAll 
-            );
+            const lines = evt.split('\n');
 
-            if (committed) {
-                sendEvent(out, "done", "");
-                AppLogger.log("[COMMIT] completed successfully  cr=" + cr);
-            } else {
-                sendEvent(out, "noop", "No files added to commit. Click Add first, select files, then commit and push.");
-                AppLogger.log("[COMMIT] skipped - no staged files  cr=" + cr);
-            }
+            let eventName = '';
+            let data = '';
 
-        } catch (Exception e) {
-            // Step 3 â€” full stacktrace to file; short message to browser
-            AppLogger.logException("CommitServlet: commit failed  cr=" + cr, e, logger);
-            sendEvent(out, "error", e.getMessage());
-        } finally {
-            AppLogger.logSeparator();
-            out.flush();
-        }
-    }
+            for (const line of lines) {
 
-    private void sendEvent(PrintWriter out, String event, String data) {
-        String safe = data == null ? "" : data.replace("\n", "\\n");
-        out.write("event: " + event + "\n");
-        out.write("data: "  + safe  + "\n\n");
-        out.flush();
-    }
+                if (line.startsWith('event:')) {
+                    eventName = line.substring(6).trim();
+                }
 
-    private String sanitize(String s) {
-        if (s == null) return null;
-        s = s.trim().toLowerCase();
-        return (s.equals("ee") || s.equals("ce")) ? s : null;
-    }
-    
-    private List<String> readLines(HttpServletRequest req) throws IOException {
-        List<String> files = new ArrayList<>();
-        try (BufferedReader reader = req.getReader()) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (!line.isEmpty()) {
-                    files.add(line);
+                if (line.startsWith('data:')) {
+                    data = line.substring(5).trim();
                 }
             }
+
+            switch (eventName) {
+
+                case 'log':
+                    out(data);
+                    break;
+
+                case 'progress':
+                    setProgress(parseInt(data));
+                    break;
+
+                case 'stage':
+                    setStage(data);
+                    out(`[STAGE] ${data}`, 'stage');
+                    break;
+
+                case 'done':
+                    out('[INFO] Commit pushed successfully.', 'success');
+                    setProgress(100);
+                    setStage('DONE');
+                    document.getElementById('commitMsg').value = cmtMsg;
+                    break;
+
+                case 'noop':
+                    out('[CLEAN] ' + data, 'success');
+                    hideProgress();
+                    break;
+
+                case 'error':
+                    out('[ERROR] ' + data, 'error');
+                    hideProgress();
+                    break;
+            }
         }
-        return files;
     }
+
+} catch (err) {
+
+    out('[ERROR] ' + err.message, 'error');
+    hideProgress();
 }
