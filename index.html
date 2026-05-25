@@ -1,122 +1,21 @@
-[11:48:58]  ============================================================
-[11:48:58]  [COMMIT] region=ee  cr=CR_25110040_v1013325_unw8
-[11:48:58]  [GIT CMD]  $ E:\git\GIT\bin\git.exe diff --cached --name-only
-[11:48:58]  [GIT REPO] E:\gitClone\tf_ee_pre_dev
-[11:48:58]  [GIT OUT]  base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Outward_Remittance_DEO.jsp
-[11:48:59]  [GIT EXIT] 0 (success)
-[11:48:59]  Attempt 1 of 3
-[11:48:59]  [STAGE] REBASING
-[11:48:59]  [INFO]  Fetching latest changes via rebase...
-[11:48:59]  [INFO]  Rebasing from origin/PREDEV
-[11:48:59]  [GIT CMD]  $ E:\git\GIT\bin\git.exe pull --rebase --autostash origin PREDEV
-[11:48:59]  [GIT REPO] E:\gitClone\tf_ee_pre_dev
-[11:49:04]  [GIT OUT]  From https://10.177.140.236/gitlab/root/tf_ee_pre_dev
-[11:49:04]  [GIT OUT]   * branch                PREDEV     -> FETCH_HEAD
-[11:49:04]  [GIT OUT]     f5b276ce1..d50beb7cf  PREDEV     -> origin/PREDEV
-[11:49:08]  [GIT OUT]  Created autostash: 662aba170
-[11:49:08]  [GIT OUT]  First, rewinding head to replay your work on top of it...
-[11:49:08]  [GIT OUT]  Fast-forwarded PREDEV to d50beb7cf45874009bdb4dff6b36912f052af7e4.
-[11:49:11]  [GIT OUT]  Applied autostash.
-[11:49:12]  [GIT EXIT] 0 (success)
-[11:49:12]  ----- GIT OUTPUT -----
-[11:49:12]  From https://10.177.140.236/gitlab/root/tf_ee_pre_dev
- * branch                PREDEV     -> FETCH_HEAD
-   f5b276ce1..d50beb7cf  PREDEV     -> origin/PREDEV
-Created autostash: 662aba170
-First, rewinding head to replay your work on top of it...
-Fast-forwarded PREDEV to d50beb7cf45874009bdb4dff6b36912f052af7e4.
-Applied autostash.
-[11:49:12]  ----------------------
-[11:49:12]  [STAGE] STAGING
-[11:49:12]  Staging files...
-[11:49:12]  [INFO]  Using files already added to staging area.
-[11:49:12]  [GIT CMD]  $ E:\git\GIT\bin\git.exe config user.name
-[11:49:12]  [GIT REPO] E:\gitClone\tf_ee_pre_dev
-[11:49:13]  [GIT OUT]  sairam ganganaboina
-[11:49:13]  [GIT EXIT] 0 (success)
-[11:49:13]  [GIT CMD]  $ E:\git\GIT\bin\git.exe config user.email
-[11:49:13]  [GIT REPO] E:\gitClone\tf_ee_pre_dev
-[11:49:14]  [GIT OUT]  ganganaboina.sairam.tftcs@sbi.co.in
-[11:49:14]  [GIT EXIT] 0 (success)
-[11:49:14]  [STAGE] COMMITTING
-[11:49:14]  [INFO]  Committing: CR_25110040_v1013325_unw8
-[11:49:14]  [GIT CMD]  $ E:\git\GIT\bin\git.exe commit -m CR_25110040_v1013325_unw8
-[11:49:14]  [GIT REPO] E:\gitClone\tf_ee_pre_dev
-[11:49:16]  [GIT OUT]  On branch PREDEV
-[11:49:16]  [GIT OUT]  Your branch is up to date with 'origin/PREDEV'.
-[11:49:16]  [GIT OUT]  
-[11:49:16]  [GIT OUT]  Changes not staged for commit:
-[11:49:16]  [GIT OUT]    (use "git add <file>..." to update what will be committed)
-[11:49:16]  [GIT OUT]    (use "git restore <file>..." to discard changes in working directory)
-[11:49:16]  [GIT OUT]  	modified:   base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Outward_Remittance_DEO.jsp
-[11:49:16]  [GIT OUT]  
-[11:49:16]  [GIT OUT]  no changes added to commit (use "git add" and/or "git commit -a")
-[11:49:16]  [GIT EXIT] 1 (FAILURE)
-[11:49:16]  [GIT FAIL] Git command failed (exit 1):
-E:\git\GIT\bin\git.exe commit -m CR_25110040_v1013325_unw8
+	  const selected = Array.from(document.querySelectorAll('.add-file-check:checked')).map(el => el.value);
+      if (!selected.length) {
+        showToast('Select at least one file to add', 'err');
+        return;
+      }
 
-On branch PREDEV
-Your branch is up to date with 'origin/PREDEV'.
-
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-	modified:   base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Outward_Remittance_DEO.jsp
-
-no changes added to commit (use "git add" and/or "git commit -a")
-
-[11:49:16]  [EXCEPTION] CommitServlet: commit failed  cr=CR_25110040_v1013325_unw8
-[11:49:16]  [EXCEPTION] java.lang.RuntimeException: Git command failed (exit 1):
-E:\git\GIT\bin\git.exe commit -m CR_25110040_v1013325_unw8
-
-On branch PREDEV
-Your branch is up to date with 'origin/PREDEV'.
-
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-	modified:   base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Outward_Remittance_DEO.jsp
-
-no changes added to commit (use "git add" and/or "git commit -a")
-
-             at com.tcs.git.GitCli.run(GitCli.java:62)
-             at com.tcs.git.GitAutomationService.commitSelected(GitAutomationService.java:116)
-             at com.tcs.git.servlet.CommitServlet.doGet(CommitServlet.java:58)
-             at javax.servlet.http.HttpServlet.service(HttpServlet.java:529)
-             at javax.servlet.http.HttpServlet.service(HttpServlet.java:623)
-             at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:210)
-             at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:154)
-             at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
-             at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:179)
-             at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:154)
-             at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:168)
-             at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
-             at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:481)
-             at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:130)
-             at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
-             at org.apache.catalina.valves.AbstractAccessLogValve.invoke(AbstractAccessLogValve.java:670)
-             at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
-             at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:346)
-             at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:390)
-             at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
-             at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:928)
-             at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1786)
-             at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
-             at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
-             at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
-             at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
-             at java.lang.Thread.run(Thread.java:748)
-[11:49:16]  [ERROR] RuntimeException: Git command failed (exit 1):
-E:\git\GIT\bin\git.exe commit -m CR_25110040_v1013325_unw8
-
-On branch PREDEV
-Your branch is up to date with 'origin/PREDEV'.
-
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-	modified:   base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Outward_Remittance_DEO.jsp
-
-no changes added to commit (use "git add" and/or "git commit -a")
-
-[11:49:16]  ============================================================
+      out(`[INFO] Starting commit and push for ${cmtMsg} on ${currentRegion.toUpperCase()}...`);
+      const isAllFilesChecked = document.getElementById("isAllFilesChecked").value;
+      try {
+        const es = new EventSource(`${API}/commit/stream?region=${currentRegion}&cr=${encodeURIComponent(cmtMsg)}&isAllFilesChecked=${isAllFilesChecked}`);
+        es.addEventListener('log', e => out(e.data));
+        es.addEventListener('progress', e => setProgress(parseInt(e.data)));
+        es.addEventListener('stage', e => { setStage(e.data); out(`[STAGE] ${e.data}`, 'stage'); });
+        es.addEventListener('done', e => { es.close(); out('[INFO] Commit pushed successfully.', 'success'); setProgress(100); setStage('DONE'); document.getElementById('commitMsg').value = cmtMsg; });
+        es.addEventListener('noop', e => { es.close(); out('[CLEAN] ' + e.data, 'success'); hideProgress(); });
+        es.addEventListener('error', e => { es.close(); out('[ERROR] Commit and push failed.', 'error'); });
+      } catch (err) { out('[ERROR] ' + err.message, 'error'); hideProgress(); }
+	  
+	  
+now i need to send the req body , body: selected.join('\n') , how to send it  
+	  
