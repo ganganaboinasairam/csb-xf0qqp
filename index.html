@@ -1,74 +1,245 @@
-package fileSplitter;
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Large File Splitter</title>
+</head>
+<body>
 
+<h2>Large File Splitter</h2>
+
+<div>
+
+    <input type="text"
+           id="inputFilePath"
+           placeholder="Large File Path">
+
+    <br><br>
+
+    <input type="text"
+           id="outputFolderPath"
+           placeholder="Output Folder Path">
+
+    <br><br>
+
+    <input type="number"
+           id="linesPerFile"
+           value="20000"
+           placeholder="Lines Per File">
+
+    <br><br>
+
+    <button onclick="splitFile()">
+        Split File
+    </button>
+
+</div>
+
+<pre id="result"></pre>
+
+<script>
+
+async function splitFile() {
+
+    const payload = {
+        inputFilePath:
+            document.getElementById("inputFilePath").value,
+
+        outputFolderPath:
+            document.getElementById("outputFolderPath").value,
+
+        linesPerFile:
+            document.getElementById("linesPerFile").value
+    };
+
+    const response = await fetch("split-file", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const result = await response.text();
+
+    document.getElementById("result").innerText = result;
+}
+
+</script>
+
+</body>
+</html>
+
+
+package fileSplitter;
 
 import java.io.*;
 import java.nio.file.*;
-import javax.swing.*;
 
-public class LargeFileSplitter {
-    public static void main(String[] args) {
-        // Open a file chooser for the input file
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Select the large text file");
-        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
 
-        int fileResult = fileChooser.showOpenDialog(null);
-        if (fileResult != JFileChooser.APPROVE_OPTION) {
-            System.out.println("No file selected. Exiting...");
-            return;
-        }
+@WebServlet("/split-file")
+public class LargeFileSplitterServlet extends HttpServlet {
 
-        String inputFilePath = fileChooser.getSelectedFile().getAbsolutePath();
-        String fileName = fileChooser.getSelectedFile().getName();
-        String baseName = fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf(".")) : fileName;
+    @Override
+    protected void doPost(HttpServletRequest request,
+                          HttpServletResponse response)
+            throws IOException {
 
-        // Open a folder chooser for the output directory
-        JFileChooser folderChooser = new JFileChooser();
-        folderChooser.setDialogTitle("Select output folder");
-        folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-
-        int folderResult = folderChooser.showOpenDialog(null);
-        if (folderResult != JFileChooser.APPROVE_OPTION) {
-            System.out.println("No output folder selected. Exiting...");
-            return;
-        }
-
-        String outputDirPath = folderChooser.getSelectedFile().getAbsolutePath() + File.separator;
-
-        int linesPerFile = 20000;  // You can modify this value
+        response.setContentType("text/plain");
 
         try {
-            // Create output directory if it doesn't exist
-            Files.createDirectories(Paths.get(outputDirPath));
 
-            BufferedReader reader = new BufferedReader(new FileReader(inputFilePath));
+            StringBuilder jsonBuilder = new StringBuilder();
+
+            BufferedReader reader =
+                    request.getReader();
+
             String line;
+
+            while ((line = reader.readLine()) != null) {
+                jsonBuilder.append(line);
+            }
+
+            String json = jsonBuilder.toString();
+
+            String inputFilePath =
+                    extractJsonValue(json, "inputFilePath");
+
+            String outputFolderPath =
+                    extractJsonValue(json, "outputFolderPath");
+
+            int linesPerFile =
+                    Integer.parseInt(
+                            extractJsonValue(
+                                    json,
+                                    "linesPerFile"
+                            )
+                    );
+
+            File inputFile = new File(inputFilePath);
+
+            if (!inputFile.exists()) {
+
+                response.getWriter().write(
+                        "Input file not found"
+                );
+
+                return;
+            }
+
+            Files.createDirectories(
+                    Paths.get(outputFolderPath)
+            );
+
+            String fileName = inputFile.getName();
+
+            String baseName =
+                    fileName.contains(".")
+                    ? fileName.substring(
+                        0,
+                        fileName.lastIndexOf(".")
+                    )
+                    : fileName;
+
+            BufferedReader fileReader =
+                    new BufferedReader(
+                            new FileReader(inputFile)
+                    );
+
             int fileCount = 1;
             int lineCount = 0;
-            BufferedWriter writer = new BufferedWriter(new FileWriter(outputDirPath + baseName + "_" + fileCount + ".txt"));
 
-            // Read lines from the input file and write to smaller files
-            while ((line = reader.readLine()) != null) {
+            BufferedWriter writer =
+                    new BufferedWriter(
+                            new FileWriter(
+                                    outputFolderPath
+                                    + File.separator
+                                    + baseName
+                                    + "_"
+                                    + fileCount
+                                    + ".txt"
+                            )
+                    );
+
+            String fileLine;
+
+            while ((fileLine = fileReader.readLine()) != null) {
+
                 if (lineCount == linesPerFile) {
+
                     writer.close();
+
                     fileCount++;
                     lineCount = 0;
-                    writer = new BufferedWriter(new FileWriter(outputDirPath + baseName + "_" + fileCount + ".txt"));
+
+                    writer =
+                            new BufferedWriter(
+                                    new FileWriter(
+                                            outputFolderPath
+                                            + File.separator
+                                            + baseName
+                                            + "_"
+                                            + fileCount
+                                            + ".txt"
+                                    )
+                            );
                 }
-                writer.write(line);
+
+                writer.write(fileLine);
                 writer.newLine();
+
                 lineCount++;
             }
 
-            // Close the last writer
             writer.close();
-            reader.close();
+            fileReader.close();
 
-            System.out.println("File split successfully into " + fileCount + " parts in: " + outputDirPath);
-        } catch (IOException e) {
-            System.out.println("Error: " + e.getMessage());
+            response.getWriter().write(
+                    "File split successfully into "
+                    + fileCount
+                    + " files"
+            );
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            response.getWriter().write(
+                    "Error : " + e.getMessage()
+            );
         }
     }
+
+    private String extractJsonValue(String json,
+                                    String key) {
+
+        String search = "\"" + key + "\":";
+
+        int start = json.indexOf(search);
+
+        if (start == -1) {
+            return "";
+        }
+
+        start += search.length();
+
+        while (json.charAt(start) == ' '
+                || json.charAt(start) == '"') {
+
+            start++;
+        }
+
+        int end = start;
+
+        while (end < json.length()
+                && json.charAt(end) != '"'
+                && json.charAt(end) != ','
+                && json.charAt(end) != '}') {
+
+            end++;
+        }
+
+        return json.substring(start, end).trim();
+    }
 }
-
-
