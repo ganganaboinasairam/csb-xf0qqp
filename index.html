@@ -1,28 +1,743 @@
-example log :
+<!DOCTYPE html>
+<html lang="en">
 
-"
-[start] [INFO] [2026-03-11 19:00:00.053] [System] ---------------------Begin 2026-03-11 19:00:00 051 --------------------- 
-SELECT C_SESSION_ID FROM EXIMUSER.SEC_USER_INFO WHERE C_USER_ID = '1065003' ; 
----------------------- End 2026-03-11 19:00:00 053 ------------------------ 
- [end]
+<head>
 
-[start] [INFO] [2026-03-11 19:00:00.084] [System] ---------------------Begin 2026-03-11 19:00:00 083 --------------------- 
-SELECT C_SESSION_ID FROM EXIMUSER.SEC_USER_INFO WHERE C_USER_ID = '5947855' ; 
----------------------- End 2026-03-11 19:00:00 084 ------------------------ 
- [end]
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
-[start] [INFO] [2026-03-11 19:00:00.099] [System] ---------------------Begin 2026-03-11 19:00:00 098 --------------------- 
-SELECT C_SESSION_ID FROM EXIMUSER.SEC_USER_INFO WHERE C_USER_ID = '1009548' ; 
----------------------- End 2026-03-11 19:00:00 098 ------------------------ 
- [end]
+<title>Log Extractor Tool</title>
 
-[start] [INFO] [2026-03-11 19:00:00.170] [System] ---------------------Begin 2026-03-11 19:00:00 169 --------------------- 
-SELECT C_SESSION_ID FROM EXIMUSER.SEC_USER_INFO WHERE C_USER_ID = '5947855' ; 
----------------------- End 2026-03-11 19:00:00 170 ------------------------ 
- [end]
- "
- 
- 
- i want to add time field (from and to) so that we can extract the  log between that time (24  hr format)
- 
- "awk '/2026-05-08 10:/,/2026-05-08 15:00:00/' "2026-05-08_[System]_EELog.log" > Filtered_10AM_3PM.log"
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+
+    font-family:Arial,sans-serif;
+
+    background:#f4f6f9;
+
+    min-height:100vh;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    padding:30px;
+}
+
+.container{
+
+    width:850px;
+
+    background:white;
+
+    border-radius:14px;
+
+    padding:30px;
+
+    box-shadow:
+        0 4px 20px rgba(0,0,0,0.12);
+}
+
+.title{
+
+    font-size:30px;
+
+    font-weight:bold;
+
+    margin-bottom:30px;
+
+    color:#222;
+}
+
+.form-group{
+
+    margin-bottom:20px;
+}
+
+.label{
+
+    display:block;
+
+    margin-bottom:8px;
+
+    font-size:15px;
+
+    font-weight:bold;
+
+    color:#444;
+}
+
+.input{
+
+    width:100%;
+
+    padding:13px;
+
+    border:1px solid #d0d0d0;
+
+    border-radius:10px;
+
+    font-size:14px;
+
+    outline:none;
+
+    transition:0.2s;
+}
+
+.input:focus{
+
+    border-color:#1976d2;
+
+    box-shadow:
+        0 0 0 3px rgba(25,118,210,0.15);
+}
+
+.time-row{
+
+    display:flex;
+
+    gap:20px;
+}
+
+.time-box{
+
+    flex:1;
+}
+
+.button-row{
+
+    display:flex;
+
+    gap:15px;
+
+    margin-top:25px;
+}
+
+.btn{
+
+    border:none;
+
+    padding:13px 22px;
+
+    border-radius:10px;
+
+    cursor:pointer;
+
+    font-size:14px;
+
+    font-weight:bold;
+
+    transition:0.2s;
+}
+
+.primary-btn{
+
+    background:#1976d2;
+
+    color:white;
+}
+
+.primary-btn:hover{
+
+    background:#1458a6;
+}
+
+.secondary-btn{
+
+    background:#e0e0e0;
+}
+
+.secondary-btn:hover{
+
+    background:#cfcfcf;
+}
+
+.output-container{
+
+    margin-top:35px;
+}
+
+.output-title{
+
+    font-size:18px;
+
+    font-weight:bold;
+
+    margin-bottom:10px;
+}
+
+.output-box{
+
+    width:100%;
+
+    height:300px;
+
+    background:#0f172a;
+
+    color:#00ff90;
+
+    border-radius:10px;
+
+    padding:15px;
+
+    overflow:auto;
+
+    white-space:pre-wrap;
+
+    font-family:Consolas,monospace;
+
+    font-size:13px;
+
+    border:1px solid #333;
+}
+
+.status{
+
+    margin-top:15px;
+
+    font-size:14px;
+
+    font-weight:bold;
+}
+
+.success{
+
+    color:green;
+}
+
+.error{
+
+    color:red;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="title">
+        Log Extractor Tool
+    </div>
+
+    <div class="form-group">
+
+        <label class="label">
+            Input Log File Path
+        </label>
+
+        <input type="text"
+               id="inputFilePath"
+               class="input"
+               placeholder="E:\\logs\\app.log">
+
+    </div>
+
+    <div class="form-group">
+
+        <label class="label">
+            Output File Path
+        </label>
+
+        <input type="text"
+               id="outputFilePath"
+               class="input"
+               placeholder="E:\\output\\filtered.log">
+
+    </div>
+
+    <div class="time-row">
+
+        <div class="time-box">
+
+            <label class="label">
+                From Time (24hr)
+            </label>
+
+            <input type="text"
+                   id="fromTime"
+                   class="input"
+                   placeholder="10:00">
+
+        </div>
+
+        <div class="time-box">
+
+            <label class="label">
+                To Time (24hr)
+            </label>
+
+            <input type="text"
+                   id="toTime"
+                   class="input"
+                   placeholder="15:00">
+
+        </div>
+
+    </div>
+
+    <div class="button-row">
+
+        <button class="btn primary-btn"
+                onclick="extractLogs()">
+
+            Extract Logs
+
+        </button>
+
+        <button class="btn secondary-btn"
+                onclick="clearOutput()">
+
+            Clear Output
+
+        </button>
+
+    </div>
+
+    <div id="status"
+         class="status"></div>
+
+    <div class="output-container">
+
+        <div class="output-title">
+            Console Output
+        </div>
+
+        <div id="outputBox"
+             class="output-box">
+
+Application logs will appear here...
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+function log(message){
+
+    const outputBox =
+        document.getElementById("outputBox");
+
+    const currentTime =
+        new Date().toLocaleTimeString();
+
+    outputBox.innerHTML +=
+        `[${currentTime}] ${message}\n`;
+
+    outputBox.scrollTop =
+        outputBox.scrollHeight;
+}
+
+function clearOutput(){
+
+    document.getElementById("outputBox")
+        .innerHTML = "";
+
+    document.getElementById("status")
+        .innerHTML = "";
+}
+
+function isValid24HourTime(time){
+
+    const regex =
+        /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+    return regex.test(time);
+}
+
+async function extractLogs(){
+
+    const inputFilePath =
+        document.getElementById(
+            "inputFilePath"
+        ).value.trim();
+
+    const outputFilePath =
+        document.getElementById(
+            "outputFilePath"
+        ).value.trim();
+
+    const fromTime =
+        document.getElementById(
+            "fromTime"
+        ).value.trim();
+
+    const toTime =
+        document.getElementById(
+            "toTime"
+        ).value.trim();
+
+    const status =
+        document.getElementById(
+            "status"
+        );
+
+    if(!inputFilePath){
+
+        alert("Enter input file path");
+
+        return;
+    }
+
+    if(!outputFilePath){
+
+        alert("Enter output file path");
+
+        return;
+    }
+
+    if(!isValid24HourTime(fromTime)){
+
+        alert(
+            "Invalid From Time. Use HH:mm"
+        );
+
+        return;
+    }
+
+    if(!isValid24HourTime(toTime)){
+
+        alert(
+            "Invalid To Time. Use HH:mm"
+        );
+
+        return;
+    }
+
+    status.innerHTML = "";
+
+    log("================================");
+    log("Starting log extraction...");
+    log("Input File : " + inputFilePath);
+    log("Output File : " + outputFilePath);
+    log("From Time : " + fromTime);
+    log("To Time : " + toTime);
+
+    try{
+
+        const response =
+            await fetch("extract-log", {
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+
+                inputFilePath:
+                    inputFilePath,
+
+                outputFilePath:
+                    outputFilePath,
+
+                fromTime:
+                    fromTime,
+
+                toTime:
+                    toTime
+            })
+        });
+
+        const result =
+            await response.text();
+
+        log(result);
+
+        status.innerHTML =
+            "Operation Completed";
+
+        status.className =
+            "status success";
+
+    }catch(error){
+
+        log(
+            "ERROR : "
+            + error.message
+        );
+
+        status.innerHTML =
+            "Operation Failed";
+
+        status.className =
+            "status error";
+    }
+}
+
+</script>
+
+</body>
+</html>
+
+
+package logExtractor;
+
+import java.io.*;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.regex.*;
+
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+
+@WebServlet("/extract-log")
+public class LogExtractorServlet extends HttpServlet {
+
+    private static final Pattern TIMESTAMP_PATTERN =
+            Pattern.compile(
+                    "\\[(\\d{4}-\\d{2}-\\d{2} "
+                    + "\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\]"
+            );
+
+    private static final DateTimeFormatter LOG_TIME_FORMAT =
+            DateTimeFormatter.ofPattern(
+                    "HH:mm:ss.SSS"
+            );
+
+    @Override
+    protected void doPost(HttpServletRequest request,
+                          HttpServletResponse response)
+            throws IOException {
+
+        response.setContentType("text/plain");
+
+        try {
+
+            StringBuilder jsonBuilder =
+                    new StringBuilder();
+
+            BufferedReader requestReader =
+                    request.getReader();
+
+            String reqLine;
+
+            while ((reqLine =
+                    requestReader.readLine()) != null) {
+
+                jsonBuilder.append(reqLine);
+            }
+
+            String json =
+                    jsonBuilder.toString();
+
+            String inputFilePath =
+                    extractJsonValue(
+                            json,
+                            "inputFilePath"
+                    );
+
+            String outputFilePath =
+                    extractJsonValue(
+                            json,
+                            "outputFilePath"
+                    );
+
+            String fromTimeStr =
+                    extractJsonValue(
+                            json,
+                            "fromTime"
+                    );
+
+            String toTimeStr =
+                    extractJsonValue(
+                            json,
+                            "toTime"
+                    );
+
+            LocalTime fromTime =
+                    LocalTime.parse(
+                            fromTimeStr
+                    );
+
+            LocalTime toTime =
+                    LocalTime.parse(
+                            toTimeStr
+                    );
+
+            BufferedReader fileReader =
+                    new BufferedReader(
+                            new FileReader(
+                                    inputFilePath
+                            )
+                    );
+
+            BufferedWriter writer =
+                    new BufferedWriter(
+                            new FileWriter(
+                                    outputFilePath
+                            )
+                    );
+
+            String line;
+
+            StringBuilder blockBuffer =
+                    new StringBuilder();
+
+            boolean insideBlock =
+                    false;
+
+            boolean shouldWriteBlock =
+                    false;
+
+            int matchedBlocks = 0;
+
+            while ((line =
+                    fileReader.readLine()) != null) {
+
+                if (line.contains("[start]")) {
+
+                    insideBlock = true;
+
+                    shouldWriteBlock = false;
+
+                    blockBuffer.setLength(0);
+                }
+
+                if (insideBlock) {
+
+                    blockBuffer
+                            .append(line)
+                            .append("\n");
+                }
+
+                if (line.contains("[INFO]")) {
+
+                    LocalTime logTime =
+                            extractTime(line);
+
+                    if (logTime != null) {
+
+                        if (!logTime.isBefore(fromTime)
+                                && !logTime.isAfter(toTime)) {
+
+                            shouldWriteBlock = true;
+                        }
+                    }
+                }
+
+                if (line.contains("[end]")) {
+
+                    insideBlock = false;
+
+                    if (shouldWriteBlock) {
+
+                        writer.write(
+                                blockBuffer.toString()
+                        );
+
+                        writer.newLine();
+
+                        matchedBlocks++;
+                    }
+                }
+            }
+
+            fileReader.close();
+
+            writer.close();
+
+            response.getWriter().write(
+
+                    "Log extraction completed successfully\n"
+                    + "Matched Blocks : "
+                    + matchedBlocks
+            );
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            response.getWriter().write(
+                    "ERROR : "
+                    + e.getMessage()
+            );
+        }
+    }
+
+    private LocalTime extractTime(
+            String line) {
+
+        try {
+
+            Matcher matcher =
+                    TIMESTAMP_PATTERN
+                            .matcher(line);
+
+            if (matcher.find()) {
+
+                String fullTimestamp =
+                        matcher.group(1);
+
+                String timePart =
+                        fullTimestamp
+                                .substring(11);
+
+                return LocalTime.parse(
+                        timePart,
+                        LOG_TIME_FORMAT
+                );
+            }
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private String extractJsonValue(
+            String json,
+            String key) {
+
+        String search =
+                "\"" + key + "\":";
+
+        int start =
+                json.indexOf(search);
+
+        if (start == -1) {
+
+            return "";
+        }
+
+        start += search.length();
+
+        while (json.charAt(start) == ' '
+                || json.charAt(start) == '"') {
+
+            start++;
+        }
+
+        int end = start;
+
+        while (end < json.length()
+                && json.charAt(end) != '"'
+                && json.charAt(end) != ','
+                && json.charAt(end) != '}') {
+
+            end++;
+        }
+
+        return json
+                .substring(start, end)
+                .trim();
+    }
+}
