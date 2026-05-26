@@ -1,245 +1,331 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Large File Splitter</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Large File Splitter</title>
+
+<style>
+
+    *{
+        margin:0;
+        padding:0;
+        box-sizing:border-box;
+    }
+
+    body{
+        font-family: Arial, sans-serif;
+        background:#f4f6f9;
+        height:100vh;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        padding:20px;
+    }
+
+    .container{
+        width:800px;
+        background:white;
+        border-radius:12px;
+        padding:30px;
+        box-shadow:0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .title{
+        font-size:28px;
+        font-weight:bold;
+        margin-bottom:25px;
+        color:#222;
+    }
+
+    .form-group{
+        margin-bottom:20px;
+    }
+
+    .label{
+        display:block;
+        margin-bottom:8px;
+        font-weight:bold;
+        color:#444;
+    }
+
+    .input{
+        width:100%;
+        padding:12px;
+        border:1px solid #ccc;
+        border-radius:8px;
+        font-size:14px;
+        outline:none;
+        transition:0.2s;
+    }
+
+    .input:focus{
+        border-color:#1976d2;
+        box-shadow:0 0 0 3px rgba(25,118,210,0.15);
+    }
+
+    .button-row{
+        display:flex;
+        gap:15px;
+        margin-top:10px;
+    }
+
+    .btn{
+        padding:12px 20px;
+        border:none;
+        border-radius:8px;
+        cursor:pointer;
+        font-size:14px;
+        font-weight:bold;
+        transition:0.2s;
+    }
+
+    .primary-btn{
+        background:#1976d2;
+        color:white;
+    }
+
+    .primary-btn:hover{
+        background:#1259a7;
+    }
+
+    .secondary-btn{
+        background:#e0e0e0;
+    }
+
+    .secondary-btn:hover{
+        background:#cfcfcf;
+    }
+
+    .output-container{
+        margin-top:30px;
+    }
+
+    .output-title{
+        font-size:18px;
+        font-weight:bold;
+        margin-bottom:10px;
+        color:#333;
+    }
+
+    .output-box{
+        width:100%;
+        height:250px;
+        background:#111827;
+        color:#00ff88;
+        border-radius:10px;
+        padding:15px;
+        overflow:auto;
+        font-family:Consolas, monospace;
+        font-size:13px;
+        white-space:pre-wrap;
+        border:1px solid #333;
+    }
+
+    .status{
+        margin-top:15px;
+        font-size:14px;
+        font-weight:bold;
+    }
+
+    .success{
+        color:green;
+    }
+
+    .error{
+        color:red;
+    }
+
+</style>
 </head>
+
 <body>
 
-<h2>Large File Splitter</h2>
+<div class="container">
 
-<div>
+    <div class="title">
+        Large File Splitter
+    </div>
 
-    <input type="text"
-           id="inputFilePath"
-           placeholder="Large File Path">
+    <div class="form-group">
+        <label class="label">
+            Large File Path
+        </label>
 
-    <br><br>
+        <input type="text"
+               id="inputFilePath"
+               class="input"
+               placeholder="E:\\files\\large.txt">
+    </div>
 
-    <input type="text"
-           id="outputFolderPath"
-           placeholder="Output Folder Path">
+    <div class="form-group">
+        <label class="label">
+            Output Folder Path
+        </label>
 
-    <br><br>
+        <input type="text"
+               id="outputFolderPath"
+               class="input"
+               placeholder="E:\\output">
+    </div>
 
-    <input type="number"
-           id="linesPerFile"
-           value="20000"
-           placeholder="Lines Per File">
+    <div class="form-group">
+        <label class="label">
+            Lines Per File
+        </label>
 
-    <br><br>
+        <input type="number"
+               id="linesPerFile"
+               class="input"
+               value="20000">
+    </div>
 
-    <button onclick="splitFile()">
-        Split File
-    </button>
+    <div class="button-row">
+
+        <button class="btn primary-btn"
+                onclick="splitFile()">
+            Split File
+        </button>
+
+        <button class="btn secondary-btn"
+                onclick="clearOutput()">
+            Clear Output
+        </button>
+
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div class="output-container">
+
+        <div class="output-title">
+            Console Output
+        </div>
+
+        <div id="outputBox" class="output-box">
+Application logs will appear here...
+        </div>
+
+    </div>
 
 </div>
 
-<pre id="result"></pre>
-
 <script>
 
-async function splitFile() {
+    function log(message){
 
-    const payload = {
-        inputFilePath:
-            document.getElementById("inputFilePath").value,
+        const outputBox =
+            document.getElementById("outputBox");
 
-        outputFolderPath:
-            document.getElementById("outputFolderPath").value,
+        const currentTime =
+            new Date().toLocaleTimeString();
 
-        linesPerFile:
-            document.getElementById("linesPerFile").value
-    };
+        outputBox.innerHTML +=
+            `[${currentTime}] ${message}\n`;
 
-    const response = await fetch("split-file", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-    });
+        outputBox.scrollTop =
+            outputBox.scrollHeight;
+    }
 
-    const result = await response.text();
+    function clearOutput(){
 
-    document.getElementById("result").innerText = result;
-}
+        document.getElementById("outputBox")
+            .innerHTML = "";
+
+        document.getElementById("status")
+            .innerHTML = "";
+    }
+
+    async function splitFile(){
+
+        const inputFilePath =
+            document.getElementById(
+                "inputFilePath"
+            ).value.trim();
+
+        const outputFolderPath =
+            document.getElementById(
+                "outputFolderPath"
+            ).value.trim();
+
+        const linesPerFile =
+            document.getElementById(
+                "linesPerFile"
+            ).value.trim();
+
+        const status =
+            document.getElementById("status");
+
+        if(!inputFilePath){
+            alert("Enter input file path");
+            return;
+        }
+
+        if(!outputFolderPath){
+            alert("Enter output folder path");
+            return;
+        }
+
+        if(!linesPerFile || linesPerFile <= 0){
+            alert("Enter valid lines count");
+            return;
+        }
+
+        status.innerHTML = "";
+        log("Starting file split process...");
+        log("Input File : " + inputFilePath);
+        log("Output Path : " + outputFolderPath);
+        log("Lines Per File : " + linesPerFile);
+
+        try{
+
+            const response =
+                await fetch("split-file", {
+
+                method:"POST",
+
+                headers:{
+                    "Content-Type":"application/json"
+                },
+
+                body:JSON.stringify({
+
+                    inputFilePath:
+                        inputFilePath,
+
+                    outputFolderPath:
+                        outputFolderPath,
+
+                    linesPerFile:
+                        linesPerFile
+                })
+            });
+
+            const result =
+                await response.text();
+
+            log(result);
+
+            status.innerHTML =
+                "Operation Completed";
+
+            status.className =
+                "status success";
+
+        }catch(error){
+
+            log("ERROR : " + error.message);
+
+            status.innerHTML =
+                "Operation Failed";
+
+            status.className =
+                "status error";
+        }
+    }
 
 </script>
 
 </body>
 </html>
-
-
-package fileSplitter;
-
-import java.io.*;
-import java.nio.file.*;
-
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.*;
-
-@WebServlet("/split-file")
-public class LargeFileSplitterServlet extends HttpServlet {
-
-    @Override
-    protected void doPost(HttpServletRequest request,
-                          HttpServletResponse response)
-            throws IOException {
-
-        response.setContentType("text/plain");
-
-        try {
-
-            StringBuilder jsonBuilder = new StringBuilder();
-
-            BufferedReader reader =
-                    request.getReader();
-
-            String line;
-
-            while ((line = reader.readLine()) != null) {
-                jsonBuilder.append(line);
-            }
-
-            String json = jsonBuilder.toString();
-
-            String inputFilePath =
-                    extractJsonValue(json, "inputFilePath");
-
-            String outputFolderPath =
-                    extractJsonValue(json, "outputFolderPath");
-
-            int linesPerFile =
-                    Integer.parseInt(
-                            extractJsonValue(
-                                    json,
-                                    "linesPerFile"
-                            )
-                    );
-
-            File inputFile = new File(inputFilePath);
-
-            if (!inputFile.exists()) {
-
-                response.getWriter().write(
-                        "Input file not found"
-                );
-
-                return;
-            }
-
-            Files.createDirectories(
-                    Paths.get(outputFolderPath)
-            );
-
-            String fileName = inputFile.getName();
-
-            String baseName =
-                    fileName.contains(".")
-                    ? fileName.substring(
-                        0,
-                        fileName.lastIndexOf(".")
-                    )
-                    : fileName;
-
-            BufferedReader fileReader =
-                    new BufferedReader(
-                            new FileReader(inputFile)
-                    );
-
-            int fileCount = 1;
-            int lineCount = 0;
-
-            BufferedWriter writer =
-                    new BufferedWriter(
-                            new FileWriter(
-                                    outputFolderPath
-                                    + File.separator
-                                    + baseName
-                                    + "_"
-                                    + fileCount
-                                    + ".txt"
-                            )
-                    );
-
-            String fileLine;
-
-            while ((fileLine = fileReader.readLine()) != null) {
-
-                if (lineCount == linesPerFile) {
-
-                    writer.close();
-
-                    fileCount++;
-                    lineCount = 0;
-
-                    writer =
-                            new BufferedWriter(
-                                    new FileWriter(
-                                            outputFolderPath
-                                            + File.separator
-                                            + baseName
-                                            + "_"
-                                            + fileCount
-                                            + ".txt"
-                                    )
-                            );
-                }
-
-                writer.write(fileLine);
-                writer.newLine();
-
-                lineCount++;
-            }
-
-            writer.close();
-            fileReader.close();
-
-            response.getWriter().write(
-                    "File split successfully into "
-                    + fileCount
-                    + " files"
-            );
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            response.getWriter().write(
-                    "Error : " + e.getMessage()
-            );
-        }
-    }
-
-    private String extractJsonValue(String json,
-                                    String key) {
-
-        String search = "\"" + key + "\":";
-
-        int start = json.indexOf(search);
-
-        if (start == -1) {
-            return "";
-        }
-
-        start += search.length();
-
-        while (json.charAt(start) == ' '
-                || json.charAt(start) == '"') {
-
-            start++;
-        }
-
-        int end = start;
-
-        while (end < json.length()
-                && json.charAt(end) != '"'
-                && json.charAt(end) != ','
-                && json.charAt(end) != '}') {
-
-            end++;
-        }
-
-        return json.substring(start, end).trim();
-    }
-}
