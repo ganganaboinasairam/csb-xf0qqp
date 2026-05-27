@@ -1,361 +1,41 @@
-package logExtractor;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import com.google.gson.Gson;
-
-@WebServlet("/extract-log")
-public class LogExtractorServlet extends HttpServlet {
-
-    private static final long serialVersionUID = 1L;
-
-    private static final Pattern TIMESTAMP_PATTERN =
-            Pattern.compile(
-                    "\\[(\\d{4}-\\d{2}-\\d{2} "
-                    + "\\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\]"
-            );
-
-    private static final DateTimeFormatter LOG_TIME_FORMAT =
-            DateTimeFormatter.ofPattern(
-                    "HH:mm:ss.SSS"
-            );
-
-    @Override
-    protected void doPost(HttpServletRequest request,
-                          HttpServletResponse response)
-            throws IOException {
-
-        response.setContentType("text/plain");
-
-        BufferedReader requestReader =
-                request.getReader();
-
-        Gson gson = new Gson();
-
-        try {
-
-            LogRequest logRequest =
-                    gson.fromJson(
-                            requestReader,
-                            LogRequest.class
-                    );
-
-            String inputFilePath =
-                    logRequest.getInputFilePath();
-
-            String outputFilePath =
-                    logRequest.getOutputFilePath();
-
-            String fromTimeStr =
-                    logRequest.getFromTime();
-
-            String toTimeStr =
-                    logRequest.getToTime();
-
-            int linesPerFile =
-                    logRequest.getLinesPerFile();
-
-            if (linesPerFile <= 0) {
-
-                response.getWriter().write(
-                        "Invalid linesPerFile value"
-                );
-
-                return;
-            }
-
-            LocalTime fromTime =
-                    LocalTime.parse(fromTimeStr);
-
-            LocalTime toTime =
-                    LocalTime.parse(toTimeStr);
-
-            File inputFile =
-                    new File(inputFilePath);
-
-            if (!inputFile.exists()) {
-
-                response.getWriter().write(
-                        "Input file not found"
-                );
-
-                return;
-            }
-
-            File outputFile =
-                    new File(outputFilePath);
-
-            String outputDir =
-                    outputFile.getParent();
-
-            String baseName =
-                    outputFile.getName();
-
-            if (baseName.contains(".")) {
-
-                baseName =
-                        baseName.substring(
-                                0,
-                                baseName.lastIndexOf(".")
-                        );
-            }
-
-            File outputDirectory =
-                    new File(outputDir);
-
-            if (!outputDirectory.exists()) {
-
-                outputDirectory.mkdirs();
-            }
-
-            BufferedReader fileReader =
-                    new BufferedReader(
-                            new FileReader(inputFile)
-                    );
-
-            int currentFileNumber = 1;
-
-            int currentLineCount = 0;
-
-            int matchedBlocks = 0;
-
-            BufferedWriter writer =
-                    createWriter(
-                            outputDir,
-                            baseName,
-                            currentFileNumber
-                    );
-
-            String line;
-
-            StringBuilder blockBuffer =
-                    new StringBuilder();
-
-            boolean insideBlock = false;
-
-            boolean shouldWriteBlock = false;
-
-            while ((line =
-                    fileReader.readLine()) != null) {
-
-                if (line.contains("[start]")) {
-
-                    insideBlock = true;
-
-                    shouldWriteBlock = false;
-
-                    blockBuffer.setLength(0);
-                }
-
-                if (insideBlock) {
-
-                    blockBuffer
-                            .append(line)
-                            .append("\n");
-                }
-
-                if (line.contains("[INFO]")) {
-
-                    LocalTime logTime =
-                            extractTime(line);
-
-                    if (logTime != null) {
-
-                        if (!logTime.isBefore(fromTime)
-                                && !logTime.isAfter(toTime)) {
-
-                            shouldWriteBlock = true;
-                        }
-                    }
-                }
-
-                if (line.contains("[end]")) {
-
-                    insideBlock = false;
-
-                    if (shouldWriteBlock) {
-
-                        String block =
-                                blockBuffer.toString();
-
-                        int blockLines =
-                                block.split("\n").length;
-
-                        if (currentLineCount
-                                + blockLines
-                                > linesPerFile) {
-
-                            writer.close();
-
-                            currentFileNumber++;
-
-                            currentLineCount = 0;
-
-                            writer =
-                                    createWriter(
-                                            outputDir,
-                                            baseName,
-                                            currentFileNumber
-                                    );
-                        }
-
-                        writer.write(block);
-
-                        writer.newLine();
-
-                        currentLineCount += blockLines;
-
-                        matchedBlocks++;
-                    }
-                }
-            }
-
-            writer.close();
-
-            fileReader.close();
-
-            response.getWriter().write(
-
-                    "====================================\n"
-                    + "Extraction Completed Successfully\n"
-                    + "Matched Blocks : "
-                    + matchedBlocks
-                    + "\nOutput Files Created : "
-                    + currentFileNumber
-                    + "\nOutput Directory : "
-                    + outputDir
-                    + "\n===================================="
-            );
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            response.getWriter().write(
-                    "ERROR : "
-                    + e.getMessage()
-            );
-        }
-    }
-
-    private BufferedWriter createWriter(
-            String outputDir,
-            String baseName,
-            int fileNumber)
-            throws IOException {
-
-        return new BufferedWriter(
-                new FileWriter(
-                        outputDir
-                        + File.separator
-                        + baseName
-                        + "_"
-                        + fileNumber
-                        + ".log"
-                )
-        );
-    }
-
-    private LocalTime extractTime(
-            String line) {
-
-        try {
-
-            Matcher matcher =
-                    TIMESTAMP_PATTERN
-                            .matcher(line);
-
-            if (matcher.find()) {
-
-                String fullTimestamp =
-                        matcher.group(1);
-
-                String timePart =
-                        fullTimestamp.substring(11);
-
-                return LocalTime.parse(
-                        timePart,
-                        LOG_TIME_FORMAT
-                );
-            }
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-}
-
-
-package logExtractor;
-
-public class LogRequest {
-
-    private String inputFilePath;
-
-    private String outputFilePath;
-
-    private String fromTime;
-
-    private String toTime;
-
-    private int linesPerFile;
-
-    public String getInputFilePath() {
-        return inputFilePath;
-    }
-
-    public void setInputFilePath(String inputFilePath) {
-        this.inputFilePath = inputFilePath;
-    }
-
-    public String getOutputFilePath() {
-        return outputFilePath;
-    }
-
-    public void setOutputFilePath(String outputFilePath) {
-        this.outputFilePath = outputFilePath;
-    }
-
-    public String getFromTime() {
-        return fromTime;
-    }
-
-    public void setFromTime(String fromTime) {
-        this.fromTime = fromTime;
-    }
-
-    public String getToTime() {
-        return toTime;
-    }
-
-    public void setToTime(String toTime) {
-        this.toTime = toTime;
-    }
-
-    public int getLinesPerFile() {
-        return linesPerFile;
-    }
-
-    public void setLinesPerFile(int linesPerFile) {
-        this.linesPerFile = linesPerFile;
-    }
-}
+com.google.gson.JsonSyntaxException: java.lang.IllegalStateException: Expected an int but was BEGIN_OBJECT at line 1 column 203 path $.linesPerFile
+See https://github.com/google/gson/blob/main/Troubleshooting.md#unexpected-json-structure
+	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter.read(ReflectiveTypeAdapterFactory.java:520)
+	at com.google.gson.Gson.fromJson(Gson.java:1361)
+	at com.google.gson.Gson.fromJson(Gson.java:1262)
+	at com.google.gson.Gson.fromJson(Gson.java:1199)
+	at com.fileSplitter.servlet.LogExtractorServlet.doPost(LogExtractorServlet.java:55)
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:555)
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:623)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:210)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:154)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:179)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:154)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:168)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:481)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:130)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.valves.AbstractAccessLogValve.invoke(AbstractAccessLogValve.java:670)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:346)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:390)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:928)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1786)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: java.lang.IllegalStateException: Expected an int but was BEGIN_OBJECT at line 1 column 203 path $.linesPerFile
+See https://github.com/google/gson/blob/main/Troubleshooting.md#unexpected-json-structure
+	at com.google.gson.stream.JsonReader.unexpectedTokenError(JsonReader.java:1768)
+	at com.google.gson.stream.JsonReader.nextInt(JsonReader.java:1289)
+	at com.google.gson.internal.bind.TypeAdapters$7.read(TypeAdapters.java:275)
+	at com.google.gson.internal.bind.TypeAdapters$7.read(TypeAdapters.java:267)
+	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$2.readIntoField(ReflectiveTypeAdapterFactory.java:267)
+	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$FieldReflectionAdapter.readField(ReflectiveTypeAdapterFactory.java:558)
+	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter.read(ReflectiveTypeAdapterFactory.java:516)
+	... 28 more
