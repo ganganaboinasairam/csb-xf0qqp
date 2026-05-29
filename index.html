@@ -1,11 +1,96 @@
 <!-- Custom command -->
-      <div class="card">
-        <div class="card-title">Custom Git Command</div>
-        <div class="cmd-row">
-          <input type="text" id="cmdInput" placeholder="git log --oneline -10" />
-          <button class="cmd-run-btn" onclick="runCustom()">Run</button>
-        </div>
-      </div>
-	  
-	  
-	  i want this div to provide suggestions like frequently used git commands user can select from that and run , user can be able to chnage the command and give a custome comand 
+<div class="card">
+  <div class="card-title">Custom Git Command</div>
+
+  <div class="cmd-row">
+
+    <input
+      type="text"
+      id="cmdInput"
+      list="git-command-suggestions"
+      placeholder="git log --oneline -20"
+      autocomplete="off"
+    />
+
+    <datalist id="git-command-suggestions">
+
+      <!-- Logs -->
+      <option value="git log --oneline -20">
+      <option value="git log --stat --oneline -20">
+      <option value="git log --name-only --oneline -20">
+      <option value="git show HEAD">
+
+      <!-- Status -->
+      <option value="git status">
+      <option value="git diff">
+      <option value="git diff --cached">
+
+      <!-- Branch -->
+      <option value="git branch">
+      <option value="git branch -a">
+      <option value="git remote -v">
+
+      <!-- History -->
+      <option value="git reflog">
+      <option value="git blame pom.xml">
+
+      <!-- File inspection -->
+      <option value="git ls-files">
+      <option value="git ls-tree -r HEAD --name-only">
+
+      <!-- Search -->
+      <option value="git grep TODO">
+      <option value="git grep CR_">
+
+      <!-- Safe fetch -->
+      <option value="git fetch --all">
+
+    </datalist>
+
+    <button class="cmd-run-btn" onclick="runCustom()">
+      Run
+    </button>
+
+  </div>
+</div>
+
+
+<div class="cmd-shortcuts">
+
+  <button onclick="setCmd('git status')">Status</button>
+
+  <button onclick="setCmd('git log --oneline -20')">
+    Log
+  </button>
+
+  <button onclick="setCmd('git diff')">
+    Diff
+  </button>
+
+  <button onclick="setCmd('git branch -a')">
+    Branches
+  </button>
+
+</div>
+
+
+function setCmd(cmd) {
+  document.getElementById('cmdInput').value = cmd;
+}
+
+
+.cmd-shortcuts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.cmd-shortcuts button {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.75rem;
+}
