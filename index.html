@@ -1,7 +1,53 @@
-$ git diff
-[ERROR] Bad control character in string literal in JSON at position 410 (line 1 column 411)
+private String escape(String s) {
 
+    if (s == null) {
+        return "";
+    }
 
-{
-    "output": "diff --git a/base_domain/CALJS/FUNCLEVEL/SYF_BGIF_BankGuaranteeAdvisor.js b/base_domain/CALJS/FUNCLEVEL/SYF_BGIF_BankGuaranteeAdvisor.js\nindex 383a665fb..77f5c90fe 100644\n--- a/base_domain/CALJS/FUNCLEVEL/SYF_BGIF_BankGuaranteeAdvisor.js\n+++ b/base_domain/CALJS/FUNCLEVEL/SYF_BGIF_BankGuaranteeAdvisor.js\n@@ -3799,4 +3799,5 @@ csFuncLevelProto.SYF_BGIF_SureMatch_TEMP_SUB_TYPE = function () {\n 		DisExcpt(\"SYF_BGIF_RegisterInlandBG.js*SYF_BGIF_SureMatch_TEMP_SUB_TYPE\", e);\n 	}\n }\n-//End of SureMatch\n\\ No newline at end of file\n+//End of SureMatch\n+//test commi\n\\ No newline at end of file\n\n[INFO] Exit code: 0"
+    StringBuilder out = new StringBuilder();
+
+    for (char c : s.toCharArray()) {
+
+        switch (c) {
+
+            case '\\':
+                out.append("\\\\");
+                break;
+
+            case '"':
+                out.append("\\\"");
+                break;
+
+            case '\n':
+                out.append("\\n");
+                break;
+
+            case '\r':
+                out.append("\\r");
+                break;
+
+            case '\t':
+                out.append("\\t");
+                break;
+
+            case '\b':
+                out.append("\\b");
+                break;
+
+            case '\f':
+                out.append("\\f");
+                break;
+
+            default:
+
+                // escape all control chars
+                if (c < 32) {
+                    out.append(String.format("\\u%04x", (int) c));
+                } else {
+                    out.append(c);
+                }
+        }
+    }
+
+    return out.toString();
 }
