@@ -1,84 +1,23 @@
-below is the url and response , but i want to extract only ir number , ir description, ir status from the response , how to do that
+async function fetchIRDetails(irNumber) {
+  const url = `https://irtra.stnktimes.in/CGI/Utilities/GetSubjectline.cgi?ir=${irNumber}`;
+  const res = await fetch(url);
+  const html = await res.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
 
-URL : 
-https://irtra.stnktimes.in/CGI/Utilities/GetSubjectline.cgi?ir=25110043
+  // IR Number
+  const irNumEl = doc.querySelector('a.nav-item');
+  const irNum = irNumEl?.textContent.replace('IR Number:', '').trim();
 
-response : 
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
-    <head>
-        <title>ST_Process</title>
-        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
-    </head>
-    <body>
-        <body class="body-bg">
-            <LINK HREF="Styles2_main.css" type="text/css" rel="stylesheet">
-            <link rel="stylesheet" href="../../../assets/css/bootstrap.min.css">
-            <link rel="stylesheet" href="../../../assets/css/styles.css">
-            <link rel="stylesheet" href="../../../assets/css/responsive.css">
-            <body class="body-bg">
-                <div class="main-content-inner">
-                    <div class="row" style="margin-top:1px">
-                        <div class="col-lg-12 col-ml-12">
-                            <div class="row">
-                                <!-- Textual inputs start -->
-                                <div class="col-12 mt-5">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <valign= left>
-                                                <form>
-                                                    <center>
-                                                        <p>
-                                                            <textarea rows="10" cols="100">IR 25110043/TFRE-20260413-008047/Change/Desc:New fields to create for capture Bill Discrepancy/UAT-HASH(0x478 </textarea>
-                                                        </p>
-                                                    </center>
-                                                    <div class="card">
-                                                        <div class="card-body">
-                                                            <h4 class="header-title"></h4>
-                                                            <center>
-                                                                <strong>
-                                                                    <h4>
-                                                                        <a class="nav-item ">IR Number: 25110043</a>
-                                                                    </h4>
-                                                                </strong>
-                                                            </center>
-                                                            <hr>
-                                                            <div class="single-table">
-                                                                <div class="table-responsive">
-                                                                    <table class="table table-bordered text-center">
-                                                                        <thead class="text-uppercase">
-                                                                            <tr>
-                                                                                <div class="row">
-                                                                                    <div class="col-md-6">
-                                                                                        <center>
-                                                                                            <p class="text-dark">DESIGN EFFORT : </p>
-                                                                                        </center>
-                                                                                    </div>
-                                                                                    <div class="col-md-6">
-                                                                                        <center>
-                                                                                            <p class="text-dark">ST EFFORT : </p>
-                                                                                        </center>
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div class="row">
-                                                                                    <div class="col-md-6">
-                                                                                        <center>
-                                                                                            <p class="text-dark">DVLP EFFORT : </p>
-                                                                                        </center>
-                                                                                    </div>
-                                                                                    <div class="col-md-6">
-                                                                                        <center>
-                                                                                            <p class="text-dark">STATUS: WBT APPROVED</p>
-                                                                                        </center>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            <div class="alert alert-danger" role="alert">
-                                                                                <center>
-                                                                                    <p>Status is not "WBT Approved" ,Don't do check in</p>
-                                                                                </center>
-                                                                            </div>
-                                                                    </table>
-</center><br>
-</div></div></div></div></div></div></div></div></div></div></div></center></body></html>
+  // IR Description — from textarea, extract after "Desc:"
+  const textarea = doc.querySelector('textarea');
+  const descMatch = textarea?.value.match(/Desc:([^/]+)/);
+  const irDesc = descMatch?.[1]?.trim();
+
+  // IR Status
+  const allText = doc.body.innerText;
+  const statusMatch = allText.match(/STATUS:\s*(.+)/i);
+  const irStatus = statusMatch?.[1]?.trim();
+
+  return { irNum, irDesc, irStatus };
+}
