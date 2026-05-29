@@ -1,41 +1,84 @@
-com.google.gson.JsonSyntaxException: java.lang.IllegalStateException: Expected an int but was BEGIN_OBJECT at line 1 column 203 path $.linesPerFile
-See https://github.com/google/gson/blob/main/Troubleshooting.md#unexpected-json-structure
-	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter.read(ReflectiveTypeAdapterFactory.java:520)
-	at com.google.gson.Gson.fromJson(Gson.java:1361)
-	at com.google.gson.Gson.fromJson(Gson.java:1262)
-	at com.google.gson.Gson.fromJson(Gson.java:1199)
-	at com.fileSplitter.servlet.LogExtractorServlet.doPost(LogExtractorServlet.java:55)
-	at javax.servlet.http.HttpServlet.service(HttpServlet.java:555)
-	at javax.servlet.http.HttpServlet.service(HttpServlet.java:623)
-	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:210)
-	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:154)
-	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
-	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:179)
-	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:154)
-	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:168)
-	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
-	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:481)
-	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:130)
-	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
-	at org.apache.catalina.valves.AbstractAccessLogValve.invoke(AbstractAccessLogValve.java:670)
-	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
-	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:346)
-	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:390)
-	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
-	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:928)
-	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1786)
-	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
-	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
-	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
-	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
-	at java.lang.Thread.run(Thread.java:748)
-Caused by: java.lang.IllegalStateException: Expected an int but was BEGIN_OBJECT at line 1 column 203 path $.linesPerFile
-See https://github.com/google/gson/blob/main/Troubleshooting.md#unexpected-json-structure
-	at com.google.gson.stream.JsonReader.unexpectedTokenError(JsonReader.java:1768)
-	at com.google.gson.stream.JsonReader.nextInt(JsonReader.java:1289)
-	at com.google.gson.internal.bind.TypeAdapters$7.read(TypeAdapters.java:275)
-	at com.google.gson.internal.bind.TypeAdapters$7.read(TypeAdapters.java:267)
-	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$2.readIntoField(ReflectiveTypeAdapterFactory.java:267)
-	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$FieldReflectionAdapter.readField(ReflectiveTypeAdapterFactory.java:558)
-	at com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter.read(ReflectiveTypeAdapterFactory.java:516)
-	... 28 more
+below is the url and response , but i want to extract only ir number , ir description, ir status from the response , how to do that
+
+URL : 
+https://irtra.stnktimes.in/CGI/Utilities/GetSubjectline.cgi?ir=25110043
+
+response : 
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
+    <head>
+        <title>ST_Process</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+    </head>
+    <body>
+        <body class="body-bg">
+            <LINK HREF="Styles2_main.css" type="text/css" rel="stylesheet">
+            <link rel="stylesheet" href="../../../assets/css/bootstrap.min.css">
+            <link rel="stylesheet" href="../../../assets/css/styles.css">
+            <link rel="stylesheet" href="../../../assets/css/responsive.css">
+            <body class="body-bg">
+                <div class="main-content-inner">
+                    <div class="row" style="margin-top:1px">
+                        <div class="col-lg-12 col-ml-12">
+                            <div class="row">
+                                <!-- Textual inputs start -->
+                                <div class="col-12 mt-5">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <valign= left>
+                                                <form>
+                                                    <center>
+                                                        <p>
+                                                            <textarea rows="10" cols="100">IR 25110043/TFRE-20260413-008047/Change/Desc:New fields to create for capture Bill Discrepancy/UAT-HASH(0x478 </textarea>
+                                                        </p>
+                                                    </center>
+                                                    <div class="card">
+                                                        <div class="card-body">
+                                                            <h4 class="header-title"></h4>
+                                                            <center>
+                                                                <strong>
+                                                                    <h4>
+                                                                        <a class="nav-item ">IR Number: 25110043</a>
+                                                                    </h4>
+                                                                </strong>
+                                                            </center>
+                                                            <hr>
+                                                            <div class="single-table">
+                                                                <div class="table-responsive">
+                                                                    <table class="table table-bordered text-center">
+                                                                        <thead class="text-uppercase">
+                                                                            <tr>
+                                                                                <div class="row">
+                                                                                    <div class="col-md-6">
+                                                                                        <center>
+                                                                                            <p class="text-dark">DESIGN EFFORT : </p>
+                                                                                        </center>
+                                                                                    </div>
+                                                                                    <div class="col-md-6">
+                                                                                        <center>
+                                                                                            <p class="text-dark">ST EFFORT : </p>
+                                                                                        </center>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="row">
+                                                                                    <div class="col-md-6">
+                                                                                        <center>
+                                                                                            <p class="text-dark">DVLP EFFORT : </p>
+                                                                                        </center>
+                                                                                    </div>
+                                                                                    <div class="col-md-6">
+                                                                                        <center>
+                                                                                            <p class="text-dark">STATUS: WBT APPROVED</p>
+                                                                                        </center>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            <div class="alert alert-danger" role="alert">
+                                                                                <center>
+                                                                                    <p>Status is not "WBT Approved" ,Don't do check in</p>
+                                                                                </center>
+                                                                            </div>
+                                                                    </table>
+</center><br>
+</div></div></div></div></div></div></div></div></div></div></div></center></body></html>
