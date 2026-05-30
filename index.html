@@ -1,63 +1,123 @@
+Main.java
 
 package com.logviewer;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
+import java.awt.event.AdjustmentEvent;
 import java.io.File;
 import java.util.List;
 
 public class Main {
 
     private JFrame frame;
+
     private JTextField searchField;
+
     private JButton openButton;
     private JButton searchButton;
-    private JList<String> logList;
-    private DefaultListModel<String> listModel;
+    private JButton nextButton;
+    private JButton prevButton;
+
+    private JTextArea textArea;
+
+    private JLabel statusLabel;
 
     private LargeFileReader reader;
 
+    private long currentPage = 0;
+
+    private static final int PAGE_SIZE = 5000;
+
+    private boolean loading = false;
+
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new Main().start());
+
+        SwingUtilities.invokeLater(() -> {
+
+            try {
+
+                UIManager.setLookAndFeel(
+                        UIManager.getSystemLookAndFeelClassName()
+                );
+
+            } catch (Exception ignored) {
+            }
+
+            new Main().start();
+        });
     }
 
     private void start() {
+
         frame = new JFrame("Large Log Viewer");
+
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(1200, 800);
+
+        frame.setSize(1400, 900);
+
+        frame.setLocationRelativeTo(null);
 
         JPanel topPanel = new JPanel(new BorderLayout(10, 10));
 
-        openButton = new JButton("Open Log");
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        openButton = new JButton("Open");
+
+        prevButton = new JButton("Previous");
+
+        nextButton = new JButton("Next");
+
         searchButton = new JButton("Search");
 
         searchField = new JTextField();
 
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.add(openButton);
-        buttonPanel.add(searchButton);
+        searchField.setPreferredSize(new Dimension(300, 30));
 
-        topPanel.add(buttonPanel, BorderLayout.WEST);
-        topPanel.add(searchField, BorderLayout.CENTER);
+        leftPanel.add(openButton);
+        leftPanel.add(prevButton);
+        leftPanel.add(nextButton);
+        leftPanel.add(searchField);
+        leftPanel.add(searchButton);
 
-        listModel = new DefaultListModel<>();
-        logList = new JList<>(listModel);
+        topPanel.add(leftPanel, BorderLayout.WEST);
 
-        logList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
+        textArea = new JTextArea();
 
-        JScrollPane scrollPane = new JScrollPane(logList);
+        textArea.setEditable(false);
+
+        textArea.setFont(
+                new Font(Font.MONOSPACED, Font.PLAIN, 13)
+        );
+
+        textArea.setLineWrap(false);
+
+        JScrollPane scrollPane = new JScrollPane(textArea);
+
+        scrollPane.getVerticalScrollBar()
+                .setUnitIncrement(30);
+
+        statusLabel = new JLabel("No file opened");
 
         frame.add(topPanel, BorderLayout.NORTH);
         frame.add(scrollPane, BorderLayout.CENTER);
+        frame.add(statusLabel, BorderLayout.SOUTH);
 
-        openButton.addActionListener(this::openFile);
-        searchButton.addActionListener(this::search);
+        openButton.addActionListener(e -> openFile());
+
+        nextButton.addActionListener(e -> loadNextPage());
+
+        prevButton.addActionListener(e -> loadPreviousPage());
+
+        searchButton.addActionListener(e -> search());
+
+        searchField.addActionListener(e -> search());
 
         frame.setVisible(true);
     }
 
-    private void openFile(ActionEvent e) {
+    private void openFile() {
+
         JFileChooser chooser = new JFileChooser();
 
         int result = chooser.showOpenDialog(frame);
@@ -68,35 +128,113 @@ public class Main {
 
         File file = chooser.getSelectedFile();
 
-        listModel.clear();
+        try {
 
-        SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
-            @Override
-            protected Void doInBackground() throws Exception {
-                reader = new LargeFileReader(file.getAbsolutePath());
+            reader = new LargeFileReader(file);
 
-                List<String> lines = reader.readLines(0, 1000);
+            currentPage = 0;
 
-                for (String line : lines) {
-                    publish(line);
-                }
+            loadPage(currentPage);
 
-                return null;
-            }
+        } catch (Exception ex) {
 
-            @Override
-            protected void process(List<String> chunks) {
-                for (String line : chunks) {
-                    listModel.addElement(line);
-                }
-            }
-        };
+            showError(ex);
+        }
+    }
+
+    private void loadNextPage() {
+
+        if (reader == null || loading) {
+            return;
+        }
+
+        currentPage++;
+
+        loadPage(currentPage);
+    }
+
+    private void loadPreviousPage() {
+
+        if (reader == null || loading) {
+            return;
+        }
+
+        if (currentPage == 0) {
+            return;
+        }
+
+        currentPage--;
+
+        loadPage(currentPage);
+    }
+
+    private void loadPage(long page) {
+
+        loading = true;
+
+        textArea.setText("");
+
+        statusLabel.setText("Loading...");
+
+        long startLine = page * PAGE_SIZE;
+
+        SwingWorker<List<String>, Void> worker =
+                new SwingWorker<List<String>, Void>() {
+
+                    @Override
+                    protected List<String> doInBackground()
+                            throws Exception {
+
+                        return reader.readLines(
+                                startLine,
+                                PAGE_SIZE
+                        );
+                    }
+
+                    @Override
+                    protected void done() {
+
+                        try {
+
+                            List<String> lines = get();
+
+                            StringBuilder builder =
+                                    new StringBuilder(4 * 1024 * 1024);
+
+                            for (String line : lines) {
+
+                                builder.append(line)
+                                        .append('\n');
+                            }
+
+                            textArea.setText(builder.toString());
+
+                            textArea.setCaretPosition(0);
+
+                            statusLabel.setText(
+                                    "Page: "
+                                            + (currentPage + 1)
+                                            + " | Lines: "
+                                            + lines.size()
+                            );
+
+                        } catch (Exception ex) {
+
+                            showError(ex);
+
+                        } finally {
+
+                            loading = false;
+                        }
+                    }
+                };
 
         worker.execute();
     }
 
-    private void search(ActionEvent e) {
-        if (reader == null) {
+    private void search() {
+
+        if (reader == null || loading) {
             return;
         }
 
@@ -106,103 +244,176 @@ public class Main {
             return;
         }
 
-        listModel.clear();
+        loading = true;
 
-        SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
-            @Override
-            protected Void doInBackground() throws Exception {
-                List<String> matches = reader.search(keyword, 2000);
+        statusLabel.setText("Searching...");
 
-                for (String line : matches) {
-                    publish(line);
-                }
+        SwingWorker<List<String>, Void> worker =
+                new SwingWorker<List<String>, Void>() {
 
-                return null;
-            }
+                    @Override
+                    protected List<String> doInBackground()
+                            throws Exception {
 
-            @Override
-            protected void process(List<String> chunks) {
-                for (String line : chunks) {
-                    listModel.addElement(line);
-                }
-            }
-        };
+                        return reader.search(keyword, 5000);
+                    }
+
+                    @Override
+                    protected void done() {
+
+                        try {
+
+                            List<String> matches = get();
+
+                            StringBuilder builder =
+                                    new StringBuilder(4 * 1024 * 1024);
+
+                            for (String line : matches) {
+
+                                builder.append(line)
+                                        .append('\n');
+                            }
+
+                            textArea.setText(builder.toString());
+
+                            textArea.setCaretPosition(0);
+
+                            statusLabel.setText(
+                                    "Matches Found: "
+                                            + matches.size()
+                            );
+
+                        } catch (Exception ex) {
+
+                            showError(ex);
+
+                        } finally {
+
+                            loading = false;
+                        }
+                    }
+                };
 
         worker.execute();
     }
+
+    private void showError(Exception ex) {
+
+        ex.printStackTrace();
+
+        JOptionPane.showMessageDialog(
+                frame,
+                ex.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+        );
+    }
 }
 
+---
 
-                
+LargeFileReader.java
+
 package com.logviewer;
 
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 public class LargeFileReader {
 
-    private final String filePath;
+    private final File file;
 
-    public LargeFileReader(String filePath) {
-        this.filePath = filePath;
+    public LargeFileReader(File file) {
+        this.file = file;
     }
 
-    public List<String> readLines(long startLine, int count) throws Exception {
-        List<String> result = new ArrayList<>();
+    public List<String> readLines(
+            long startLine,
+            int count
+    ) throws Exception {
 
-        try (RandomAccessFile raf = new RandomAccessFile(filePath, "r")) {
+        List<String> lines = new ArrayList<>(count);
+
+        try (
+                BufferedReader reader =
+                        new BufferedReader(
+                                new InputStreamReader(
+                                        new FileInputStream(file),
+                                        StandardCharsets.UTF_8
+                                ),
+                                1024 * 1024
+                        )
+        ) {
 
             String line;
-            long current = 0;
 
-            while ((line = raf.readLine()) != null) {
+            long currentLine = 0;
 
-                if (current >= startLine) {
-                    result.add(decode(line));
+            while ((line = reader.readLine()) != null) {
+
+                if (currentLine >= startLine) {
+
+                    lines.add(line);
+
+                    if (lines.size() >= count) {
+                        break;
+                    }
                 }
 
-                if (result.size() >= count) {
-                    break;
-                }
-
-                current++;
+                currentLine++;
             }
         }
 
-        return result;
+        return lines;
     }
 
-    public List<String> search(String keyword, int limit) throws Exception {
+    public List<String> search(
+            String keyword,
+            int limit
+    ) throws Exception {
 
         List<String> matches = new ArrayList<>();
 
-        try (RandomAccessFile raf = new RandomAccessFile(filePath, "r")) {
+        try (
+                BufferedReader reader =
+                        new BufferedReader(
+                                new InputStreamReader(
+                                        new FileInputStream(file),
+                                        StandardCharsets.UTF_8
+                                ),
+                                1024 * 1024
+                        )
+        ) {
 
             String line;
 
-            while ((line = raf.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
 
-                String decoded = decode(line);
+                if (line.contains(keyword)) {
 
-                if (decoded.contains(keyword)) {
-                    matches.add(decoded);
-                }
+                    matches.add(line);
 
-                if (matches.size() >= limit) {
-                    break;
+                    if (matches.size() >= limit) {
+                        break;
+                    }
                 }
             }
         }
 
         return matches;
     }
-
-    private String decode(String line) {
-        return new String(
-                line.getBytes(StandardCharsets.ISO_8859_1),
-                StandardCharsets.UTF_8
-        );
-    }
 }
+
+---
+
+Compile
+
+javac com/logviewer/*.java
+
+Run
+
+java com.logviewer.Main
+
+
