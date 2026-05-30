@@ -1,146 +1,22 @@
-private String lastFindKeyword = "";
-private int lastFindIndex = -1;
+textPane.addKeyListener(
+        new java.awt.event.KeyAdapter() {
 
-private void setupCtrlF() {
+            @Override
+            public void keyPressed(
+                    java.awt.event.KeyEvent e
+            ) {
 
-    KeyStroke ctrlF =
-            KeyStroke.getKeyStroke(
-                    "control F"
-            );
+                if (e.getKeyCode()
+                        == java.awt.event.KeyEvent.VK_ENTER) {
 
-    textPane.getInputMap(
-            JComponent.WHEN_IN_FOCUSED_WINDOW
-    ).put(
-            ctrlF,
-            "find"
-    );
+                    if (lastFindKeyword != null
+                            && !lastFindKeyword.isEmpty()) {
 
-    textPane.getActionMap().put(
-            "find",
-            new AbstractAction() {
+                        findNextOccurrence();
 
-                @Override
-                public void actionPerformed(
-                        java.awt.event.ActionEvent e
-                ) {
-
-                    String keyword =
-                            JOptionPane.showInputDialog(
-                                    frame,
-                                    "Find Text"
-                            );
-
-                    if (keyword == null
-                            || keyword.trim().isEmpty()) {
-                        return;
+                        e.consume();
                     }
-
-                    lastFindKeyword = keyword;
-                    lastFindIndex = -1;
-
-                    findNextOccurrence();
                 }
             }
-    );
-
-    KeyStroke enter =
-            KeyStroke.getKeyStroke(
-                    "ENTER"
-            );
-
-    textPane.getInputMap(
-            JComponent.WHEN_IN_FOCUSED_WINDOW
-    ).put(
-            enter,
-            "findNext"
-    );
-
-    textPane.getActionMap().put(
-            "findNext",
-            new AbstractAction() {
-
-                @Override
-                public void actionPerformed(
-                        java.awt.event.ActionEvent e
-                ) {
-
-                    if (lastFindKeyword == null
-                            || lastFindKeyword.isEmpty()) {
-                        return;
-                    }
-
-                    findNextOccurrence();
-                }
-            }
-    );
-}
-
-private void findNextOccurrence() {
-
-    try {
-
-        Highlighter highlighter =
-                textPane.getHighlighter();
-
-        highlighter.removeAllHighlights();
-
-        String text =
-                textPane.getDocument().getText(
-                        0,
-                        textPane.getDocument().getLength()
-                );
-
-        int startIndex =
-                lastFindIndex + 1;
-
-        int found =
-                text.indexOf(
-                        lastFindKeyword,
-                        startIndex
-                );
-
-        if (found < 0) {
-
-            found =
-                    text.indexOf(
-                            lastFindKeyword
-                    );
-
-            if (found < 0) {
-
-                JOptionPane.showMessageDialog(
-                        frame,
-                        "Text not found"
-                );
-
-                return;
-            }
         }
-
-        int end =
-                found + lastFindKeyword.length();
-
-        highlighter.addHighlight(
-                found,
-                end,
-                new DefaultHighlighter.DefaultHighlightPainter(
-                        Color.CYAN
-                )
-        );
-
-        textPane.setCaretPosition(end);
-
-        Rectangle view =
-                textPane.modelToView(found);
-
-        if (view != null) {
-            textPane.scrollRectToVisible(view);
-        }
-
-        lastFindIndex = found;
-
-    } catch (Exception ex) {
-
-        ex.printStackTrace();
-    }
-}
+);
