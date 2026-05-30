@@ -1,53 +1,208 @@
-private String escape(String s) {
 
-    if (s == null) {
-        return "";
+package com.logviewer;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.io.File;
+import java.util.List;
+
+public class Main {
+
+    private JFrame frame;
+    private JTextField searchField;
+    private JButton openButton;
+    private JButton searchButton;
+    private JList<String> logList;
+    private DefaultListModel<String> listModel;
+
+    private LargeFileReader reader;
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new Main().start());
     }
 
-    StringBuilder out = new StringBuilder();
+    private void start() {
+        frame = new JFrame("Large Log Viewer");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(1200, 800);
 
-    for (char c : s.toCharArray()) {
+        JPanel topPanel = new JPanel(new BorderLayout(10, 10));
 
-        switch (c) {
+        openButton = new JButton("Open Log");
+        searchButton = new JButton("Search");
 
-            case '\\':
-                out.append("\\\\");
-                break;
+        searchField = new JTextField();
 
-            case '"':
-                out.append("\\\"");
-                break;
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(openButton);
+        buttonPanel.add(searchButton);
 
-            case '\n':
-                out.append("\\n");
-                break;
+        topPanel.add(buttonPanel, BorderLayout.WEST);
+        topPanel.add(searchField, BorderLayout.CENTER);
 
-            case '\r':
-                out.append("\\r");
-                break;
+        listModel = new DefaultListModel<>();
+        logList = new JList<>(listModel);
 
-            case '\t':
-                out.append("\\t");
-                break;
+        logList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 13));
 
-            case '\b':
-                out.append("\\b");
-                break;
+        JScrollPane scrollPane = new JScrollPane(logList);
 
-            case '\f':
-                out.append("\\f");
-                break;
+        frame.add(topPanel, BorderLayout.NORTH);
+        frame.add(scrollPane, BorderLayout.CENTER);
 
-            default:
+        openButton.addActionListener(this::openFile);
+        searchButton.addActionListener(this::search);
 
-                // escape all control chars
-                if (c < 32) {
-                    out.append(String.format("\\u%04x", (int) c));
-                } else {
-                    out.append(c);
-                }
+        frame.setVisible(true);
+    }
+
+    private void openFile(ActionEvent e) {
+        JFileChooser chooser = new JFileChooser();
+
+        int result = chooser.showOpenDialog(frame);
+
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return;
         }
+
+        File file = chooser.getSelectedFile();
+
+        listModel.clear();
+
+        SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                reader = new LargeFileReader(file.getAbsolutePath());
+
+                List<String> lines = reader.readLines(0, 1000);
+
+                for (String line : lines) {
+                    publish(line);
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void process(List<String> chunks) {
+                for (String line : chunks) {
+                    listModel.addElement(line);
+                }
+            }
+        };
+
+        worker.execute();
     }
 
-    return out.toString();
+    private void search(ActionEvent e) {
+        if (reader == null) {
+            return;
+        }
+
+        String keyword = searchField.getText();
+
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return;
+        }
+
+        listModel.clear();
+
+        SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                List<String> matches = reader.search(keyword, 2000);
+
+                for (String line : matches) {
+                    publish(line);
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void process(List<String> chunks) {
+                for (String line : chunks) {
+                    listModel.addElement(line);
+                }
+            }
+        };
+
+        worker.execute();
+    }
+}
+
+
+                
+package com.logviewer;
+
+import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
+public class LargeFileReader {
+
+    private final String filePath;
+
+    public LargeFileReader(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public List<String> readLines(long startLine, int count) throws Exception {
+        List<String> result = new ArrayList<>();
+
+        try (RandomAccessFile raf = new RandomAccessFile(filePath, "r")) {
+
+            String line;
+            long current = 0;
+
+            while ((line = raf.readLine()) != null) {
+
+                if (current >= startLine) {
+                    result.add(decode(line));
+                }
+
+                if (result.size() >= count) {
+                    break;
+                }
+
+                current++;
+            }
+        }
+
+        return result;
+    }
+
+    public List<String> search(String keyword, int limit) throws Exception {
+
+        List<String> matches = new ArrayList<>();
+
+        try (RandomAccessFile raf = new RandomAccessFile(filePath, "r")) {
+
+            String line;
+
+            while ((line = raf.readLine()) != null) {
+
+                String decoded = decode(line);
+
+                if (decoded.contains(keyword)) {
+                    matches.add(decoded);
+                }
+
+                if (matches.size() >= limit) {
+                    break;
+                }
+            }
+        }
+
+        return matches;
+    }
+
+    private String decode(String line) {
+        return new String(
+                line.getBytes(StandardCharsets.ISO_8859_1),
+                StandardCharsets.UTF_8
+        );
+    }
 }
