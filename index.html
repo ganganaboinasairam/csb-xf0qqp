@@ -1,764 +1,101 @@
 package com.logviewer;
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.Callable;
-public class FileSearchTask
-        implements Callable<List<SearchResult>> {
-    private final File file;
-    private final String keyword;
-    private final int contextLines;
-    public FileSearchTask(
-            File file,
-            String keyword,
-            int contextLines
+
+public class TimeRangeFilter {
+
+    private final Integer fromMinutes;
+    private final Integer toMinutes;
+
+    public TimeRangeFilter(
+            String fromTime,
+            String toTime
     ) {
-        this.file = file;
-        this.keyword = keyword;
-        this.contextLines = contextLines;
+        this.fromMinutes = parseMinutes(fromTime);
+        this.toMinutes = parseMinutes(toTime);
     }
-    @Override
-    public List<SearchResult> call() throws Exception {
-        List<SearchResult> results =
-                new ArrayList<>();
-        LinkedList<String> previous =
-                new LinkedList<>();
-        try (
-                BufferedReader reader =
-                        new BufferedReader(
-                                new InputStreamReader(
-                                        new FileInputStream(file),
-                                        StandardCharsets.UTF_8
-                                ),
-                                1024 * 1024
-                        )
-        ) {
-            String line;
-            long lineNumber = 0;
-            while ((line = reader.readLine()) != null) {
-                if (previous.size() >= contextLines) {
-                    previous.removeFirst();
-                }
-                previous.add(line);
-                if (line.contains(keyword)) {
-                    List<String> context =
-                            new ArrayList<>();
-                    context.addAll(previous);
-                    for (int i = 0; i < contextLines; i++) {
-                        String next =
-                                reader.readLine();
-                        if (next == null) {
-                            break;
-                        }
-                        context.add(next);
-                        lineNumber++;
-                    }
-                    SearchResult result =
-                            new SearchResult();
-                    result.setFileName(
-                            file.getAbsolutePath()
-                    );
-                    result.setLineNumber(
-                            lineNumber
-                    );
-                    result.setContextLines(
-                            context
-                    );
-                    results.add(result);
-                }
-                lineNumber++;
-            }
-        }
-        return results;
+
+    public boolean isEnabled() {
+        return fromMinutes != null
+                || toMinutes != null;
     }
-}
-package com.logviewer;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.*;
-public class FolderSearchManager {
-    public List<SearchResult> searchFolder(
-            File folder,
-            String keyword,
-            int contextLines
-    ) throws Exception {
-        List<File> files =
-                new ArrayList<>();
-        collectFiles(folder, files);
-        ExecutorService executor =
-                Executors.newFixedThreadPool(
-                        Runtime.getRuntime()
-                                .availableProcessors()
-                );
-        List<Future<List<SearchResult>>> futures =
-                new ArrayList<>();
-        for (File file : files) {
-            futures.add(
-                    executor.submit(
-                            new FileSearchTask(
-                                    file,
-                                    keyword,
-                                    contextLines
-                            )
-                    )
-            );
+
+    public boolean matches(String line) {
+
+        if (!isEnabled()) {
+            return true;
         }
-        List<SearchResult> allResults =
-                new ArrayList<>();
-        for (Future<List<SearchResult>> future
-                : futures) {
-            allResults.addAll(future.get());
+
+        Integer lineMinutes =
+                extractLineMinutes(line);
+
+        if (lineMinutes == null) {
+            return false;
         }
-        executor.shutdown();
-        return allResults;
+
+        if (fromMinutes != null
+                && lineMinutes < fromMinutes) {
+            return false;
+        }
+
+        if (toMinutes != null
+                && lineMinutes > toMinutes) {
+            return false;
+        }
+
+        return true;
     }
-    private void collectFiles(
-            File folder,
-            List<File> files
+
+    private Integer parseMinutes(
+            String time
     ) {
-        File[] list = folder.listFiles();
-        if (list == null) {
-            return;
+
+        if (time == null
+                || time.trim().isEmpty()) {
+            return null;
         }
-        for (File file : list) {
-            if (file.isDirectory()) {
-                collectFiles(file, files);
-            } else {
-                String name =
-                        file.getName()
-                                .toLowerCase();
-                if (
-                        name.endsWith(".log")
-                                || name.endsWith(".txt")
-                                || name.endsWith(".out")
-                ) {
-                    files.add(file);
-                }
-            }
-        }
+
+        String[] split =
+                time.trim().split(":");
+
+        int hour =
+                Integer.parseInt(split[0]);
+
+        int minute =
+                Integer.parseInt(split[1]);
+
+        return hour * 60 + minute;
     }
-}
-package com.logviewer;
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-public class LargeFileReader {
-    private final File file;
-    private BufferedReader searchReader;
-    private long currentSearchLine = 0;
-    public LargeFileReader(File file) {
-        this.file = file;
-    }
-    public List<String> readLines(
-            long startLine,
-            int count
-    ) throws Exception {
-        List<String> result =
-                new ArrayList<>(count);
-        try (
-                BufferedReader reader =
-                        new BufferedReader(
-                                new InputStreamReader(
-                                        new FileInputStream(file),
-                                        StandardCharsets.UTF_8
-                                ),
-                                1024 * 1024
-                        )
-        ) {
-            String line;
-            long currentLine = 0;
-            while ((line = reader.readLine()) != null) {
-                if (currentLine >= startLine) {
-                    result.add(line);
-                    if (result.size() >= count) {
-                        break;
-                    }
-                }
-                currentLine++;
-            }
-        }
-        return result;
-    }
-    public void resetSearch() throws Exception {
-        closeSearch();
-        searchReader =
-                new BufferedReader(
-                        new InputStreamReader(
-                                new FileInputStream(file),
-                                StandardCharsets.UTF_8
-                        ),
-                        1024 * 1024
-                );
-        currentSearchLine = 0;
-    }
-    public SearchResult findNextMatch(
-            String keyword,
-            int contextLines
-    ) throws Exception {
-        if (searchReader == null) {
-            resetSearch();
-        }
-        LinkedList<String> previousLines =
-                new LinkedList<>();
-        String line;
-        while ((line = searchReader.readLine()) != null) {
-            if (previousLines.size() >= contextLines) {
-                previousLines.removeFirst();
-            }
-            previousLines.add(line);
-            if (line.contains(keyword)) {
-                List<String> result =
-                        new ArrayList<>();
-                result.addAll(previousLines);
-                for (int i = 0; i < contextLines; i++) {
-                    String next =
-                            searchReader.readLine();
-                    if (next == null) {
-                        break;
-                    }
-                    result.add(next);
-                    currentSearchLine++;
-                }
-                SearchResult searchResult =
-                        new SearchResult();
-                searchResult.setLineNumber(
-                        currentSearchLine
-                );
-				searchResult.setFileName(
-						file.getAbsolutePath()
-				);
-                searchResult.setContextLines(result);
-                currentSearchLine++;
-                return searchResult;
-            }
-            currentSearchLine++;
-        }
-        closeSearch();
-        return null;
-    }
-    private void closeSearch() {
+
+    private Integer extractLineMinutes(
+            String line
+    ) {
+
         try {
-            if (searchReader != null) {
-                searchReader.close();
+
+            int start =
+                    line.indexOf('[');
+
+            if (start < 0
+                    || line.length() < start + 17) {
+                return null;
             }
-        } catch (Exception ignored) {
-        }
-        searchReader = null;
-    }
-}
-package com.logviewer;
-import javax.swing.*;
-import javax.swing.text.*;
-import java.awt.*;
-import java.io.File;
-import java.util.List;
-public class Main {
-    private JFrame frame;
-    private JTextField searchField;
-    private JButton openButton;
-    private JButton nextPageButton;
-    private JButton prevPageButton;
-    private JButton searchButton;
-    private JButton nextMatchButton;
-    private JButton folderSearchButton;
-    private JTextPane textPane;
-    private JLabel statusLabel;
-    private LargeFileReader reader;
-    private static final int PAGE_SIZE = 5000;
-    private long currentPage = 0;
-    private boolean loading = false;
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                UIManager.setLookAndFeel(
-                        UIManager.getSystemLookAndFeelClassName()
-                );
-            } catch (Exception ignored) {
-            }
-            new Main().start();
-        });
-    }
-    private void start() {
-        frame = new JFrame("Large Log Viewer");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(1400, 900);
-        frame.setLocationRelativeTo(null);
-        JPanel topPanel = new JPanel(
-                new FlowLayout(FlowLayout.LEFT)
-        );
-        openButton = new JButton("Open");
-        prevPageButton = new JButton("Prev Page");
-        nextPageButton = new JButton("Next Page");
-        searchField = new JTextField(30);
-        searchButton = new JButton("Search");
-        nextMatchButton = new JButton("Next Match");
-        folderSearchButton = new JButton("Search Folder");
-        topPanel.add(openButton);
-        topPanel.add(prevPageButton);
-        topPanel.add(nextPageButton);
-        topPanel.add(searchField);
-        topPanel.add(searchButton);
-        topPanel.add(nextMatchButton);
-        topPanel.add(folderSearchButton);
-        textPane = new JTextPane();
-        textPane.setEditable(false);
-        textPane.setFont(
-                new Font(Font.MONOSPACED, Font.PLAIN, 13)
-        );
-        JScrollPane scrollPane =
-                new JScrollPane(textPane);
-        statusLabel = new JLabel("No file opened");
-        frame.add(topPanel, BorderLayout.NORTH);
-        frame.add(scrollPane, BorderLayout.CENTER);
-        frame.add(statusLabel, BorderLayout.SOUTH);
-        openButton.addActionListener(e -> openFile());
-        nextPageButton.addActionListener(
-                e -> nextPage()
-        );
-        prevPageButton.addActionListener(
-                e -> prevPage()
-        );
-        searchButton.addActionListener(
-                e -> startSearch()
-        );
-        nextMatchButton.addActionListener(
-                e -> nextMatch()
-        );
-        folderSearchButton.addActionListener(
-                e -> searchFolder()
-        );
-        frame.setVisible(true);
-		setupCtrlF();
-    }
-    private void openFile() {
-        JFileChooser chooser = new JFileChooser();
-        int result = chooser.showOpenDialog(frame);
-        if (result != JFileChooser.APPROVE_OPTION) {
-            return;
-        }
-        File file = chooser.getSelectedFile();
-        reader = new LargeFileReader(file);
-        currentPage = 0;
-        loadPage(currentPage);
-    }
-	private void setupCtrlF() {
-    KeyStroke keyStroke =
-            KeyStroke.getKeyStroke(
-                    "control F"
-            );
-    textPane.getInputMap(
-            JComponent.WHEN_IN_FOCUSED_WINDOW
-    ).put(
-            keyStroke,
-            "find"
-    );
-    textPane.getActionMap().put(
-            "find",
-            new AbstractAction() {
-                @Override
-                public void actionPerformed(
-                        java.awt.event.ActionEvent e
-                ) {
-                    String keyword =
-                            JOptionPane.showInputDialog(
-                                    frame,
-                                    "Find Text"
-                            );
-                    if (keyword == null
-                            || keyword.trim().isEmpty()) {
-                        return;
-                    }
-                    highlightFind(keyword);
-                }
-            }
-    );
-}
-private void highlightFind(String keyword) {
-    String text =
-            textPane.getText();
-    int index =
-            text.indexOf(keyword);
-    if (index < 0) {
-        JOptionPane.showMessageDialog(
-                frame,
-                "Text not found"
-        );
-        return;
-    }
-    textPane.requestFocus();
-    textPane.select(
-            index,
-            index + keyword.length()
-    );
-}
-    private void loadPage(long page) {
-        if (loading || reader == null) {
-            return;
-        }
-        loading = true;
-        textPane.setText("");
-        long startLine = page * PAGE_SIZE;
-        statusLabel.setText(
-                "Loading page " + (page + 1)
-        );
-        SwingWorker<List<String>, Void> worker =
-                new SwingWorker<List<String>, Void>() {
-                    @Override
-                    protected List<String> doInBackground()
-                            throws Exception {
-                        return reader.readLines(
-                                startLine,
-                                PAGE_SIZE
-                        );
-                    }
-                    @Override
-                    protected void done() {
-                        try {
-                            List<String> lines = get();
-                            StringBuilder builder =
-                                    new StringBuilder();
-                            for (String line : lines) {
-                                builder.append(line)
-                                        .append("\n");
-                            }
-                            setHighlightedText(
-                                    builder.toString(),
-                                    searchField.getText()
-                            );
-                            textPane.setCaretPosition(0);
-                            statusLabel.setText(
-                                    "Page "
-                                            + (currentPage + 1)
-                                            + " | Lines "
-                                            + lines.size()
-                            );
-                        } catch (Exception ex) {
-                            showError(ex);
-                        } finally {
-                            loading = false;
-                        }
-                    }
-                };
-        worker.execute();
-    }
-    private void nextPage() {
-        currentPage++;
-        loadPage(currentPage);
-    }
-    private void prevPage() {
-        if (currentPage == 0) {
-            return;
-        }
-        currentPage--;
-        loadPage(currentPage);
-    }
-    private void startSearch() {
-        if (reader == null || loading) {
-            return;
-        }
-        String keyword = searchField.getText();
-        if (keyword == null
-                || keyword.trim().isEmpty()) {
-            return;
-        }
-        loading = true;
-        textPane.setText("");
-        statusLabel.setText("Searching...");
-        SwingWorker<SearchResult, Void> worker =
-                new SwingWorker<SearchResult, Void>() {
-                    @Override
-                    protected SearchResult doInBackground()
-                            throws Exception {
-                        reader.resetSearch();
-                        return reader.findNextMatch(
-                                keyword,
-                                200
-                        );
-                    }
-                    @Override
-                    protected void done() {
-                        try {
-                            SearchResult result = get();
-                            showSearchResult(result);
-                        } catch (Exception ex) {
-                            showError(ex);
-                        } finally {
-                            loading = false;
-                        }
-                    }
-                };
-        worker.execute();
-    }
-    private void nextMatch() {
-        if (reader == null || loading) {
-            return;
-        }
-        String keyword = searchField.getText();
-        if (keyword == null
-                || keyword.trim().isEmpty()) {
-            return;
-        }
-        loading = true;
-        statusLabel.setText("Finding next match...");
-        SwingWorker<SearchResult, Void> worker =
-                new SwingWorker<SearchResult, Void>() {
-                    @Override
-                    protected SearchResult doInBackground()
-                            throws Exception {
-                        return reader.findNextMatch(
-                                keyword,
-                                200
-                        );
-                    }
-                    @Override
-                    protected void done() {
-                        try {
-                            SearchResult result = get();
-                            showSearchResult(result);
-                        } catch (Exception ex) {
-                            showError(ex);
-                        } finally {
-                            loading = false;
-                        }
-                    }
-                };
-        worker.execute();
-    }
-    private void searchFolder() {
-        JFileChooser chooser =
-                new JFileChooser();
-        chooser.setFileSelectionMode(
-                JFileChooser.DIRECTORIES_ONLY
-        );
-        int result =
-                chooser.showOpenDialog(frame);
-        if (result != JFileChooser.APPROVE_OPTION) {
-            return;
-        }
-        File folder =
-                chooser.getSelectedFile();
-        String keyword =
-                searchField.getText();
-        if (keyword == null
-                || keyword.trim().isEmpty()) {
-            return;
-        }
-        loading = true;
-        textPane.setText("");
-        statusLabel.setText(
-                "Searching folder..."
-        );
-        SwingWorker<List<SearchResult>, Void> worker =
-                new SwingWorker<List<SearchResult>, Void>() {
-                    @Override
-                    protected List<SearchResult>
-                    doInBackground()
-                            throws Exception {
-                        FolderSearchManager manager =
-                                new FolderSearchManager();
-                        return manager.searchFolder(
-                                folder,
-                                keyword,
-                                200
-                        );
-                    }
-                    @Override
-                    protected void done() {
-                        try {
-                            List<SearchResult> results =
-                                    get();
-                            StringBuilder builder =
-                                    new StringBuilder();
-                            for (SearchResult r
-                                    : results) {
-                                builder.append(
-                                        "=======================================================================================================================================\n"
-                                );
-                                builder.append(
-                                        "FILE : "
-                                                + r.getFileName()
-                                                + "\n"
-                                );
-                                builder.append(
-                                        "LINE : "
-                                                + r.getLineNumber()
-                                                + "\n"
-                                );
-                                builder.append(
-                                        "=======================================================================================================================================\n"
-                                );
-                                for (String line
-                                        : r.getContextLines()) {
-                                    builder.append(line)
-                                            .append("\n");
-                                }
-                                builder.append("\n\n");
-                            }
-                            setHighlightedText(
-                                    builder.toString(),
-                                    searchField.getText()
-                            );
-                            textPane.setCaretPosition(0);
-                            statusLabel.setText(
-                                    "Matches : "
-                                            + results.size()
-                            );
-                        } catch (Exception ex) {
-                            showError(ex);
-                        } finally {
-                            loading = false;
-                        }
-                    }
-                };
-        worker.execute();
-    }
-    private void showSearchResult(
-            SearchResult result
-    ) {
-        if (result == null) {
-            textPane.setText("");
-            statusLabel.setText(
-                    "No more matches"
-            );
-            return;
-        }
-        StringBuilder builder =
-                new StringBuilder();
-        builder.append(
-                "=======================================================================================================================================\n"
-        );
-		builder.append(
-                "FILE : "
-                        + result.getFileName()
-                        + "\n"
-        );
-        builder.append(
-                "MATCH AT LINE : "
-                        + result.getLineNumber()
-                        + "\n"
-        );
-        builder.append(
-                "=======================================================================================================================================\n\n"
-        );
-        for (String line : result.getContextLines()) {
-            builder.append(line)
-                    .append("\n");
-        }
-        setHighlightedText(
-                builder.toString(),
-                searchField.getText()
-        );
-        textPane.setCaretPosition(0);
-        statusLabel.setText(
-                "Match at line "
-                        + result.getLineNumber()
-        );
-    }
-    private void setHighlightedText(
-            String text,
-            String keyword
-    ) {
-        StyledDocument doc =
-                textPane.getStyledDocument();
-        Style defaultStyle =
-                textPane.addStyle("Default", null);
-        StyleConstants.setForeground(
-                defaultStyle,
-                Color.BLACK
-        );
-        Style highlightStyle =
-                textPane.addStyle("Highlight", null);
-        StyleConstants.setBackground(
-                highlightStyle,
-                Color.YELLOW
-        );
-        StyleConstants.setBold(
-                highlightStyle,
-                true
-        );
-        try {
-            doc.remove(
-                    0,
-                    doc.getLength()
-            );
-            if (keyword == null
-                    || keyword.trim().isEmpty()) {
-                doc.insertString(
-                        0,
-                        text,
-                        defaultStyle
-                );
-                return;
-            }
-            int index = 0;
-            while (true) {
-                int match =
-                        text.indexOf(keyword, index);
-                if (match < 0) {
-                    doc.insertString(
-                            doc.getLength(),
-                            text.substring(index),
-                            defaultStyle
-                    );
-                    break;
-                }
-                doc.insertString(
-                        doc.getLength(),
-                        text.substring(index, match),
-                        defaultStyle
-                );
-                doc.insertString(
-                        doc.getLength(),
-                        keyword,
-                        highlightStyle
-                );
-                index = match + keyword.length();
-            }
+
+            // [2026-05-27 16:04:45.718]
+            String hh =
+                    line.substring(start + 12, start + 14);
+
+            String mm =
+                    line.substring(start + 15, start + 17);
+
+            int hour =
+                    Integer.parseInt(hh);
+
+            int minute =
+                    Integer.parseInt(mm);
+
+            return hour * 60 + minute;
+
         } catch (Exception ex) {
-            ex.printStackTrace();
+            return null;
         }
     }
-    private void showError(Exception ex) {
-        ex.printStackTrace();
-        JOptionPane.showMessageDialog(
-                frame,
-                ex.getMessage(),
-                "Error",
-                JOptionPane.ERROR_MESSAGE
-        );
-    }
 }
-package com.logviewer;
-import java.util.List;
-public class SearchResult {
-    private String fileName;
-    private long lineNumber;
-    private List<String> contextLines;
-    public String getFileName() {
-        return fileName;
-    }
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
-    public long getLineNumber() {
-        return lineNumber;
-    }
-    public void setLineNumber(long lineNumber) {
-        this.lineNumber = lineNumber;
-    }
-    public List<String> getContextLines() {
-        return contextLines;
-    }
-    public void setContextLines(List<String> contextLines) {
-        this.contextLines = contextLines;
-    }
-}
-
-
-
-add time based search in the above tool , the time search is optional if the fields are empty then full log need to be searched. the time in log will be [2026-05-27 16:04:45.718] , time input should be like "10:30" , format will be 24 hrs 
