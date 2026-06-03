@@ -1,839 +1,1141 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CR File Tracker</title>
-
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg:         #f5f6f8;
+            --white:      #ffffff;
+            --border:     #e2e5ea;
+            --border2:    #cdd1d8;
+            --primary:    #2563eb;
+            --primary-bg: #eff4ff;
+            --primary-lt: #dbeafe;
+            --green:      #16a34a;
+            --green-bg:   #f0fdf4;
+            --green-lt:   #dcfce7;
+            --red:        #dc2626;
+            --red-bg:     #fff5f5;
+            --amber:      #d97706;
+            --amber-bg:   #fffbeb;
+            --text:       #111827;
+            --text2:      #374151;
+            --muted:      #6b7280;
+            --muted2:     #9ca3af;
+            --shadow:     0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-md:  0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+            --radius:     8px;
+            --font:       'DM Sans', sans-serif;
+            --mono:       'DM Mono', monospace;
         }
 
         body {
-
-            font-family: Arial, sans-serif;
-
-            background: #111827;
-            color: #f9fafb;
-
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
             height: 100vh;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
         }
 
-        .toolbar {
-
-            height: 60px;
-
-            display: flex;
-            align-items: center;
-            gap: 10px;
-
-            padding: 10px 20px;
-
-            background: #1f2937;
-
-            border-bottom: 1px solid #374151;
-        }
-
-        .title {
-
-            font-size: 22px;
-            font-weight: bold;
-
-            margin-right: 30px;
-        }
-
-        button {
-
-            background: #2563eb;
-            color: white;
-
-            border: none;
-
-            padding: 8px 14px;
-
-            border-radius: 6px;
-
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #1d4ed8;
-        }
-
-        input {
-
-            padding: 8px;
-            border-radius: 6px;
-            border: none;
-
-            width: 250px;
-        }
-
-        .main {
-
-            height: calc(100vh - 60px);
-
-            overflow: auto;
-
-            padding: 20px;
-        }
-
-        .tree-node {
-            margin-left: 20px;
-        }
-
-        .node-header {
-
+        /* ── HEADER ── */
+        header {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 0 20px;
+            height: 52px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-
-            padding: 10px;
-
-            margin: 4px 0;
-
-            border-radius: 6px;
-
-            background: #1f2937;
-
-            transition: 0.2s;
+            flex-shrink: 0;
+            box-shadow: var(--shadow);
+            z-index: 10;
         }
 
-        .node-header:hover {
-            background: #374151;
-        }
-
-        .node-left {
-
+        .logo {
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .toggle {
-
-            cursor: pointer;
-
-            width: 20px;
-            display: inline-block;
+        .logo-icon {
+            width: 28px; height: 28px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: white;
         }
 
-        .children {
-
-            margin-left: 25px;
-
-            display: none;
+        .logo-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -.01em;
         }
 
-        .expanded > .children {
-            display: block;
-        }
+        .logo-text span { color: var(--primary); }
 
-        .actions {
+        .header-right {
             display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-wrap .search-icon {
+            position: absolute; left: 9px;
+            color: var(--muted2);
+            pointer-events: none;
+            display: flex;
+        }
+
+        #searchBox {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 6px 10px 6px 30px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 13px;
+            width: 220px;
+            transition: border-color .15s, box-shadow .15s;
+            outline: none;
+        }
+
+        #searchBox:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+            background: var(--white);
+        }
+
+        #searchBox::placeholder { color: var(--muted2); }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
             gap: 5px;
-        }
-
-        .danger {
-            background: #dc2626;
-        }
-
-        .danger:hover {
-            background: #b91c1c;
-        }
-
-        .modal {
-
-            position: fixed;
-
-            top: 0;
-            left: 0;
-
-            width: 100%;
-            height: 100%;
-
-            background: rgba(0,0,0,0.6);
-
-            display: none;
-
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-
-            background: #1f2937;
-
-            width: 400px;
-
-            padding: 20px;
-
-            border-radius: 10px;
-        }
-
-        .modal-content h2 {
-            margin-bottom: 15px;
-        }
-
-        .modal-content input,
-        .modal-content textarea,
-        .modal-content select {
-
-            width: 100%;
-
-            margin-bottom: 12px;
-
-            padding: 10px;
-
-            border-radius: 6px;
-
+            padding: 6px 12px;
             border: none;
+            border-radius: var(--radius);
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .15s;
+            white-space: nowrap;
         }
 
-        .modal-buttons {
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
 
+        .btn-ghost {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { background: var(--bg); color: var(--text2); border-color: var(--border2); }
+
+        .btn-danger-ghost {
+            background: transparent;
+            color: var(--muted2);
+            border: none;
+            padding: 4px 6px;
+            border-radius: 5px;
+        }
+        .btn-danger-ghost:hover { background: var(--red-bg); color: var(--red); }
+
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+        /* ── STATS ── */
+        .stats-bar {
             display: flex;
-            justify-content: flex-end;
-            gap: 10px;
+            gap: 12px;
+            padding: 10px 20px;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
         }
+
+        .stat-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text2);
+        }
+
+        .stat-pill .dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+        }
+
+        .stat-pill b { font-weight: 600; }
+
+        /* ── WORKSPACE ── */
+        .workspace {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 290px 260px 1fr;
+            overflow: hidden;
+            gap: 0;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--white);
+            border-right: 1px solid var(--border);
+        }
+
+        .col:last-child { border-right: none; background: var(--bg); }
+
+        /* ── COL HEADER ── */
+        .col-header {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            background: var(--white);
+        }
+
+        .col-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .col-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: var(--bg);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+
+        .col-badge.blue  { background: var(--primary-bg); color: var(--primary); border-color: var(--primary-lt); }
+        .col-badge.green { background: var(--green-bg);   color: var(--green);   border-color: var(--green-lt); }
+
+        /* ── COLLAPSIBLE FORM ── */
+        .add-form-wrap {
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .add-toggle {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: var(--font);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--primary);
+            transition: background .15s;
+            text-align: left;
+        }
+
+        .add-toggle:hover { background: var(--primary-bg); }
+
+        .add-toggle .chevron {
+            margin-left: auto;
+            transition: transform .2s;
+            color: var(--muted2);
+        }
+
+        .add-toggle.open .chevron { transform: rotate(180deg); }
+
+        .form-body {
+            display: none;
+            padding: 12px 14px 14px;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+            animation: formOpen .15s ease;
+        }
+
+        @keyframes formOpen {
+            from { opacity: 0; transform: translateY(-4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-body.open { display: block; }
+
+        .form-row { margin-bottom: 8px; }
+
+        .form-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 7px 10px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 13px;
+            outline: none;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+        }
+
+        .form-input::placeholder { color: var(--muted2); }
+
+        select.form-input {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 28px;
+        }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        .btn-submit {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-family: var(--font);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s;
+            margin-top: 4px;
+        }
+
+        .btn-submit-blue  { background: var(--primary); color: white; }
+        .btn-submit-blue:hover  { background: #1d4ed8; }
+        .btn-submit-green { background: var(--green);   color: white; }
+        .btn-submit-green:hover { background: #15803d; }
+        .btn-submit-amber { background: var(--amber);   color: white; }
+        .btn-submit-amber:hover { background: #b45309; }
+
+        /* ── LIST ── */
+        .list-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .list-area::-webkit-scrollbar { width: 4px; }
+        .list-area::-webkit-scrollbar-track { background: transparent; }
+        .list-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+        /* ── CR ITEM ── */
+        .cr-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all .15s;
+            background: var(--white);
+            position: relative;
+        }
+
+        .cr-item:hover { border-color: var(--border2); box-shadow: var(--shadow); }
+
+        .cr-item.active {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+            box-shadow: 0 0 0 2px rgba(37,99,235,.1);
+        }
+
+        .cr-body { flex: 1; min-width: 0; }
+
+        .cr-id {
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--primary);
+            margin-bottom: 2px;
+        }
+
+        .cr-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+
+        .cr-meta { display: flex; gap: 5px; }
+
+        .mini-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .mini-badge-blue  { background: var(--primary-lt); color: var(--primary); }
+        .mini-badge-green { background: var(--green-lt); color: var(--green); }
+
+        .item-actions {
+            opacity: 0;
+            transition: opacity .15s;
+            display: flex;
+            gap: 2px;
+        }
+
+        .cr-item:hover .item-actions,
+        .fn-item:hover .item-actions,
+        .file-item:hover .item-actions { opacity: 1; }
+
+        /* ── FN ITEM ── */
+        .fn-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all .15s;
+            background: var(--white);
+        }
+
+        .fn-item:hover { border-color: var(--border2); box-shadow: var(--shadow); }
+
+        .fn-item.active {
+            border-color: var(--green);
+            background: var(--green-bg);
+            box-shadow: 0 0 0 2px rgba(22,163,74,.1);
+        }
+
+        .fn-body { flex: 1; min-width: 0; }
+
+        .fn-name {
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        .fn-module {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* ── FILE ITEM ── */
+        .file-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 7px;
+            background: var(--white);
+            transition: all .15s;
+            animation: slideIn .15s ease;
+            box-shadow: var(--shadow);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .file-item:hover { border-color: var(--border2); box-shadow: var(--shadow-md); }
+
+        .file-icon {
+            width: 30px; height: 30px;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .file-body { flex: 1; min-width: 0; }
 
         .file-path {
-            color: #93c5fd;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text);
+            word-break: break-all;
+            line-height: 1.5;
+            margin-bottom: 5px;
         }
 
+        .file-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+        .type-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        .type-new      { background: var(--green-lt);  color: var(--green);  }
+        .type-modified { background: var(--amber-bg);  color: var(--amber);  border: 1px solid #fde68a; }
+        .type-deleted  { background: var(--red-bg);    color: var(--red);    border: 1px solid #fecaca; }
+
+        .file-remarks {
+            font-size: 11px;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            text-align: center;
+            padding: 36px 16px;
+            color: var(--muted2);
+        }
+
+        .empty-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 10px;
+        }
+
+        .empty-state p {
+            font-size: 12px;
+            line-height: 1.7;
+            color: var(--muted);
+        }
+
+        /* ── CONFIRM DIALOG ── */
+        .overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.25);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100;
+            opacity: 0; pointer-events: none;
+            transition: opacity .15s;
+        }
+
+        .overlay.show { opacity: 1; pointer-events: all; }
+
+        .dialog {
+            background: var(--white);
+            border-radius: 10px;
+            padding: 22px 24px;
+            width: 300px;
+            box-shadow: 0 16px 40px rgba(0,0,0,.12);
+            transform: scale(.96);
+            transition: transform .15s;
+        }
+
+        .overlay.show .dialog { transform: scale(1); }
+
+        .dialog-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .dialog-body {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 18px;
+            line-height: 1.5;
+        }
+
+        .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+        /* ── TOAST ── */
+        #toast {
+            position: fixed;
+            bottom: 20px; right: 20px;
+            background: var(--text);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: all .2s;
+            pointer-events: none;
+            z-index: 999;
+            box-shadow: var(--shadow-md);
+        }
+
+        #toast.show { opacity: 1; transform: translateY(0); }
+        #toast.success { background: var(--green); }
+        #toast.error   { background: var(--red); }
     </style>
-
 </head>
-
 <body>
 
-<div class="toolbar">
-
-    <div class="title">
-        CR File Tracker
+<!-- HEADER -->
+<header>
+    <div class="logo">
+        <div class="logo-icon">
+            <svg width="14" height="14" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                <rect x="9" y="3" width="6" height="4" rx="1"/>
+                <path d="M9 12h6M9 16h4"/>
+            </svg>
+        </div>
+        <span class="logo-text">CR <span>File Tracker</span></span>
     </div>
+    <div class="header-right">
+        <div class="search-wrap">
+            <span class="search-icon">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+            </span>
+            <input type="text" id="searchBox" placeholder="Search CR, function, file…" onkeydown="if(event.key==='Enter') searchData()">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="searchData()">Search</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetSearch()">Reset</button>
+    </div>
+</header>
 
-    <button onclick="openCRModal()">
-        + Add CR
-    </button>
-
-    <button onclick="expandAll()">
-        Expand All
-    </button>
-
-    <button onclick="collapseAll()">
-        Collapse All
-    </button>
-
-    <input type="text"
-           id="searchBox"
-           placeholder="Search...">
-
-    <button onclick="searchTree()">
-        Search
-    </button>
-
+<!-- STATS BAR -->
+<div class="stats-bar">
+    <div class="stat-pill"><span class="dot" style="background:#2563eb"></span> <b id="statCR">0</b> Change Requests</div>
+    <div class="stat-pill"><span class="dot" style="background:#16a34a"></span> <b id="statFN">0</b> Functions</div>
+    <div class="stat-pill"><span class="dot" style="background:#d97706"></span> <b id="statFIL">0</b> Files</div>
+    <div class="stat-pill" id="selPill" style="display:none">
+        <span class="dot" style="background:#2563eb"></span>
+        Selected: <b id="statSel">—</b>
+    </div>
 </div>
 
-<div class="main">
+<!-- WORKSPACE -->
+<div class="workspace">
 
-    <div id="treeContainer"></div>
-
-</div>
-
-<!-- MODAL -->
-
-<div class="modal" id="modal">
-
-    <div class="modal-content">
-
-        <h2 id="modalTitle"></h2>
-
-        <div id="modalBody"></div>
-
-        <div class="modal-buttons">
-
-            <button onclick="closeModal()">
-                Cancel
-            </button>
-
-            <button onclick="submitModal()">
-                Save
-            </button>
-
+    <!-- CR COLUMN -->
+    <div class="col">
+        <div class="col-header">
+            <div class="col-title">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/>
+                </svg>
+                Change Requests
+            </div>
+            <span class="col-badge blue" id="crCount">0</span>
         </div>
 
+        <div class="add-form-wrap">
+            <button class="add-toggle" id="crToggle" onclick="toggleForm('cr')">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                Add Change Request
+                <svg class="chevron" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="form-body" id="crForm">
+                <div class="form-row">
+                    <label class="form-label">CR ID</label>
+                    <input type="text" id="crId" class="form-input" placeholder="e.g. CR-2024-001">
+                </div>
+                <div class="form-row">
+                    <label class="form-label">Title</label>
+                    <input type="text" id="crTitle" class="form-input" placeholder="Short description">
+                </div>
+                <button class="btn-submit btn-submit-blue" onclick="addCR()">Add CR</button>
+            </div>
+        </div>
+
+        <div class="list-area" id="crList"></div>
+    </div>
+
+    <!-- FUNCTION COLUMN -->
+    <div class="col">
+        <div class="col-header">
+            <div class="col-title">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m10 0h3a2 2 0 0 0 2-2v-3"/>
+                </svg>
+                Functions
+            </div>
+            <span class="col-badge green" id="fnCount">0</span>
+        </div>
+
+        <div class="add-form-wrap">
+            <button class="add-toggle" id="fnToggle" onclick="toggleForm('fn')" style="color:var(--green)">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                Add Function
+                <svg class="chevron" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="form-body" id="fnForm">
+                <div class="form-row">
+                    <label class="form-label">Function Name</label>
+                    <input type="text" id="functionName" class="form-input" placeholder="e.g. processLCAmend">
+                </div>
+                <div class="form-row">
+                    <label class="form-label">Module</label>
+                    <input type="text" id="moduleName" class="form-input" placeholder="e.g. TradeFinance">
+                </div>
+                <button class="btn-submit btn-submit-green" onclick="addFunction()">Add Function</button>
+            </div>
+        </div>
+
+        <div class="list-area" id="functionList">
+            <div class="empty-state">
+                <div class="empty-icon"><svg width="16" height="16" fill="none" stroke="var(--muted2)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m10 0h3a2 2 0 0 0 2-2v-3"/></svg></div>
+                <p>Select a CR to<br>view functions</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILES COLUMN -->
+    <div class="col">
+        <div class="col-header">
+            <div class="col-title">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Files
+            </div>
+            <span class="col-badge" id="fileCount">0</span>
+        </div>
+
+        <div class="add-form-wrap">
+            <button class="add-toggle" id="fileToggle" onclick="toggleForm('file')" style="color:var(--amber)">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                Add File
+                <svg class="chevron" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="form-body" id="fileForm">
+                <div class="form-row">
+                    <label class="form-label">File Path</label>
+                    <input type="text" id="filePath" class="form-input" placeholder="/src/com/example/Service.java">
+                </div>
+                <div class="form-grid">
+                    <div class="form-row">
+                        <label class="form-label">Change Type</label>
+                        <select id="fileType" class="form-input">
+                            <option>New</option>
+                            <option>Modified</option>
+                            <option>Deleted</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">Remarks</label>
+                        <input type="text" id="remarks" class="form-input" placeholder="Optional note">
+                    </div>
+                </div>
+                <button class="btn-submit btn-submit-amber" onclick="addFile()">Add File</button>
+            </div>
+        </div>
+
+        <div class="list-area" id="fileList">
+            <div class="empty-state">
+                <div class="empty-icon"><svg width="16" height="16" fill="none" stroke="var(--muted2)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                <p>Select a function to<br>view files</p>
+            </div>
+        </div>
     </div>
 
 </div>
 
+<!-- CONFIRM DIALOG -->
+<div class="overlay" id="confirmOverlay">
+    <div class="dialog">
+        <div class="dialog-title" id="dialogTitle">Confirm Delete</div>
+        <div class="dialog-body" id="dialogBody">Are you sure?</div>
+        <div class="dialog-actions">
+            <button class="btn btn-ghost btn-sm" onclick="closeDialog()">Cancel</button>
+            <button class="btn btn-sm" style="background:var(--red);color:white;" id="dialogConfirm">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
 <script>
+let selectedCR = null;
+let selectedFn = null;
+let allData = { crs: [] };
+let pendingDelete = null;
 
-    let data = {
-        crs: []
+// ── FORM TOGGLE ──
+function toggleForm(which) {
+    const formId   = { cr: 'crForm', fn: 'fnForm', file: 'fileForm' }[which];
+    const toggleId = { cr: 'crToggle', fn: 'fnToggle', file: 'fileToggle' }[which];
+    const form    = document.getElementById(formId);
+    const toggle  = document.getElementById(toggleId);
+    const isOpen  = form.classList.contains('open');
+    form.classList.toggle('open', !isOpen);
+    toggle.classList.toggle('open', !isOpen);
+}
+
+// ── LOAD ──
+async function loadData() {
+    try {
+        const res = await fetch('../api/tracker');
+        allData = await res.json();
+    } catch { /* demo mode */ }
+    renderAll(allData.crs || []);
+}
+
+// ── STATS ──
+function updateStats(crs) {
+    let fn = 0, fi = 0;
+    (crs || []).forEach(c => {
+        (c.functions || []).forEach(f => { fn++; fi += (f.files || []).length; });
+    });
+    document.getElementById('statCR').textContent  = (crs || []).length;
+    document.getElementById('statFN').textContent  = fn;
+    document.getElementById('statFIL').textContent = fi;
+    document.getElementById('crCount').textContent = (crs || []).length;
+}
+
+// ── RENDER ALL ──
+function renderAll(crs) {
+    updateStats(crs);
+    renderCRs(crs);
+}
+
+// ── RENDER CRs ──
+function renderCRs(crs) {
+    const c = document.getElementById('crList');
+    c.innerHTML = '';
+    if (!crs.length) {
+        c.innerHTML = emptyState('No CRs yet. Add your first.', 'cr');
+        return;
+    }
+    crs.forEach(cr => {
+        const fnCnt = (cr.functions||[]).length;
+        const fiCnt = (cr.functions||[]).reduce((s,f)=>s+(f.files||[]).length,0);
+        const div = document.createElement('div');
+        div.className = 'cr-item' + (selectedCR && selectedCR.id===cr.id ? ' active' : '');
+        div.innerHTML = `
+            <div class="cr-body">
+                <div class="cr-id">${cr.id}</div>
+                <div class="cr-title">${cr.title}</div>
+                <div class="cr-meta">
+                    <span class="mini-badge mini-badge-blue">${fnCnt} fn</span>
+                    <span class="mini-badge mini-badge-green">${fiCnt} files</span>
+                </div>
+            </div>
+            <div class="item-actions">
+                <button class="btn-danger-ghost" title="Delete CR" onclick="event.stopPropagation(); confirmDelete('cr', '${cr.id}', null, null, '${cr.id}: ${cr.title.replace(/'/g,"\\'")}')">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                </button>
+            </div>`;
+        div.onclick = () => selectCR(cr, div);
+        c.appendChild(div);
+    });
+}
+
+function selectCR(cr, el) {
+    selectedCR = cr;
+    selectedFn = null;
+    document.querySelectorAll('.cr-item').forEach(d => d.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('statSel').textContent = cr.id;
+    document.getElementById('selPill').style.display = 'flex';
+    document.getElementById('fnCount').textContent = (cr.functions||[]).length;
+    renderFunctions(cr.functions || []);
+    document.getElementById('fileCount').textContent = '0';
+    document.getElementById('fileList').innerHTML = emptyState('Select a function to view files', 'file');
+}
+
+// ── RENDER FNs ──
+function renderFunctions(fns) {
+    const c = document.getElementById('functionList');
+    c.innerHTML = '';
+    document.getElementById('fnCount').textContent = fns.length;
+    if (!fns.length) {
+        c.innerHTML = emptyState('No functions yet. Add one above.', 'fn');
+        return;
+    }
+    fns.forEach(fn => {
+        const div = document.createElement('div');
+        div.className = 'fn-item' + (selectedFn && selectedFn.name===fn.name ? ' active' : '');
+        div.innerHTML = `
+            <div class="fn-body">
+                <div class="fn-name">${fn.name}</div>
+                <div class="fn-module">${fn.module} &middot; ${(fn.files||[]).length} file${(fn.files||[]).length!==1?'s':''}</div>
+            </div>
+            <div class="item-actions">
+                <button class="btn-danger-ghost" title="Delete Function" onclick="event.stopPropagation(); confirmDelete('fn', '${selectedCR.id}', '${fn.name}', null, '${fn.name}')">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                </button>
+            </div>`;
+        div.onclick = () => selectFn(fn, div);
+        c.appendChild(div);
+    });
+}
+
+function selectFn(fn, el) {
+    selectedFn = fn;
+    document.querySelectorAll('.fn-item').forEach(d => d.classList.remove('active'));
+    el.classList.add('active');
+    renderFiles(fn.files || []);
+}
+
+// ── RENDER FILES ──
+function renderFiles(files) {
+    const c = document.getElementById('fileList');
+    c.innerHTML = '';
+    document.getElementById('fileCount').textContent = files.length;
+    if (!files.length) {
+        c.innerHTML = emptyState('No files added yet.', 'file');
+        return;
+    }
+    files.forEach((f, idx) => {
+        const typeClass = { New:'type-new', Modified:'type-modified', Deleted:'type-deleted' }[f.type] || 'type-new';
+        const iconBg    = { New:'#dcfce7', Modified:'#fef3c7', Deleted:'#fee2e2' }[f.type] || '#f0fdf4';
+        const iconColor = { New:'#16a34a', Modified:'#d97706', Deleted:'#dc2626' }[f.type] || '#16a34a';
+        const ext = f.path.split('.').pop().toUpperCase().slice(0, 4);
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.innerHTML = `
+            <div class="file-icon" style="background:${iconBg}">
+                <svg width="14" height="14" fill="none" stroke="${iconColor}" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="file-body">
+                <div class="file-path">${f.path}</div>
+                <div class="file-meta">
+                    <span class="type-badge ${typeClass}">${f.type}</span>
+                    ${f.remarks ? `<span class="file-remarks">${f.remarks}</span>` : ''}
+                </div>
+            </div>
+            <div class="item-actions">
+                <button class="btn-danger-ghost" title="Delete File" onclick="confirmDelete('file', '${selectedCR.id}', '${selectedFn.name}', ${idx}, '${f.path.replace(/'/g,"\\'")}')">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                </button>
+            </div>`;
+        c.appendChild(div);
+    });
+}
+
+// ── EMPTY STATE ──
+function emptyState(msg, type) {
+    const icons = {
+        cr:   '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/>',
+        fn:   '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m10 0h3a2 2 0 0 0 2-2v-3"/>',
+        file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'
     };
+    return `<div class="empty-state">
+        <div class="empty-icon"><svg width="16" height="16" fill="none" stroke="var(--muted2)" stroke-width="1.8" viewBox="0 0 24 24">${icons[type]||''}</svg></div>
+        <p>${msg}</p>
+    </div>`;
+}
 
-    let currentAction = null;
+// ── ADD ACTIONS ──
+async function addCR() {
+    const id    = document.getElementById('crId').value.trim();
+    const title = document.getElementById('crTitle').value.trim();
+    if (!id || !title) { toast('Fill in CR ID and Title', 'error'); return; }
 
-    let selectedCR = null;
-    let selectedFunction = null;
+    applyLocal({ action:'ADD_CR', crId:id, title });
+    renderAll(allData.crs);
+    document.getElementById('crId').value = '';
+    document.getElementById('crTitle').value = '';
+    toggleForm('cr');
+    toast('CR added successfully', 'success');
 
-    function saveData() {
+    try { await post({ action:'ADD_CR', crId:id, title }); } catch {}
+}
 
-        localStorage.setItem(
-            "trackerData",
-            JSON.stringify(data)
-        );
-    }
+async function addFunction() {
+    if (!selectedCR) { toast('Select a CR first', 'error'); return; }
+    const name   = document.getElementById('functionName').value.trim();
+    const module = document.getElementById('moduleName').value.trim();
+    if (!name || !module) { toast('Fill in Function Name and Module', 'error'); return; }
 
-    function loadData() {
+    applyLocal({ action:'ADD_FUNCTION', crId:selectedCR.id, functionName:name, module });
+    const cr = allData.crs.find(c=>c.id===selectedCR.id);
+    selectedCR = cr;
+    renderFunctions(cr.functions||[]);
+    updateStats(allData.crs);
+    document.getElementById('functionName').value = '';
+    document.getElementById('moduleName').value = '';
+    toggleForm('fn');
+    toast('Function added', 'success');
 
-        const stored =
-            localStorage.getItem("trackerData");
+    try { await post({ action:'ADD_FUNCTION', crId:selectedCR.id, functionName:name, module }); } catch {}
+}
 
-        if (stored) {
-            data = JSON.parse(stored);
+async function addFile() {
+    if (!selectedFn || !selectedCR) { toast('Select a Function first', 'error'); return; }
+    const path    = document.getElementById('filePath').value.trim();
+    const type    = document.getElementById('fileType').value;
+    const remarks = document.getElementById('remarks').value.trim();
+    if (!path) { toast('Enter a file path', 'error'); return; }
+
+    applyLocal({ action:'ADD_FILE', crId:selectedCR.id, functionName:selectedFn.name, path, type, remarks });
+    const fn = allData.crs.find(c=>c.id===selectedCR.id)?.functions.find(f=>f.name===selectedFn.name);
+    if (fn) { selectedFn = fn; renderFiles(fn.files||[]); }
+    updateStats(allData.crs);
+    document.getElementById('filePath').value = '';
+    document.getElementById('remarks').value = '';
+    toggleForm('file');
+    toast('File added', 'success');
+
+    try { await post({ action:'ADD_FILE', crId:selectedCR.id, functionName:selectedFn.name, path, type, remarks }); } catch {}
+}
+
+// ── DELETE ──
+function confirmDelete(type, crId, fnName, fileIdx, label) {
+    pendingDelete = { type, crId, fnName, fileIdx };
+    const titles = { cr:'Delete Change Request', fn:'Delete Function', file:'Delete File' };
+    document.getElementById('dialogTitle').textContent = titles[type];
+    document.getElementById('dialogBody').textContent  = `"${label}" will be permanently removed.`;
+    document.getElementById('dialogConfirm').onclick   = executeDelete;
+    document.getElementById('confirmOverlay').classList.add('show');
+}
+
+function closeDialog() {
+    document.getElementById('confirmOverlay').classList.remove('show');
+    pendingDelete = null;
+}
+
+async function executeDelete() {
+    closeDialog();
+    const { type, crId, fnName, fileIdx } = pendingDelete;
+
+    if (type === 'cr') {
+        allData.crs = allData.crs.filter(c => c.id !== crId);
+        if (selectedCR && selectedCR.id === crId) {
+            selectedCR = null; selectedFn = null;
+            document.getElementById('selPill').style.display='none';
+            document.getElementById('functionList').innerHTML = emptyState('Select a CR to view functions','fn');
+            document.getElementById('fileList').innerHTML = emptyState('Select a function to view files','file');
         }
-
-        renderTree(data.crs);
-    }
-
-    function renderTree(crs) {
-
-        const container =
-            document.getElementById("treeContainer");
-
-        container.innerHTML = "";
-
-        crs.forEach(cr => {
-
-            container.appendChild(
-                createCRNode(cr)
-            );
-        });
-    }
-
-    function createCRNode(cr) {
-
-        const node =
-            document.createElement("div");
-
-        node.className = "tree-node";
-
-        const header =
-            document.createElement("div");
-
-        header.className = "node-header";
-
-        header.innerHTML = `
-
-            <div class="node-left">
-
-                <span class="toggle">
-                    ▶
-                </span>
-
-                <span>
-                    📁
-                </span>
-
-                <span>
-                    <b>${cr.id}</b>
-                    - ${cr.title}
-                </span>
-
-            </div>
-
-            <div class="actions">
-
-                <button onclick="openFunctionModal('${cr.id}')">
-                    + Function
-                </button>
-
-                <button class="danger"
-                        onclick="deleteCR('${cr.id}')">
-
-                    Delete
-
-                </button>
-
-            </div>
-        `;
-
-        const children =
-            document.createElement("div");
-
-        children.className = "children";
-
-        cr.functions.forEach(fn => {
-
-            children.appendChild(
-                createFunctionNode(cr, fn)
-            );
-        });
-
-        header.querySelector(".toggle")
-            .onclick = () => toggleNode(node);
-
-        node.appendChild(header);
-        node.appendChild(children);
-
-        return node;
-    }
-
-    function createFunctionNode(cr, fn) {
-
-        const node =
-            document.createElement("div");
-
-        node.className = "tree-node";
-
-        const header =
-            document.createElement("div");
-
-        header.className = "node-header";
-
-        header.innerHTML = `
-
-            <div class="node-left">
-
-                <span class="toggle">
-                    ▶
-                </span>
-
-                <span>
-                    ⚙
-                </span>
-
-                <span>
-                    ${fn.name}
-                    (${fn.module})
-                </span>
-
-            </div>
-
-            <div class="actions">
-
-                <button onclick="
-                    openFileModal(
-                        '${cr.id}',
-                        '${fn.name}'
-                    )
-                ">
-                    + File
-                </button>
-
-                <button class="danger"
-                        onclick="
-                            deleteFunction(
-                                '${cr.id}',
-                                '${fn.name}'
-                            )
-                        ">
-
-                    Delete
-
-                </button>
-
-            </div>
-        `;
-
-        const children =
-            document.createElement("div");
-
-        children.className = "children";
-
-        fn.files.forEach(file => {
-
-            children.appendChild(
-                createFileNode(
-                    cr,
-                    fn,
-                    file
-                )
-            );
-        });
-
-        header.querySelector(".toggle")
-            .onclick = () => toggleNode(node);
-
-        node.appendChild(header);
-        node.appendChild(children);
-
-        return node;
-    }
-
-    function createFileNode(cr, fn, file) {
-
-        const node =
-            document.createElement("div");
-
-        node.className = "tree-node";
-
-        node.innerHTML = `
-
-            <div class="node-header">
-
-                <div class="node-left">
-
-                    <span>
-                        📄
-                    </span>
-
-                    <span class="file-path">
-                        ${file.path}
-                    </span>
-
-                    <span>
-                        [${file.type}]
-                    </span>
-
-                </div>
-
-                <div class="actions">
-
-                    <button class="danger"
-                            onclick="
-                                deleteFile(
-                                    '${cr.id}',
-                                    '${fn.name}',
-                                    '${file.path}'
-                                )
-                            ">
-
-                        Delete
-
-                    </button>
-
-                </div>
-
-            </div>
-        `;
-
-        return node;
-    }
-
-    function toggleNode(node) {
-
-        node.classList.toggle("expanded");
-
-        const toggle =
-            node.querySelector(".toggle");
-
-        toggle.textContent =
-            node.classList.contains("expanded")
-            ? "▼"
-            : "▶";
-    }
-
-    function expandAll() {
-
-        document.querySelectorAll(".tree-node")
-            .forEach(node => {
-
-                node.classList.add("expanded");
-
-                const toggle =
-                    node.querySelector(".toggle");
-
-                if (toggle) {
-                    toggle.textContent = "▼";
-                }
-            });
-    }
-
-    function collapseAll() {
-
-        document.querySelectorAll(".tree-node")
-            .forEach(node => {
-
-                node.classList.remove("expanded");
-
-                const toggle =
-                    node.querySelector(".toggle");
-
-                if (toggle) {
-                    toggle.textContent = "▶";
-                }
-            });
-    }
-
-    function openCRModal() {
-
-        currentAction = "ADD_CR";
-
-        document.getElementById("modalTitle")
-            .innerText = "Add CR";
-
-        document.getElementById("modalBody")
-            .innerHTML = `
-
-                <input id="crId"
-                       placeholder="CR ID">
-
-                <input id="crTitle"
-                       placeholder="CR Title">
-            `;
-
-        openModal();
-    }
-
-    function openFunctionModal(crId) {
-
-        selectedCR = crId;
-
-        currentAction = "ADD_FUNCTION";
-
-        document.getElementById("modalTitle")
-            .innerText = "Add Function";
-
-        document.getElementById("modalBody")
-            .innerHTML = `
-
-                <input id="functionName"
-                       placeholder="Function Name">
-
-                <input id="moduleName"
-                       placeholder="Module Name">
-            `;
-
-        openModal();
-    }
-
-    function openFileModal(crId, fnName) {
-
-        selectedCR = crId;
-        selectedFunction = fnName;
-
-        currentAction = "ADD_FILE";
-
-        document.getElementById("modalTitle")
-            .innerText = "Add File";
-
-        document.getElementById("modalBody")
-            .innerHTML = `
-
-                <input id="filePath"
-                       placeholder="File Path">
-
-                <select id="fileType">
-
-                    <option>
-                        New
-                    </option>
-
-                    <option>
-                        Modified
-                    </option>
-
-                    <option>
-                        Deleted
-                    </option>
-
-                </select>
-
-                <textarea id="remarks"
-                          placeholder="Remarks"></textarea>
-            `;
-
-        openModal();
-    }
-
-    function submitModal() {
-
-        if (currentAction === "ADD_CR") {
-
-            data.crs.push({
-
-                id:
-                    document.getElementById("crId").value,
-
-                title:
-                    document.getElementById("crTitle").value,
-
-                functions: []
-            });
+        toast('CR deleted', 'error');
+    } else if (type === 'fn') {
+        const cr = allData.crs.find(c=>c.id===crId);
+        if (cr) cr.functions = cr.functions.filter(f=>f.name!==fnName);
+        if (selectedFn && selectedFn.name === fnName) {
+            selectedFn = null;
+            document.getElementById('fileList').innerHTML = emptyState('Select a function to view files','file');
         }
-
-        else if (currentAction === "ADD_FUNCTION") {
-
-            const cr =
-                data.crs.find(c => c.id === selectedCR);
-
-            cr.functions.push({
-
-                name:
-                    document.getElementById(
-                        "functionName"
-                    ).value,
-
-                module:
-                    document.getElementById(
-                        "moduleName"
-                    ).value,
-
-                files: []
-            });
+        if (selectedCR && selectedCR.id === crId) {
+            selectedCR = allData.crs.find(c=>c.id===crId);
+            renderFunctions(selectedCR.functions||[]);
         }
-
-        else if (currentAction === "ADD_FILE") {
-
-            const cr =
-                data.crs.find(c => c.id === selectedCR);
-
-            const fn =
-                cr.functions.find(
-                    f => f.name === selectedFunction
-                );
-
-            fn.files.push({
-
-                path:
-                    document.getElementById(
-                        "filePath"
-                    ).value,
-
-                type:
-                    document.getElementById(
-                        "fileType"
-                    ).value,
-
-                remarks:
-                    document.getElementById(
-                        "remarks"
-                    ).value
-            });
+        toast('Function deleted', 'error');
+    } else if (type === 'file') {
+        const fn = allData.crs.find(c=>c.id===crId)?.functions.find(f=>f.name===fnName);
+        if (fn) fn.files.splice(fileIdx, 1);
+        if (selectedFn && selectedFn.name === fnName) {
+            selectedFn = allData.crs.find(c=>c.id===crId)?.functions.find(f=>f.name===fnName);
+            renderFiles(selectedFn?.files||[]);
         }
-
-        saveData();
-
-        renderTree(data.crs);
-
-        closeModal();
+        toast('File deleted', 'error');
     }
 
-    function deleteCR(crId) {
+    renderCRs(allData.crs);
+    updateStats(allData.crs);
 
-        data.crs =
-            data.crs.filter(c => c.id !== crId);
+    try { await post({ action:'DELETE', type, crId, fnName, fileIdx }); } catch {}
+}
 
-        saveData();
+// ── SEARCH ──
+async function searchData() {
+    const q = document.getElementById('searchBox').value.trim().toLowerCase();
+    if (!q) { renderAll(allData.crs); return; }
+    try {
+        const res = await fetch('tracker?search=' + encodeURIComponent(q));
+        const d   = await res.json();
+        renderAll(d.crs || []);
+        return;
+    } catch {}
+    const filtered = allData.crs.filter(cr =>
+        cr.id.toLowerCase().includes(q) ||
+        cr.title.toLowerCase().includes(q) ||
+        (cr.functions||[]).some(fn =>
+            fn.name.toLowerCase().includes(q) ||
+            fn.module.toLowerCase().includes(q) ||
+            (fn.files||[]).some(f=>f.path.toLowerCase().includes(q))
+        )
+    );
+    renderAll(filtered);
+}
 
-        renderTree(data.crs);
+function resetSearch() {
+    document.getElementById('searchBox').value = '';
+    renderAll(allData.crs);
+}
+
+// ── LOCAL DATA ──
+function applyLocal(p) {
+    if (p.action==='ADD_CR') {
+        allData.crs.push({ id:p.crId, title:p.title, functions:[] });
+    } else if (p.action==='ADD_FUNCTION') {
+        const cr = allData.crs.find(c=>c.id===p.crId);
+        if (cr) cr.functions.push({ name:p.functionName, module:p.module, files:[] });
+    } else if (p.action==='ADD_FILE') {
+        const cr = allData.crs.find(c=>c.id===p.crId);
+        const fn = cr?.functions.find(f=>f.name===p.functionName);
+        if (fn) fn.files.push({ path:p.path, type:p.type, remarks:p.remarks });
     }
+}
 
-    function deleteFunction(crId, fnName) {
+async function post(body) {
+    return fetch('../api/tracker', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+    });
+}
 
-        const cr =
-            data.crs.find(c => c.id === crId);
+// ── TOAST ──
+function toast(msg, type='success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = type + ' show';
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
 
-        cr.functions =
-            cr.functions.filter(
-                f => f.name !== fnName
-            );
+// Close dialog on overlay click
+document.getElementById('confirmOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeDialog();
+});
 
-        saveData();
-
-        renderTree(data.crs);
-    }
-
-    function deleteFile(
-        crId,
-        fnName,
-        filePath
-    ) {
-
-        const cr =
-            data.crs.find(c => c.id === crId);
-
-        const fn =
-            cr.functions.find(
-                f => f.name === fnName
-            );
-
-        fn.files =
-            fn.files.filter(
-                file => file.path !== filePath
-            );
-
-        saveData();
-
-        renderTree(data.crs);
-    }
-
-    function searchTree() {
-
-        const value =
-            document.getElementById(
-                "searchBox"
-            ).value.toLowerCase();
-
-        if (!value) {
-
-            renderTree(data.crs);
-
-            return;
-        }
-
-        const filtered = {
-
-            crs: data.crs.filter(cr => {
-
-                if (
-                    cr.id.toLowerCase().includes(value)
-                    ||
-                    cr.title.toLowerCase().includes(value)
-                ) {
-                    return true;
-                }
-
-                return cr.functions.some(fn => {
-
-                    if (
-                        fn.name.toLowerCase()
-                        .includes(value)
-                    ) {
-                        return true;
-                    }
-
-                    return fn.files.some(file =>
-                        file.path.toLowerCase()
-                            .includes(value)
-                    );
-                });
-            })
-        };
-
-        renderTree(filtered.crs);
-
-        expandAll();
-    }
-
-    function openModal() {
-
-        document.getElementById("modal")
-            .style.display = "flex";
-    }
-
-    function closeModal() {
-
-        document.getElementById("modal")
-            .style.display = "none";
-    }
-
-    loadData();
-
+loadData();
 </script>
-
 </body>
-
 </html>
