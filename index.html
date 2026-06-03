@@ -1,901 +1,839 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CR File Tracker</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        :root {
-            --bg:        #0a0c10;
-            --surface:   #0f1318;
-            --card:      #141920;
-            --border:    #1e2530;
-            --border2:   #253040;
-            --accent:    #00c4ff;
-            --accent2:   #0084d6;
-            --green:     #00e5a0;
-            --amber:     #ffb340;
-            --red:       #ff4f6a;
-            --text:      #e4eaf2;
-            --muted:     #5a6a7e;
-            --muted2:    #3a4a5e;
-            --tag-bg:    #0d2035;
-            --font-head: 'Syne', sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>CR File Tracker</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: var(--font-mono);
-            background: var(--bg);
-            color: var(--text);
+
+            font-family: Arial, sans-serif;
+
+            background: #111827;
+            color: #f9fafb;
+
             height: 100vh;
-            display: flex;
-            flex-direction: column;
             overflow: hidden;
         }
 
-        /* ── HEADER ── */
-        header {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 0 24px;
-            height: 58px;
+        .toolbar {
+
+            height: 60px;
+
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            padding: 10px 20px;
+
+            background: #1f2937;
+
+            border-bottom: 1px solid #374151;
+        }
+
+        .title {
+
+            font-size: 22px;
+            font-weight: bold;
+
+            margin-right: 30px;
+        }
+
+        button {
+
+            background: #2563eb;
+            color: white;
+
+            border: none;
+
+            padding: 8px 14px;
+
+            border-radius: 6px;
+
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        input {
+
+            padding: 8px;
+            border-radius: 6px;
+            border: none;
+
+            width: 250px;
+        }
+
+        .main {
+
+            height: calc(100vh - 60px);
+
+            overflow: auto;
+
+            padding: 20px;
+        }
+
+        .tree-node {
+            margin-left: 20px;
+        }
+
+        .node-header {
+
             display: flex;
             align-items: center;
             justify-content: space-between;
-            flex-shrink: 0;
+
+            padding: 10px;
+
+            margin: 4px 0;
+
+            border-radius: 6px;
+
+            background: #1f2937;
+
+            transition: 0.2s;
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .node-header:hover {
+            background: #374151;
         }
 
-        .logo-icon {
-            width: 32px; height: 32px;
-            background: linear-gradient(135deg, var(--accent), var(--accent2));
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px;
-        }
+        .node-left {
 
-        .logo-text {
-            font-family: var(--font-head);
-            font-size: 17px;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            color: var(--text);
-        }
-
-        .logo-text span { color: var(--accent); }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .search-wrap {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .search-wrap svg {
-            position: absolute; left: 11px;
-            color: var(--muted);
-            pointer-events: none;
-        }
-
-        #searchBox {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 7px 12px 7px 34px;
-            color: var(--text);
-            font-family: var(--font-mono);
-            font-size: 12px;
-            width: 240px;
-            transition: border-color .2s, box-shadow .2s;
-            outline: none;
-        }
-
-        #searchBox:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(0,196,255,.08);
-        }
-
-        #searchBox::placeholder { color: var(--muted); }
-
-        .btn-search {
-            background: var(--accent);
-            color: #000;
-            border: none;
-            border-radius: 8px;
-            padding: 7px 14px;
-            font-family: var(--font-mono);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background .2s, transform .1s;
-        }
-        .btn-search:hover { background: #33cfff; }
-        .btn-search:active { transform: scale(.97); }
-
-        /* ── STATS BAR ── */
-        .stats-bar {
-            display: flex;
-            gap: 1px;
-            background: var(--border);
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-
-        .stat {
-            flex: 1;
-            background: var(--surface);
-            padding: 10px 18px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .stat-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
+        .toggle {
+
+            cursor: pointer;
+
+            width: 20px;
+            display: inline-block;
         }
 
-        .stat-label {
-            font-size: 11px;
-            color: var(--muted);
-            letter-spacing: .06em;
-            text-transform: uppercase;
+        .children {
+
+            margin-left: 25px;
+
+            display: none;
         }
 
-        .stat-num {
-            margin-left: auto;
-            font-family: var(--font-head);
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        /* ── MAIN LAYOUT ── */
-        .workspace {
-            flex: 1;
-            display: grid;
-            grid-template-columns: 300px 280px 1fr;
-            overflow: hidden;
-        }
-
-        .col {
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--border);
-            overflow: hidden;
-        }
-
-        .col:last-child { border-right: none; }
-
-        .col-header {
-            padding: 14px 16px 10px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-shrink: 0;
-            background: var(--surface);
-        }
-
-        .col-title {
-            font-family: var(--font-head);
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: .1em;
-            text-transform: uppercase;
-            color: var(--muted);
-            display: flex; align-items: center; gap: 8px;
-        }
-
-        .col-title .indicator {
-            width: 6px; height: 6px; border-radius: 50%;
-            background: var(--accent);
-        }
-
-        .col-count {
-            background: var(--tag-bg);
-            color: var(--accent);
-            font-size: 10px;
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 20px;
-            border: 1px solid rgba(0,196,255,.15);
-        }
-
-        /* ── FORM AREA ── */
-        .form-area {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            background: var(--card);
-            flex-shrink: 0;
-        }
-
-        .form-row { margin-bottom: 8px; }
-
-        .form-label {
+        .expanded > .children {
             display: block;
-            font-size: 10px;
-            font-weight: 600;
-            letter-spacing: .08em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin-bottom: 4px;
         }
 
-        .form-input {
-            width: 100%;
-            background: var(--surface);
-            border: 1px solid var(--border2);
-            border-radius: 6px;
-            padding: 7px 10px;
-            color: var(--text);
-            font-family: var(--font-mono);
-            font-size: 12px;
-            outline: none;
-            transition: border-color .2s, box-shadow .2s;
-        }
-
-        .form-input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(0,196,255,.07);
-        }
-
-        .form-input::placeholder { color: var(--muted2); }
-
-        select.form-input {
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a6a7e'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            padding-right: 28px;
-        }
-
-        textarea.form-input {
-            resize: none;
-            height: 58px;
-            line-height: 1.5;
-        }
-
-        .btn-add {
-            width: 100%;
-            padding: 8px;
-            border: none;
-            border-radius: 6px;
-            font-family: var(--font-mono);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all .2s;
+        .actions {
             display: flex;
-            align-items: center;
+            gap: 5px;
+        }
+
+        .danger {
+            background: #dc2626;
+        }
+
+        .danger:hover {
+            background: #b91c1c;
+        }
+
+        .modal {
+
+            position: fixed;
+
+            top: 0;
+            left: 0;
+
+            width: 100%;
+            height: 100%;
+
+            background: rgba(0,0,0,0.6);
+
+            display: none;
+
             justify-content: center;
-            gap: 6px;
+            align-items: center;
         }
 
-        .btn-add-cr    { background: rgba(0,196,255,.12); color: var(--accent);    border: 1px solid rgba(0,196,255,.2); }
-        .btn-add-fn    { background: rgba(0,229,160,.12); color: var(--green);     border: 1px solid rgba(0,229,160,.2); }
-        .btn-add-file  { background: rgba(255,179,64,.12); color: var(--amber);    border: 1px solid rgba(255,179,64,.2); }
+        .modal-content {
 
-        .btn-add:hover { filter: brightness(1.15); transform: translateY(-1px); }
-        .btn-add:active { transform: translateY(0); }
+            background: #1f2937;
 
-        /* ── LIST AREA ── */
-        .list-area {
-            flex: 1;
-            overflow-y: auto;
+            width: 400px;
+
+            padding: 20px;
+
+            border-radius: 10px;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 15px;
+        }
+
+        .modal-content input,
+        .modal-content textarea,
+        .modal-content select {
+
+            width: 100%;
+
+            margin-bottom: 12px;
+
             padding: 10px;
+
+            border-radius: 6px;
+
+            border: none;
         }
 
-        .list-area::-webkit-scrollbar { width: 4px; }
-        .list-area::-webkit-scrollbar-track { background: transparent; }
-        .list-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+        .modal-buttons {
 
-        /* ── CR ITEM ── */
-        .cr-item {
-            padding: 12px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all .18s;
-            background: var(--card);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .cr-item::before {
-            content: '';
-            position: absolute;
-            left: 0; top: 0; bottom: 0;
-            width: 3px;
-            background: var(--accent);
-            opacity: 0;
-            transition: opacity .18s;
-        }
-
-        .cr-item:hover { border-color: var(--border2); background: #181f28; }
-        .cr-item:hover::before { opacity: .5; }
-
-        .cr-item.active {
-            border-color: rgba(0,196,255,.3);
-            background: #0d1c2a;
-        }
-        .cr-item.active::before { opacity: 1; }
-
-        .cr-id {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--accent);
-            letter-spacing: .06em;
-            margin-bottom: 3px;
-        }
-
-        .cr-title {
-            font-size: 12px;
-            color: var(--text);
-            line-height: 1.4;
-        }
-
-        .cr-meta {
-            margin-top: 6px;
             display: flex;
-            gap: 6px;
+            justify-content: flex-end;
+            gap: 10px;
         }
-
-        .badge {
-            font-size: 10px;
-            padding: 2px 7px;
-            border-radius: 4px;
-            font-weight: 600;
-            letter-spacing: .04em;
-        }
-
-        .badge-fn  { background: rgba(0,229,160,.1); color: var(--green);  border: 1px solid rgba(0,229,160,.15); }
-        .badge-fil { background: rgba(255,179,64,.1); color: var(--amber);  border: 1px solid rgba(255,179,64,.15); }
-
-        /* ── FUNCTION ITEM ── */
-        .fn-item {
-            padding: 11px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 7px;
-            cursor: pointer;
-            transition: all .18s;
-            background: var(--card);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .fn-item::before {
-            content: '';
-            position: absolute;
-            left: 0; top: 0; bottom: 0;
-            width: 3px;
-            background: var(--green);
-            opacity: 0;
-            transition: opacity .18s;
-        }
-
-        .fn-item:hover { border-color: var(--border2); background: #181f28; }
-        .fn-item:hover::before { opacity: .5; }
-        .fn-item.active { border-color: rgba(0,229,160,.3); background: #0d2018; }
-        .fn-item.active::before { opacity: 1; }
-
-        .fn-name {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--green);
-            margin-bottom: 3px;
-        }
-
-        .fn-module {
-            font-size: 11px;
-            color: var(--muted);
-        }
-
-        /* ── FILE ITEM ── */
-        .file-item {
-            padding: 12px 16px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 8px;
-            background: var(--card);
-            transition: border-color .18s;
-            animation: slideIn .2s ease;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        .file-item:hover { border-color: var(--border2); }
 
         .file-path {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text);
-            word-break: break-all;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
+            color: #93c5fd;
         }
 
-        .file-path svg { flex-shrink: 0; margin-top: 2px; color: var(--amber); }
-
-        .file-details {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .type-badge {
-            font-size: 10px;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 4px;
-            letter-spacing: .06em;
-            text-transform: uppercase;
-        }
-
-        .type-new      { background: rgba(0,229,160,.12); color: var(--green);  border: 1px solid rgba(0,229,160,.2); }
-        .type-modified { background: rgba(255,179,64,.12); color: var(--amber);  border: 1px solid rgba(255,179,64,.2); }
-        .type-deleted  { background: rgba(255,79,106,.12); color: var(--red);    border: 1px solid rgba(255,79,106,.2); }
-
-        .file-remarks {
-            font-size: 11px;
-            color: var(--muted);
-            flex: 1;
-            min-width: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* ── EMPTY STATE ── */
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--muted2);
-        }
-
-        .empty-state svg { margin-bottom: 12px; opacity: .4; }
-        .empty-state p { font-size: 12px; line-height: 1.6; }
-
-        /* ── TOAST ── */
-        #toast {
-            position: fixed;
-            bottom: 24px; right: 24px;
-            background: var(--card);
-            border: 1px solid var(--border2);
-            border-left: 3px solid var(--green);
-            padding: 12px 18px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: var(--green);
-            opacity: 0;
-            transform: translateY(8px);
-            transition: all .25s;
-            pointer-events: none;
-            z-index: 999;
-        }
-
-        #toast.show { opacity: 1; transform: translateY(0); }
     </style>
+
 </head>
+
 <body>
 
-<!-- HEADER -->
-<header>
-    <div class="logo">
-        <div class="logo-icon">📋</div>
-        <div class="logo-text">CR <span>Tracker</span></div>
-    </div>
-    <div class="header-right">
-        <div class="search-wrap">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-            </svg>
-            <input type="text" id="searchBox" placeholder="Search CR / function / file…" onkeydown="if(event.key==='Enter') searchData()">
-        </div>
-        <button class="btn-search" onclick="searchData()">Search</button>
-    </div>
-</header>
+<div class="toolbar">
 
-<!-- STATS BAR -->
-<div class="stats-bar">
-    <div class="stat">
-        <div class="stat-dot" style="background:var(--accent)"></div>
-        <div class="stat-label">Change Requests</div>
-        <div class="stat-num" id="statCR">0</div>
-    </div>
-    <div class="stat">
-        <div class="stat-dot" style="background:var(--green)"></div>
-        <div class="stat-label">Functions</div>
-        <div class="stat-num" id="statFN">0</div>
-    </div>
-    <div class="stat">
-        <div class="stat-dot" style="background:var(--amber)"></div>
-        <div class="stat-label">Files Tracked</div>
-        <div class="stat-num" id="statFIL">0</div>
-    </div>
-    <div class="stat">
-        <div class="stat-dot" style="background:var(--red)"></div>
-        <div class="stat-label">Selected CR</div>
-        <div class="stat-num" id="statSel" style="font-size:13px;color:var(--muted)">—</div>
-    </div>
-</div>
-
-<!-- WORKSPACE -->
-<div class="workspace">
-
-    <!-- CR COLUMN -->
-    <div class="col">
-        <div class="col-header">
-            <div class="col-title"><span class="indicator"></span> Change Requests</div>
-            <div class="col-count" id="crCount">0</div>
-        </div>
-        <div class="form-area">
-            <div class="form-row">
-                <label class="form-label">CR ID</label>
-                <input type="text" id="crId" class="form-input" placeholder="e.g. CR-2024-001">
-            </div>
-            <div class="form-row">
-                <label class="form-label">Title</label>
-                <input type="text" id="crTitle" class="form-input" placeholder="Short description">
-            </div>
-            <button class="btn-add btn-add-cr" onclick="addCR()">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                Add CR
-            </button>
-        </div>
-        <div class="list-area" id="crList">
-            <div class="empty-state">
-                <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6M9 8h6M9 16h4"/></svg>
-                <p>No CRs yet.<br>Add your first change request.</p>
-            </div>
-        </div>
+    <div class="title">
+        CR File Tracker
     </div>
 
-    <!-- FUNCTION COLUMN -->
-    <div class="col">
-        <div class="col-header">
-            <div class="col-title" style="--indicator-color:var(--green)">
-                <span class="indicator" style="background:var(--green)"></span> Functions
-            </div>
-            <div class="col-count" id="fnCount" style="color:var(--green);border-color:rgba(0,229,160,.15);background:rgba(0,229,160,.08)">0</div>
-        </div>
-        <div class="form-area">
-            <div class="form-row">
-                <label class="form-label">Function Name</label>
-                <input type="text" id="functionName" class="form-input" placeholder="e.g. processLCAmendment">
-            </div>
-            <div class="form-row">
-                <label class="form-label">Module</label>
-                <input type="text" id="moduleName" class="form-input" placeholder="e.g. TradeFinance">
-            </div>
-            <button class="btn-add btn-add-fn" onclick="addFunction()">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                Add Function
-            </button>
-        </div>
-        <div class="list-area" id="functionList">
-            <div class="empty-state">
-                <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m10 0h3a2 2 0 0 0 2-2v-3"/></svg>
-                <p>Select a CR first,<br>then add functions.</p>
-            </div>
-        </div>
-    </div>
+    <button onclick="openCRModal()">
+        + Add CR
+    </button>
 
-    <!-- FILES COLUMN -->
-    <div class="col">
-        <div class="col-header">
-            <div class="col-title">
-                <span class="indicator" style="background:var(--amber)"></span> Files
-            </div>
-            <div class="col-count" id="fileCount" style="color:var(--amber);border-color:rgba(255,179,64,.15);background:rgba(255,179,64,.08)">0</div>
-        </div>
-        <div class="form-area" style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px;">
-            <div class="form-row" style="grid-column:1/-1;">
-                <label class="form-label">File Path</label>
-                <input type="text" id="filePath" class="form-input" placeholder="/src/com/example/FileService.java">
-            </div>
-            <div class="form-row">
-                <label class="form-label">Change Type</label>
-                <select id="fileType" class="form-input">
-                    <option>New</option>
-                    <option>Modified</option>
-                    <option>Deleted</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <label class="form-label">Remarks</label>
-                <input type="text" id="remarks" class="form-input" placeholder="Brief note…">
-            </div>
-            <button class="btn-add btn-add-file" onclick="addFile()" style="grid-column:1/-1;">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                Add File
-            </button>
-        </div>
-        <div class="list-area" id="fileList">
-            <div class="empty-state">
-                <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                <p>Select a function to<br>view or add files.</p>
-            </div>
-        </div>
-    </div>
+    <button onclick="expandAll()">
+        Expand All
+    </button>
+
+    <button onclick="collapseAll()">
+        Collapse All
+    </button>
+
+    <input type="text"
+           id="searchBox"
+           placeholder="Search...">
+
+    <button onclick="searchTree()">
+        Search
+    </button>
 
 </div>
 
-<!-- TOAST -->
-<div id="toast"></div>
+<div class="main">
+
+    <div id="treeContainer"></div>
+
+</div>
+
+<!-- MODAL -->
+
+<div class="modal" id="modal">
+
+    <div class="modal-content">
+
+        <h2 id="modalTitle"></h2>
+
+        <div id="modalBody"></div>
+
+        <div class="modal-buttons">
+
+            <button onclick="closeModal()">
+                Cancel
+            </button>
+
+            <button onclick="submitModal()">
+                Save
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
 
 <script>
-let selectedCR = null;
-let selectedFunction = null;
-let allData = { crs: [] };
 
-function toast(msg, color) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.style.borderLeftColor = color || 'var(--green)';
-    t.style.color = color || 'var(--green)';
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2400);
-}
+    let data = {
+        crs: []
+    };
 
-async function loadData() {
-    try {
-        const res = await fetch('../api/tracker');
-        allData = await res.json();
-        renderAll(allData.crs || []);
-    } catch {
-        // demo mode — keep existing data
-        renderAll(allData.crs || []);
-    }
-}
+    let currentAction = null;
 
-function computeStats(crs) {
-    let fnCount = 0, fileCount = 0;
-    (crs || []).forEach(cr => {
-        (cr.functions || []).forEach(fn => {
-            fnCount++;
-            fileCount += (fn.files || []).length;
-        });
-    });
-    return { crCount: (crs || []).length, fnCount, fileCount };
-}
+    let selectedCR = null;
+    let selectedFunction = null;
 
-function renderAll(crs) {
-    const stats = computeStats(crs);
-    document.getElementById('statCR').textContent  = stats.crCount;
-    document.getElementById('statFN').textContent  = stats.fnCount;
-    document.getElementById('statFIL').textContent = stats.fileCount;
-    document.getElementById('crCount').textContent = stats.crCount;
-    renderCRs(crs);
-}
+    function saveData() {
 
-function renderCRs(crs) {
-    const container = document.getElementById('crList');
-    container.innerHTML = '';
-
-    if (!crs.length) {
-        container.innerHTML = `<div class="empty-state">
-            <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6M9 8h6M9 16h4"/></svg>
-            <p>No CRs yet.<br>Add your first change request.</p></div>`;
-        return;
-    }
-
-    crs.forEach(cr => {
-        const fnCount   = (cr.functions || []).length;
-        const fileCount = (cr.functions || []).reduce((s, fn) => s + (fn.files || []).length, 0);
-
-        const div = document.createElement('div');
-        div.className = 'cr-item' + (selectedCR && selectedCR.id === cr.id ? ' active' : '');
-        div.innerHTML = `
-            <div class="cr-id">${cr.id}</div>
-            <div class="cr-title">${cr.title}</div>
-            <div class="cr-meta">
-                <span class="badge badge-fn">${fnCount} fn</span>
-                <span class="badge badge-fil">${fileCount} files</span>
-            </div>`;
-        div.onclick = () => selectCR(cr, div);
-        container.appendChild(div);
-    });
-}
-
-function selectCR(cr, el) {
-    selectedCR = cr;
-    selectedFunction = null;
-    document.querySelectorAll('.cr-item').forEach(d => d.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('statSel').textContent = cr.id;
-    document.getElementById('statSel').style.color = 'var(--accent)';
-    renderFunctions(cr.functions || []);
-    document.getElementById('fileCount').textContent = '0';
-    document.getElementById('fileList').innerHTML = `<div class="empty-state">
-        <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <p>Select a function to<br>view or add files.</p></div>`;
-}
-
-function renderFunctions(functions) {
-    const container = document.getElementById('functionList');
-    container.innerHTML = '';
-    document.getElementById('fnCount').textContent = functions.length;
-
-    if (!functions.length) {
-        container.innerHTML = `<div class="empty-state">
-            <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m10 0h3a2 2 0 0 0 2-2v-3"/></svg>
-            <p>No functions yet.<br>Add one above.</p></div>`;
-        return;
-    }
-
-    functions.forEach(fn => {
-        const div = document.createElement('div');
-        div.className = 'fn-item' + (selectedFunction && selectedFunction.name === fn.name ? ' active' : '');
-        div.innerHTML = `
-            <div class="fn-name">${fn.name}</div>
-            <div class="fn-module">${fn.module} · ${(fn.files || []).length} files</div>`;
-        div.onclick = () => selectFunction(fn, div);
-        container.appendChild(div);
-    });
-}
-
-function selectFunction(fn, el) {
-    selectedFunction = fn;
-    document.querySelectorAll('.fn-item').forEach(d => d.classList.remove('active'));
-    el.classList.add('active');
-    renderFiles(fn.files || []);
-}
-
-function renderFiles(files) {
-    const container = document.getElementById('fileList');
-    container.innerHTML = '';
-    document.getElementById('fileCount').textContent = files.length;
-
-    if (!files.length) {
-        container.innerHTML = `<div class="empty-state">
-            <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            <p>No files added yet.</p></div>`;
-        return;
-    }
-
-    files.forEach(f => {
-        const typeClass = { New: 'type-new', Modified: 'type-modified', Deleted: 'type-deleted' }[f.type] || 'type-new';
-        const div = document.createElement('div');
-        div.className = 'file-item';
-        div.innerHTML = `
-            <div class="file-path">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                ${f.path}
-            </div>
-            <div class="file-details">
-                <span class="type-badge ${typeClass}">${f.type}</span>
-                ${f.remarks ? `<span class="file-remarks">${f.remarks}</span>` : ''}
-            </div>`;
-        container.appendChild(div);
-    });
-}
-
-async function addCR() {
-    const id    = document.getElementById('crId').value.trim();
-    const title = document.getElementById('crTitle').value.trim();
-    if (!id || !title) { toast('Fill in CR ID and Title', 'var(--red)'); return; }
-
-    await sendPayload({ action: 'ADD_CR', crId: id, title });
-    document.getElementById('crId').value = '';
-    document.getElementById('crTitle').value = '';
-    toast(`CR "${id}" added`);
-}
-
-async function addFunction() {
-    if (!selectedCR) { toast('Select a CR first', 'var(--red)'); return; }
-    const name   = document.getElementById('functionName').value.trim();
-    const module = document.getElementById('moduleName').value.trim();
-    if (!name || !module) { toast('Fill in Function Name and Module', 'var(--red)'); return; }
-
-    await sendPayload({ action: 'ADD_FUNCTION', crId: selectedCR.id, functionName: name, module });
-    document.getElementById('functionName').value = '';
-    document.getElementById('moduleName').value = '';
-    toast(`Function "${name}" added`, 'var(--green)');
-}
-
-async function addFile() {
-    if (!selectedFunction || !selectedCR) { toast('Select a Function first', 'var(--red)'); return; }
-    const path    = document.getElementById('filePath').value.trim();
-    const type    = document.getElementById('fileType').value;
-    const remarks = document.getElementById('remarks').value.trim();
-    if (!path) { toast('Enter a file path', 'var(--red)'); return; }
-
-    await sendPayload({ action: 'ADD_FILE', crId: selectedCR.id, functionName: selectedFunction.name, path, type, remarks });
-    document.getElementById('filePath').value = '';
-    document.getElementById('remarks').value = '';
-    toast(`File added (${type})`, 'var(--amber)');
-}
-
-async function sendPayload(payload) {
-    try {
-        await fetch('../api/tracker', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-    } catch {}
-    // Optimistic local update
-    applyLocal(payload);
-    renderAll(allData.crs);
-    // Restore selection
-    if (selectedCR) {
-        const refreshedCR = allData.crs.find(c => c.id === selectedCR.id);
-        if (refreshedCR) {
-            selectedCR = refreshedCR;
-            renderFunctions(refreshedCR.functions || []);
-            if (selectedFunction) {
-                const refreshedFn = (refreshedCR.functions || []).find(f => f.name === selectedFunction.name);
-                if (refreshedFn) { selectedFunction = refreshedFn; renderFiles(refreshedFn.files || []); }
-            }
-        }
-    }
-}
-
-function applyLocal(payload) {
-    if (payload.action === 'ADD_CR') {
-        allData.crs.push({ id: payload.crId, title: payload.title, functions: [] });
-    } else if (payload.action === 'ADD_FUNCTION') {
-        const cr = allData.crs.find(c => c.id === payload.crId);
-        if (cr) cr.functions.push({ name: payload.functionName, module: payload.module, files: [] });
-    } else if (payload.action === 'ADD_FILE') {
-        const cr = allData.crs.find(c => c.id === payload.crId);
-        if (cr) {
-            const fn = cr.functions.find(f => f.name === payload.functionName);
-            if (fn) fn.files.push({ path: payload.path, type: payload.type, remarks: payload.remarks });
-        }
-    }
-}
-
-async function searchData() {
-    const value = document.getElementById('searchBox').value.trim();
-    if (!value) { renderAll(allData.crs); return; }
-
-    try {
-        const res = await fetch('tracker?search=' + encodeURIComponent(value));
-        const data = await res.json();
-        renderAll(data.crs || []);
-    } catch {
-        // fallback local filter
-        const q = value.toLowerCase();
-        const filtered = allData.crs.filter(cr =>
-            cr.id.toLowerCase().includes(q) ||
-            cr.title.toLowerCase().includes(q) ||
-            (cr.functions || []).some(fn =>
-                fn.name.toLowerCase().includes(q) ||
-                fn.module.toLowerCase().includes(q) ||
-                (fn.files || []).some(f => f.path.toLowerCase().includes(q))
-            )
+        localStorage.setItem(
+            "trackerData",
+            JSON.stringify(data)
         );
-        renderAll(filtered);
     }
-}
 
-loadData();
+    function loadData() {
+
+        const stored =
+            localStorage.getItem("trackerData");
+
+        if (stored) {
+            data = JSON.parse(stored);
+        }
+
+        renderTree(data.crs);
+    }
+
+    function renderTree(crs) {
+
+        const container =
+            document.getElementById("treeContainer");
+
+        container.innerHTML = "";
+
+        crs.forEach(cr => {
+
+            container.appendChild(
+                createCRNode(cr)
+            );
+        });
+    }
+
+    function createCRNode(cr) {
+
+        const node =
+            document.createElement("div");
+
+        node.className = "tree-node";
+
+        const header =
+            document.createElement("div");
+
+        header.className = "node-header";
+
+        header.innerHTML = `
+
+            <div class="node-left">
+
+                <span class="toggle">
+                    ▶
+                </span>
+
+                <span>
+                    📁
+                </span>
+
+                <span>
+                    <b>${cr.id}</b>
+                    - ${cr.title}
+                </span>
+
+            </div>
+
+            <div class="actions">
+
+                <button onclick="openFunctionModal('${cr.id}')">
+                    + Function
+                </button>
+
+                <button class="danger"
+                        onclick="deleteCR('${cr.id}')">
+
+                    Delete
+
+                </button>
+
+            </div>
+        `;
+
+        const children =
+            document.createElement("div");
+
+        children.className = "children";
+
+        cr.functions.forEach(fn => {
+
+            children.appendChild(
+                createFunctionNode(cr, fn)
+            );
+        });
+
+        header.querySelector(".toggle")
+            .onclick = () => toggleNode(node);
+
+        node.appendChild(header);
+        node.appendChild(children);
+
+        return node;
+    }
+
+    function createFunctionNode(cr, fn) {
+
+        const node =
+            document.createElement("div");
+
+        node.className = "tree-node";
+
+        const header =
+            document.createElement("div");
+
+        header.className = "node-header";
+
+        header.innerHTML = `
+
+            <div class="node-left">
+
+                <span class="toggle">
+                    ▶
+                </span>
+
+                <span>
+                    ⚙
+                </span>
+
+                <span>
+                    ${fn.name}
+                    (${fn.module})
+                </span>
+
+            </div>
+
+            <div class="actions">
+
+                <button onclick="
+                    openFileModal(
+                        '${cr.id}',
+                        '${fn.name}'
+                    )
+                ">
+                    + File
+                </button>
+
+                <button class="danger"
+                        onclick="
+                            deleteFunction(
+                                '${cr.id}',
+                                '${fn.name}'
+                            )
+                        ">
+
+                    Delete
+
+                </button>
+
+            </div>
+        `;
+
+        const children =
+            document.createElement("div");
+
+        children.className = "children";
+
+        fn.files.forEach(file => {
+
+            children.appendChild(
+                createFileNode(
+                    cr,
+                    fn,
+                    file
+                )
+            );
+        });
+
+        header.querySelector(".toggle")
+            .onclick = () => toggleNode(node);
+
+        node.appendChild(header);
+        node.appendChild(children);
+
+        return node;
+    }
+
+    function createFileNode(cr, fn, file) {
+
+        const node =
+            document.createElement("div");
+
+        node.className = "tree-node";
+
+        node.innerHTML = `
+
+            <div class="node-header">
+
+                <div class="node-left">
+
+                    <span>
+                        📄
+                    </span>
+
+                    <span class="file-path">
+                        ${file.path}
+                    </span>
+
+                    <span>
+                        [${file.type}]
+                    </span>
+
+                </div>
+
+                <div class="actions">
+
+                    <button class="danger"
+                            onclick="
+                                deleteFile(
+                                    '${cr.id}',
+                                    '${fn.name}',
+                                    '${file.path}'
+                                )
+                            ">
+
+                        Delete
+
+                    </button>
+
+                </div>
+
+            </div>
+        `;
+
+        return node;
+    }
+
+    function toggleNode(node) {
+
+        node.classList.toggle("expanded");
+
+        const toggle =
+            node.querySelector(".toggle");
+
+        toggle.textContent =
+            node.classList.contains("expanded")
+            ? "▼"
+            : "▶";
+    }
+
+    function expandAll() {
+
+        document.querySelectorAll(".tree-node")
+            .forEach(node => {
+
+                node.classList.add("expanded");
+
+                const toggle =
+                    node.querySelector(".toggle");
+
+                if (toggle) {
+                    toggle.textContent = "▼";
+                }
+            });
+    }
+
+    function collapseAll() {
+
+        document.querySelectorAll(".tree-node")
+            .forEach(node => {
+
+                node.classList.remove("expanded");
+
+                const toggle =
+                    node.querySelector(".toggle");
+
+                if (toggle) {
+                    toggle.textContent = "▶";
+                }
+            });
+    }
+
+    function openCRModal() {
+
+        currentAction = "ADD_CR";
+
+        document.getElementById("modalTitle")
+            .innerText = "Add CR";
+
+        document.getElementById("modalBody")
+            .innerHTML = `
+
+                <input id="crId"
+                       placeholder="CR ID">
+
+                <input id="crTitle"
+                       placeholder="CR Title">
+            `;
+
+        openModal();
+    }
+
+    function openFunctionModal(crId) {
+
+        selectedCR = crId;
+
+        currentAction = "ADD_FUNCTION";
+
+        document.getElementById("modalTitle")
+            .innerText = "Add Function";
+
+        document.getElementById("modalBody")
+            .innerHTML = `
+
+                <input id="functionName"
+                       placeholder="Function Name">
+
+                <input id="moduleName"
+                       placeholder="Module Name">
+            `;
+
+        openModal();
+    }
+
+    function openFileModal(crId, fnName) {
+
+        selectedCR = crId;
+        selectedFunction = fnName;
+
+        currentAction = "ADD_FILE";
+
+        document.getElementById("modalTitle")
+            .innerText = "Add File";
+
+        document.getElementById("modalBody")
+            .innerHTML = `
+
+                <input id="filePath"
+                       placeholder="File Path">
+
+                <select id="fileType">
+
+                    <option>
+                        New
+                    </option>
+
+                    <option>
+                        Modified
+                    </option>
+
+                    <option>
+                        Deleted
+                    </option>
+
+                </select>
+
+                <textarea id="remarks"
+                          placeholder="Remarks"></textarea>
+            `;
+
+        openModal();
+    }
+
+    function submitModal() {
+
+        if (currentAction === "ADD_CR") {
+
+            data.crs.push({
+
+                id:
+                    document.getElementById("crId").value,
+
+                title:
+                    document.getElementById("crTitle").value,
+
+                functions: []
+            });
+        }
+
+        else if (currentAction === "ADD_FUNCTION") {
+
+            const cr =
+                data.crs.find(c => c.id === selectedCR);
+
+            cr.functions.push({
+
+                name:
+                    document.getElementById(
+                        "functionName"
+                    ).value,
+
+                module:
+                    document.getElementById(
+                        "moduleName"
+                    ).value,
+
+                files: []
+            });
+        }
+
+        else if (currentAction === "ADD_FILE") {
+
+            const cr =
+                data.crs.find(c => c.id === selectedCR);
+
+            const fn =
+                cr.functions.find(
+                    f => f.name === selectedFunction
+                );
+
+            fn.files.push({
+
+                path:
+                    document.getElementById(
+                        "filePath"
+                    ).value,
+
+                type:
+                    document.getElementById(
+                        "fileType"
+                    ).value,
+
+                remarks:
+                    document.getElementById(
+                        "remarks"
+                    ).value
+            });
+        }
+
+        saveData();
+
+        renderTree(data.crs);
+
+        closeModal();
+    }
+
+    function deleteCR(crId) {
+
+        data.crs =
+            data.crs.filter(c => c.id !== crId);
+
+        saveData();
+
+        renderTree(data.crs);
+    }
+
+    function deleteFunction(crId, fnName) {
+
+        const cr =
+            data.crs.find(c => c.id === crId);
+
+        cr.functions =
+            cr.functions.filter(
+                f => f.name !== fnName
+            );
+
+        saveData();
+
+        renderTree(data.crs);
+    }
+
+    function deleteFile(
+        crId,
+        fnName,
+        filePath
+    ) {
+
+        const cr =
+            data.crs.find(c => c.id === crId);
+
+        const fn =
+            cr.functions.find(
+                f => f.name === fnName
+            );
+
+        fn.files =
+            fn.files.filter(
+                file => file.path !== filePath
+            );
+
+        saveData();
+
+        renderTree(data.crs);
+    }
+
+    function searchTree() {
+
+        const value =
+            document.getElementById(
+                "searchBox"
+            ).value.toLowerCase();
+
+        if (!value) {
+
+            renderTree(data.crs);
+
+            return;
+        }
+
+        const filtered = {
+
+            crs: data.crs.filter(cr => {
+
+                if (
+                    cr.id.toLowerCase().includes(value)
+                    ||
+                    cr.title.toLowerCase().includes(value)
+                ) {
+                    return true;
+                }
+
+                return cr.functions.some(fn => {
+
+                    if (
+                        fn.name.toLowerCase()
+                        .includes(value)
+                    ) {
+                        return true;
+                    }
+
+                    return fn.files.some(file =>
+                        file.path.toLowerCase()
+                            .includes(value)
+                    );
+                });
+            })
+        };
+
+        renderTree(filtered.crs);
+
+        expandAll();
+    }
+
+    function openModal() {
+
+        document.getElementById("modal")
+            .style.display = "flex";
+    }
+
+    function closeModal() {
+
+        document.getElementById("modal")
+            .style.display = "none";
+    }
+
+    loadData();
+
 </script>
 
 </body>
+
 </html>
