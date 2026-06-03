@@ -3,8 +3,17 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
     <title>CR File Tracker</title>
+
+    <link rel="preconnect"
+          href="https://fonts.googleapis.com">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+          rel="stylesheet">
+
     <style>
         * {
             margin: 0;
@@ -13,98 +22,54 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background: #111827;
-            color: #f9fafb;
+            font-family: "Inter", sans-serif;
+            background: #f4f6f9;
+            color: #1f2937;
             height: 100vh;
             overflow: hidden;
         }
 
+        /* ===== TOOLBAR ===== */
+
         .toolbar {
-            height: 60px;
+            height: 56px;
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 10px 20px;
-            background: #1f2937;
-            border-bottom: 1px solid #374151;
+            padding: 0 18px;
+            background: #ffffff;
+            border-bottom: 1px solid #dbe1e8;
         }
 
         .title {
-            font-size: 22px;
-            font-weight: bold;
-            margin-right: 30px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #111827;
+            margin-right: 20px;
+            white-space: nowrap;
         }
+
+        /* ===== BUTTONS ===== */
 
         button {
             background: #2563eb;
             color: white;
             border: none;
-            padding: 8px 14px;
+            height: 34px;
+            padding: 0 14px;
             border-radius: 6px;
             cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: 0.15s ease;
         }
 
         button:hover {
             background: #1d4ed8;
         }
 
-        input {
-            padding: 8px;
-            border-radius: 6px;
-            border: none;
-            width: 250px;
-        }
-
-        .main {
-            height: calc(100vh - 60px);
-            overflow: auto;
-            padding: 20px;
-        }
-
-        .tree-node {
-            margin-left: 20px;
-        }
-
-        .node-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px;
-            margin: 4px 0;
-            border-radius: 6px;
-            background: #1f2937;
-            transition: 0.2s;
-        }
-
-        .node-header:hover {
-            background: #374151;
-        }
-
-        .node-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .toggle {
-            cursor: pointer;
-            width: 20px;
-            display: inline-block;
-        }
-
-        .children {
-            margin-left: 25px;
-            display: none;
-        }
-
-        .expanded>.children {
-            display: block;
-        }
-
-        .actions {
-            display: flex;
-            gap: 5px;
+        button:active {
+            transform: scale(0.98);
         }
 
         .danger {
@@ -115,194 +80,428 @@
             background: #b91c1c;
         }
 
+        /* ===== INPUTS ===== */
+
+        input,
+        select,
+        textarea {
+            border: 1px solid #cfd6df;
+            background: #ffffff;
+            color: #111827;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #2563eb;
+        }
+
+        .toolbar input {
+            width: 240px;
+            height: 34px;
+            padding: 0 10px;
+        }
+
+        /* ===== MAIN ===== */
+
+        .main {
+            height: calc(100vh - 56px);
+            overflow: auto;
+            padding: 14px;
+        }
+
+        /* ===== TREE ===== */
+
+        .tree-node {
+            margin-left: 16px;
+        }
+
+        .node-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            min-height: 44px;
+            transition: 0.15s ease;
+        }
+
+        .node-header:hover {
+            background: #f9fafb;
+            border-color: #cfd6df;
+        }
+
+        .node-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            flex-wrap: wrap;
+        }
+
+        .toggle {
+            cursor: pointer;
+            width: 16px;
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .children {
+            margin-left: 20px;
+            display: none;
+        }
+
+        .expanded>.children {
+            display: block;
+        }
+
+        .actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .actions button {
+            height: 30px;
+            padding: 0 10px;
+            font-size: 12px;
+        }
+
+        /* ===== FILE PATH ===== */
+
+        .file-path {
+            color: #2563eb;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+        }
+
+        /* ===== MODAL ===== */
+
         .modal {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
             display: none;
             justify-content: center;
             align-items: center;
+            z-index: 1000;
         }
 
         .modal-content {
-            background: #1f2937;
-            width: 400px;
-            padding: 20px;
+            background: #ffffff;
+            width: 380px;
             border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12);
         }
 
         .modal-content h2 {
-            margin-bottom: 15px;
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #111827;
         }
 
         .modal-content input,
         .modal-content textarea,
         .modal-content select {
             width: 100%;
-            margin-bottom: 12px;
             padding: 10px;
-            border-radius: 6px;
-            border: none;
+            margin-bottom: 12px;
+        }
+
+        .modal-content textarea {
+            resize: vertical;
+            min-height: 80px;
         }
 
         .modal-buttons {
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
+            gap: 8px;
+            margin-top: 10px;
         }
 
-        .file-path {
-            color: #93c5fd;
+        /* ===== SCROLLBAR ===== */
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #eef1f5;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c5ccd6;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        /* ===== RESPONSIVE ===== */
+
+        @media (max-width: 768px) {
+
+            .toolbar {
+                flex-wrap: wrap;
+                height: auto;
+                padding: 12px;
+            }
+
+            .toolbar input {
+                width: 100%;
+            }
+
+            .node-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .actions {
+                width: 100%;
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
 
 <body>
+
+    <!-- TOOLBAR -->
+
     <div class="toolbar">
+
         <div class="title">
             CR File Tracker
         </div>
-        <button onclick="openCRModal()">+ Add CR</button>
-        <button onclick="expandAll()">Expand All</button>
-        <button onclick="collapseAll()"> Collapse All</button>
-        <input type="text" id="searchBox" placeholder="Search...">
-        <button onclick="searchTree()">Search</button>
+
+        <button onclick="openCRModal()">
+            + Add CR
+        </button>
+
+        <button onclick="expandAll()">
+            Expand All
+        </button>
+
+        <button onclick="collapseAll()">
+            Collapse All
+        </button>
+
+        <input type="text"
+               id="searchBox"
+               placeholder="Search...">
+
+        <button onclick="searchTree()">
+            Search
+        </button>
+
     </div>
+
+    <!-- MAIN -->
+
     <div class="main">
         <div id="treeContainer"></div>
     </div>
+
     <!-- MODAL -->
-    <div class="modal" id="modal">
+
+    <div class="modal"
+         id="modal">
+
         <div class="modal-content">
+
             <h2 id="modalTitle"></h2>
+
             <div id="modalBody"></div>
+
             <div class="modal-buttons">
-                <button onclick="closeModal()">Cancel</button>
-                <button onclick="submitModal()">Save</button>
+                <button onclick="closeModal()">
+                    Cancel
+                </button>
+
+                <button onclick="submitModal()">
+                    Save
+                </button>
             </div>
+
         </div>
     </div>
+
     <script>
+
         let data = {
             crs: []
         };
+
         let currentAction = null;
         let selectedCR = null;
         let selectedFunction = null;
+
         function saveData() {
             localStorage.setItem(
                 "trackerData",
                 JSON.stringify(data)
             );
         }
+
         function loadData() {
+
             const stored =
                 localStorage.getItem("trackerData");
+
             if (stored) {
                 data = JSON.parse(stored);
             }
+
             renderTree(data.crs);
         }
+
         function renderTree(crs) {
+
             const container =
                 document.getElementById("treeContainer");
+
             container.innerHTML = "";
+
             crs.forEach(cr => {
                 container.appendChild(
                     createCRNode(cr)
                 );
             });
         }
+
         function createCRNode(cr) {
+
             const node =
                 document.createElement("div");
+
             node.className = "tree-node";
+
             const header =
                 document.createElement("div");
+
             header.className = "node-header";
+
             header.innerHTML = `
-            <div class="node-left">
-                <span class="toggle">
-                    ▶
-                </span>
-                <span>
-                    📁
-                </span>
-                <span>
-                    <b>${cr.id}</b>
-                    - ${cr.title}
-                </span>
-            </div>
-            <div class="actions">
-                <button onclick="openFunctionModal('${cr.id}')">
-                    + Function
-                </button>
-                <button class="danger"
-                        onclick="deleteCR('${cr.id}')">
-                    Delete
-                </button>
-            </div>
-        `;
+                <div class="node-left">
+
+                    <span class="toggle">
+                        ▶
+                    </span>
+
+                    <span>
+                        🗂
+                    </span>
+
+                    <span>
+                        <b>${cr.id}</b> - ${cr.title}
+                    </span>
+
+                </div>
+
+                <div class="actions">
+
+                    <button onclick="openFunctionModal('${cr.id}')">
+                        + Function
+                    </button>
+
+                    <button class="danger"
+                            onclick="deleteCR('${cr.id}')">
+                        Delete
+                    </button>
+
+                </div>
+            `;
+
             const children =
                 document.createElement("div");
+
             children.className = "children";
+
             cr.functions.forEach(fn => {
+
                 children.appendChild(
                     createFunctionNode(cr, fn)
                 );
             });
+
             header.ondblclick = () => toggleNode(node);
+
             node.appendChild(header);
             node.appendChild(children);
+
             return node;
         }
+
         function createFunctionNode(cr, fn) {
+
             const node =
                 document.createElement("div");
+
             node.className = "tree-node";
+
             const header =
                 document.createElement("div");
+
             header.className = "node-header";
+
             header.innerHTML = `
-            <div class="node-left">
-                <span class="toggle">
-                    ▶
-                </span>
-                <span>
-                    ⚙
-                </span>
-                <span>
-                    ${fn.name}
-                    (${fn.module})
-                </span>
-            </div>
-            <div class="actions">
-                <button onclick="
-                    openFileModal(
-                        '${cr.id}',
-                        '${fn.name}'
-                    )
-                ">
-                    + File
-                </button>
-                <button class="danger"
-                        onclick="
-                            deleteFunction(
-                                '${cr.id}',
-                                '${fn.name}'
-                            )
-                        ">
-                    Delete
-                </button>
-            </div>
-        `;
+                <div class="node-left">
+
+                    <span class="toggle">
+                        ▶
+                    </span>
+
+                    <span>
+                        📦
+                    </span>
+
+                    <span>
+                        ${fn.name} (${fn.module})
+                    </span>
+
+                </div>
+
+                <div class="actions">
+
+                    <button onclick="
+                        openFileModal(
+                            '${cr.id}',
+                            '${fn.name}'
+                        )
+                    ">
+                        + File
+                    </button>
+
+                    <button class="danger"
+                            onclick="
+                                deleteFunction(
+                                    '${cr.id}',
+                                    '${fn.name}'
+                                )
+                            ">
+                        Delete
+                    </button>
+
+                </div>
+            `;
+
             const children =
                 document.createElement("div");
+
             children.className = "children";
+
             fn.files.forEach(file => {
+
                 children.appendChild(
                     createFileNode(
                         cr,
@@ -311,226 +510,351 @@
                     )
                 );
             });
+
             header.ondblclick = () => toggleNode(node);
+
             node.appendChild(header);
             node.appendChild(children);
+
             return node;
         }
+
         function createFileNode(cr, fn, file) {
+
             const node =
                 document.createElement("div");
+
             node.className = "tree-node";
+
             node.innerHTML = `
-            <div class="node-header">
-                <div class="node-left">
-                    <span>
-                        📄
-                    </span>
-                    <span class="file-path">
-                        ${file.path}
-                    </span>
-                    <span>
-                        [${file.type}]
-                    </span>
+                <div class="node-header">
+
+                    <div class="node-left">
+
+                        <span>
+                            📑
+                        </span>
+
+                        <span class="file-path">
+                            ${file.path}
+                        </span>
+
+                        <span>
+                            [${file.type}]
+                        </span>
+
+                    </div>
+
+                    <div class="actions">
+
+                        <button class="danger"
+                                onclick="
+                                    deleteFile(
+                                        '${cr.id}',
+                                        '${fn.name}',
+                                        '${file.path}'
+                                    )
+                                ">
+                            Delete
+                        </button>
+
+                    </div>
+
                 </div>
-                <div class="actions">
-                    <button class="danger"
-                            onclick="
-                                deleteFile(
-                                    '${cr.id}',
-                                    '${fn.name}',
-                                    '${file.path}'
-                                )
-                            ">
-                        Delete
-                    </button>
-                </div>
-            </div>
-        `;
+            `;
+
             return node;
         }
+
         function toggleNode(node) {
+
             node.classList.toggle("expanded");
+
             const toggle =
                 node.querySelector(".toggle");
+
             if (toggle) {
+
                 toggle.textContent =
                     node.classList.contains("expanded")
                         ? "▼"
                         : "▶";
             }
         }
+
         function expandAll() {
-            document.querySelectorAll(".tree-node")
+
+            document
+                .querySelectorAll(".tree-node")
                 .forEach(node => {
+
                     node.classList.add("expanded");
+
                     const toggle =
                         node.querySelector(".toggle");
+
                     if (toggle) {
                         toggle.textContent = "▼";
                     }
                 });
         }
+
         function collapseAll() {
-            document.querySelectorAll(".tree-node")
+
+            document
+                .querySelectorAll(".tree-node")
                 .forEach(node => {
+
                     node.classList.remove("expanded");
+
                     const toggle =
                         node.querySelector(".toggle");
+
                     if (toggle) {
                         toggle.textContent = "▶";
                     }
                 });
         }
+
         function openCRModal() {
+
             currentAction = "ADD_CR";
-            document.getElementById("modalTitle")
+
+            document
+                .getElementById("modalTitle")
                 .innerText = "Add CR";
-            document.getElementById("modalBody")
+
+            document
+                .getElementById("modalBody")
                 .innerHTML = `
-                <input id="crId"
-                       placeholder="CR ID">
-                <input id="crTitle"
-                       placeholder="CR Title">
-            `;
+                    <input id="crId"
+                           placeholder="CR ID">
+
+                    <input id="crTitle"
+                           placeholder="CR Title">
+                `;
+
             openModal();
         }
+
         function openFunctionModal(crId) {
+
             selectedCR = crId;
+
             currentAction = "ADD_FUNCTION";
-            document.getElementById("modalTitle")
+
+            document
+                .getElementById("modalTitle")
                 .innerText = "Add Function";
-            document.getElementById("modalBody")
+
+            document
+                .getElementById("modalBody")
                 .innerHTML = `
-                <input id="functionName"
-                       placeholder="Function Name">
-                <input id="moduleName"
-                       placeholder="Module Name">
-            `;
+                    <input id="functionName"
+                           placeholder="Function Name">
+
+                    <input id="moduleName"
+                           placeholder="Module Name">
+                `;
+
             openModal();
         }
+
         function openFileModal(crId, fnName) {
+
             selectedCR = crId;
             selectedFunction = fnName;
+
             currentAction = "ADD_FILE";
-            document.getElementById("modalTitle")
+
+            document
+                .getElementById("modalTitle")
                 .innerText = "Add File";
-            document.getElementById("modalBody")
+
+            document
+                .getElementById("modalBody")
                 .innerHTML = `
-                <input id="filePath"
-                       placeholder="File Path">
-                <select id="fileType">
-                    <option>
-                        New
-                    </option>
-                    <option>
-                        Modified
-                    </option>
-                    <option>
-                        Deleted
-                    </option>
-                </select>
-                <textarea id="remarks"
-                          placeholder="Remarks"></textarea>
-            `;
+                    <input id="filePath"
+                           placeholder="File Path">
+
+                    <select id="fileType">
+
+                        <option>
+                            New
+                        </option>
+
+                        <option>
+                            Modified
+                        </option>
+
+                        <option>
+                            Deleted
+                        </option>
+
+                    </select>
+
+                    <textarea id="remarks"
+                              placeholder="Remarks"></textarea>
+                `;
+
             openModal();
         }
+
         function submitModal() {
+
             if (currentAction === "ADD_CR") {
+
                 data.crs.push({
+
                     id:
-                        document.getElementById("crId").value,
+                        document
+                            .getElementById("crId")
+                            .value,
+
                     title:
-                        document.getElementById("crTitle").value,
+                        document
+                            .getElementById("crTitle")
+                            .value,
+
                     functions: []
                 });
             }
+
             else if (currentAction === "ADD_FUNCTION") {
+
                 const cr =
-                    data.crs.find(c => c.id === selectedCR);
+                    data.crs.find(
+                        c => c.id === selectedCR
+                    );
+
                 cr.functions.push({
+
                     name:
-                        document.getElementById(
-                            "functionName"
-                        ).value,
+                        document
+                            .getElementById("functionName")
+                            .value,
+
                     module:
-                        document.getElementById(
-                            "moduleName"
-                        ).value,
+                        document
+                            .getElementById("moduleName")
+                            .value,
+
                     files: []
                 });
             }
+
             else if (currentAction === "ADD_FILE") {
+
                 const cr =
-                    data.crs.find(c => c.id === selectedCR);
+                    data.crs.find(
+                        c => c.id === selectedCR
+                    );
+
                 const fn =
                     cr.functions.find(
                         f => f.name === selectedFunction
                     );
+
                 fn.files.push({
+
                     path:
-                        document.getElementById(
-                            "filePath"
-                        ).value,
+                        document
+                            .getElementById("filePath")
+                            .value,
+
                     type:
-                        document.getElementById(
-                            "fileType"
-                        ).value,
+                        document
+                            .getElementById("fileType")
+                            .value,
+
                     remarks:
-                        document.getElementById(
-                            "remarks"
-                        ).value
+                        document
+                            .getElementById("remarks")
+                            .value
                 });
             }
+
             saveData();
+
             renderTree(data.crs);
+
             closeModal();
         }
+
         function deleteCR(crId) {
+
             data.crs =
-                data.crs.filter(c => c.id !== crId);
+                data.crs.filter(
+                    c => c.id !== crId
+                );
+
             saveData();
+
             renderTree(data.crs);
         }
+
         function deleteFunction(crId, fnName) {
+
             const cr =
-                data.crs.find(c => c.id === crId);
+                data.crs.find(
+                    c => c.id === crId
+                );
+
             cr.functions =
                 cr.functions.filter(
                     f => f.name !== fnName
                 );
+
             saveData();
+
             renderTree(data.crs);
         }
+
         function deleteFile(
             crId,
             fnName,
             filePath
         ) {
+
             const cr =
-                data.crs.find(c => c.id === crId);
+                data.crs.find(
+                    c => c.id === crId
+                );
+
             const fn =
                 cr.functions.find(
                     f => f.name === fnName
                 );
+
             fn.files =
                 fn.files.filter(
                     file => file.path !== filePath
                 );
+
             saveData();
+
             renderTree(data.crs);
         }
+
         function searchTree() {
+
             const value =
-                document.getElementById(
-                    "searchBox"
-                ).value.toLowerCase();
+                document
+                    .getElementById("searchBox")
+                    .value
+                    .toLowerCase();
+
             if (!value) {
+
                 renderTree(data.crs);
+
                 return;
             }
+
             const filtered = {
+
                 crs: data.crs.filter(cr => {
+
                     if (
                         cr.id.toLowerCase().includes(value)
                         ||
@@ -538,33 +862,49 @@
                     ) {
                         return true;
                     }
+
                     return cr.functions.some(fn => {
+
                         if (
-                            fn.name.toLowerCase()
+                            fn.name
+                                .toLowerCase()
                                 .includes(value)
                         ) {
                             return true;
                         }
+
                         return fn.files.some(file =>
-                            file.path.toLowerCase()
+                            file.path
+                                .toLowerCase()
                                 .includes(value)
                         );
                     });
                 })
             };
+
             renderTree(filtered.crs);
+
             expandAll();
         }
+
         function openModal() {
-            document.getElementById("modal")
+
+            document
+                .getElementById("modal")
                 .style.display = "flex";
         }
+
         function closeModal() {
-            document.getElementById("modal")
+
+            document
+                .getElementById("modal")
                 .style.display = "none";
         }
+
         loadData();
+
     </script>
+
 </body>
 
 </html>
