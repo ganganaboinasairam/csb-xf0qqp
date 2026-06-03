@@ -1,58 +1,220 @@
-let expandedNodes = new Set();
 
-function toggleNode(node, key) {
+package com.fileSplitter.servlet;
 
-    node.classList.toggle("expanded");
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
 
-    const toggle =
-        node.querySelector(".toggle");
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-    const isExpanded =
-        node.classList.contains("expanded");
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
-    if (toggle) {
-        toggle.textContent =
-            isExpanded ? "▼" : "▶";
-    }
+@WebServlet("/api/tracker")
+public class TrackerServlet extends HttpServlet {
 
-    if (key) {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private static final String FILE_PATH = "C:/tracker-data/data.json";
 
-        if (isExpanded) {
-            expandedNodes.add(key);
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+
+        resp.setContentType("application/json");
+
+        File file = new File(FILE_PATH);
+
+        if (!file.exists()) {
+            file.getParentFile().mkdirs();
+
+            try (FileWriter writer = new FileWriter(file)) {
+                writer.write("{\"crs\":[]}");
+            }
         }
-        else {
-            expandedNodes.delete(key);
+
+        String content = new String(Files.readAllBytes(file.toPath()),"UTF-8");
+
+        String search = req.getParameter("search");
+
+        if (search != null && !search.isEmpty()) {
+            JsonObject filtered = filterData(content, search.toLowerCase());
+            resp.getWriter().write(filtered.toString());
+            return;
+        }
+
+        resp.getWriter().write(content);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+
+        BufferedReader reader = req.getReader();
+
+        JsonObject requestBody = JsonParser.parseReader(reader).getAsJsonObject();
+
+        JsonObject root = readData();
+
+        JsonArray crs = root.getAsJsonArray("crs");
+
+        String action = requestBody.get("action").getAsString();
+
+        switch (action) {
+
+            case "ADD_CR":
+                addCR(crs, requestBody);
+                break;
+
+            case "ADD_FUNCTION":
+                addFunction(crs, requestBody);
+                break;
+
+            case "ADD_FILE":
+                addFile(crs, requestBody);
+                break;
+        }
+
+        writeData(root);
+
+        resp.getWriter().write("{\"status\":\"success\"}");
+    }
+
+    private void addCR(JsonArray crs, JsonObject body) {
+
+        JsonObject cr = new JsonObject();
+
+        cr.addProperty("id", body.get("crId").getAsString());
+        cr.addProperty("title", body.get("title").getAsString());
+
+        cr.add("functions", new JsonArray());
+
+        crs.add(cr);
+    }
+
+    private void addFunction(JsonArray crs, JsonObject body) {
+
+        for (JsonElement e : crs) {
+
+            JsonObject cr = e.getAsJsonObject();
+
+            if (cr.get("id").getAsString()
+                    .equals(body.get("crId").getAsString())) {
+
+                JsonObject fn = new JsonObject();
+
+                fn.addProperty("name",
+                        body.get("functionName").getAsString());
+
+                fn.addProperty("module",
+                        body.get("module").getAsString());
+
+                fn.add("files", new JsonArray());
+
+                cr.getAsJsonArray("functions").add(fn);
+            }
         }
     }
-}
 
-const crKey = `CR_${cr.id}`;
+    private void addFile(JsonArray crs, JsonObject body) {
 
-if (expandedNodes.has(crKey)) {
-    node.classList.add("expanded");
-}
+        for (JsonElement e : crs) {
 
-header.onclick = (e) => {
+            JsonObject cr = e.getAsJsonObject();
 
-    if (e.target.tagName === "BUTTON") {
-        return;
+            if (cr.get("id").getAsString()
+                    .equals(body.get("crId").getAsString())) {
+
+                JsonArray functions = cr.getAsJsonArray("functions");
+
+                for (JsonElement fe : functions) {
+
+                    JsonObject fn = fe.getAsJsonObject();
+
+                    if (fn.get("name").getAsString()
+                            .equals(body.get("functionName").getAsString())) {
+
+                        JsonObject file = new JsonObject();
+
+                        file.addProperty("path",
+                                body.get("path").getAsString());
+
+                        file.addProperty("type",
+                                body.get("type").getAsString());
+
+                        file.addProperty("remarks",
+                                body.get("remarks").getAsString());
+
+                        fn.getAsJsonArray("files").add(file);
+                    }
+                }
+            }
+        }
     }
 
-    toggleNode(node, crKey);
-};
+    private JsonObject readData() throws IOException {
 
-const fnKey =
-    `FN_${cr.id}_${fn.name}`;
+        File file = new File(FILE_PATH);
 
-if (expandedNodes.has(fnKey)) {
-    node.classList.add("expanded");
-}
+        if (!file.exists()) {
 
-header.onclick = (e) => {
+            file.getParentFile().mkdirs();
 
-    if (e.target.tagName === "BUTTON") {
-        return;
+            try (FileWriter writer = new FileWriter(file)) {
+                writer.write("{\"crs\":[]}");
+            }
+        }
+
+       // String content = Files.readString(file.toPath());
+        String content = new String(Files.readAllBytes(file.toPath()),"UTF-8");
+
+        return JsonParser.parseString(content).getAsJsonObject();
     }
 
-    toggleNode(node, fnKey);
-};
+    private void writeData(JsonObject data) throws IOException {
+
+        try (FileWriter writer = new FileWriter(FILE_PATH)) {
+
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+            writer.write(gson.toJson(data));
+        }
+    }
+
+    private JsonObject filterData(String content, String search) {
+
+        JsonObject root = JsonParser.parseString(content).getAsJsonObject();
+
+        JsonArray crs = root.getAsJsonArray("crs");
+
+        JsonArray filtered = new JsonArray();
+
+        for (JsonElement e : crs) {
+
+            JsonObject cr = e.getAsJsonObject();
+
+            String crId = cr.get("id").getAsString().toLowerCase();
+            String title = cr.get("title").getAsString().toLowerCase();
+
+            if (crId.contains(search) || title.contains(search)) {
+                filtered.add(cr);
+            }
+        }
+
+        JsonObject result = new JsonObject();
+        result.add("crs", filtered);
+
+        return result;
+    }
+}
