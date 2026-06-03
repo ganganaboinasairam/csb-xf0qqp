@@ -1,539 +1,570 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CR File Tracker</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link href="css/fileMaintain.css" rel="stylesheet" />
-    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: #f9fafb;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: #1f2937;
+            border-bottom: 1px solid #374151;
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-right: 30px;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        input {
+            padding: 8px;
+            border-radius: 6px;
+            border: none;
+            width: 250px;
+        }
+
+        .main {
+            height: calc(100vh - 60px);
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .tree-node {
+            margin-left: 20px;
+        }
+
+        .node-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            margin: 4px 0;
+            border-radius: 6px;
+            background: #1f2937;
+            transition: 0.2s;
+        }
+
+        .node-header:hover {
+            background: #374151;
+        }
+
+        .node-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle {
+            cursor: pointer;
+            width: 20px;
+            display: inline-block;
+        }
+
+        .children {
+            margin-left: 25px;
+            display: none;
+        }
+
+        .expanded>.children {
+            display: block;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .danger {
+            background: #dc2626;
+        }
+
+        .danger:hover {
+            background: #b91c1c;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1f2937;
+            width: 400px;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 15px;
+        }
+
+        .modal-content input,
+        .modal-content textarea,
+        .modal-content select {
+            width: 100%;
+            margin-bottom: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .file-path {
+            color: #93c5fd;
+        }
+    </style>
 </head>
+
 <body>
-
-<!-- HEADER -->
-<header>
-    <div class="logo">
-        <div class="logo-icon">
-            <svg width="14" height="14" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24">
-                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-                <rect x="9" y="3" width="6" height="4" rx="1"/>
-                <path d="M9 12h6M9 16h4"/>
-            </svg>
+    <div class="toolbar">
+        <div class="title">
+            CR File Tracker
         </div>
-        <span class="logo-text">CR <span>File Tracker</span></span>
+        <button onclick="openCRModal()">+ Add CR</button>
+        <button onclick="expandAll()">Expand All</button>
+        <button onclick="collapseAll()"> Collapse All</button>
+        <input type="text" id="searchBox" placeholder="Search...">
+        <button onclick="searchTree()">Search</button>
     </div>
-    <div class="header-right">
-        <div class="search-wrap">
-            <span class="search-icon">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                </svg>
-            </span>
-            <input type="text" id="searchBox" placeholder="Search CR, function, file…" onkeydown="if(event.key==='Enter') searchData()">
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="searchData()">Search</button>
-        <button class="btn btn-ghost btn-sm" onclick="resetSearch()">Reset</button>
+    <div class="main">
+        <div id="treeContainer"></div>
     </div>
-</header>
-
-<!-- STATS BAR -->
-<div class="stats-bar">
-    <div class="stat-pill"><span class="dot" style="background:#2563eb"></span> <b id="statCR">0</b> Change Requests</div>
-    <div class="stat-pill"><span class="dot" style="background:#16a34a"></span> <b id="statFN">0</b> Functions</div>
-    <div class="stat-pill"><span class="dot" style="background:#d97706"></span> <b id="statFIL">0</b> Files</div>
-    <div class="stat-pill" id="selPill" style="display:none">
-        <span class="dot" style="background:#2563eb"></span>
-        Selected: <b id="statSel">—</b>
-    </div>
-</div>
-
-<!-- WORKSPACE -->
-<div class="workspace">
-
-    <!-- CR COLUMN -->
-    <div class="col">
-        <div class="col-header">
-            <div class="col-title">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/>
-                </svg>
-                Change Requests
-            </div>
-            <span class="col-badge blue" id="crCount">0</span>
-        </div>
-
-        <div class="add-form-wrap">
-            <button class="add-toggle" id="crToggle" onclick="toggleForm('cr')">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                Add Change Request
-                <svg class="chevron" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="form-body" id="crForm">
-                <div class="form-row">
-                    <label class="form-label">CR ID</label>
-                    <input type="text" id="crId" class="form-input" placeholder="e.g. CR-2024-001">
-                </div>
-                <div class="form-row">
-                    <label class="form-label">Title</label>
-                    <input type="text" id="crTitle" class="form-input" placeholder="Short description">
-                </div>
-                <button class="btn-submit btn-submit-blue" onclick="addCR()">Add CR</button>
-            </div>
-        </div>
-
-        <div class="list-area" id="crList"></div>
-    </div>
-
-    <!-- FUNCTION COLUMN -->
-    <div class="col">
-        <div class="col-header">
-            <div class="col-title">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m10 0h3a2 2 0 0 0 2-2v-3"/>
-                </svg>
-                Functions
-            </div>
-            <span class="col-badge green" id="fnCount">0</span>
-        </div>
-
-        <div class="add-form-wrap">
-            <button class="add-toggle" id="fnToggle" onclick="toggleForm('fn')" style="color:var(--green)">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                Add Function
-                <svg class="chevron" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="form-body" id="fnForm">
-                <div class="form-row">
-                    <label class="form-label">Function Name</label>
-                    <input type="text" id="functionName" class="form-input" placeholder="e.g. processLCAmend">
-                </div>
-                <div class="form-row">
-                    <label class="form-label">Module</label>
-                    <input type="text" id="moduleName" class="form-input" placeholder="e.g. TradeFinance">
-                </div>
-                <button class="btn-submit btn-submit-green" onclick="addFunction()">Add Function</button>
-            </div>
-        </div>
-
-        <div class="list-area" id="functionList">
-            <div class="empty-state">
-                <div class="empty-icon"><svg width="16" height="16" fill="none" stroke="var(--muted2)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m10 0h3a2 2 0 0 0 2-2v-3"/></svg></div>
-                <p>Select a CR to<br>view functions</p>
+    <!-- MODAL -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle"></h2>
+            <div id="modalBody"></div>
+            <div class="modal-buttons">
+                <button onclick="closeModal()">Cancel</button>
+                <button onclick="submitModal()">Save</button>
             </div>
         </div>
     </div>
-
-    <!-- FILES COLUMN -->
-    <div class="col">
-        <div class="col-header">
-            <div class="col-title">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                </svg>
-                Files
+    <script>
+        let data = {
+            crs: []
+        };
+        let currentAction = null;
+        let selectedCR = null;
+        let selectedFunction = null;
+        function saveData() {
+            localStorage.setItem(
+                "trackerData",
+                JSON.stringify(data)
+            );
+        }
+        function loadData() {
+            const stored =
+                localStorage.getItem("trackerData");
+            if (stored) {
+                data = JSON.parse(stored);
+            }
+            renderTree(data.crs);
+        }
+        function renderTree(crs) {
+            const container =
+                document.getElementById("treeContainer");
+            container.innerHTML = "";
+            crs.forEach(cr => {
+                container.appendChild(
+                    createCRNode(cr)
+                );
+            });
+        }
+        function createCRNode(cr) {
+            const node =
+                document.createElement("div");
+            node.className = "tree-node";
+            const header =
+                document.createElement("div");
+            header.className = "node-header";
+            header.innerHTML = `
+            <div class="node-left">
+                <span class="toggle">
+                    ▶
+                </span>
+                <span>
+                    📁
+                </span>
+                <span>
+                    <b>${cr.id}</b>
+                    - ${cr.title}
+                </span>
             </div>
-            <span class="col-badge" id="fileCount">0</span>
-        </div>
-
-        <div class="add-form-wrap">
-            <button class="add-toggle" id="fileToggle" onclick="toggleForm('file')" style="color:var(--amber)">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                Add File
-                <svg class="chevron" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="form-body" id="fileForm">
-                <div class="form-row">
-                    <label class="form-label">File Path</label>
-                    <input type="text" id="filePath" class="form-input" placeholder="/src/com/example/Service.java">
-                </div>
-                <div class="form-grid">
-                    <div class="form-row">
-                        <label class="form-label">Change Type</label>
-                        <select id="fileType" class="form-input">
-                            <option>New</option>
-                            <option>Modified</option>
-                            <option>Deleted</option>
-                        </select>
-                    </div>
-                    <div class="form-row">
-                        <label class="form-label">Remarks</label>
-                        <input type="text" id="remarks" class="form-input" placeholder="Optional note">
-                    </div>
-                </div>
-                <button class="btn-submit btn-submit-amber" onclick="addFile()">Add File</button>
-            </div>
-        </div>
-
-        <div class="list-area" id="fileList">
-            <div class="empty-state">
-                <div class="empty-icon"><svg width="16" height="16" fill="none" stroke="var(--muted2)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-                <p>Select a function to<br>view files</p>
-            </div>
-        </div>
-    </div>
-
-</div>
-
-<!-- CONFIRM DIALOG -->
-<div class="overlay" id="confirmOverlay">
-    <div class="dialog">
-        <div class="dialog-title" id="dialogTitle">Confirm Delete</div>
-        <div class="dialog-body" id="dialogBody">Are you sure?</div>
-        <div class="dialog-actions">
-            <button class="btn btn-ghost btn-sm" onclick="closeDialog()">Cancel</button>
-            <button class="btn btn-sm" style="background:var(--red);color:white;" id="dialogConfirm">Delete</button>
-        </div>
-    </div>
-</div>
-
-<!-- TOAST -->
-<div id="toast"></div>
-
-<script>
-let selectedCR = null;
-let selectedFn = null;
-let allData = { crs: [] };
-let pendingDelete = null;
-
-// ── FORM TOGGLE ──
-function toggleForm(which) {
-    const formId   = { cr: 'crForm', fn: 'fnForm', file: 'fileForm' }[which];
-    const toggleId = { cr: 'crToggle', fn: 'fnToggle', file: 'fileToggle' }[which];
-    const form    = document.getElementById(formId);
-    const toggle  = document.getElementById(toggleId);
-    const isOpen  = form.classList.contains('open');
-    form.classList.toggle('open', !isOpen);
-    toggle.classList.toggle('open', !isOpen);
-}
-
-// ── LOAD ──
-async function loadData() {
-    try {
-        const res = await fetch('../api/tracker');
-        allData = await res.json();
-    } catch { /* demo mode */ }
-    renderAll(allData.crs || []);
-}
-
-// ── STATS ──
-function updateStats(crs) {
-    let fn = 0, fi = 0;
-    (crs || []).forEach(c => {
-        (c.functions || []).forEach(f => { fn++; fi += (f.files || []).length; });
-    });
-    document.getElementById('statCR').textContent  = (crs || []).length;
-    document.getElementById('statFN').textContent  = fn;
-    document.getElementById('statFIL').textContent = fi;
-    document.getElementById('crCount').textContent = (crs || []).length;
-}
-
-// ── RENDER ALL ──
-function renderAll(crs) {
-    updateStats(crs);
-    renderCRs(crs);
-}
-
-// ── RENDER CRs ──
-function renderCRs(crs) {
-    const c = document.getElementById('crList');
-    c.innerHTML = '';
-    if (!crs.length) {
-        c.innerHTML = emptyState('No CRs yet. Add your first.', 'cr');
-        return;
-    }
-    crs.forEach(cr => {
-        const fnCnt = (cr.functions||[]).length;
-        const fiCnt = (cr.functions||[]).reduce((s,f)=>s+(f.files||[]).length,0);
-        const div = document.createElement('div');
-        div.className = 'cr-item' + (selectedCR && selectedCR.id===cr.id ? ' active' : '');
-        div.innerHTML = `
-            <div class="cr-body">
-                <div class="cr-id">${cr.id}</div>
-                <div class="cr-title">${cr.title}</div>
-                <div class="cr-meta">
-                    <span class="mini-badge mini-badge-blue">${fnCnt} fn</span>
-                    <span class="mini-badge mini-badge-green">${fiCnt} files</span>
-                </div>
-            </div>
-            <div class="item-actions">
-                <button class="btn-danger-ghost" title="Delete CR" onclick="event.stopPropagation(); confirmDelete('cr', '${cr.id}', null, null, '${cr.id}: ${cr.title.replace(/'/g,"\\'")}')">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            <div class="actions">
+                <button onclick="openFunctionModal('${cr.id}')">
+                    + Function
                 </button>
-            </div>`;
-        div.onclick = () => selectCR(cr, div);
-        c.appendChild(div);
-    });
-}
-
-function selectCR(cr, el) {
-    selectedCR = cr;
-    selectedFn = null;
-    document.querySelectorAll('.cr-item').forEach(d => d.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('statSel').textContent = cr.id;
-    document.getElementById('selPill').style.display = 'flex';
-    document.getElementById('fnCount').textContent = (cr.functions||[]).length;
-    renderFunctions(cr.functions || []);
-    document.getElementById('fileCount').textContent = '0';
-    document.getElementById('fileList').innerHTML = emptyState('Select a function to view files', 'file');
-}
-
-// ── RENDER FNs ──
-function renderFunctions(fns) {
-    const c = document.getElementById('functionList');
-    c.innerHTML = '';
-    document.getElementById('fnCount').textContent = fns.length;
-    if (!fns.length) {
-        c.innerHTML = emptyState('No functions yet. Add one above.', 'fn');
-        return;
-    }
-    fns.forEach(fn => {
-        const div = document.createElement('div');
-        div.className = 'fn-item' + (selectedFn && selectedFn.name===fn.name ? ' active' : '');
-        div.innerHTML = `
-            <div class="fn-body">
-                <div class="fn-name">${fn.name}</div>
-                <div class="fn-module">${fn.module} &middot; ${(fn.files||[]).length} file${(fn.files||[]).length!==1?'s':''}</div>
-            </div>
-            <div class="item-actions">
-                <button class="btn-danger-ghost" title="Delete Function" onclick="event.stopPropagation(); confirmDelete('fn', '${selectedCR.id}', '${fn.name}', null, '${fn.name}')">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                <button class="danger"
+                        onclick="deleteCR('${cr.id}')">
+                    Delete
                 </button>
-            </div>`;
-        div.onclick = () => selectFn(fn, div);
-        c.appendChild(div);
-    });
-}
-
-function selectFn(fn, el) {
-    selectedFn = fn;
-    document.querySelectorAll('.fn-item').forEach(d => d.classList.remove('active'));
-    el.classList.add('active');
-    renderFiles(fn.files || []);
-}
-
-// ── RENDER FILES ──
-function renderFiles(files) {
-    const c = document.getElementById('fileList');
-    c.innerHTML = '';
-    document.getElementById('fileCount').textContent = files.length;
-    if (!files.length) {
-        c.innerHTML = emptyState('No files added yet.', 'file');
-        return;
-    }
-    files.forEach((f, idx) => {
-        const typeClass = { New:'type-new', Modified:'type-modified', Deleted:'type-deleted' }[f.type] || 'type-new';
-        const iconBg    = { New:'#dcfce7', Modified:'#fef3c7', Deleted:'#fee2e2' }[f.type] || '#f0fdf4';
-        const iconColor = { New:'#16a34a', Modified:'#d97706', Deleted:'#dc2626' }[f.type] || '#16a34a';
-        const ext = f.path.split('.').pop().toUpperCase().slice(0, 4);
-        const div = document.createElement('div');
-        div.className = 'file-item';
-        div.innerHTML = `
-            <div class="file-icon" style="background:${iconBg}">
-                <svg width="14" height="14" fill="none" stroke="${iconColor}" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             </div>
-            <div class="file-body">
-                <div class="file-path">${f.path}</div>
-                <div class="file-meta">
-                    <span class="type-badge ${typeClass}">${f.type}</span>
-                    ${f.remarks ? `<span class="file-remarks">${f.remarks}</span>` : ''}
+        `;
+            const children =
+                document.createElement("div");
+            children.className = "children";
+            cr.functions.forEach(fn => {
+                children.appendChild(
+                    createFunctionNode(cr, fn)
+                );
+            });
+            header.ondblclick = () => toggleNode(node);
+            node.appendChild(header);
+            node.appendChild(children);
+            return node;
+        }
+        function createFunctionNode(cr, fn) {
+            const node =
+                document.createElement("div");
+            node.className = "tree-node";
+            const header =
+                document.createElement("div");
+            header.className = "node-header";
+            header.innerHTML = `
+            <div class="node-left">
+                <span class="toggle">
+                    ▶
+                </span>
+                <span>
+                    ⚙
+                </span>
+                <span>
+                    ${fn.name}
+                    (${fn.module})
+                </span>
+            </div>
+            <div class="actions">
+                <button onclick="
+                    openFileModal(
+                        '${cr.id}',
+                        '${fn.name}'
+                    )
+                ">
+                    + File
+                </button>
+                <button class="danger"
+                        onclick="
+                            deleteFunction(
+                                '${cr.id}',
+                                '${fn.name}'
+                            )
+                        ">
+                    Delete
+                </button>
+            </div>
+        `;
+            const children =
+                document.createElement("div");
+            children.className = "children";
+            fn.files.forEach(file => {
+                children.appendChild(
+                    createFileNode(
+                        cr,
+                        fn,
+                        file
+                    )
+                );
+            });
+            header.ondblclick = () => toggleNode(node);
+            node.appendChild(header);
+            node.appendChild(children);
+            return node;
+        }
+        function createFileNode(cr, fn, file) {
+            const node =
+                document.createElement("div");
+            node.className = "tree-node";
+            node.innerHTML = `
+            <div class="node-header">
+                <div class="node-left">
+                    <span>
+                        📄
+                    </span>
+                    <span class="file-path">
+                        ${file.path}
+                    </span>
+                    <span>
+                        [${file.type}]
+                    </span>
+                </div>
+                <div class="actions">
+                    <button class="danger"
+                            onclick="
+                                deleteFile(
+                                    '${cr.id}',
+                                    '${fn.name}',
+                                    '${file.path}'
+                                )
+                            ">
+                        Delete
+                    </button>
                 </div>
             </div>
-            <div class="item-actions">
-                <button class="btn-danger-ghost" title="Delete File" onclick="confirmDelete('file', '${selectedCR.id}', '${selectedFn.name}', ${idx}, '${f.path.replace(/'/g,"\\'")}')">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                </button>
-            </div>`;
-        c.appendChild(div);
-    });
-}
-
-// ── EMPTY STATE ──
-function emptyState(msg, type) {
-    const icons = {
-        cr:   '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/>',
-        fn:   '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m10 0h3a2 2 0 0 0 2-2v-3"/>',
-        file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'
-    };
-    return `<div class="empty-state">
-        <div class="empty-icon"><svg width="16" height="16" fill="none" stroke="var(--muted2)" stroke-width="1.8" viewBox="0 0 24 24">${icons[type]||''}</svg></div>
-        <p>${msg}</p>
-    </div>`;
-}
-
-// ── ADD ACTIONS ──
-async function addCR() {
-    const id    = document.getElementById('crId').value.trim();
-    const title = document.getElementById('crTitle').value.trim();
-    if (!id || !title) { toast('Fill in CR ID and Title', 'error'); return; }
-
-    applyLocal({ action:'ADD_CR', crId:id, title });
-    renderAll(allData.crs);
-    document.getElementById('crId').value = '';
-    document.getElementById('crTitle').value = '';
-    toggleForm('cr');
-    toast('CR added successfully', 'success');
-
-    try { await post({ action:'ADD_CR', crId:id, title }); } catch {}
-}
-
-async function addFunction() {
-    if (!selectedCR) { toast('Select a CR first', 'error'); return; }
-    const name   = document.getElementById('functionName').value.trim();
-    const module = document.getElementById('moduleName').value.trim();
-    if (!name || !module) { toast('Fill in Function Name and Module', 'error'); return; }
-
-    applyLocal({ action:'ADD_FUNCTION', crId:selectedCR.id, functionName:name, module });
-    const cr = allData.crs.find(c=>c.id===selectedCR.id);
-    selectedCR = cr;
-    renderFunctions(cr.functions||[]);
-    updateStats(allData.crs);
-    document.getElementById('functionName').value = '';
-    document.getElementById('moduleName').value = '';
-    toggleForm('fn');
-    toast('Function added', 'success');
-
-    try { await post({ action:'ADD_FUNCTION', crId:selectedCR.id, functionName:name, module }); } catch {}
-}
-
-async function addFile() {
-    if (!selectedFn || !selectedCR) { toast('Select a Function first', 'error'); return; }
-    const path    = document.getElementById('filePath').value.trim();
-    const type    = document.getElementById('fileType').value;
-    const remarks = document.getElementById('remarks').value.trim();
-    if (!path) { toast('Enter a file path', 'error'); return; }
-
-    applyLocal({ action:'ADD_FILE', crId:selectedCR.id, functionName:selectedFn.name, path, type, remarks });
-    const fn = allData.crs.find(c=>c.id===selectedCR.id)?.functions.find(f=>f.name===selectedFn.name);
-    if (fn) { selectedFn = fn; renderFiles(fn.files||[]); }
-    updateStats(allData.crs);
-    document.getElementById('filePath').value = '';
-    document.getElementById('remarks').value = '';
-    toggleForm('file');
-    toast('File added', 'success');
-
-    try { await post({ action:'ADD_FILE', crId:selectedCR.id, functionName:selectedFn.name, path, type, remarks }); } catch {}
-}
-
-// ── DELETE ──
-function confirmDelete(type, crId, fnName, fileIdx, label) {
-    pendingDelete = { type, crId, fnName, fileIdx };
-    const titles = { cr:'Delete Change Request', fn:'Delete Function', file:'Delete File' };
-    document.getElementById('dialogTitle').textContent = titles[type];
-    document.getElementById('dialogBody').textContent  = `"${label}" will be permanently removed.`;
-    document.getElementById('dialogConfirm').onclick   = executeDelete;
-    document.getElementById('confirmOverlay').classList.add('show');
-}
-
-function closeDialog() {
-    document.getElementById('confirmOverlay').classList.remove('show');
-    pendingDelete = null;
-}
-
-async function executeDelete() {
-    closeDialog();
-    const { type, crId, fnName, fileIdx } = pendingDelete;
-
-    if (type === 'cr') {
-        allData.crs = allData.crs.filter(c => c.id !== crId);
-        if (selectedCR && selectedCR.id === crId) {
-            selectedCR = null; selectedFn = null;
-            document.getElementById('selPill').style.display='none';
-            document.getElementById('functionList').innerHTML = emptyState('Select a CR to view functions','fn');
-            document.getElementById('fileList').innerHTML = emptyState('Select a function to view files','file');
+        `;
+            return node;
         }
-        toast('CR deleted', 'error');
-    } else if (type === 'fn') {
-        const cr = allData.crs.find(c=>c.id===crId);
-        if (cr) cr.functions = cr.functions.filter(f=>f.name!==fnName);
-        if (selectedFn && selectedFn.name === fnName) {
-            selectedFn = null;
-            document.getElementById('fileList').innerHTML = emptyState('Select a function to view files','file');
+        function toggleNode(node) {
+            node.classList.toggle("expanded");
+            const toggle =
+                node.querySelector(".toggle");
+            if (toggle) {
+                toggle.textContent =
+                    node.classList.contains("expanded")
+                        ? "▼"
+                        : "▶";
+            }
         }
-        if (selectedCR && selectedCR.id === crId) {
-            selectedCR = allData.crs.find(c=>c.id===crId);
-            renderFunctions(selectedCR.functions||[]);
+        function expandAll() {
+            document.querySelectorAll(".tree-node")
+                .forEach(node => {
+                    node.classList.add("expanded");
+                    const toggle =
+                        node.querySelector(".toggle");
+                    if (toggle) {
+                        toggle.textContent = "▼";
+                    }
+                });
         }
-        toast('Function deleted', 'error');
-    } else if (type === 'file') {
-        const fn = allData.crs.find(c=>c.id===crId)?.functions.find(f=>f.name===fnName);
-        if (fn) fn.files.splice(fileIdx, 1);
-        if (selectedFn && selectedFn.name === fnName) {
-            selectedFn = allData.crs.find(c=>c.id===crId)?.functions.find(f=>f.name===fnName);
-            renderFiles(selectedFn?.files||[]);
+        function collapseAll() {
+            document.querySelectorAll(".tree-node")
+                .forEach(node => {
+                    node.classList.remove("expanded");
+                    const toggle =
+                        node.querySelector(".toggle");
+                    if (toggle) {
+                        toggle.textContent = "▶";
+                    }
+                });
         }
-        toast('File deleted', 'error');
-    }
-
-    renderCRs(allData.crs);
-    updateStats(allData.crs);
-
-    try { await post({ action:'DELETE', type, crId, fnName, fileIdx }); } catch {}
-}
-
-// ── SEARCH ──
-async function searchData() {
-    const q = document.getElementById('searchBox').value.trim().toLowerCase();
-    if (!q) { renderAll(allData.crs); return; }
-    try {
-        const res = await fetch('tracker?search=' + encodeURIComponent(q));
-        const d   = await res.json();
-        renderAll(d.crs || []);
-        return;
-    } catch {}
-    const filtered = allData.crs.filter(cr =>
-        cr.id.toLowerCase().includes(q) ||
-        cr.title.toLowerCase().includes(q) ||
-        (cr.functions||[]).some(fn =>
-            fn.name.toLowerCase().includes(q) ||
-            fn.module.toLowerCase().includes(q) ||
-            (fn.files||[]).some(f=>f.path.toLowerCase().includes(q))
-        )
-    );
-    renderAll(filtered);
-}
-
-function resetSearch() {
-    document.getElementById('searchBox').value = '';
-    renderAll(allData.crs);
-}
-
-// ── LOCAL DATA ──
-function applyLocal(p) {
-    if (p.action==='ADD_CR') {
-        allData.crs.push({ id:p.crId, title:p.title, functions:[] });
-    } else if (p.action==='ADD_FUNCTION') {
-        const cr = allData.crs.find(c=>c.id===p.crId);
-        if (cr) cr.functions.push({ name:p.functionName, module:p.module, files:[] });
-    } else if (p.action==='ADD_FILE') {
-        const cr = allData.crs.find(c=>c.id===p.crId);
-        const fn = cr?.functions.find(f=>f.name===p.functionName);
-        if (fn) fn.files.push({ path:p.path, type:p.type, remarks:p.remarks });
-    }
-}
-
-async function post(body) {
-    return fetch('../api/tracker', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(body)
-    });
-}
-
-// ── TOAST ──
-function toast(msg, type='success') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = type + ' show';
-    setTimeout(() => t.classList.remove('show'), 2500);
-}
-
-// Close dialog on overlay click
-document.getElementById('confirmOverlay').addEventListener('click', function(e) {
-    if (e.target === this) closeDialog();
-});
-
-loadData();
-</script>
+        function openCRModal() {
+            currentAction = "ADD_CR";
+            document.getElementById("modalTitle")
+                .innerText = "Add CR";
+            document.getElementById("modalBody")
+                .innerHTML = `
+                <input id="crId"
+                       placeholder="CR ID">
+                <input id="crTitle"
+                       placeholder="CR Title">
+            `;
+            openModal();
+        }
+        function openFunctionModal(crId) {
+            selectedCR = crId;
+            currentAction = "ADD_FUNCTION";
+            document.getElementById("modalTitle")
+                .innerText = "Add Function";
+            document.getElementById("modalBody")
+                .innerHTML = `
+                <input id="functionName"
+                       placeholder="Function Name">
+                <input id="moduleName"
+                       placeholder="Module Name">
+            `;
+            openModal();
+        }
+        function openFileModal(crId, fnName) {
+            selectedCR = crId;
+            selectedFunction = fnName;
+            currentAction = "ADD_FILE";
+            document.getElementById("modalTitle")
+                .innerText = "Add File";
+            document.getElementById("modalBody")
+                .innerHTML = `
+                <input id="filePath"
+                       placeholder="File Path">
+                <select id="fileType">
+                    <option>
+                        New
+                    </option>
+                    <option>
+                        Modified
+                    </option>
+                    <option>
+                        Deleted
+                    </option>
+                </select>
+                <textarea id="remarks"
+                          placeholder="Remarks"></textarea>
+            `;
+            openModal();
+        }
+        function submitModal() {
+            if (currentAction === "ADD_CR") {
+                data.crs.push({
+                    id:
+                        document.getElementById("crId").value,
+                    title:
+                        document.getElementById("crTitle").value,
+                    functions: []
+                });
+            }
+            else if (currentAction === "ADD_FUNCTION") {
+                const cr =
+                    data.crs.find(c => c.id === selectedCR);
+                cr.functions.push({
+                    name:
+                        document.getElementById(
+                            "functionName"
+                        ).value,
+                    module:
+                        document.getElementById(
+                            "moduleName"
+                        ).value,
+                    files: []
+                });
+            }
+            else if (currentAction === "ADD_FILE") {
+                const cr =
+                    data.crs.find(c => c.id === selectedCR);
+                const fn =
+                    cr.functions.find(
+                        f => f.name === selectedFunction
+                    );
+                fn.files.push({
+                    path:
+                        document.getElementById(
+                            "filePath"
+                        ).value,
+                    type:
+                        document.getElementById(
+                            "fileType"
+                        ).value,
+                    remarks:
+                        document.getElementById(
+                            "remarks"
+                        ).value
+                });
+            }
+            saveData();
+            renderTree(data.crs);
+            closeModal();
+        }
+        function deleteCR(crId) {
+            data.crs =
+                data.crs.filter(c => c.id !== crId);
+            saveData();
+            renderTree(data.crs);
+        }
+        function deleteFunction(crId, fnName) {
+            const cr =
+                data.crs.find(c => c.id === crId);
+            cr.functions =
+                cr.functions.filter(
+                    f => f.name !== fnName
+                );
+            saveData();
+            renderTree(data.crs);
+        }
+        function deleteFile(
+            crId,
+            fnName,
+            filePath
+        ) {
+            const cr =
+                data.crs.find(c => c.id === crId);
+            const fn =
+                cr.functions.find(
+                    f => f.name === fnName
+                );
+            fn.files =
+                fn.files.filter(
+                    file => file.path !== filePath
+                );
+            saveData();
+            renderTree(data.crs);
+        }
+        function searchTree() {
+            const value =
+                document.getElementById(
+                    "searchBox"
+                ).value.toLowerCase();
+            if (!value) {
+                renderTree(data.crs);
+                return;
+            }
+            const filtered = {
+                crs: data.crs.filter(cr => {
+                    if (
+                        cr.id.toLowerCase().includes(value)
+                        ||
+                        cr.title.toLowerCase().includes(value)
+                    ) {
+                        return true;
+                    }
+                    return cr.functions.some(fn => {
+                        if (
+                            fn.name.toLowerCase()
+                                .includes(value)
+                        ) {
+                            return true;
+                        }
+                        return fn.files.some(file =>
+                            file.path.toLowerCase()
+                                .includes(value)
+                        );
+                    });
+                })
+            };
+            renderTree(filtered.crs);
+            expandAll();
+        }
+        function openModal() {
+            document.getElementById("modal")
+                .style.display = "flex";
+        }
+        function closeModal() {
+            document.getElementById("modal")
+                .style.display = "none";
+        }
+        loadData();
+    </script>
 </body>
+
 </html>
