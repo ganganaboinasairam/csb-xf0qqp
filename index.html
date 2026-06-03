@@ -1,114 +1,53 @@
-<div class="actions">
+.node-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 
-    <button onclick="
-        openFile(
-            '${cr.id}',
-            '${fn.name}',
-            '${file.path}'
-        )
-    ">
-        Open
-    </button>
+    padding: 8px 12px;
+    margin: 5px 0;
 
-    <button class="danger"
-            onclick="
-                deleteFile(
-                    '${cr.id}',
-                    '${fn.name}',
-                    '${file.path}'
-                )
-            ">
-        Delete
-    </button>
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
 
-</div>
+    min-height: 44px;
 
-async function openFile(
-    crId,
-    functionName,
-    path
-) {
+    transition: 0.15s ease;
 
-    await api("POST", {
-
-        action: "OPEN_FILE",
-        crId,
-        functionName,
-        path
-    });
+    user-select: none;
 }
 
-case "OPEN_FILE":
-    openFile(crs, body);
-    break;
+.node-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 
-private void openFile(
-        JsonArray crs,
-        JsonObject body)
-        throws IOException {
+    font-size: 13px;
 
-    String crId =
-            body.get("crId")
-                    .getAsString();
+    flex: 1;
+    min-width: 0;
 
-    String filePath =
-            body.get("path")
-                    .getAsString();
-
-    for (int i = 0; i < crs.size(); i++) {
-
-        JsonObject cr =
-                crs.get(i)
-                        .getAsJsonObject();
-
-        if (!cr.get("id")
-                .getAsString()
-                .equals(crId)) {
-            continue;
-        }
-
-        String region =
-                cr.get("region")
-                        .getAsString();
-
-        String basePath;
-
-        if ("EE".equalsIgnoreCase(region)) {
-
-            basePath =
-                    "E:\\gitClone\\tf_ee_pre_dev";
-        }
-        else {
-
-            basePath =
-                    "E:\\gitClone\\tf_ce_dev";
-        }
-
-        String relativePath =
-                filePath.replace(
-                        "base_domain",
-                        ""
-                );
-
-        String fullPath =
-                basePath + relativePath;
-
-        File file =
-                new File(fullPath);
-
-        if (!file.exists()) {
-
-            throw new IOException(
-                    "File not found: "
-                            + fullPath
-            );
-        }
-
-        new ProcessBuilder(
-                "code",
-                fullPath
-        ).start();
-
-        return;
-    }
+    overflow: hidden;
 }
+
+.file-path {
+    color: #2563eb;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    flex: 1;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    flex-shrink: 0;
+}
+
