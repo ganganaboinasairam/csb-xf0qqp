@@ -1,53 +1,46 @@
-.node-header {
+<button class="icon-btn"
+        onclick="deleteCR('${cr.id}')">
+
+    <img src="../tools/icons/deleteIcon.png"
+         alt="Delete">
+
+</button>
+
+
+.icon-btn {
+    width: 30px;
+    height: 30px;
+
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    justify-content: center;
 
-    padding: 8px 12px;
-    margin: 5px 0;
+    border: none;
+    border-radius: 6px;
 
-    border-radius: 8px;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
+    background: #fee2e2;
 
-    min-height: 44px;
+    cursor: pointer;
+
+    padding: 0;
 
     transition: 0.15s ease;
-
-    user-select: none;
 }
 
-.node-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    font-size: 13px;
-
-    flex: 1;
-    min-width: 0;
-
-    overflow: hidden;
+.icon-btn:hover {
+    background: #fecaca;
 }
 
-.file-path {
-    color: #2563eb;
-    font-family: Consolas, monospace;
-    font-size: 12px;
+.icon-btn img {
+    width: 15px;
+    height: 15px;
 
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    flex: 1;
+    object-fit: contain;
 }
 
-.actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+<button class="icon-btn"
+        onclick="deleteCR('${cr.id}')">
 
-    flex-shrink: 0;
-}
+    🗑
 
+</button>
