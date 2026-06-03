@@ -1,4 +1,114 @@
-i want to implemet another functionality , each file will have another button "open" , if i click on that the file should open in vs code , the file will start from base_domain, if the region is EE then the full path will be "E:\gitClone\tf_ee_pre_dev" + "\" +file path , if region is "CE" then "E:\gitClone\tf_ce_dev" + "\" +file path.
+<div class="actions">
 
+    <button onclick="
+        openFile(
+            '${cr.id}',
+            '${fn.name}',
+            '${file.path}'
+        )
+    ">
+        Open
+    </button>
 
-{"crs": [{"id": "25090065","title": "Legal Comp BGIF","region": "EE","functions": [{"name": "Bank Guarantee \u003e BRU Bank Guarantee \u003e Register Inland BG","module": "BGIF","files": [{ "path": "base_domain/EE.ear/EximBillWeb.war/SCRN/BGIF_Inland_RegisterGuarantee-TF.jsp", "type": "Modified", "remarks": ""},{ "path": "base_domain/Default/SCRN/BGIF_Inland_RegisterGuarantee-TF.xml", "type": "Modified", "remarks": ""},{ "path": "base_domain/CALJS/FUNCLEVEL/SYF_BGIF_RegisterInlandBG.js", "type": "Modified", "remarks": ""}]}]}] }
+    <button class="danger"
+            onclick="
+                deleteFile(
+                    '${cr.id}',
+                    '${fn.name}',
+                    '${file.path}'
+                )
+            ">
+        Delete
+    </button>
+
+</div>
+
+async function openFile(
+    crId,
+    functionName,
+    path
+) {
+
+    await api("POST", {
+
+        action: "OPEN_FILE",
+        crId,
+        functionName,
+        path
+    });
+}
+
+case "OPEN_FILE":
+    openFile(crs, body);
+    break;
+
+private void openFile(
+        JsonArray crs,
+        JsonObject body)
+        throws IOException {
+
+    String crId =
+            body.get("crId")
+                    .getAsString();
+
+    String filePath =
+            body.get("path")
+                    .getAsString();
+
+    for (int i = 0; i < crs.size(); i++) {
+
+        JsonObject cr =
+                crs.get(i)
+                        .getAsJsonObject();
+
+        if (!cr.get("id")
+                .getAsString()
+                .equals(crId)) {
+            continue;
+        }
+
+        String region =
+                cr.get("region")
+                        .getAsString();
+
+        String basePath;
+
+        if ("EE".equalsIgnoreCase(region)) {
+
+            basePath =
+                    "E:\\gitClone\\tf_ee_pre_dev";
+        }
+        else {
+
+            basePath =
+                    "E:\\gitClone\\tf_ce_dev";
+        }
+
+        String relativePath =
+                filePath.replace(
+                        "base_domain",
+                        ""
+                );
+
+        String fullPath =
+                basePath + relativePath;
+
+        File file =
+                new File(fullPath);
+
+        if (!file.exists()) {
+
+            throw new IOException(
+                    "File not found: "
+                            + fullPath
+            );
+        }
+
+        new ProcessBuilder(
+                "code",
+                fullPath
+        ).start();
+
+        return;
+    }
+}
