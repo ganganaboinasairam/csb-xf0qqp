@@ -1,81 +1,77 @@
-<div class="file-container">
-
-    <span class="file-path">
-        ${file.path}
-    </span>
-
-    <span class="copy-icon"
-          title="Copy Path"
-          onclick="copyFilePath(event,'${file.path.replace(/'/g, "\\'")}')">
-        📋
-    </span>
-
-</div>
-
-.file-container {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 4px;
-
-    min-width: 0;
-
-    flex: 1;
-}
-
-.file-path {
-
-    flex: 0 1 auto;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-    white-space: nowrap;
-}
-
-.copy-icon {
-
-    flex-shrink: 0;
-
-    cursor: pointer;
-
-    font-size: 11px;
-
-    color: #64748b;
-}
-
-.copy-icon:hover {
-
-    color: #2563eb;
-}
-
-<button class="copy-btn"
-        title="Copy Path"
-        onclick="copyFilePath(event,'${file.path.replace(/'/g, "\\'")}')">
-    ⧉
+<button onclick="
+    copyCRFiles(
+        '${cr.id}'
+    )
+">
+    📋 Files
 </button>
 
-.copy-btn {
+<button onclick="
+    copyFunctionFiles(
+        '${cr.id}',
+        '${fn.name}'
+    )
+">
+    📋 Files
+</button>
 
-    width: 18px;
+async function copyCRFiles(crId) {
 
-    height: 18px;
+    const cr =
+        data.crs.find(
+            c => c.id === crId
+        );
 
-    padding: 0;
+    if (!cr) {
+        return;
+    }
 
-    font-size: 10px;
+    const files = [];
 
-    background: transparent;
+    cr.functions.forEach(fn => {
 
-    border: 1px solid #cbd5e1;
+        fn.files.forEach(file => {
 
-    color: #64748b;
+            files.push(file.path);
+
+        });
+    });
+
+    await navigator.clipboard.writeText(
+        files.join("\n")
+    );
 }
 
-.copy-btn:hover {
+async function copyFunctionFiles(
+    crId,
+    functionName
+) {
 
-    background: #f1f5f9;
+    const cr =
+        data.crs.find(
+            c => c.id === crId
+        );
+
+    if (!cr) {
+        return;
+    }
+
+    const fn =
+        cr.functions.find(
+            f => f.name === functionName
+        );
+
+    if (!fn) {
+        return;
+    }
+
+    const files =
+        fn.files.map(
+            file => file.path
+        );
+
+    await navigator.clipboard.writeText(
+        files.join("\n")
+    );
 }
+
