@@ -1,53 +1,50 @@
-<span class="file-path">
-    ${file.path}
-</span>
+<div class="file-container">
 
-<span class="copy-icon"
-      title="Copy Path"
-      onclick="copyFilePath(event, '${file.path.replace(/'/g, "\\'")}')">
-    📋
-</span>
+    <span class="file-path">
+        ${file.path}
+    </span>
 
+    <span class="copy-icon"
+          title="Copy Path"
+          onclick="copyFilePath(event,'${file.path.replace(/'/g, "\\'")}')">
+        📋
+    </span>
 
-async function copyFilePath(event, path) {
+</div>
 
-    event.stopPropagation();
+.file-container {
 
-    try {
+    display: flex;
 
-        await navigator.clipboard.writeText(path);
+    align-items: center;
 
-        const icon = event.target;
+    gap: 4px;
 
-        const oldText = icon.textContent;
+    min-width: 0;
 
-        icon.textContent = "✓";
+    flex: 1;
+}
 
-        setTimeout(() => {
+.file-path {
 
-            icon.textContent = oldText;
+    flex: 0 1 auto;
 
-        }, 1000);
+    overflow: hidden;
 
-    } catch (e) {
+    text-overflow: ellipsis;
 
-        console.error(e);
-
-        alert("Unable to copy");
-    }
+    white-space: nowrap;
 }
 
 .copy-icon {
 
+    flex-shrink: 0;
+
     cursor: pointer;
 
-    font-size: 12px;
+    font-size: 11px;
 
     color: #64748b;
-
-    margin-left: 4px;
-
-    user-select: none;
 }
 
 .copy-icon:hover {
@@ -55,10 +52,30 @@ async function copyFilePath(event, path) {
     color: #2563eb;
 }
 
-copyFilePath(
-    event,
-    file.path.split("/").pop()
-)
+<button class="copy-btn"
+        title="Copy Path"
+        onclick="copyFilePath(event,'${file.path.replace(/'/g, "\\'")}')">
+    ⧉
+</button>
 
-📋  -> Copy full path
-📄  -> Copy filename
+.copy-btn {
+
+    width: 18px;
+
+    height: 18px;
+
+    padding: 0;
+
+    font-size: 10px;
+
+    background: transparent;
+
+    border: 1px solid #cbd5e1;
+
+    color: #64748b;
+}
+
+.copy-btn:hover {
+
+    background: #f1f5f9;
+}
