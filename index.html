@@ -1,450 +1,64 @@
-<!DOCTYPE html>
-<html lang="en">
+<span class="file-path">
+    ${file.path}
+</span>
 
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CR File Tracker</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link
-	href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
-	rel="stylesheet" />
-<link href="css/fileMaintain.css" rel="stylesheet" />
-</head>
-
-<body>
-	<!-- TOOLBAR -->
-	<div class="toolbar">
-		<div class="title">CR File Tracker</div>
-		<button onclick="openCRModal()">+ Add CR</button>
-		<button onclick="expandAll()">Expand All</button>
-		<button onclick="collapseAll()">Collapse All</button>
-		<input type="text" id="searchBox" placeholder="Search..." />
-		<button onclick="searchTree()">Search</button>
-	</div>
-	<!-- MAIN -->
-	<div class="main">
-		<div id="treeContainer"></div>
-	</div>
-	<!-- MODAL -->
-	<div class="modal" id="modal">
-		<div class="modal-content">
-			<h2 id="modalTitle"></h2>
-			<div id="modalBody"></div>
-			<div class="modal-buttons">
-				<button onclick="closeModal()">Cancel</button>
-				<button onclick="submitModal()">Save</button>
-			</div>
-		</div>
-	</div>
-	<script>
-        let data = { crs: [] };
-
-        let currentAction = null;
-        let selectedCR = null;
-        let selectedFunction = null;
-
-        let expandedNodes = new Set();
-
-        async function api(method, payload = null, search = "") {
-            let url = "../api/tracker";
-
-            if (search) {
-                url += "?search=" + encodeURIComponent(search);
-            }
-
-            const options = {
-                method,
-            };
-
-            if (payload) {
-                options.headers = {
-                    "Content-Type": "application/json",
-                };
-
-                options.body = JSON.stringify(payload);
-            }
-
-            const response = await fetch(url, options);
-
-            return await response.json();
-        }
-
-        async function loadData(search = "") {
-            data = await api("GET", null, search);
-
-            renderTree(data.crs);
-        }
-
-        function renderTree(crs) {
-            const container = document.getElementById("treeContainer");
-
-            container.innerHTML = "";
-
-            crs.forEach((cr) => {
-                container.appendChild(createCRNode(cr));
-            });
-        }
-
-        function createCRNode(cr) {
-            const node = document.createElement("div");
-
-            node.className = "tree-node";
-
-            const crKey = `CR_${cr.id}`;
-
-            const header = document.createElement("div");
-
-            header.className = "node-header cr-node";
+<span class="copy-icon"
+      title="Copy Path"
+      onclick="copyFilePath(event, '${file.path.replace(/'/g, "\\'")}')">
+    📋
+</span>
 
 
-            header.innerHTML = `
-             <div class="node-left">
-         
-                 <span class="toggle">
-                     ▶
-                 </span>
-                 <span>
-                     🗂
-                 </span>
-                 <span>
-                     <b>${cr.id}</b>
-                     - ${cr.title}
-                 </span>
-             </div>
-             <div class="actions">
-                 <button onclick="
-                     openFunctionModal(
-                         '${cr.id}'
-                     )
-                 ">
-                     + Function
-                 </button>
-                     <button class="icon-btn"
-                             onclick="deleteCR('${cr.id}')">
-                         <img src="../tools/icons/deleteIcon.png"
-                             alt="Delete">
-                     </button>
-             </div>
-         `;
+async function copyFilePath(event, path) {
 
-            const children = document.createElement("div");
-            children.className = "children";
-            cr.functions.forEach((fn) => {
-                children.appendChild(createFunctionNode(cr, fn));
-            });
-            if (expandedNodes.has(crKey)) {
-                node.classList.add("expanded");
-                header.querySelector(".toggle").textContent = "▼";
-            }
-            header.onclick = (e) => {
-                if (e.target.tagName === "BUTTON") {
-                    return;
-                }
-                toggleNode(node, crKey);
-            };
-            node.appendChild(header);
-            node.appendChild(children);
-            return node;
-        }
+    event.stopPropagation();
 
-        function createFunctionNode(cr, fn) {
-            const node = document.createElement("div");
-            node.className = "tree-node";
-            const fnKey = `FN_${cr.id}_${fn.name}`;
-            const header = document.createElement("div");
-            header.className = "node-header func-node";
-            header.innerHTML = `
-             <div class="node-left">
-         
-                 <span class="toggle">
-                     ▶
-                 </span>
-         
-                 <span>
-                     📦
-                 </span>
-         
-                 <span>
-                     ${fn.name}
-                     (${fn.module})
-                 </span>
-         
-             </div>
-         
-             <div class="actions">
-         
-                 <button onclick="
-                     openFileModal(
-                         '${cr.id}',
-                         '${fn.name}'
-                     )
-                 ">
-                     + File
-                 </button>
-                 <button class="icon-btn"
-                             onclick="deleteFunction(
-                                 '${cr.id}',
-                                 '${fn.name}'
-                             )">
-         
-                         <img src="../tools/icons/deleteIcon.png"
-                             alt="Delete">
-         
-                     </button>
-         
-             </div>
-         `;
+    try {
 
-            const children = document.createElement("div");
-            children.className = "children";
-            fn.files.forEach((file) => {
-                children.appendChild(createFileNode(cr, fn, file));
-            });
-            if (expandedNodes.has(fnKey)) {
-                node.classList.add("expanded");
-                header.querySelector(".toggle").textContent = "▼";
-            }
-            header.onclick = (e) => {
-                if (e.target.tagName === "BUTTON") {
-                    return;
-                }
-                toggleNode(node, fnKey);
-            };
-            node.appendChild(header);
-            node.appendChild(children);
-            return node;
-        }
-        function createFileNode(cr, fn, file) {
-            const node = document.createElement("div");
-            node.className = "tree-node";
-            node.ondblclick = () => {
-                openFile(cr.id, fn.name, file.path);
-            };
-            node.innerHTML = `
-             <div class="node-header">
-         
-                 <div class="node-left">
-         
-                     <span>📑</span>
-         
-                     <span class="file-path">
-                         ${file.path}
-                     </span>
-         
-                     <span>
-                         [${file.type}]
-                     </span>
-         
-                 </div>
-                      <button class="icon-btn"
-                             onclick="deleteFile(
-                                     '${cr.id}',
-                                     '${fn.name}',
-                                     '${file.path}'
-                                 )">
-         
-                         <img src="../tools/icons/deleteIcon.png"
-                             alt="Delete">
-         
-                     </button>
-         
-                 </div>
-         
-             </div>
-         `;
+        await navigator.clipboard.writeText(path);
 
-            return node;
-        }
-        function toggleNode(node, key) {
-            node.classList.toggle("expanded");
-            const expanded = node.classList.contains("expanded");
-            const toggle = node.querySelector(".toggle");
-            toggle.textContent = expanded ? "▼" : "▶";
-            if (expanded) {
-                expandedNodes.add(key);
-            } else {
-                expandedNodes.delete(key);
-            }
-        }
-        function openCRModal() {
-            currentAction = "ADD_CR";
-            document.getElementById("modalTitle").innerText = "Add CR";
-            document.getElementById("modalBody").innerHTML = `
-             <input id="crId"
-                    placeholder="CR ID">
-         
-             <input id="crTitle"
-                    placeholder="CR Title">
-         
-             <select id="region">
-         
-                 <option>EE</option>
-                 <option>CE</option>
-         
-             </select>
-         `;
+        const icon = event.target;
 
-            openModal();
-        }
-        function openFunctionModal(crId) {
-            selectedCR = crId;
-            currentAction = "ADD_FUNCTION";
-            document.getElementById("modalTitle").innerText = "Add Function";
-            document.getElementById("modalBody").innerHTML = `
-             <input id="functionName"
-                    placeholder="Function Name">
-         
-             <input id="moduleName"
-                    placeholder="Module Name">
-         `;
-            openModal();
-        }
+        const oldText = icon.textContent;
 
-        function openFileModal(crId, fnName) {
-            selectedCR = crId;
-            selectedFunction = fnName;
-            currentAction = "ADD_FILE";
-            document.getElementById("modalTitle").innerText = "Add File";
-            document.getElementById("modalBody").innerHTML = `
-             <input id="filePath"
-                    placeholder="File Path">
-         
-             <select id="fileType">
-         
-                 <option>New</option>
-                 <option>Modified</option>
-                 <option>Deleted</option>
-         
-             </select>
-         
-             <textarea id="remarks"
-                       placeholder="Remarks">
-             </textarea>
-         `;
+        icon.textContent = "✓";
 
-            openModal();
-        }
-        async function submitModal() {
-            let payload = {
-                action: currentAction,
-            };
-            if (currentAction === "ADD_CR") {
-                payload.crId = document.getElementById("crId").value;
-                payload.title = document.getElementById("crTitle").value;
-                payload.region = document.getElementById("region").value;
-            } else if (currentAction === "ADD_FUNCTION") {
-                payload.crId = selectedCR;
-                payload.functionName =
-                    document.getElementById("functionName").value;
-                payload.module = document.getElementById("moduleName").value;
-            } else if (currentAction === "ADD_FILE") {
-                payload.crId = selectedCR;
-                payload.functionName = selectedFunction;
-                payload.path = document.getElementById("filePath").value;
-                payload.type = document.getElementById("fileType").value;
-                payload.remarks = document.getElementById("remarks").value;
-            }
-            await api("POST", payload);
-            await loadData();
-            closeModal();
-        }
+        setTimeout(() => {
 
-        async function deleteCR(crId) {
-            await api("POST", {
-                action: "DELETE_CR",
-                crId,
-            });
-            loadData();
-        }
+            icon.textContent = oldText;
 
-        async function deleteFunction(crId, functionName) {
-            await api("POST", {
-                action: "DELETE_FUNCTION",
-                crId,
-                functionName,
-            });
-            loadData();
-        }
+        }, 1000);
 
-        async function deleteFile(crId, functionName, path) {
-            await api("POST", {
-                action: "DELETE_FILE",
-                crId,
-                functionName,
-                path,
-            });
-            loadData();
-        }
+    } catch (e) {
 
-        async function searchTree() {
-            const value = document.getElementById("searchBox").value;
-            await loadData(value);
-            if (value.trim()) {
-                document.querySelectorAll(".tree-node").forEach((node) => {
-                    if (node.querySelector(".children")) {
-                        node.classList.add("expanded");
-                        const toggle = node.querySelector(".toggle");
-                        if (toggle) {
-                            toggle.textContent = "▼";
-                        }
-                    }
-                });
-            }
-        }
+        console.error(e);
 
-        function openModal() {
-            document.getElementById("modal").style.display = "flex";
-        }
+        alert("Unable to copy");
+    }
+}
 
-        function closeModal() {
-            document.getElementById("modal").style.display = "none";
-        }
+.copy-icon {
 
-        function expandAll() {
-            document.querySelectorAll(".tree-node").forEach((node) => {
-                const children = node.querySelector(".children");
-                if (children) {
-                    node.classList.add("expanded");
-                    const toggle = node.querySelector(".toggle");
-                    if (toggle) {
-                        toggle.textContent = "▼";
-                    }
-                }
-            });
+    cursor: pointer;
 
-            // preserve state
+    font-size: 12px;
 
-            data.crs.forEach((cr) => {
-                expandedNodes.add(`CR_${cr.id}`);
-                cr.functions.forEach((fn) => {
-                    expandedNodes.add(`FN_${cr.id}_${fn.name}`);
-                });
-            });
-        }
+    color: #64748b;
 
-        function collapseAll() {
-            document.querySelectorAll(".tree-node").forEach((node) => {
-                node.classList.remove("expanded");
-                const toggle = node.querySelector(".toggle");
-                if (toggle) {
-                    toggle.textContent = "▶";
-                }
-            });
-            expandedNodes.clear();
-        }
+    margin-left: 4px;
 
-        async function openFile(crId, functionName, path) {
-            await api("POST", {
-                action: "OPEN_FILE",
-                crId,
-                functionName,
-                path,
-            });
-        }
+    user-select: none;
+}
 
-        loadData();
-    </script>
-</body>
+.copy-icon:hover {
 
-</html>
+    color: #2563eb;
+}
+
+copyFilePath(
+    event,
+    file.path.split("/").pop()
+)
+
+📋  -> Copy full path
+📄  -> Copy filename
