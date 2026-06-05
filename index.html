@@ -1,14 +1,50 @@
 function out(text, cls) {
-      const div = document.getElementById('output');
-      text.split('\n').forEach(line => {
+    const div = document.getElementById('output');
+
+    // Get existing logs
+    const logs = JSON.parse(localStorage.getItem('consoleLogs') || '[]');
+
+    text.split('\n').forEach(line => {
         if (!line.trim() && text.split('\n').length > 1) return;
+
+        const cssClass = cls ? 'log-' + cls : detectClass(line);
+
         const el = document.createElement('div');
-        el.className = cls ? 'log-' + cls : detectClass(line);
+        el.className = cssClass;
         el.textContent = line;
         div.appendChild(el);
-      });
-      div.scrollTop = div.scrollHeight;
-    }
 
+        // Save log entry
+        logs.push({
+            text: line,
+            className: cssClass
+        });
+    });
 
-    modify the function , so that every line printing in the output should store in the localstorage and load on page load also, so that we can preserv the log even we refersh the page
+    localStorage.setItem('consoleLogs', JSON.stringify(logs));
+
+    div.scrollTop = div.scrollHeight;
+}
+
+// Load logs on page load
+function loadLogs() {
+    const div = document.getElementById('output');
+    const logs = JSON.parse(localStorage.getItem('consoleLogs') || '[]');
+
+    logs.forEach(log => {
+        const el = document.createElement('div');
+        el.className = log.className;
+        el.textContent = log.text;
+        div.appendChild(el);
+    });
+
+    div.scrollTop = div.scrollHeight;
+}
+
+window.addEventListener('DOMContentLoaded', loadLogs);
+
+logs.push({ text: line, className: cssClass });
+
+if (logs.length > 1000) {
+    logs.shift(); // keep only latest 1000 lines
+}
