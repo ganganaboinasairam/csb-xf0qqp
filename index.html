@@ -1,50 +1,110 @@
-function out(text, cls) {
-    const div = document.getElementById('output');
+From the matrix in the image, the routing logic appears to be driven by the Type of Rate, EEFC usage, Forward Contract utilization, Pre-obtained rate, and Nostro credit.
 
-    // Get existing logs
-    const logs = JSON.parse(localStorage.getItem('consoleLogs') || '[]');
+You can derive the following consolidated combinations.
 
-    text.split('\n').forEach(line => {
-        if (!line.trim() && text.split('\n').length > 1) return;
+#	Type of Rate / Condition	Additional Condition	System
 
-        const cssClass = cls ? 'log-' + cls : detectClass(line);
+1	Only Card Rate	None	IDEA
+2	Dealer Rate	Any amount	Mercury
+3	Forward Rate	Any amount	Mercury
+4	Dealer Rate + Forward Rate	Any amount	Mercury
+5	Dealer Rate + Online Rate	Any amount	Mercury
+6	Forward Rate + Online Rate	Any amount	Mercury
+7	Dealer Rate + Forward Rate + Online Rate	Any amount	Mercury
+8	Card Rate + Online Rate	Total transaction = Ready Amount	IDEA
+9	Only Online Rate	Total transaction = Ready Amount	IDEA
+10	Card Rate + Online Rate	Ready Amount + EEFC Debit in Txn CCY	IDEA
+11	Only Online Rate	Online Rate + EEFC Debit in Txn CCY	IDEA
+12	EEFC Available = Yes	Total amount entirely from EEFC Debit in Txn CCY	IDEA (No rate fetching)
+13	Rate already obtained by Customer/Branch = Yes	Any rate combination	Mercury
+14	Nostro Credit Received = Yes	Any rate combination	Mercury
+15	EEFC Available = Yes	EEFC amount in Txn CCY insufficient and conversion from another CCY required	Mercury
+16	Forward Contract Utilization Amount > 0	Any rate combination	Mercury
 
-        const el = document.createElement('div');
-        el.className = cssClass;
-        el.textContent = line;
-        div.appendChild(el);
 
-        // Save log entry
-        logs.push({
-            text: line,
-            className: cssClass
-        });
-    });
+Additional Derived Rules
 
-    localStorage.setItem('consoleLogs', JSON.stringify(logs));
+IDEA Scenarios
 
-    div.scrollTop = div.scrollHeight;
-}
+1. Pure Card Rate.
 
-// Load logs on page load
-function loadLogs() {
-    const div = document.getElementById('output');
-    const logs = JSON.parse(localStorage.getItem('consoleLogs') || '[]');
 
-    logs.forEach(log => {
-        const el = document.createElement('div');
-        el.className = log.className;
-        el.textContent = log.text;
-        div.appendChild(el);
-    });
+2. Card Rate + Online Rate where exchange rate is required only for Ready Amount.
 
-    div.scrollTop = div.scrollHeight;
-}
 
-window.addEventListener('DOMContentLoaded', loadLogs);
+3. Only Online Rate where exchange rate is required only for Ready Amount.
 
-logs.push({ text: line, className: cssClass });
 
-if (logs.length > 1000) {
-    logs.shift(); // keep only latest 1000 lines
-}
+4. Entire transaction funded through EEFC balance in same transaction currency (no rate required).
+
+
+
+Mercury Scenarios
+
+1. Any Dealer Rate involvement.
+
+
+2. Any Forward Rate involvement.
+
+
+3. Any Forward Contract utilization.
+
+
+4. Customer/Branch provided negotiated rate.
+
+
+5. Nostro Credit based transaction.
+
+
+6. EEFC conversion involving cross-currency conversion.
+
+
+7. Any mixed combination containing Dealer or Forward rates.
+
+
+
+Decision Tree
+
+Is Only Card Rate?
+    YES -> IDEA
+
+Else Is Dealer Rate selected?
+    YES -> Mercury
+
+Else Is Forward Rate selected?
+    YES -> Mercury
+
+Else Is Rate Obtained by Customer/Branch = Yes?
+    YES -> Mercury
+
+Else Is Nostro Credit Received = Yes?
+    YES -> Mercury
+
+Else Is Forward Contract Utilization > 0?
+    YES -> Mercury
+
+Else Is EEFC Debit in same Txn CCY covering full amount?
+    YES -> IDEA (No Rate Fetch)
+
+Else Is Card Rate + Online Rate OR Only Online Rate?
+    YES -> IDEA
+
+Else
+    Review Business Rule
+
+One thing I notice is that the sheet does not explicitly define some combinations such as:
+
+Card Rate + Dealer Rate
+
+Card Rate + Forward Rate
+
+Card Rate + Dealer Rate + Online Rate
+
+Card Rate + Forward Rate + Online Rate
+
+Dealer Rate + EEFC Same Currency
+
+Forward Rate + EEFC Same Currency
+
+
+Based on the pattern, I would classify all combinations containing Dealer Rate or Forward Rate as Mercury, but you should confirm this with the business team because the matrix does not state it explicitly.
