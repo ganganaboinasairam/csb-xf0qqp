@@ -1,120 +1,44 @@
-function determineMode(data) {
+function determineMode() {
 
-    const {
-        cardRate,
-        dealerRate,
-        forwardRate,
-        onlineRate,
+    const cardRate = document.getElementById("cardRate").checked;
+    const dealerRate = document.getElementById("dealerRate").checked;
+    const forwardRate = document.getElementById("forwardRate").checked;
+    const onlineRate = document.getElementById("onlineRate").checked;
 
-        readyAmount = 0,
-        totalTransaction = 0,
-        eefcDebitTxnCCY = 0,
+    const readyAmount =
+        parseFloat(document.getElementById("readyAmount").value) || 0;
 
-        eefcAvailable = false,
-        customerRateObtained = false,
-        nostroCreditReceived = false,
+    const totalTransaction =
+        parseFloat(document.getElementById("totalTransaction").value) || 0;
 
-        forwardUtilizationAmount = 0,
-        eefcSameCurrencyAmount = 0,
-        eefcConvertedAmount = 0
-    } = data;
+    const eefcDebitTxnCCY =
+        parseFloat(document.getElementById("eefcDebitTxnCCY").value) || 0;
 
-    // ----- IDEA CONDITIONS -----
+    const eefcAvailable =
+        document.getElementById("eefcAvailable").value === "YES";
 
-    // Only Card Rate
+    const customerRateObtained =
+        document.getElementById("customerRateObtained").value === "YES";
+
+    const nostroCreditReceived =
+        document.getElementById("nostroCreditReceived").value === "YES";
+
+    const forwardUtilizationAmount =
+        parseFloat(document.getElementById("forwardUtilizationAmount").value) || 0;
+
+    const eefcSameCurrencyAmount =
+        parseFloat(document.getElementById("eefcSameCurrencyAmount").value) || 0;
+
+    const eefcConvertedAmount =
+        parseFloat(document.getElementById("eefcConvertedAmount").value) || 0;
+
+    // ---- Your routing logic here ----
+
     if (cardRate && !dealerRate && !forwardRate && !onlineRate) {
         return "IDEA";
     }
 
-    // Card Rate + Online Rate
-    if (cardRate && onlineRate &&
-        !dealerRate && !forwardRate &&
-        totalTransaction === readyAmount) {
-        return "IDEA";
-    }
-
-    // Only Online Rate
-    if (onlineRate &&
-        !cardRate && !dealerRate && !forwardRate &&
-        totalTransaction === readyAmount) {
-        return "IDEA";
-    }
-
-    // Card Rate + Online Rate + EEFC Debit
-    if (cardRate && onlineRate &&
-        readyAmount + eefcDebitTxnCCY === totalTransaction) {
-        return "IDEA";
-    }
-
-    // Only Online Rate + EEFC Debit
-    if (onlineRate &&
-        !cardRate && !dealerRate && !forwardRate &&
-        (readyAmount + eefcDebitTxnCCY === totalTransaction)) {
-        return "IDEA";
-    }
-
-    // Entire transaction from EEFC
-    if (eefcAvailable &&
-        eefcDebitTxnCCY === totalTransaction) {
-        return "IDEA";
-    }
-
-    // ----- MERCURY CONDITIONS -----
-
-    // Customer/Branch rate already obtained
-    if (customerRateObtained) {
-        return "MERCURY";
-    }
-
-    // Nostro credit received
-    if (nostroCreditReceived) {
-        return "MERCURY";
-    }
-
-    // Forward utilization
-    if (forwardUtilizationAmount > 0) {
-        return "MERCURY";
-    }
-
-    // EEFC + converted currency
-    if (eefcAvailable &&
-        readyAmount === (eefcSameCurrencyAmount + eefcConvertedAmount)) {
-        return "MERCURY";
-    }
-
-    // Entire ready amount from EEFC conversion
-    if (eefcAvailable &&
-        readyAmount === eefcConvertedAmount) {
-        return "MERCURY";
-    }
-
-    // Any Dealer Rate
-    if (dealerRate) {
-        return "MERCURY";
-    }
-
-    // Any Forward Rate
-    if (forwardRate) {
-        return "MERCURY";
-    }
-
-    // Dealer + Online
-    if (dealerRate && onlineRate) {
-        return "MERCURY";
-    }
-
-    // Forward + Online
-    if (forwardRate && onlineRate) {
-        return "MERCURY";
-    }
-
-    // Dealer + Forward
-    if (dealerRate && forwardRate) {
-        return "MERCURY";
-    }
-
-    // Dealer + Forward + Online
-    if (dealerRate && forwardRate && onlineRate) {
+    if (dealerRate || forwardRate) {
         return "MERCURY";
     }
 
