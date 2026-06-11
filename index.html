@@ -1,46 +1,22 @@
-function determineMode() {
+@echo off
 
-    const cardRate = document.getElementById("cardRate").checked;
-    const dealerRate = document.getElementById("dealerRate").checked;
-    const forwardRate = document.getElementById("forwardRate").checked;
-    const onlineRate = document.getElementById("onlineRate").checked;
+set JAR=E:\gitClone\tf_ee_pre_dev\base_domain\lib\Rate_InqGapi.jar
+set BIN=E:\sairam\java_projects\idea_project\bin
+set CLASS=com/cs/inquiry/servicesss/CustomerOnboard.class
+set BACKUP=%USERPROFILE%\Desktop\TODAY
 
-    const readyAmount =
-        parseFloat(document.getElementById("readyAmount").value) || 0;
+if not exist "%BACKUP%" mkdir "%BACKUP%"
 
-    const totalTransaction =
-        parseFloat(document.getElementById("totalTransaction").value) || 0;
+for /f %%i in ('powershell -command "Get-Date -Format yyyyMMdd_HHmmss"') do set TS=%%i
 
-    const eefcDebitTxnCCY =
-        parseFloat(document.getElementById("eefcDebitTxnCCY").value) || 0;
+copy "%JAR%" "%BACKUP%\Rate_InqGapi_%TS%.jar"
 
-    const eefcAvailable =
-        document.getElementById("eefcAvailable").value === "YES";
+jar uf "%JAR%" -C "%BIN%" %CLASS%
 
-    const customerRateObtained =
-        document.getElementById("customerRateObtained").value === "YES";
-
-    const nostroCreditReceived =
-        document.getElementById("nostroCreditReceived").value === "YES";
-
-    const forwardUtilizationAmount =
-        parseFloat(document.getElementById("forwardUtilizationAmount").value) || 0;
-
-    const eefcSameCurrencyAmount =
-        parseFloat(document.getElementById("eefcSameCurrencyAmount").value) || 0;
-
-    const eefcConvertedAmount =
-        parseFloat(document.getElementById("eefcConvertedAmount").value) || 0;
-
-    // ---- Your routing logic here ----
-
-    if (cardRate && !dealerRate && !forwardRate && !onlineRate) {
-        return "IDEA";
-    }
-
-    if (dealerRate || forwardRate) {
-        return "MERCURY";
-    }
-
-    return "UNKNOWN";
-}
+echo.
+echo Backup Created:
+echo %BACKUP%
+echo.
+echo Updated:
+echo %CLASS%
+pause
