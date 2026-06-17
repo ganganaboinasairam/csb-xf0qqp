@@ -1,1 +1,35 @@
-{\n  "EIS_RESPONSE": {\n    "requestId": "123445666666667",\n    "responseTime": "11-09-2024 17:09:59",\n    "source": "NRM",\n    "response": "{"respType":2,"respObj":[{"position":5756168,"account":"SBNY","entryDate":"2024-06-25","businessUnit":"RECON","ref1":"PAY240625C014752","ref2":"RC00013820240625","ref3":"PAY240625C014752 BNP PARIBAS,","crdrType":"SCR","amount":3976,"ccy":"USD","actionRemark":"item AUTO_MATCHED","itemStatus":"history","matchType":"AUTO_MATCH","reconId":6358036,"mirrorPosition":"5864447"}]}"\n  },\n  "ERROR_CODE": "",\n  "ERROR_DESCRIPTION": "",\n  "RESPONSE_STATUS": "0",\n  "REQUEST_REFERENCE_NUMBER": "SBITF24236027805319550883",\n  "RESPONSE_DATE": "11-09-2024 17:09:59"\n}
+function sendRequestByAjaxPost(url, mode, callback, sSucJsFuncName, sFailJsFuncName) {
+    try {
+        var xmlhttp = createXMLHttpRequest();
+        if (!xmlhttp) {
+            return
+        }
+        var vUrl = "";
+        var temp = "";
+        var index = url.indexOf("?");
+        if (index > 0) {
+            vUrl = url.substr(0, index);
+            temp = url.substr(index + 1)
+        } else {
+            vUrl = url
+        }
+        var stateChangeFunc = "callOnreadystatechange(xmlhttp, callback, url, mode";
+        var argArr = sendRequestByAjaxPost.arguments;
+        for (var i = 3; i < argArr.length; i++) {
+            var para = argArr[i];
+            if (typeof (para) == "string") {
+                stateChangeFunc += ",'" + argArr[i] + "'"
+            } else {
+                stateChangeFunc += "," + argArr[i]
+            }
+        }
+        stateChangeFunc += ")";
+        eval(stateChangeFunc);
+        xmlhttp.open("POST", vUrl, mode);
+        xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
+        xmlhttp.send(temp + "&AjaxPost=T");
+        resetSessionTimeout()
+    } catch (e) {
+        DisExcpt("SYS_Ajax", e)
+    }
+}
