@@ -1,35 +1,79 @@
-function sendRequestByAjaxPost(url, mode, callback, sSucJsFuncName, sFailJsFuncName) {
-    try {
-        var xmlhttp = createXMLHttpRequest();
-        if (!xmlhttp) {
-            return
-        }
-        var vUrl = "";
-        var temp = "";
-        var index = url.indexOf("?");
-        if (index > 0) {
-            vUrl = url.substr(0, index);
-            temp = url.substr(index + 1)
-        } else {
-            vUrl = url
-        }
-        var stateChangeFunc = "callOnreadystatechange(xmlhttp, callback, url, mode";
-        var argArr = sendRequestByAjaxPost.arguments;
-        for (var i = 3; i < argArr.length; i++) {
-            var para = argArr[i];
-            if (typeof (para) == "string") {
-                stateChangeFunc += ",'" + argArr[i] + "'"
-            } else {
-                stateChangeFunc += "," + argArr[i]
-            }
-        }
-        stateChangeFunc += ")";
-        eval(stateChangeFunc);
-        xmlhttp.open("POST", vUrl, mode);
-        xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
-        xmlhttp.send(temp + "&AjaxPost=T");
-        resetSessionTimeout()
-    } catch (e) {
-        DisExcpt("SYS_Ajax", e)
-    }
+package com.jarupdater;
+
+import java.io.*;
+import java.nio.file.*;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+import com.google.gson.*;
+
+@WebServlet("/api/updateJar")
+public class UpdateJarServlet extends HttpServlet {
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+		try {
+			String projectId = req.getParameter("projectId");
+			String classFile = req.getParameter("classFile");
+			JsonArray arr = ConfigLoader.getConfig().getAsJsonArray("projects");
+			String jarPath = null, workspace = null;
+			for (int i = 0; i < arr.size(); i++) {
+				JsonObject o = arr.get(i).getAsJsonObject();
+				if (projectId.equals(o.get("id").getAsString())) {
+					jarPath = o.get("jarPath").getAsString();
+					workspace = o.get("workspace").getAsString();
+				}
+			}
+			String backup = ConfigLoader.getConfig().get("backupFolder").getAsString();
+			System.out.println("backup folder :  "+backup);
+			Files.createDirectories(Paths.get(backup));
+			Path jar = Paths.get(jarPath);
+			System.out.println("jar folder :  "+jar);
+			Files.copy(jar, Paths.get(backup, jar.getFileName().toString()), StandardCopyOption.REPLACE_EXISTING);
+			ProcessBuilder pb = new ProcessBuilder("jar", "uf", jarPath, "-C", workspace, classFile);
+			int rc = pb.start().waitFor();
+			resp.getWriter().write(rc == 0 ? "SUCCESS" : "FAILED");
+		} catch (Exception e) {
+			resp.getWriter().write(e.getMessage());
+		}
+	}
 }
+
+
+<!DOCTYPE html>
+<html>
+<body>
+	<h2>Jar Updater</h2>
+	<select id='project'></select>
+	<br>
+	<br>
+	<input id='search' placeholder='Search class'>
+	<br>
+	<br>
+	<select id='classes' size='20' style='width: 700px'></select>
+	<br>
+	<br>
+	<button onclick='updateJar()'>Backup & Update</button>
+	<div id='msg'></div>
+	<script>
+let all=[];
+fetch('../api/projects').then(r=>r.json()).then(d=>{
+ let p=document.getElementById('project');
+ d.forEach(x=>p.add(new Option(x.name,x.id)));
+ load();
+});
+function load(){
+ fetch('../api/classes?projectId='+project.value).then(r=>r.json()).then(d=>{all=d;fill(d);});
+}
+project.onchange=load;
+function fill(a){
+	classes.innerHTML='';a.forEach(x=>classes.add(new Option(x,x)));
+	}
+
+search.onkeyup=()=>fill(all.filter(x=>x.toLowerCase().includes(search.value.toLowerCase())));
+
+function updateJar(){
+ fetch('../api/updateJar',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+ body:'projectId='+encodeURIComponent(project.value)+'&classFile='+encodeURIComponent(classes.value)})
+ .then(r=>r.text()).then(t=>msg.innerHTML=t);
+}
+</script>
+</body>
+</html>
