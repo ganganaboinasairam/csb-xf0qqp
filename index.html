@@ -1,1 +1,846 @@
-mercury_exim.fetch_IMPADVPYMT=ref_no,F_IMPADVPYMT,F_IMPADVPYMTDB,IMCC,MTRNS_NO,Adv_PMT@&Outwrd_Remit@&eTrade_outward@&IMCC_AdvPMT_RFO
+package com.tcs;
+
+import com.cs.eximap.utility.APLog;
+//import com.cs.esp.org.json.JSONObject;
+//import com.cs.eximap.utility.APLog;
+import com.tcs.helper.DatabaseClass;
+import com.tcs.helper.StringToXml;
+import com.tcs.mfx.logger.FileLogger;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Properties;
+import java.util.logging.Logger;
+import javax.jws.WebMethod;
+import javax.jws.WebService;
+
+//import org.json.JSONException;
+import org.json.JSONObject;
+//import org.json.JSONObject;
+import org.w3c.dom.Document;
+
+@WebService
+public class Mercury {
+	String result;
+	String dir = System.getProperty("user.dir");
+	private static Logger logger = Logger.getLogger("MfxServiceLogger");
+	public static String exceptionString = "{\"status\":\"UNSUCCESS\",\"reason\":\"Error Occurred on Block ";
+	public static String exceptionStringEnd = "\"}";
+
+	public Mercury() {
+		FileLogger.CONFIGURE_LOG();
+		FileLogger.closeHandler();
+	}
+
+	@WebMethod
+	public String fetchData(String procedureName, String tranRefNoJSONString) {
+		FileLogger.CONFIGURE_LOG();
+		logger.info("\n---------------- fetchData Call ------------------- ");
+		APLog.reportLog("\n---------------- fetchData Call -------------------");
+		logger.info("For Procedure :- " + procedureName);
+		APLog.reportLog("For Procedure :- " + procedureName);
+		logger.info("tranRefNoJSONString :- " + tranRefNoJSONString);
+		APLog.reportLog("tranRefNoJSONString :- " + tranRefNoJSONString);
+
+		String responseString = "";
+		DatabaseClass databaseClass = new DatabaseClass(procedureName);
+		try {
+
+			String[] values = getRefNo(procedureName, tranRefNoJSONString);
+			String cmainrefNo = values[0];
+			String tabName = values[1];
+			String funcshorNm = values[2];
+			logger.info("In fetch Data cmainRef +++ " + cmainrefNo + " Idea flag value is --" + tabName
+					+ "--funcshorNm --" + funcshorNm);
+			String idea_flag = databaseClass.getFlagValue(cmainrefNo, tabName, funcshorNm);
+			logger.info("cmainrefNo from getRefNo +++ " + cmainrefNo + " Idea flag value is --" + idea_flag);
+			APLog.reportLog("cmainrefNo from getRefNo ++ " + cmainrefNo + " Idea flag value is --" + idea_flag);
+			if ((idea_flag == null) && (idea_flag != "1")) {
+				if (procedureName.toLowerCase().contains("update")) {
+					responseString = "{\"status\":\"UNSUCCESS\",\"reason\":\"Please use proper procedure\"}";
+				} else {
+					Properties prop = new Properties();
+					prop.load(new FileInputStream(this.dir + "/properties/Fields.properties"));
+					if (prop.containsKey(procedureName)) {
+						String[] keys = prop.getProperty(procedureName).split(",");
+						logger.info(prop.getProperty(procedureName));
+						APLog.reportLog(prop.getProperty(procedureName));
+						String fields = prop.getProperty(keys[1].trim());
+						String fieldsdb = prop.getProperty(keys[2].trim());
+						String tableName = keys[3].trim();
+						String mfxNumberColumn = keys[4].trim();
+						String funcShortName = keys[6].trim();
+
+						if (procedureName.toUpperCase().contains("AUTO")) {
+							logger.info("retrieveData: Inside If Condition : 1");
+							APLog.reportLog("retrieveData: Inside If Condition : 1");
+							responseString = databaseClass.retrieveData(null, fieldsdb, tableName + "_MASTER",
+									mfxNumberColumn, fields, funcShortName);
+							if (responseString.length() == 0)
+								responseString = "{\"status\":\"UNSUCCESS\",\"reason\":\"NO RECORD FOUND for Auto Reference\"}";
+						} else {
+							logger.info("retrieveData: Inside Else Condition : 11212");
+							APLog.reportLog("retrieveData: Inside Else Condition : 11212");
+							String ref = "";
+							logger.info("JSON String is  : 1" + tranRefNoJSONString);
+							APLog.reportLog("JSON String is  : 1" + tranRefNoJSONString);
+							try {
+								logger.info("Inside Try before JSON Object : 1");
+								APLog.reportLog("Inside Try before JSON Object : 1");
+								JSONObject obj4 = new JSONObject(tranRefNoJSONString);
+								logger.info("keys[0] is : 1>>>>>");
+								APLog.reportLog("keys[0] is : 1>>>>>");
+								logger.info("keys[0] is : 1<<<<<<" + keys[0]);
+								APLog.reportLog("keys[0] is : 1<<<<<" + keys[0]);
+								ref = obj4.getString(keys[0].trim()).trim();
+								logger.info("ref is : 1<<<<<<" + ref);
+								APLog.reportLog("ref is : 1<<<<<<" + ref);
+							} catch (Exception ex) {
+								logger.info("Exception Occured : 1>>>>>" + ex);
+								APLog.reportLog("Exception Occured : 1>>>>>" + ex);
+							}
+							if (procedureName.contains("mercury_exim.fetch_DEdate")) {
+								logger.info("retrieveData: Inside If Condition : 11");
+								APLog.reportLog("retrieveData: Inside If Condition : 11");
+								logger.info("Procedure: " + procedureName);
+								APLog.reportLog("Procedure: " + procedureName);
+								responseString = databaseClass.retrieveData(ref, fieldsdb, tableName, fields);
+							} else {
+								logger.info("retrieveData: Inside If Condition : 12" + databaseClass);
+								APLog.reportLog("retrieveData: Inside If Condition : 12" + databaseClass);
+								responseString = databaseClass.retrieveData(ref, fieldsdb, tableName + "_LEDGER",
+										mfxNumberColumn, fields, funcShortName);
+								if (responseString.length() > 0) {
+									if (keys[5].trim().length() > 0) {
+										String[] Ar = prop.getProperty(keys[5].trim()).split(",");
+
+										String[] strAr = databaseClass.selectTempData(ref, tableName + "_LEDGER",
+												funcShortName);
+										String str = strAr[0];
+										if (str == null) {
+											responseString = "{\"status\":\"UNSUCCESS\",\"reason\":\"NO RECORD FOUND for Reference\"}";
+										} else {
+											ArrayList fieldNameDB = new ArrayList();
+											ArrayList fieldValue = new ArrayList();
+											for (int i = 0; i < Ar.length; i++) {
+												fieldNameDB.add(Ar[i]);
+												i++;
+												fieldValue.add(Ar[i]);
+											}
+											logger.info(" ------- Decompressing -------- ");
+											APLog.reportLog(" ------- Decompressing -------- ");
+											String deDescString = StringToXml.decompress(str);
+											deDescString = StringToXml.decompress(deDescString);
+											Document doc = StringToXml.StringToDocumentFetch(deDescString, fieldNameDB,
+													fieldValue);
+											String newxml = StringToXml.DocumentToString(doc);
+											logger.info(" -------  compressing -------- ");
+											APLog.reportLog(" -------  compressing -------- ");
+											String encryptedText = StringToXml
+													.compressString2Sting(StringToXml.compressString2Sting(newxml));
+											databaseClass.updateTempData(encryptedText, ref, strAr[1],
+													tableName + "_LEDGER");
+										}
+									}
+								} else
+									responseString = "{\"status\":\"UNSUCCESS\",\"reason\":\"NO RECORD FOUND for Reference\"}";
+							}
+						}
+					} else {
+						responseString = "{\"status\":\"UNSUCCESS\",\"reason\":\"NO SUCH PROCEDURE\"}";
+					}
+				}
+			} else {
+				responseString = "{\"status\":\"UNSUCCESS\",\"reason\":\"NO RECORD FOUND\"}";
+				logger.info("\n transaction belongs to idea");
+			}
+		} catch (Exception e) {
+			logger.severe("Error Occurred on Block 1: " + e);
+			APLog.reportLog("Error Occurred on Block 1: " + e);
+			responseString = exceptionString + 1 + exceptionStringEnd;
+		}
+		logger.info("Response String: " + responseString);
+		APLog.reportLog("Response String: " + responseString);
+		logger.info("\n---------------- fetchData End -------------------");
+		APLog.reportLog("\n---------------- fetchData End -------------------");
+		FileLogger.closeHandler();
+		return responseString;
+	}
+
+	@WebMethod
+	public String updateData(String procedureName, String requestJSONString) {
+		FileLogger.CONFIGURE_LOG();
+		logger.info("\n---------------- updateData Call -------------------");
+		APLog.reportLog("\n---------------- updateData Call -------------------");
+		logger.info("For Procedure :- " + procedureName);
+		APLog.reportLog("For Procedure :- " + procedureName);
+		logger.info("requestJSONString :- " + requestJSONString);
+		APLog.reportLog("requestJSONString :- " + requestJSONString);
+
+		String responseString = "{\"status\":\"UNSUCCESS\",\"reason\":\"Error Occurred\"}";
+		DatabaseClass databaseClass = new DatabaseClass(procedureName);
+		try {
+			if (procedureName.toLowerCase().contains("fetch")) {
+				responseString = "{\"status\":\"UNSUCCESS\",\"reason\":\"Please use proper procedure\"}";
+			} else {
+				Properties prop = new Properties();
+				prop.load(new FileInputStream(this.dir + "/properties/Fields.properties"));
+				if (prop.containsKey(procedureName)) {
+					if (procedureName.contains("updateCardRate")) {
+						responseString = UpdateRates.updateCardRate(requestJSONString, procedureName, prop);
+					} else if (procedureName.contains("updateLiborRate")) {
+						logger.info("Hello");
+						responseString = UpdateRates.updateLiborRate(requestJSONString, procedureName, prop);
+					} else {
+						String[] keys = prop.getProperty(procedureName).split(",");
+						String tableName = keys[3].trim();
+						String funcShortName = keys[6].trim();
+						JSONObject obj4 = new JSONObject(requestJSONString);
+						String ref = obj4.getString(keys[0].trim()).trim();
+						logger.info("Ref: " + ref + ", keys[0]= " + keys[0].trim());
+						APLog.reportLog("Ref: " + ref + ", keys[0]= " + keys[0].trim());
+						if (databaseClass.isRecordExist(ref, tableName + "_MASTER", procedureName)) {
+							String fields = prop.getProperty(keys[1].trim());
+							String fieldsdb = prop.getProperty(keys[2].trim());
+							String[] Ar = fields.split(",");
+							String[] ArDB = fieldsdb.split(",");
+
+							LinkedHashMap mfxEEMap = new LinkedHashMap();
+							LinkedHashMap mfxValueMap = new LinkedHashMap();
+
+							for (int i = 0; i < ArDB.length; i++) {
+								mfxEEMap.put(Ar[i], ArDB[i]);
+								mfxValueMap.put(Ar[i], obj4.getString(Ar[i]));
+								logger.info("MFX Field: " + Ar[i] + ", Field: " + (String) mfxEEMap.get(Ar[i])
+										+ ", Value: " + (String) mfxValueMap.get(Ar[i]));
+								APLog.reportLog("MFX Field: " + Ar[i] + ", Field: " + (String) mfxEEMap.get(Ar[i])
+										+ ", Value: " + (String) mfxValueMap.get(Ar[i]));
+							}
+							if (procedureName.toUpperCase().contains("AUTO")) {
+								responseString = databaseClass.updateMasterDataForAuto(ref, procedureName, mfxEEMap,
+										mfxValueMap, tableName + "_MASTER");
+							} else {
+								String[] strAr = databaseClass.selectTempData(ref, tableName + "_LEDGER",
+										funcShortName);
+								String str = strAr[0];
+								if (str == null) {
+									responseString = "{\"status\":\"UNSUCCESS\",\"reason\":\"NO RECORD FOUND for Reference\"}";
+								} else {
+									logger.info("  -------  Decompressing -------  ");
+									APLog.reportLog("  -------  Decompressing -------  ");
+									String deDescString = StringToXml.decompress(str);
+									deDescString = StringToXml.decompress(deDescString);
+									Document doc = StringToXml.StringToDocument(deDescString, mfxEEMap, mfxValueMap);
+									String newxml = StringToXml.DocumentToString(doc);
+									logger.info("  -------  Compressing -------  ");
+									APLog.reportLog("  -------  Compressing -------  ");
+									String encryptedText = StringToXml
+											.compressString2Sting(StringToXml.compressString2Sting(newxml));
+									databaseClass.updateTempData(encryptedText, ref, strAr[1], tableName + "_LEDGER");
+									responseString = "{\"status\":\"SUCCESS\"}";
+								}
+							}
+						} else {
+							responseString = "{\"status\":\"UNSUCCESS\",\"reason\":\"NO SAVED RECORD FOUND\"}";
+						}
+					}
+				} else
+					responseString = "{\"status\":\"UNSUCCESS\",\"reason\":\"NO SUCH PROCEDURE\"}";
+			}
+		} catch (Exception e) {
+			logger.severe("Error Occurred on Block 2: " + e);
+			APLog.reportLog("Error Occurred on Block 2: " + e);
+			responseString = exceptionString + 2 + exceptionStringEnd;
+		}
+		logger.info("Response String: " + responseString);
+		APLog.reportLog("Response String: " + responseString);
+		logger.info("\n---------------- updateData End -------------------");
+		APLog.reportLog("\n---------------- updateData End -------------------");
+		FileLogger.closeHandler();
+		return responseString;
+	}
+
+	public String[] getRefNo(String procedureName, String tranRefNoJSONString)
+			throws FileNotFoundException, IOException {
+		String[] Values = new String[3];
+		String refNoValue = "";
+		try {
+			JSONObject refNo = new JSONObject(tranRefNoJSONString);
+			logger.info("refNo value in get RefNo " + refNo);
+			Properties prop = new Properties();
+			prop.load(new FileInputStream(this.dir + "/properties/Fields.properties"));
+			String[] keys = prop.getProperty(procedureName).split(",");
+			logger.info(prop.getProperty(procedureName));
+			APLog.reportLog(prop.getProperty(procedureName));
+
+			logger.info("keys[0] is getRefNo: 1>>>>>");
+			APLog.reportLog("keys[0] is getRefNo: 1>>>>>");
+			logger.info("keys[0] is getRefNo: 1<<<<<<" + keys[0]);
+			APLog.reportLog("keys[0] is getRefNo: 1<<<<<" + keys[0]);
+			//Values[0] = refNo.getString(keys[0].trim()).trim();
+			Values[0] = refNo.getString("ref_no");// table name
+			Values[1] = keys[3].trim();// funcshortName
+			Values[2] = keys[6].trim();
+
+			logger.info("--TABLE NAME--" + Values[0]
+					+ "--C_FUNC_SHORTNAME--" + Values[1]);
+			APLog.reportLog("ref is : 1<<<<<< in getRefNo " + refNoValue);
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return Values;
+
+	}
+
+}
+
+package com.tcs;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Logger;
+
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
+import com.cs.eximap.utility.APLog;
+import com.tcs.helper.DBConnectionHelper;
+
+public class UpdateRates {
+
+	private static Connection conn;
+	private static PreparedStatement stdUpdatePstmt;
+	private static PreparedStatement sttUpdatePstmt;
+	private static String date;
+	private static Timestamp timeStamp;
+	private static PreparedStatement stdInsertPstmt;
+	private static PreparedStatement sttInsertPstmt;
+	private static final Logger logger = Logger.getLogger("MfxServiceLogger");
+
+	@SuppressWarnings("unchecked")
+	static String updateLiborRate(String jsonString, String procedureName, Properties pr) {
+		JSONParser jparser = new JSONParser();
+		boolean isInsert = false;
+		String response = "{\"status\":\"UNSUCCESS\",\"reason\":\"NO RECORD FOUND\"}";
+		try {
+			String[] liborRateArr = pr.getProperty(procedureName).split(",");
+			String[] jsonFieldName = pr.getProperty(liborRateArr[0]).trim().split(",");
+			String[] fullName = pr.getProperty(liborRateArr[1]).trim().split(",");
+			JSONObject fullJsonObject = (JSONObject) jparser.parse(jsonString);
+			JSONObject fullCurrencyObj = (JSONObject) jparser.parse(fullJsonObject.get(liborRateArr[2].trim()).toString());
+			if (liborRateArr[3].trim().toLowerCase().equals("insert"))
+				isInsert = true;
+			Set<String> currencySet = new TreeSet<String>();
+			currencySet = fullCurrencyObj.keySet();
+			Iterator<String> itr = currencySet.iterator();
+			ArrayList<String> fieldNameList = new ArrayList<String>();
+			Map<String, String> fieldNameMap = new HashMap<String, String>();
+			for (int i = 0; i < jsonFieldName.length; i++) {
+				fieldNameList.add(jsonFieldName[i].trim());
+				fieldNameMap.put(jsonFieldName[i].trim(), fullName[i].trim());
+			}
+
+			date = new SimpleDateFormat("dd/MM/yyyy").format(new Date());
+			timeStamp = new Timestamp(System.currentTimeMillis());
+			String stdUpdateQuery = "Update EXIMSYS.STD_EXCHAN_RATE SET F_VALUE = ?, D_LAST_MODIFY_DATE = TO_DATE(?, 'DD/MM/YYYY'), PRICE_DATE = SYSDATE where C_DESC_ID=? AND C_FROM_CCY=? AND C_TO_CCY = ?";
+			String sttUpdateQuery = "Update EXIMSYS.STT_EXCHAN_RATE SET F_VALUE = ?, T_LAST_MODIFY_TIME = ?, PRICE_DATE = SYSDATE where C_DESC_ID=? AND C_FROM_CCY=? AND C_TO_CCY = ?";
+
+			String stdInsQuery = "INSERT INTO EXIMSYS.STD_EXCHAN_RATE (F_VALUE, D_LAST_MODIFY_DATE, C_DESC_ID, C_FROM_CCY, C_TO_CCY, C_BK_GROUP_ID, C_CNTY_CODE, I_BASE_UNITS, PRICE_DATE) VALUES"
+					+ " (?, TO_DATE(?, 'DD/MM/YYYY'), ?, ?, ?, ?, ?, ?, SYSDATE)";
+			String sttInsQuery = "INSERT INTO EXIMSYS.STT_EXCHAN_RATE (F_VALUE, T_LAST_MODIFY_TIME, C_DESC_ID, C_FROM_CCY, C_TO_CCY, C_BK_GROUP_ID, C_CNTY_CODE, I_BASE_UNITS, PRICE_DATE) VALUES"
+					+ " (?, ?, ?, ?, ?, ?, ?, ?, SYSDATE)";
+
+			int stdStatus = 0;
+			int sttStatus = 0;
+			String status = "\n";
+
+			//29-05-2025
+			DBConnectionHelper dBConnectionHelper =  new DBConnectionHelper();
+			conn = dBConnectionHelper.createConnection();
+			//29-05-2025
+
+			stdUpdatePstmt = conn.prepareStatement(stdUpdateQuery);
+			sttUpdatePstmt = conn.prepareStatement(sttUpdateQuery);
+			stdInsertPstmt = conn.prepareStatement(stdInsQuery);
+			sttInsertPstmt = conn.prepareStatement(sttInsQuery);
+
+			while (itr.hasNext()) {
+				String currencyObj = (String) itr.next();
+				String currencyDetails = fullCurrencyObj.get(currencyObj).toString();
+				logger.info("Currency: " + currencyObj + ", Details: " + currencyDetails);
+				APLog.reportLog("Currency: " + currencyObj + ", Details: " + currencyDetails);
+				JSONObject currencyDetailsObj = (JSONObject) jparser.parse(currencyDetails);
+				for (int i = 0; i < fieldNameList.size(); i++) {
+					stdStatus = 0;
+					sttStatus = 0;
+					String c_Desc_Id = (String) fieldNameMap.get(fieldNameList.get(i));
+					String value = currencyDetailsObj.get(fieldNameList.get(i)).toString();
+//					String fromCurrency = currencyObj.substring(0, 3);
+
+
+					//29052025 from prod
+					String fromCurrency = "";
+					if(currencyObj.contains("EURIBOR")){
+						fromCurrency = "EUI";
+					}
+					else{
+						fromCurrency = currencyObj.substring(0, 3);
+					}
+					//29052025 from prod
+
+					if (value != null && !"".equals(value)) {
+						float floatValue = Float.parseFloat(value);
+						if (isRateRecordExist("STD_EXCHAN_RATE", fromCurrency, "INR", c_Desc_Id, null)) {
+							try {
+								stdUpdatePstmt.setFloat(1, floatValue);
+								stdUpdatePstmt.setString(2, date);
+								stdUpdatePstmt.setString(3, c_Desc_Id);
+								stdUpdatePstmt.setString(4, fromCurrency);
+								stdUpdatePstmt.setString(5, "INR");
+								logger.info("stdUpdateQuery:- " + stdUpdateQuery + "\nParameters: ['" + value + "', '" + date + "', '" + c_Desc_Id + "', '" + currencyObj.substring(0, 3) + "', '" + "INR" + "']");
+								APLog.reportLog("stdUpdateQuery:- " + stdUpdateQuery + "\nParameters: ['" + value + "', '" + date + "', '" + c_Desc_Id + "', '" + currencyObj.substring(0, 3) + "', '" + "INR" + "']");
+								stdStatus = stdUpdatePstmt.executeUpdate();
+							} catch (Exception e) {
+								APLog.reportErrLog("Exception Occurred: " + e);
+								logger.severe("Exception Occurred: " + e);
+							}
+						} else if (isInsert) {
+							try {
+								stdInsertPstmt.setFloat(1, floatValue);
+								stdInsertPstmt.setString(2, date);
+								stdInsertPstmt.setString(3, c_Desc_Id);
+								stdInsertPstmt.setString(4, fromCurrency);
+								stdInsertPstmt.setString(5, "INR");
+								stdInsertPstmt.setString(6, "SBI");
+								stdInsertPstmt.setString(7, "IN");
+								stdInsertPstmt.setInt(8, 1);
+								logger.info("stdInsertQuery: " + stdInsQuery + "\nParameters: ['" + value + "', '" + date + "', '" + c_Desc_Id + "', '" + currencyObj.substring(0, 3) + "', 'INR', 'SBI', 'IN', '1'");
+								APLog.reportLog("stdInsertQuery: " + stdInsQuery + "\nParameters: ['" + value + "', '" + date + "', '" + c_Desc_Id + "', '" + currencyObj.substring(0, 3) + "', 'INR', 'SBI', 'IN', '1'");
+								stdStatus = stdInsertPstmt.executeUpdate();
+							} catch (Exception e) {
+								APLog.reportErrLog("Exception Occurred: " + e);
+								logger.severe("Exception Occurred: " + e);
+							}
+						}
+						if (isRateRecordExist("STT_EXCHAN_RATE", fromCurrency, "INR", c_Desc_Id, null)) {
+							try {
+								sttUpdatePstmt.setFloat(1, floatValue);
+								sttUpdatePstmt.setTimestamp(2, timeStamp);
+								sttUpdatePstmt.setString(3, c_Desc_Id);
+								sttUpdatePstmt.setString(4, fromCurrency);
+								sttUpdatePstmt.setString(5, "INR");
+								logger.info("sttUpdateQuery:- " + sttUpdateQuery + "\nParameters: ['" + value + "', '" + timeStamp + "', '" + c_Desc_Id + "', '" + currencyObj.substring(0, 3) + "', '" + "INR" + "']");
+								APLog.reportLog("sttUpdateQuery:- " + sttUpdateQuery + "\nParameters: ['" + value + "', '" + timeStamp + "', '" + c_Desc_Id + "', '" + currencyObj.substring(0, 3) + "', '" + "INR" + "']");
+								sttStatus = sttUpdatePstmt.executeUpdate();
+							} catch (Exception e) {
+								APLog.reportErrLog("Exception Occurred: " + e);
+								logger.severe("Exception Occurred: " + e);
+							}
+						} else if (isInsert) {
+							try {
+								sttInsertPstmt.setFloat(1, floatValue);
+								sttInsertPstmt.setTimestamp(2, timeStamp);
+								sttInsertPstmt.setString(3, c_Desc_Id);
+								sttInsertPstmt.setString(4, fromCurrency);
+								sttInsertPstmt.setString(5, "INR");
+								sttInsertPstmt.setString(6, "SBI");
+								sttInsertPstmt.setString(7, "IN");
+								sttInsertPstmt.setInt(8, 1);
+								logger.info("sttInsertQuery: " + sttInsQuery + "\nParameters: ['" + value + "', '" + timeStamp + "', '" + c_Desc_Id + "', '" + currencyObj.substring(0, 3) + "', 'INR', 'SBI', 'IN', '1'");
+								APLog.reportLog("sttInsertQuery: " + sttInsQuery + "\nParameters: ['" + value + "', '" + timeStamp + "', '" + c_Desc_Id + "', '" + currencyObj.substring(0, 3) + "', 'INR', 'SBI', 'IN', '1'");
+								sttStatus = sttInsertPstmt.executeUpdate();
+							} catch (Exception e) {
+								APLog.reportErrLog("Exception Occurred: " + e);
+								logger.severe("Exception Occurred: " + e);
+							}
+						}
+					} else {
+						stdStatus = 1;
+						sttStatus = 1;
+					}
+					if ((stdStatus != 0) && (sttStatus != 0)) {
+						status = status + "SUCCESS";
+						logger.info("Updated: " + currencyObj.substring(0, 3) + ", " + c_Desc_Id + ": " + value + ", Count: " + i);
+						APLog.reportLog("Updated: " + currencyObj.substring(0, 3) + ", " + c_Desc_Id + ": " + value + ", Count: " + i);
+					} else {
+						status = status + "\nFailed: " + currencyObj.substring(0, 3) + "\n";
+						logger.info("\nFailed " + currencyObj.substring(0, 3) + ", " + c_Desc_Id + ": " + value + ", Count: " + i + "\n");
+						APLog.reportLog("\nFailed " + currencyObj.substring(0, 3) + ", " + c_Desc_Id + ": " + value + ", Count: " + i + "\n");
+					}
+					logger.info("Status: " + status);
+					APLog.reportLog("Status: " + status);
+				}
+			}
+			if (!status.contains("Failed"))
+				response = "{\"status\":\"SUCCESS\"}";
+		} catch (ParseException e) {
+			logger.severe("ParseException occurred while Updating Libor Rate" + e);
+			APLog.reportErrLog("ParseException occurred while Updating Libor Rate" + e);
+			response = "{\"status\":\"UNSUCCESS\",\"reason\":\"Input might be wrong. Please Contact the Administrator. Block 3.1\"";
+		} catch (SQLException e) {
+			logger.severe("SQLException occurred while Updating Libor Rate" + e);
+			APLog.reportErrLog("SQLException occurred while Updating Libor Rate" + e);
+			response = "{\"status\":\"UNSUCCESS\",\"reason\":\"Error Occurred. Please Contact the Administrator. Block 3.2\"";
+		} catch (Exception e) {
+			logger.severe("Exception occurred while Updating Libor Rate. Something might be wrong in the Input String." + e);
+			APLog.reportErrLog("Exception occurred while Updating Libor Rate. Something might be wrong in the Input String." + e);
+			response = "{\"status\":\"UNSUCCESS\",\"reason\":\"Error Occurred. Please Contact the Administrator. Block 3.3\"";
+		}
+		DBConnectionHelper.commitConnection(conn);
+		DBConnectionHelper.closeConnection(conn);
+		DBConnectionHelper.closePreparedStatement(stdUpdatePstmt);
+		DBConnectionHelper.closePreparedStatement(stdInsertPstmt);
+		DBConnectionHelper.closePreparedStatement(sttUpdatePstmt);
+		DBConnectionHelper.closePreparedStatement(sttInsertPstmt);
+		return response;
+	}
+
+	@SuppressWarnings("unchecked")
+	static String updateCardRate(String jsonString, String procedureName, Properties pr) {
+		JSONParser jparser = new JSONParser();
+		boolean isInsert = false;
+		String response = "{\"status\":\"UNSUCCESS\",\"reason\":\"NO RECORD FOUND\"}";
+		try {
+			String[] cardRateArr = pr.getProperty(procedureName).split(",");
+			String[] jsonFieldName = pr.getProperty(cardRateArr[0]).split(",");
+			String[] fullName = pr.getProperty(cardRateArr[1]).split(",");
+			JSONObject fullJsonObject = (JSONObject) jparser.parse(jsonString);
+			JSONObject fullCurrencyObj = (JSONObject) jparser.parse(fullJsonObject.get(cardRateArr[2].trim()).toString());
+			String cardRateFlag = fullJsonObject.get(cardRateArr[3].trim()).toString();
+			logger.info("cardRateArr[4]= " + cardRateArr[4].trim().toLowerCase());
+			APLog.reportLog("cardRateArr[4]= " + cardRateArr[4].trim().toLowerCase());
+			if (cardRateArr[4].trim().toLowerCase().equals("insert"))
+				isInsert = true;
+			Set<String> set1 = fullCurrencyObj.keySet();
+			Iterator<String> itr = set1.iterator();
+			ArrayList<String> fieldNameList = new ArrayList<String>();
+			Map<String, String> fieldNameMap = new HashMap<String, String>();
+			for (int i = 0; i < jsonFieldName.length; i++) {
+				fieldNameList.add(jsonFieldName[i].trim());
+				fieldNameMap.put(jsonFieldName[i], fullName[i].trim());
+			}
+			date = new SimpleDateFormat("dd/MM/yyyy").format(new Date());
+			timeStamp = new Timestamp(System.currentTimeMillis());
+
+			String stdUpdateQuery = "Update EXIMSYS.STD_EXCHAN_RATE SET F_VALUE = ?, D_LAST_MODIFY_DATE = TO_DATE(?, 'DD/MM/YYYY'), PRICE_DATE = SYSDATE where C_DESC_ID=? AND"
+					+ " C_FROM_CCY=? and C_TO_CCY = ? AND C_RATE_STATE=?";
+			String sttUpdateQuery = "Update EXIMSYS.STT_EXCHAN_RATE SET F_VALUE = ?, T_LAST_MODIFY_TIME = ?, PRICE_DATE = SYSDATE where C_DESC_ID=? and C_FROM_CCY=? and C_TO_CCY = ? AND C_RATE_STATE=?";
+
+			String stdInsQuery = "INSERT INTO EXIMSYS.STD_EXCHAN_RATE (F_VALUE, D_LAST_MODIFY_DATE, C_RATE_STATE, C_DESC_ID, C_FROM_CCY, C_TO_CCY, C_BK_GROUP_ID, C_CNTY_CODE,"
+					+ " I_BASE_UNITS, PRICE_DATE) VALUES (?, TO_DATE(?, 'DD/MM/YYYY'), ?, ?, ?, ?, ?, ?, ?, SYSDATE)";
+			String sttInsQuery = "INSERT INTO EXIMSYS.STT_EXCHAN_RATE (F_VALUE, T_LAST_MODIFY_TIME, C_RATE_STATE, C_DESC_ID, C_FROM_CCY, C_TO_CCY, C_BK_GROUP_ID, C_CNTY_CODE,"
+					+ " I_BASE_UNITS, PRICE_DATE) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, SYADATE)";
+
+			int stdStatus = 0;
+			int sttStatus = 0;
+			String status = "\n";
+			//29-05-2025
+			DBConnectionHelper dBConnectionHelper =  new DBConnectionHelper();
+			conn = dBConnectionHelper.createConnection();
+			//29-05-2025
+
+			stdUpdatePstmt = conn.prepareStatement(stdUpdateQuery);
+			sttUpdatePstmt = conn.prepareStatement(sttUpdateQuery);
+			stdInsertPstmt = conn.prepareStatement(stdInsQuery);
+			sttInsertPstmt = conn.prepareStatement(sttInsQuery);
+
+			while (itr.hasNext()) {
+				String currencyObj = (String) itr.next();
+				String currencyDetails = fullCurrencyObj.get(currencyObj).toString();
+				logger.info("Currency: " + currencyObj + ", Details: " + currencyDetails);
+				APLog.reportLog("Currency: " + currencyObj + ", Details: " + currencyDetails);
+				JSONObject currencyDetailsObj = (JSONObject) jparser.parse(currencyDetails);
+				for (int i = 0; i < fieldNameList.size(); i++) {
+					stdStatus = 0;
+					sttStatus = 0;
+					String c_Desc_Id = (String) fieldNameMap.get(fieldNameList.get(i));
+					String value = currencyDetailsObj.get(fieldNameList.get(i)).toString();
+					if ("Y".equals(cardRateFlag))
+						c_Desc_Id = c_Desc_Id + " ABOVE 10 LAKH";
+
+					String fromCurrency = currencyObj.substring(0, 3);
+					if (value != null && !"".equals(value)) {
+						float floatValue = 0;
+						if("JPY".equals(fromCurrency))
+							floatValue  = Float.parseFloat(value)/100;
+						else
+							floatValue = Float.parseFloat(value);
+						if (isRateRecordExist("STD_EXCHAN_RATE", fromCurrency, currencyObj.substring(3, 6), c_Desc_Id, cardRateFlag)) {
+							try {
+								stdUpdatePstmt.setFloat(1, floatValue);
+								stdUpdatePstmt.setString(2, date);
+								stdUpdatePstmt.setString(3, c_Desc_Id);
+								stdUpdatePstmt.setString(4, fromCurrency);
+								stdUpdatePstmt.setString(5, currencyObj.substring(3, 6));
+								stdUpdatePstmt.setString(6, cardRateFlag);
+								logger.info("stdUpdateQuery: " + stdUpdateQuery + "\nParameters: ['" + value + "', '" + date + "', '" + c_Desc_Id + "', '" + fromCurrency + "', '" + currencyObj.substring(3, 6) + "', '" + cardRateFlag + "']");
+								APLog.reportLog("stdUpdateQuery: " + stdUpdateQuery + "\nParameters: ['" + value + "', '" + date + "', '" + c_Desc_Id + "', '" + fromCurrency + "', '" + currencyObj.substring(3, 6) + "', '" + cardRateFlag + "']");
+								stdStatus = stdUpdatePstmt.executeUpdate();
+							} catch (Exception e) {
+								APLog.reportErrLog("Exception Occurred: " + e);
+								logger.severe("Exception Occurred: " + e);
+							}
+						} else if (isInsert) {
+							try {
+								stdInsertPstmt.setFloat(1, floatValue);
+								stdInsertPstmt.setString(2, date);
+								stdInsertPstmt.setString(3, cardRateFlag);
+								stdInsertPstmt.setString(4, c_Desc_Id);
+								stdInsertPstmt.setString(5, fromCurrency);
+								stdInsertPstmt.setString(6, currencyObj.substring(3, 6));
+								stdInsertPstmt.setString(7, "SBI");
+								stdInsertPstmt.setString(8, "IN");
+								stdInsertPstmt.setInt(9, 1);
+								logger.info("stdInsertQuery: " + stdInsQuery + "\nParameters: ['" + value + "', '" + date + "', '" + cardRateFlag + "', '" + c_Desc_Id + "', '" + fromCurrency + "', '" + currencyObj.substring(3, 6) + "', 'SBI', 'IN', '1']");
+								APLog.reportLog("stdInsertQuery: " + stdInsQuery + "\nParameters: ['" + value + "', '" + date + "', '" + cardRateFlag + "', '" + c_Desc_Id + "', '" + fromCurrency + "', '" + currencyObj.substring(3, 6) + "', 'SBI', 'IN', '1']");
+								stdStatus = stdInsertPstmt.executeUpdate();
+							} catch (Exception e) {
+								APLog.reportErrLog("Exception Occurred: " + e);
+								logger.severe("Exception Occurred: " + e);
+							}
+						}
+						if (isRateRecordExist("STT_EXCHAN_RATE", fromCurrency, currencyObj.substring(3, 6), c_Desc_Id, cardRateFlag)) {
+							try {
+								sttUpdatePstmt.setFloat(1, floatValue);
+								sttUpdatePstmt.setTimestamp(2, timeStamp);
+								sttUpdatePstmt.setString(3, c_Desc_Id);
+								sttUpdatePstmt.setString(4, fromCurrency);
+								sttUpdatePstmt.setString(5, currencyObj.substring(3, 6));
+								sttUpdatePstmt.setString(6, cardRateFlag);
+								logger.info("sttUpdateQuery: " + sttUpdateQuery + "\nParameters: ['" + value + "', '" + timeStamp + "', '" + c_Desc_Id + "', '" + fromCurrency + "', '" + currencyObj.substring(3, 6) + "', '" + cardRateFlag + "']");
+								APLog.reportLog("sttdUpdateQuery: " + sttUpdateQuery + "\nParameters: ['" + value + "', '" + timeStamp + "', '" + c_Desc_Id + "', '" + fromCurrency + "', '" + currencyObj.substring(3, 6) + "', '" + cardRateFlag + "']");
+								sttStatus = sttUpdatePstmt.executeUpdate();
+							} catch (Exception e) {
+								APLog.reportErrLog("Exception Occurred: " + e);
+								logger.severe("Exception Occurred: " + e);
+							}
+						} else if (isInsert) {
+							try {
+								sttInsertPstmt.setFloat(1, floatValue);
+								sttInsertPstmt.setTimestamp(2, timeStamp);
+								sttInsertPstmt.setString(3, cardRateFlag);
+								sttInsertPstmt.setString(4, c_Desc_Id);
+								sttInsertPstmt.setString(5, fromCurrency);
+								sttInsertPstmt.setString(6, currencyObj.substring(3, 6));
+								sttInsertPstmt.setString(7, "SBI");
+								sttInsertPstmt.setString(8, "IN");
+								sttInsertPstmt.setInt(9, 1);
+								logger.info("sttInsertQuery: " + sttInsQuery + "\nParameters: ['" + value + "', '" + timeStamp + "', '" + cardRateFlag + "', '" + c_Desc_Id + "', '" + fromCurrency + "', '" + currencyObj.substring(3, 6) + "', 'SBI', 'IN', '1']");
+								APLog.reportLog("sttInsertQuery: " + sttInsQuery + "\nParameters: ['" + value + "', '" + timeStamp + "', '" + cardRateFlag + "', '" + c_Desc_Id + "', '" + fromCurrency + "', '" + currencyObj.substring(3, 6) + "', 'SBI', 'IN', '1']");
+								sttStatus = sttInsertPstmt.executeUpdate();
+							} catch (Exception e) {
+								APLog.reportErrLog("Exception Occurred: " + e);
+								logger.severe("Exception Occurred: " + e);
+							}
+						}
+					} else {
+						stdStatus = 1;
+						sttStatus = 1;
+					}
+
+					if ((stdStatus != 0) && (sttStatus != 0)) {
+						status = status + "SUCCESS";
+						logger.info("Updated: " + fromCurrency + ", " + c_Desc_Id + ": " + value + ", Count: " + i);
+						APLog.reportLog("Updated: " + fromCurrency + ", " + c_Desc_Id + ": " + value + ", Count: " + i);
+					} else {
+						status = status + "Failed " + currencyObj + ";\n";
+						logger.info("\nFailed: " + fromCurrency + ", " + c_Desc_Id + ": " + value + ", Count: " + i + "\n");
+						APLog.reportLog("\nFailed: " + fromCurrency + ", " + c_Desc_Id + ": " + value + ", Count: " + i + "\n");
+					}
+				}
+			}
+			logger.info("Status: \n" + status);
+			APLog.reportLog("Status: \n" + status);
+			if (!status.contains("Failed"))
+				response = "{\"status\":\"SUCCESS\"}";
+		} catch (ParseException e) {
+			logger.severe("ParseException occurred while Updating Card Rate. Block 4.1: " + e);
+			APLog.reportErrLog("ParseException occurred while Updating Card Rate. Block 4.1: " + e);
+			response = "{\"status\":\"UNSUCCESS\",\"reason\":\"Input might be wrong. Please Contact the Administrator. Block 4.1\"";
+		} catch (SQLException e) {
+			logger.severe("SQLException occurred while Updating Card Rate.Block 4.2: " + e);
+			APLog.reportErrLog("SQLException occurred while Updating Card Rate.Block 4.2: " + e);
+			response = "{\"status\":\"UNSUCCESS\",\"reason\":\"Error Occurred. Please Contact the Administrator. Block 4.2\"";
+		} catch (Exception e) {
+			logger.severe("Exception occurred while Updating Card Rate. Something might be wrong in the Input String. Block 4.1: " + e);
+			APLog.reportErrLog("Exception occurred while Updating Card Rate. Something might be wrong in the Input String. Block 4.1: " + e);
+			response = "{\"status\":\"UNSUCCESS\",\"reason\":\"Error Occurred. Please Contact the Administrator. Block 4.3\"";
+		}
+		DBConnectionHelper.commitConnection(conn);
+		DBConnectionHelper.closeConnection(conn);
+		DBConnectionHelper.closePreparedStatement(stdUpdatePstmt);
+		DBConnectionHelper.closePreparedStatement(stdInsertPstmt);
+		DBConnectionHelper.closePreparedStatement(sttUpdatePstmt);
+		DBConnectionHelper.closePreparedStatement(sttInsertPstmt);
+		return response;
+	}
+
+	static boolean isRateRecordExist(String tableName, String cFromCcy, String cToCcy, String cDescId, String cardRateFlag) {
+		boolean isExist = false;
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		try {
+			String qry = "Select * from EXIMSYS." + tableName + " WHERE C_BK_GROUP_ID='SBI' AND C_CNTY_CODE='IN' AND C_FROM_CCY=?" + " AND C_TO_CCY=? AND C_DESC_ID=? AND C_RATE_STATE=?";
+			if (cardRateFlag == null)
+				qry = "Select * from EXIMSYS." + tableName + " WHERE C_BK_GROUP_ID='SBI' AND C_CNTY_CODE='IN' AND C_FROM_CCY=?" + " AND C_TO_CCY=? AND C_DESC_ID=? AND C_RATE_STATE IS NULL";
+			pstmt = conn.prepareStatement(qry);
+			pstmt.setString(1, cFromCcy);
+			pstmt.setString(2, cToCcy);
+			pstmt.setString(3, cDescId);
+			if(cardRateFlag != null) {    
+				pstmt.setString(4, cardRateFlag);
+				logger.info("isRecordExist: " + qry + "\nParameters: ['" + cFromCcy + "', '" + cToCcy + "', '" + cDescId + "', '" + cardRateFlag + "']");
+				APLog.reportLog("isRecordExist: " + qry + "\nParameters: ['" + cFromCcy + "', '" + cToCcy + "', '" + cDescId + "', '" + cardRateFlag + "']");
+			}
+			else {
+				logger.info("isRecordExist: " + qry + "\nParameters: ['" + cFromCcy + "', '" + cToCcy + "', '" + cDescId + "']");
+				APLog.reportLog("isRecordExist: " + qry + "\nParameters: ['" + cFromCcy + "', '" + cToCcy + "', '" + cDescId + "']");
+			}
+			rs = pstmt.executeQuery();
+			if (rs.next())
+				isExist = true;
+		} catch (SQLException e) {
+			logger.severe("Exception Occurred while checking record. Block 5.1");
+			APLog.reportErrLog("Exception Occurred while checking record. Block 5.1");
+		} finally {
+			DBConnectionHelper.closePreparedStatement(pstmt);
+			DBConnectionHelper.closeResultSet(rs);
+		}
+		return isExist;
+	}
+}
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://tcs.com" xmlns:apachesoap="http://xml.apache.org/xml-soap" xmlns:impl="http://tcs.com" xmlns:intf="http://tcs.com"
+	xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<!--WSDL created by Apache Axis version: 1.4 Built on Apr 22, 2006 (06:55:48 PDT)-->
+	<wsdl:types>
+		<schema elementFormDefault="qualified" targetNamespace="http://tcs.com" xmlns="http://www.w3.org/2001/XMLSchema">
+			<element name="fetchData">
+				<complexType>
+					<sequence>
+						<element name="procedureName" type="xsd:string" />
+						<element name="tranRefNoJSONString" type="xsd:string" />
+					</sequence>
+				</complexType>
+			</element>
+			<element name="fetchDataResponse">
+				<complexType>
+					<sequence>
+						<element name="fetchDataReturn" type="xsd:string" />
+					</sequence>
+				</complexType>
+			</element>
+			<element name="updateData">
+				<complexType>
+					<sequence>
+						<element name="procedureName" type="xsd:string" />
+						<element name="requestJSONString" type="xsd:string" />
+					</sequence>
+				</complexType>
+			</element>
+			<element name="updateDataResponse">
+				<complexType>
+					<sequence>
+						<element name="updateDataReturn" type="xsd:string" />
+					</sequence>
+				</complexType>
+			</element>
+			<element name="CustomisedException">
+				<complexType>
+					<sequence>
+						<element name="CustomisedException" type="xsd:string" />
+					</sequence>
+				</complexType>
+			</element>
+		</schema>
+	</wsdl:types>
+	<wsdl:message name="CustomisedException">
+		<wsdl:part element="impl:CustomisedException" name="fault">
+		</wsdl:part>
+	</wsdl:message>
+	<wsdl:message name="updateDataRequest">
+		<wsdl:part element="impl:updateData" name="parameters">
+		</wsdl:part>
+	</wsdl:message>
+	<wsdl:message name="fetchDataRequest">
+		<wsdl:part element="impl:fetchData" name="parameters">
+		</wsdl:part>
+	</wsdl:message>
+	<wsdl:message name="updateDataResponse">
+		<wsdl:part element="impl:updateDataResponse" name="parameters">
+		</wsdl:part>
+	</wsdl:message>
+	<wsdl:message name="fetchDataResponse">
+		<wsdl:part element="impl:fetchDataResponse" name="parameters">
+		</wsdl:part>
+	</wsdl:message>
+	<wsdl:portType name="Mercury">
+		<wsdl:operation name="fetchData">
+			<wsdl:input message="impl:fetchDataRequest" name="fetchDataRequest">
+			</wsdl:input>
+			<wsdl:output message="impl:fetchDataResponse" name="fetchDataResponse">
+			</wsdl:output>
+			<wsdl:fault message="impl:CustomisedException" name="CustomisedException">
+			</wsdl:fault>
+		</wsdl:operation>
+		<wsdl:operation name="updateData">
+			<wsdl:input message="impl:updateDataRequest" name="updateDataRequest">
+			</wsdl:input>
+			<wsdl:output message="impl:updateDataResponse" name="updateDataResponse">
+			</wsdl:output>
+			<wsdl:fault message="impl:CustomisedException" name="CustomisedException">
+			</wsdl:fault>
+		</wsdl:operation>
+	</wsdl:portType>
+	<wsdl:binding name="MercurySoapBinding" type="impl:Mercury">
+		<wsdlsoap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http" />
+		<wsdl:operation name="fetchData">
+			<wsdlsoap:operation soapAction="" />
+			<wsdl:input name="fetchDataRequest">
+				<wsdlsoap:body use="literal" />
+			</wsdl:input>
+			<wsdl:output name="fetchDataResponse">
+				<wsdlsoap:body use="literal" />
+			</wsdl:output>
+			<wsdl:fault name="CustomisedException">
+				<wsdlsoap:fault use="literal" name="CustomisedException" />
+			</wsdl:fault>
+		</wsdl:operation>
+		<wsdl:operation name="updateData">
+			<wsdlsoap:operation soapAction="" />
+			<wsdl:input name="updateDataRequest">
+				<wsdlsoap:body use="literal" />
+			</wsdl:input>
+			<wsdl:output name="updateDataResponse">
+				<wsdlsoap:body use="literal" />
+			</wsdl:output>
+			<wsdl:fault name="CustomisedException">
+				<wsdlsoap:fault use="literal" name="CustomisedException" />
+			</wsdl:fault>
+		</wsdl:operation>
+	</wsdl:binding>
+	<wsdl:service name="MercuryService">
+		<wsdl:port binding="impl:MercurySoapBinding" name="Mercury">
+			<wsdlsoap:address location="http://localhost:8080/MercuryFxServer/services/Mercury" />
+		</wsdl:port>
+	</wsdl:service>
+</wsdl:definitions>
