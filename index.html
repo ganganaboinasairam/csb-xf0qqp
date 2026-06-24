@@ -1,18 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<soapenv:Envelope
- xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
- xmlns:tcs="http://tcs.com">
-   <soapenv:Header/>
-   <soapenv:Body>
-      <tcs:fetchData>
-         <procedureName>YOUR_PROCEDURE</procedureName>
-         <tranRefNoJSONString>
-            {"TRAN_REF_NO":"12345"}
-         </tranRefNoJSONString>
-      </tcs:fetchData>
-   </soapenv:Body>
-</soapenv:Envelope>
-
-Content-Type: text/xml;charset=UTF-8
-SOAPAction:
-
+mercury_exim.fetch_IMPADVPYMT=ref_no,F_IMPADVPYMT,F_IMPADVPYMTDB,IMCC,MTRNS_NO,Adv_PMT@&Outwrd_Remit@&eTrade_outward@&IMCC_AdvPMT_RFO
