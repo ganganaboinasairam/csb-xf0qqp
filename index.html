@@ -1,205 +1,131 @@
-body{
-    margin:0;
-    padding:30px;
-    font-family:Segoe UI,Tahoma,sans-serif;
-    background:#f4f6f9;
+package com.cs.eximap.busiintf;
+
+
+
+import org.apache.xerces.dom.DocumentImpl;
+import org.json.simple.parser.JSONParser;
+import org.w3c.dom.Element;
+
+import com.cs.common.model.GAPIHeaderData;
+import org.json.simple.JSONObject;
+import com.cs.eximap.busiintf.GAPIBusiIntf;
+import com.cs.eximap.utility.APLog;
+import com.cs.eximweb.utility.WSTools;
+import com.cs.inquiry.servicesss.CardRatesInq;
+import com.cs.inquiry.servicesss.OnlineRateInq;
+import com.cs.inquiry.servicesss.RateConfirmation;
+import com.cs.inquiry.servicesss.TransactionConfirmation;
+import com.csme.app.common.CSMEDomParser;
+
+public class RateInqGapi implements GAPIBusiIntf {
+
+	
+	private static final String CARD_RATES_ENQUIRY	= "CARD_RATES_ENQUIRY";
+	private static final String RATE_CONFIRMATION	= "RATE_CONFIRMATION";
+	private static final String TRANSACTION_CONFIRMATION	= "TRANSACTION_CONFIRMATION";
+	private static final String ONLINE_RATES_ENQUIRY	= "ONLINE_RATES_ENQUIRY";
+	
+	@Override
+	public DocumentImpl authData(DocumentImpl inquiryDom) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public DocumentImpl ecData(DocumentImpl inquiryDom) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	//@SuppressWarnings("finally")
+	@Override
+	public DocumentImpl inqData(DocumentImpl inquiryDom) throws Exception {
+		// TODO Auto-generated method stub
+		DocumentImpl returnDom=null;
+		CSMEDomParser inquiryDomParser=null;
+		JSONParser parser=null;
+		GAPIHeaderData gapiHeaderData=null;
+		try {
+			APLog.reportLog("Inquiry GAPI Called in RateInqGapi. Received Inquiry Dom is "+inquiryDom);
+			inquiryDomParser=new CSMEDomParser(inquiryDom);
+			gapiHeaderData=new GAPIHeaderData(inquiryDom);
+			String jspJsonString=inquiryDomParser.getNodeValue("/message/out-msg-content/JSP_TO_GAPI_JSON");
+
+			APLog.reportLog("Json String is "+jspJsonString);
+			if(jspJsonString==null){
+				throw new Exception("Input Values cannot be null ");
+				
+				
+			}
+				APLog.reportLog("Inside else"+jspJsonString);
+				parser = new JSONParser();
+				JSONObject json = (JSONObject) parser.parse(jspJsonString);
+				String actionType=(String) json.get("actionType");
+				APLog.reportLog("Inquiry Action type is "+actionType);
+				if(actionType.equalsIgnoreCase(CARD_RATES_ENQUIRY)){
+					APLog.reportLog("Getting CARD_RATES_ENQUIRY for: "+json);
+					CardRatesInq cardRateInqService=new CardRatesInq(gapiHeaderData);
+					String receivedMsg=cardRateInqService.getcardRateEnquiryetails(jspJsonString);
+					returnDom = constructSuccessDom(receivedMsg);
+				}else if(actionType.equalsIgnoreCase(RATE_CONFIRMATION)){
+					APLog.reportLog("Getting RATE_CONFIRMATION for: "+json);
+					RateConfirmation rateConfirmInqService=new RateConfirmation(gapiHeaderData);
+					String receivedMsg=rateConfirmInqService.getRateConfirmation(jspJsonString);
+					returnDom = constructSuccessDom(receivedMsg);
+				}
+				else if(actionType.equalsIgnoreCase(ONLINE_RATES_ENQUIRY)){
+					APLog.reportLog("Getting ONLINE_RATES_ENQUIRY for: "+json);
+					OnlineRateInq onlineRateInqService=new OnlineRateInq(gapiHeaderData);
+					String receivedMsg=onlineRateInqService.getonlineRateEnquiryetails(jspJsonString);
+					returnDom = constructSuccessDom(receivedMsg);
+				}
+				else if(actionType.equalsIgnoreCase(TRANSACTION_CONFIRMATION)){
+					APLog.reportLog("Getting TRANSACTION_CONFIRMATION for: "+json);
+					TransactionConfirmation trxnConfirm=new TransactionConfirmation(gapiHeaderData);
+					String receivedMsg=trxnConfirm.gettrxnConfirmation(jspJsonString);
+					returnDom = constructSuccessDom(receivedMsg);
+				}
+			
+			return returnDom;
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			APLog.reportLog(WSTools.getErrorStackTrace(e));
+			APLog.reportLog(e.getMessage());
+		}
+		finally{
+			inquiryDomParser=null;
+			parser=null;
+			gapiHeaderData=null;
+			}
+		return returnDom;
+		
+	
+	}
+
+	@Override
+	public DocumentImpl releaseData(DocumentImpl arg0) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public DocumentImpl trxData(DocumentImpl arg0) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private DocumentImpl constructSuccessDom(String  gapiToJSPJson) throws Exception{
+		DocumentImpl resultDom = new DocumentImpl();
+		Element rtnRoot = resultDom.createElement("message");
+		resultDom.appendChild(rtnRoot);
+		CSMEDomParser returnDom=new CSMEDomParser(resultDom);
+		returnDom.insertNode("message/in-msg-content","");
+		returnDom.insertNode("message/in-msg-content/GAPI_TO_JSP_JSON",gapiToJSPJson);
+		returnDom.insertNode("message/in-msg-content/INTF_RESP_CODE", "SUCCESS");
+		returnDom.insertNode("message/in-msg-content/INTF_RESP_DESC", "SUCCESS");
+		return (DocumentImpl) returnDom.getDocument();
+	}
+	
+
 }
-
-.container{
-    width:850px;
-    margin:auto;
-    background:#fff;
-    padding:25px;
-    border-radius:10px;
-    box-shadow:0 4px 12px rgba(0,0,0,.15);
-}
-
-h2{
-    margin-top:0;
-    color:#333;
-}
-
-.topBar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:20px;
-}
-
-select,
-input[type=text]{
-    width:100%;
-    padding:10px;
-    font-size:14px;
-    border:1px solid #ccc;
-    border-radius:5px;
-    box-sizing:border-box;
-}
-
-#search{
-    margin-top:15px;
-}
-
-#classes{
-    margin-top:15px;
-    height:420px;
-    overflow:auto;
-    border:1px solid #ddd;
-    border-radius:5px;
-    background:white;
-}
-
-#classes div{
-    padding:8px 12px;
-    border-bottom:1px solid #eee;
-}
-
-#classes div:hover{
-    background:#f5f8ff;
-}
-
-#classes label{
-    cursor:pointer;
-    display:block;
-}
-
-#classes input{
-    margin-right:10px;
-}
-
-.actions{
-    margin-top:20px;
-}
-
-button{
-    background:#1976d2;
-    color:white;
-    border:none;
-    padding:10px 20px;
-    border-radius:5px;
-    cursor:pointer;
-    font-size:14px;
-    transition:.2s;
-}
-
-button:hover{
-    background:#1565c0;
-}
-
-button.secondary{
-    background:#666;
-}
-
-button.secondary:hover{
-    background:#555;
-}
-
-#msg{
-    margin-top:20px;
-    padding:10px;
-    background:#eef6ff;
-    border-left:4px solid #1976d2;
-    border-radius:4px;
-    color:#333;
-}
-
-.modal{
-    display:none;
-    position:fixed;
-    left:0;
-    top:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,.5);
-    z-index:999;
-}
-
-.modal-content{
-    background:white;
-    width:500px;
-    margin:80px auto;
-    padding:25px;
-    border-radius:8px;
-    position:relative;
-    box-shadow:0 5px 20px rgba(0,0,0,.3);
-}
-
-.modal-content h3{
-    margin-top:0;
-}
-
-.modal-content input{
-    width:100%;
-    margin-bottom:12px;
-    padding:10px;
-    box-sizing:border-box;
-}
-
-.close{
-    position:absolute;
-    right:15px;
-    top:10px;
-    font-size:26px;
-    cursor:pointer;
-    color:#666;
-}
-
-.close:hover{
-    color:red;
-}
-
-.modal-buttons{
-    text-align:right;
-    margin-top:15px;
-}
-
-.modal-buttons button{
-    margin-left:10px;
-}
-
-<div class="container">
-
-    <div class="topBar">
-        <h2>Jar Updater</h2>
-        <button onclick="openProjectPopup()">+ Add Project</button>
-    </div>
-
-    <label><b>Project</b></label>
-    <select id="project"></select>
-
-    <input id="search" type="text" placeholder="🔍 Search class...">
-
-    <div id="classes"></div>
-
-    <div class="actions">
-        <button onclick="updateJar()">Backup & Update JAR</button>
-    </div>
-
-    <div id="msg"></div>
-
-</div>
-
-<div id="projectModal" class="modal">
-    <div class="modal-content">
-
-        <span class="close" onclick="closeProjectPopup()">&times;</span>
-
-        <h3>Add New Project</h3>
-
-        <input id="pid" placeholder="Project ID">
-
-        <input id="pname" placeholder="Project Name">
-
-        <input id="pworkspace" placeholder="Bin Folder">
-
-        <input id="psrc" placeholder="Source Folder">
-
-        <input id="pjar" placeholder="JAR Path">
-
-        <div class="modal-buttons">
-            <button class="secondary" onclick="closeProjectPopup()">Cancel</button>
-            <button onclick="saveProject()">Save Project</button>
-        </div>
-
-    </div>
-</div>
