@@ -1,135 +1,30 @@
-<div id="IDEA" style="display:none;">
-<table width="100%" cellpadding="0" cellspacing="0" frame="box">
-		<tbody>
-		
-			<tr>
-				<th  width="8%">Rate Type</th>
-				<th width="8%"></th>
-				<th width="24%">Currency Pair</th>
-				<th id="rateFetchedTitle" width="12">Rate Fetched</th>
-				<th id="ideaRefTitle" width="17%">IDEA Unique Ref Number</th>
-				<th width="14%"></th>
-				<th id="ideaConfirmTitle" width="17%">IDEA Confirmation Number</th>
-			</tr>
-			<tr id="cardRateTr">
-				<input type="hidden" id="CARD_RT_amount1" name="CARD_RT_amount1">
-				<input type="hidden" id="CARD_RT_amount2" name="CARD_RT_amount2">
-				<input type="hidden" id="CARD_RT_marginAmount" name="CARD_RT_marginAmount">
-				<td>Card Rate</td>
-				<td><input type="text" name="CARD_RATE_AMT_1" id="CARD_RATE_AMT_1" title="Rate Fetched" class="AMT_P" readonly=""></td>
-				<td><input type="text" name="TXN_CCY_1" id="TXN_CCY_1" title="Currency Pair" class="CHAR_P CC_Fld4" readonly="">
-					<input type="text" name="INR_CCY_1" id="INR_CCY_1" title="Currency Pair" class="CHAR_P CC_Fld4" readonly="">
-					<input type="button" name="FETCH_RATE_BTN_1" id="FETCH_RATE_BTN_1" value="Fetch Rate" class="sbtn_default"  style="width: 100px; height: 20px; color: black;">
-				</td>
-				<td><input type="text" name="CARD_RATE_FETCHED" id="CARD_RATE_FETCHED" title="Rate Fetched" class="CHAR_P" readonly=""></td>
-				<td><input type="text" name="CARD_REF_NO" id="CARD_REF_NO" title="IDEA Unique Ref Number" class="CHAR_P CC_Fld5" readonly=""></td>
-				<td><input type="button" name="CONFIRM_RATE_BTN_1" id="CONFIRM_RATE_BTN_1" value="CONFIRM RATE" class="sbtn_default" style="width: 100px; height: 20px; color: black;"></td>
-				<td><input type="text" name="CARD_TXN_CONF_A_NO" id="CARD_TXN_CONF_A_NO" title="CARD IDEA Transaction Confirmation A Number" class="CHAR_P" readonly=""></td>
-			</tr>
-			<tr id="onlineRateTr">
-				<input type="hidden" id="ONLINE_RT_amount1" name="ONLINE_RT_amount1">
-				<input type="hidden" id="ONLINE_RT_amount2" name="ONLINE_RT_amount2">
-				<input type="hidden" id="ONLINE_RT_marginAmount" name="ONLINE_RT_marginAmount">
-				<td>Online Rate</td>
-				<td><input type="text" name="ONLINE_RATE_AMT" id="ONLINE_RATE_AMT" title="Rate Fetched" class="AMT_P" readonly=""></td>
-				<td><input type="text" name="TXN_CCY_2" id="TXN_CCY_2" title="Currency Pair" class="CHAR_P CC_Fld4" readonly="">
-					<input type="text" name="INR_CCY_2" id="INR_CCY_2" title="Currency Pair" class="CHAR_P CC_Fld4" readonly="">
-					<input type="button" name="FETCH_RATE_BTN_2" id="FETCH_RATE_BTN_2" value="Fetch Rate" class="sbtn_default"  style="width: 100px; height: 20px; color: black;">
-				</td>
-				<td><input type="text" name="ONLINE_RATE_FETCHED" id="ONLINE_RATE_FETCHED" title="Rate Fetched" class="CHAR_P" readonly=""></td>
-				<td><input type="text" name="ONLINE_REF_NO" id="ONLINE_REF_NO" title="ONLINE IDEA Unique Ref Number" class="CHAR_P CC_Fld5" readonly=""></td>
-				<td><input type="button" name="CONFIRM_RATE_BTN_2" id="CONFIRM_RATE_BTN_2" value="CONFIRM RATE" class="sbtn_default" style="width: 100px; height: 20px; color: black;"></td>
-				<td><input type="text" name="ONLINE_TXN_CONF_A_NO" id="ONLINE_TXN_CONF_A_NO" title="ONLINE IDEA Transaction Confirmation A Number" class="CHAR_P" readonly=""></td>
-			</tr>
-			<tr id="eefcRateTr">
-				<td>EEFC in Txn CCY</td>
-				<td><input type="text" name="EEFC_RATE_AMT" id="EEFC_RATE_AMT" title="Rate Fetched" class="AMT_P" readonly=""></td>
-				<td><input type="text" name="TXN_CCY_3" id="TXN_CCY_3" title="Currency Pair" class="CHAR_P CC_Fld4" readonly="">
-					<input type="text" name="INR_CCY_3" id="INR_CCY_3" title="Currency Pair" class="CHAR_P CC_Fld4" readonly="">
-					<input type="button" name="CONFIRM_EEFC_BTN" id="CONFIRM_EEFC_BTN" value="CONFIRM_EEFC" class="sbtn_default" style="width: 100px; height: 20px; color: black;">
-				</td>
-				<td></td>
-				<td></td>
-				<td></td>
-				<td><input type="text" name="EEFC_TXN_CONF_A_NO" id="EEFC_TXN_CONF_A_NO" title="ONLINE IDEA Transaction Confirmation A Number" class="CHAR_P" readonly=""></td>
-			</tr>
-			<tr>
-				<td></td>
-				<td></td>
-				<td></td>
-           <td id="AVG_RATE_HDR">Average Rate</td>
-           <td id="INR_EQT_HDR">INR Equivalent Amount</td>
-           <td id="TOTAL_FOREX_HDR">TOTAL FOREX Remuneration</td>
-           <td id="TXN_CONFIRM_HDR">Transaction Confirmation A Number</td>
-			</tr>
-			<tr>
-				<td></td>
-				<td></td>
-				<td align="center"><input type="button" name="TRX_CONFIRM_BTN" id="TRX_CONFIRM_BTN" value="TRANSACTION CONFIRM" class="sbtn_default" style="width: 150px; height: 20px; color: black;" ></td>
-				<td><input type="text" name="AVG_RATE_FETCHED" id="AVG_RATE_FETCHED" title="Rate Fetched" class="CHAR_P" readonly=""></td>
-				<td><input type="text" name="INR_EQT_AMT" id="INR_EQT_AMT" title="INR Equivalent Amount" class="AMT_P" readonly=""></td>
-				<td><input type="text" name="TOTAL_FOREX" id="TOTAL_FOREX" title="TOTAL FOREX Remuneration" class="AMT_P" readonly=""></td>
-				<td><input type="text" name="TXN_CONF_A_NO" id="TXN_CONF_A_NO" title="ONLINE IDEA Transaction Confirmation A Number" class="CHAR_P" readonly=""></td>
-			</tr>
-		</tbody>
-		</table>
-		</div>
-
-function SYF_IMCC_checkRateButtons() {
-    try {
-  
-var cardAmt = document.getElementById("CARD_RATE_AMT_1").value;
-var onlineamt = document.getElementById("ONLINE_RATE_AMT").value;
- var card_Confirm_no = document.getElementById("CARD_TXN_CONF_A_NO").value;
- var card_ref_no = document.getElementById("CARD_REF_NO").value;
- var online_ref_no = document.getElementById("ONLINE_REF_NO").value;
-  var eefc_amt = document.getElementById("EEFC_RATE_AMT").value;
- var online_Confirm_no = document.getElementById("ONLINE_TXN_CONF_A_NO").value;
- var eefc_Confirm_no = document.getElementById("EEFC_TXN_CONF_A_NO").value;
- var trxconfirm_no = document.getElementById("TXN_CONF_A_NO").value;
-
- // Enable Fetch Rate only when Card Rate Amount is not null
- if((cardAmt == null && cardAmt.trim() == "")|| (card_Confirm_no!="" && card_Confirm_no.trim() != "" )) {
-	  document.getElementById('FETCH_RATE_BTN_1').disabled = true;
-      document.getElementById("FETCH_RATE_BTN_1").style.color = "black"; 
-	   }
- if((onlineamt == null && onlineamt.trim() == "")|| (online_Confirm_no!="" && online_Confirm_no.trim() != "" )) {
-      document.getElementById('FETCH_RATE_BTN_2').disabled = true;
-      document.getElementById("FETCH_RATE_BTN_2").style.color = "black";
- } 
- if((eefc_amt == null && eefc_amt.trim() == "")|| (eefc_Confirm_no!="" && eefc_Confirm_no.trim() != "" )) {
-      document.getElementById('CONFIRM_EEFC_BTN').disabled = true;
-      document.getElementById("CONFIRM_EEFC_BTN").style.color = "black";
- }	
- if((card_ref_no == "" && card_ref_no.trim() == "")||  (card_Confirm_no!="" && card_Confirm_no.trim() != "" )) {
-      document.getElementById('CONFIRM_RATE_BTN_1').disabled = true;
-      document.getElementById("CONFIRM_RATE_BTN_1").style.color = "black";
- }else{
-	  document.getElementById('CONFIRM_RATE_BTN_1').disabled = false;
-      document.getElementById("CONFIRM_RATE_BTN_1").style.color = "";
-}
- if((online_ref_no == "" && online_ref_no.trim() == "")|| (online_Confirm_no!="" && online_Confirm_no.trim() != "" )) {
-      document.getElementById('CONFIRM_RATE_BTN_2').disabled = true;
-      document.getElementById("CONFIRM_RATE_BTN_2").style.color = "black";
- }else{
-	  document.getElementById('CONFIRM_RATE_BTN_2').disabled = false;
-      document.getElementById("CONFIRM_RATE_BTN_2").style.color = "";
-}
- if((cardAmt != "" && card_Confirm_no == "" && card_Confirm_no.trim() == "") || (onlineamt != "" && online_Confirm_no=="" && online_Confirm_no.trim() == "" )|| (eefc_amt != "" && eefc_Confirm_no=="" && eefc_Confirm_no.trim() == "" )) {
-      document.getElementById('TRX_CONFIRM_BTN').disabled = true;
-      document.getElementById("TRX_CONFIRM_BTN").style.color = "black";
- }else{
-	  document.getElementById('TRX_CONFIRM_BTN').disabled = false;
-      document.getElementById("TRX_CONFIRM_BTN").style.color = "";
-}
-
-		document.MAINFORM.READY_RATE.value=document.MAINFORM.AVG_RATE_FETCHED.value;
-		document.MAINFORM.NATIONAL_RATE.value=document.MAINFORM.AVG_RATE_FETCHED.value;
-		document.MAINFORM.DEBIT_AMT_DRWE_LCY.value=document.MAINFORM.INR_EQT_AMT.value;
-		document.MAINFORM.CCY_CONV_AMT.value=document.MAINFORM.INR_EQT_AMT.value;
-		document.MAINFORM.AMT_PAID_COLL_CCY.value=document.MAINFORM.TOTAL_FOREX.value;
-		document.MAINFORM.MTRNS_NO.value=document.MAINFORM.TXN_CONF_A_NO.value;
-    } catch (e) {
-        DisExcpt("SYF_IMCC_Advance_Payment_DEO.js*SYF_IMCC_Ready_Amount_Adv_Pmt", e);
+const rateMap = [
+    {
+        amount: "CARD_RATE_AMT_1",
+        confirm: "CARD_TXN_CONF_A_NO"
+    },
+    {
+        amount: "ONLINE_RATE_AMT",
+        confirm: "ONLINE_TXN_CONF_A_NO"
+    },
+    {
+        amount: "EEFC_RATE_AMT",
+        confirm: "EEFC_TXN_CONF_A_NO"
     }
-}
+];
+
+let disableTxnConfirm = false;
+
+rateMap.forEach(item => {
+    const amount = parseFloat(document.getElementById(item.amount).value) || 0;
+    const confirm = document.getElementById(item.confirm).value.trim();
+
+    // Only consider rates whose amount is greater than zero
+    if (amount > 0 && confirm === "") {
+        disableTxnConfirm = true;
+    }
+});
+
+document.getElementById("TRX_CONFIRM_BTN").disabled = disableTxnConfirm;
+document.getElementById("TRX_CONFIRM_BTN").style.color =
+    disableTxnConfirm ? "black" : "";
