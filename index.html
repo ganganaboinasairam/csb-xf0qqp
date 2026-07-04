@@ -1,30 +1,28 @@
-const rateMap = [
-    {
-        amount: "CARD_RATE_AMT_1",
-        confirm: "CARD_TXN_CONF_A_NO"
-    },
-    {
-        amount: "ONLINE_RATE_AMT",
-        confirm: "ONLINE_TXN_CONF_A_NO"
-    },
-    {
-        amount: "EEFC_RATE_AMT",
-        confirm: "EEFC_TXN_CONF_A_NO"
-    }
+const fetchButtons = [
+    "FETCH_RATE_BTN_1",
+    "FETCH_RATE_BTN_2",
+    "FETCH_RATE_BTN_3",
+    "FETCH_RATE_BTN_4"
 ];
 
-let disableTxnConfirm = false;
+function createFetchLoaders() {
+    fetchButtons.forEach(function(btnId) {
+        const btn = document.getElementById(btnId);
 
-rateMap.forEach(item => {
-    const amount = parseFloat(document.getElementById(item.amount).value) || 0;
-    const confirm = document.getElementById(item.confirm).value.trim();
+        if (!btn) return;
 
-    // Only consider rates whose amount is greater than zero
-    if (amount > 0 && confirm === "") {
-        disableTxnConfirm = true;
-    }
-});
+        // Prevent duplicate loader creation
+        if (document.getElementById(btnId + "_loader")) return;
 
-document.getElementById("TRX_CONFIRM_BTN").disabled = disableTxnConfirm;
-document.getElementById("TRX_CONFIRM_BTN").style.color =
-    disableTxnConfirm ? "black" : "";
+        const loader = document.createElement("img");
+        loader.id = btnId + "_loader";
+        loader.src = "../Images/sbk.gif";
+        loader.style.width = "16px";
+        loader.style.height = "16px";
+        loader.style.marginLeft = "5px";
+        loader.style.verticalAlign = "middle";
+        loader.style.display = "none"; // Initially hidden
+
+        btn.insertAdjacentElement("afterend", loader);
+    });
+}
