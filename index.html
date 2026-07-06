@@ -2145,4 +2145,140 @@ public class TemplateDao {
       return count;
    }
 }
-    
+package com.cs.ceweb.servlets;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Central configuration for every transaction "module" (INIS, BGIS, FWCO, ...).
+ * Replaces the ~12-way if/else ladders that used to appear in nearly every method
+ * of TemplateDao with a single lookup keyed by tempCodeName.
+ *
+ * ============================================================================
+ * BUGS FOUND IN THE LEGACY CODE (please confirm with business/QA before relying
+ * on the corrected behaviour below - some systems may have grown to depend on
+ * the broken behaviour):
+ *
+ * 1) CRITICAL - deleteTemplate() never committed. After a successful insert into
+ *    TRX_SYS_ACESS_LOG, the code did:
+ *        if (count > 0) { isError = false; }
+ *        isError = true;   // <-- unconditionally overwrites the line above
+ *    so the finally block always called conn.rollback(). Every "delete" and its
+ *    audit-log entry were rolled back, even though the method returned a count > 0.
+ *    Fixed in this rewrite so a successful delete actually commits.
+ *
+ * 2) getData(): the IMCP branch had
+ *        "... T_FUNC_ID = 'F05030701187' OR T_FUNC_ID='F05030701328' AND C_UNIT_CODE = ?"
+ *    Because the OR/AND weren't parenthesised, the C_UNIT_CODE/C_CREATED_BU
+ *    filters were skipped whenever the first func id matched. Fixed with parens.
+ *
+ * 3) deleteTemplate(): the FRTI branch inserted C_MODULE = 'DRTI' (not 'FRTI')
+ *    into TRX_SYS_ACESS_LOG - a copy/paste leftover from the DRTI branch above it.
+ *    Fixed to 'FRTI'.
+ *
+ * 4) deleteLCValuesAmend(): the "demerge" UPDATE ... TRX_INBOX statement had a
+ *    WHERE C_MODULE = 'B' for every module except IMIS (a stray truncated
+ *    literal), and for INIS specifically the whole block was copy-pasted from
+ *    BGIS (both SET and WHERE said C_MODULE = 'BGIS'). Net effect: this update
+ *    never matched any row for INIS/BGIS/BGIF/IWGT/FWCO/EXND/IMCP/EXBC/EPCM/
+ *    SHGT/DRTI/FRTI - only IMIS actually worked. Fixed so every module updates
+ *    its own C_MODULE value.
+ *
+ * 5) IWGT was only ever handled in updateLock_T/_F, deleteLCValuesAmend/Issue and
+ *    getLCValues - never in getData(), deleteTemplate(), or getDraftsData(). Those
+ *    three methods silently fell back to the IMIS/default branch for an IWGT
+ *    request. This rewrite resolves IWGT consistently everywhere, which is a
+ *    behaviour change for those three methods - please confirm this is desired.
+ *
+ * 6) FRTI's productId in getDraftsData() was set to the FUNC_ID string
+ *    ("F05030702023") rather than a real P-style product id. Preserved as-is
+ *    below since I can't tell if that's intentional, but it looks suspicious.
+ * ============================================================================
+ */
+public enum TrxModule {
+
+    INIS("F05030701043", "Inland LC Issue",                    "P10091400000", "INIS", Beneficiary.single("BENE_NM_ADD")),
+    BGIS("F05030701028", "Application for Bank Guarantee",     "P10092700000", "BGIS", Beneficiary.single("BENE_NM")),
+    BGIF("SDpSXbrM1HEM", "Application for Bank Guarantee",     "o5tafMyTPxqd", "BGIS", Beneficiary.single("BENE_NM")),
+    IWGT("kWJWHi9kqEOV", "Inward Guarantee",                   "P10091400002", "IWGT", Beneficiary.single("BENE_NM")),
+    FWCO("F05030701664", "Forward Contract",                   "P11080900000", "FWCO", Beneficiary.composite("BOOKING_FORN_CCY_AMT", "FORN_CCY_ID_BOOKING")),
+    EXND("F05030701268", "Advance Payment - EXND",             "P11030900000", "EXND", Beneficiary.single("APPL_NM")),
+    IMCP("F05030701187", "Register Advance Payment",           "P11070900000", "IMCP", Beneficiary.single("DRWR_NM")),
+    EXBC("F05030700976", "My Export Collection Bill Lodgement","P10082600000", "EXBC", Beneficiary.single("DRWE_NM")),
+    EPCM("F05030702001", "EPCM Disbursement Request",          "P11081600000", "EPCM", Beneficiary.composite("LOAN_AMT_REQD", "PCFC_CCY")),
+    SHGT("F04837798368", "Shipping Guarantee",                 "P18791374070", "SHGT", Beneficiary.single("BENE_NM")),
+    DRTI("F05030702012", "DRTI Initiation",                    "P20250521001", "DRTI", Beneficiary.single("BENE_NM")),
+    // productId below is preserved verbatim from the legacy code - see note (6) above.
+    FRTI("F05030702023", "FRTI Initiation",                    "F05030702023", "FRTI", Beneficiary.single("BENE_NM")),
+    IMIS("F05030700984", "Import LC Issue",                    "P10091400002", "IMIS", Beneficiary.single("BENE_NM_ADD"));
+
+    /** T_FUNC_ID / C_LOCK_FUNC_ID value for this module. */
+    public final String funcId;
+    /** Human readable name used in audit logs. */
+    public final String funcName;
+    /** C_PRODUCT_ID used when pulling draft transactions from TRX_INBOX. */
+    public final String productId;
+    /** Prefix for the module's own tables (XXXX_MASTER/_EVENT/_LEDGER/_AUTH) and the C_MODULE value in shared tables. */
+    public final String tablePrefix;
+    /** How to pull the counterparty/beneficiary name out of the T_CONTENT XML blob. */
+    public final Beneficiary beneficiary;
+
+    TrxModule(String funcId, String funcName, String productId, String tablePrefix, Beneficiary beneficiary) {
+        this.funcId = funcId;
+        this.funcName = funcName;
+        this.productId = productId;
+        this.tablePrefix = tablePrefix;
+        this.beneficiary = beneficiary;
+    }
+
+    private static final Map<String, TrxModule> BY_CODE = new HashMap<>();
+    static {
+        for (TrxModule m : values()) {
+            BY_CODE.put(m.name(), m);
+        }
+    }
+
+    /**
+     * Resolves a tempCodeName to its module, falling back to IMIS to match the
+     * legacy "else" branch that every switch-like chain ended with. Uses
+     * equalsIgnoreCase semantics (via uppercasing) instead of the legacy code's
+     * mix of == and equalsIgnoreCase, which only happened to work before because
+     * of String literal interning.
+     */
+    public static TrxModule resolve(String tempCodeName) {
+        if (tempCodeName == null) {
+            return IMIS;
+        }
+        TrxModule m = BY_CODE.get(tempCodeName.trim().toUpperCase());
+        return m != null ? m : IMIS;
+    }
+
+    public String master() { return "CETRX." + tablePrefix + "_MASTER"; }
+    public String event()  { return "CETRX." + tablePrefix + "_EVENT"; }
+    public String ledger() { return "CETRX." + tablePrefix + "_LEDGER"; }
+    public String auth()   { return "CETRX." + tablePrefix + "_AUTH"; }
+
+    /** Single-tag or composite (amount+currency style) extraction config. */
+    public static final class Beneficiary {
+        public final String tag1;
+        public final String tag2; // null => single tag extraction
+
+        private Beneficiary(String tag1, String tag2) {
+            this.tag1 = tag1;
+            this.tag2 = tag2;
+        }
+
+        public static Beneficiary single(String tag) {
+            return new Beneficiary(tag, null);
+        }
+
+        public static Beneficiary composite(String amountTag, String currencyTag) {
+            return new Beneficiary(amountTag, currencyTag);
+        }
+
+        public boolean isComposite() {
+            return tag2 != null;
+        }
+    }
+}
