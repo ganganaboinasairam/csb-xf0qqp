@@ -1,61 +1,21 @@
-function parseIRDetails(html) {
-  const records = [];
 
-  const textareaRegex = /<textarea[^>]*>([\s\S]*?)<\/textarea>/g;
-  const irNumberRegex = /IR Number:\s*(\d+)/g;
-  const statusRegex = /STATUS:\s*([A-Z\s]+?)<\/p>/g;
-
-  const textareas = [...html.matchAll(textareaRegex)].map(m => m[1]);
-  const irNumbers = [...html.matchAll(irNumberRegex)].map(m => m[1]);
-  const statuses = [...html.matchAll(statusRegex)].map(m => m[1].trim());
-
-  textareas.forEach((raw, i) => {
-    const refMatch = raw.match(/(TF[A-Z]{2}-\d{8}-\d+)/);
-    const descMatch = raw.match(/Desc:([\s\S]*?)\/UAT-HASH/);
-
-    records.push({
-      irNumber: irNumbers[i] || null,
-      reference: refMatch ? refMatch[1] : null,
-      status: statuses[i] || null,
-      description: descMatch
-        ? descMatch[1].trim().replace(/\s+/g, ' ')
-        : raw.trim().replace(/\s+/g, ' ')
-    });
-  });
-
-  return records;
-}
-
-async function fetchAndRenderIRTable(url, targetElementId) {
-  try {
-    const res = await fetch(url);
-    const html = await res.text();
-    const records = parseIRDetails(html);
-    renderTable(records, targetElementId);
-    return records;
-  } catch (err) {
-    console.error('Fetch failed:', err);
-    document.getElementById(targetElementId).innerHTML =
-      `<p style="color:red">Error fetching data: ${err.message}</p>`;
-  }
-}
-
-function renderTable(records, targetElementId) {
-  const container = document.getElementById(targetElementId);
-  let html = `<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%">
-    <thead>
-      <tr><th>IR Number</th><th>Reference</th><th>Status</th><th>Description</th></tr>
-    </thead><tbody>`;
-
-  records.forEach(r => {
-    html += `<tr>
-      <td>${r.irNumber ?? ''}</td>
-      <td>${r.reference ?? ''}</td>
-      <td>${r.status ?? ''}</td>
-      <td>${r.description ?? ''}</td>
-    </tr>`;
-  });
-
-  html += `</tbody></table>`;
-  container.innerHTML = html;
-}
+\\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\lib\Rate_InqGapi.jar-arc(Rate_InqGapi.jar)
+-----------------------------------
+Rev 4.1
+Checked in:     Jun 30 2026 20:16:32
+Last modified:  Jun 30 2026 15:12:02
+Author id: tfml     lines deleted/added/moved: 0/0/0
+Detachment done as per developer request on 01/07/2026 from Amadabakula Vivek
+-----------------------------------
+Rev 4.0
+Checked in:     Mar 09 2026 20:13:54
+Last modified:  Mar 05 2026 12:56:20
+Author id: tfml     lines deleted/added/moved: 0/0/0
+Detachment done as per developer request on 17/03/2026 from Naga Ganesh
+-----------------------------------
+Rev 1.0
+Checked in:     Mar 09 2026 20:13:18
+Last modified:  Mar 05 2026 12:56:20
+Author id: tfml     lines deleted/added/moved: 0/0/0
+Initial revision.
+===================================
