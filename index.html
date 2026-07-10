@@ -1,71 +1,25 @@
-var main_ref = document.MAINFORM.C_MAIN_REF.value;
-var sFieldList = "OFAC_HIT_COUNT;I_EVENT_TIMES;T_CREA_TIME;C_FUNC_SHORT_NAME";
-            var sTableName = "EXIMTRX.IMCC_LEDGER";
-            var sSQLWhere =  "C_MAIN_REF='" + main_ref + "' order by I_EVENT_TIMES DESC";
-            SYS_GetTableMultiDataToArray_S(sTableName, sSQLWhere, sFieldList);
- 
- if (!SYS_MULTI_DATA || SYS_MULTI_DATA.length === 0) return false;
-
-    // Helper to extract column
-    function getColumn(colName) {
-        for (var i = 0; i < SYS_MULTI_DATA.length; i++) {
-            if (SYS_MULTI_DATA[i][0] === colName) {
-                return SYS_MULTI_DATA[i][1];
-            }
-        }
-        return [];
-    }
-
+function hasOfacHitCountIncreased() {
     var ofacCount = getColumn("OFAC_HIT_COUNT");
     var shortName = getColumn("C_FUNC_SHORT_NAME");
-    var eventTime = getColumn("I_EVENT_TIMES");
-    var creaTime = getColumn("T_CREA_TIME");
-      
-      
-      
-      write a function to find the last 2 events with the C_FUNC_SHORT_NAME = 'IMCC_DEO_DIRPAY' and compare OFAC_HIT_COUNT of both events and if the latest event has more OFAC_HIT_COUNT then return true
-      
-      
-      
-      SYS_MULTI_DATA = [
-   [
-      "OFAC_HIT_COUNT",
-      [
-         "2",
-         " ",
-         "1",
-         " ",
-             "1"
-      ]
-   ],
-   [
-      "I_EVENT_TIMES",
-      [
-         "5",
-         "4",
-         "3",
-         "2",
-         "1"
-      ]
-   ],
-   [
-      "T_CREA_TIME",
-      [
-         "2026-07-10 16:46:00",
-         "2026-07-10 16:45:00",
-         "2026-07-10 16:44:58",
-         "2026-07-10 16:43:21",
-         "2026-07-10 16:39:32"
-      ]
-   ],
-   [
-      "C_FUNC_SHORT_NAME",
-      [
-         "ABC",
-         "IMCC_DEO_DIRPAY",
-         "IMCC_NEWOFAC_CO",
-         "IMCC_DEO_DIRPAY",
-         "IMCC_BRU_DIRPAY"
-      ]
-   ]
-]
+
+    var latest = null;
+    var previous = null;
+
+    for (var i = 0; i < shortName.length; i++) {
+        if (shortName[i] === "IMCC_DEO_DIRPAY") {
+            if (latest === null) {
+                latest = parseInt(ofacCount[i], 10) || 0;
+            } else {
+                previous = parseInt(ofacCount[i], 10) || 0;
+                break;
+            }
+        }
+    }
+
+    // Less than 2 matching events
+    if (latest === null || previous === null) {
+        return false;
+    }
+
+    return latest > previous;
+}
