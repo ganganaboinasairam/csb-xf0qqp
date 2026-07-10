@@ -1,95 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Archive Text to JSON</title>
-<style>
-body{font-family:Arial,sans-serif;background:#f4f4f4;margin:20px}
-h2{margin-top:0}
-textarea{width:100%;height:280px;font-family:Consolas,monospace}
-pre{background:#111;color:#0f0;padding:10px;white-space:pre-wrap;max-height:450px;overflow:auto}
-button{padding:8px 14px;margin:5px}
-#stats{margin:10px 0;font-weight:bold}
-</style>
-</head>
-<body>
-<h2>Archive Text → JSON Converter</h2>
 
-<textarea id="input" placeholder="Paste archive text here..."></textarea><br>
+Change History
 
-<button onclick="convert()">Convert</button>
-<button onclick="copyJson()">Copy JSON</button>
-<button onclick="downloadJson()">Download JSON</button>
-<button onclick="clearAll()">Clear</button>
+Archive:          \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\Default\VCH\vch_XnA0v6VI3rhU.js-arc
+Workfile:         vch_XnA0v6VI3rhU.js
+Archive created:  Aug 19 2025 17:35:48
+Split mode:       Split \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\Default\VCH\vch_XnA0v6VI3rhU.js-arc
+Owner:            tfml
+Last trunk rev:   4.1
+Locks:            
+Groups:           
+Rev count:        3
+Attributes:
+   WRITEPROTECT
+   CHECKLOCK
+   NOEXCLUSIVELOCK
+   EXPANDKEYWORDS
+   TRANSLATE
+   NOCOMPRESSDELTA
+   NOCOMPRESSWORKIMAGE
+   GENERATEDELTA
+   COMMENTPREFIX = ""
+   NEWLINE = "\r\n"
+Version labels:
+   "25080098" = 4.0
+   "26020175" = 4.1
+Description:
+new
 
-<div id="stats"></div>
-<pre id="output"></pre>
-
-<script>
-let jsonResult=[];
-
-function convert(){
- const txt=document.getElementById("input").value.replace(/\r/g,"");
- const blocks=txt.split("===================================").map(b=>b.trim()).filter(Boolean);
- const files=[];
-
- blocks.forEach(block=>{
-   const lines=block.split("\n").map(l=>l.trim()).filter(Boolean);
-   if(!lines.length) return;
-
-   const file={filePath:lines[0],revisions:[]};
-   let rev=null;
-   for(let i=1;i<lines.length;i++){
-      const line=lines[i];
-
-      let m;
-      if(m=line.match(/^Rev\s+(.+)$/)){
-         if(rev) file.revisions.push(rev);
-         rev={revision:m[1]};
-      }else if(rev && (m=line.match(/^Checked in:\s+(.*)$/))){
-         rev.checkedIn=m[1];
-      }else if(rev && (m=line.match(/^Last modified:\s+(.*)$/))){
-         rev.lastModified=m[1];
-      }else if(rev && (m=line.match(/^Author id:\s+(\S+)\s+lines deleted\/added\/moved:\s+(\d+)\/(\d+)\/(\d+)/))){
-         rev.authorId=m[1];
-         rev.linesDeleted=Number(m[2]);
-         rev.linesAdded=Number(m[3]);
-         rev.linesMoved=Number(m[4]);
-      }else if(rev){
-         rev.remarks=rev.remarks?rev.remarks+" "+line:line;
-      }
-   }
-   if(rev) file.revisions.push(rev);
-   files.push(file);
- });
-
- jsonResult=files;
- document.getElementById("output").textContent=JSON.stringify(files,null,2);
- const revs=files.reduce((a,b)=>a+b.revisions.length,0);
- document.getElementById("stats").textContent=
-   `Files Parsed: ${files.length} | Revisions Parsed: ${revs}`;
-}
-
-function copyJson(){
- navigator.clipboard.writeText(JSON.stringify(jsonResult,null,2));
- alert("JSON copied.");
-}
-
-function downloadJson(){
- const blob=new Blob([JSON.stringify(jsonResult,null,2)],{type:"application/json"});
- const a=document.createElement("a");
- a.href=URL.createObjectURL(blob);
- a.download="archive.json";
- a.click();
- URL.revokeObjectURL(a.href);
-}
-
-function clearAll(){
- document.getElementById("input").value="";
- document.getElementById("output").textContent="";
- document.getElementById("stats").textContent="";
- jsonResult=[];
-}
-</script>
-</body>
-</html>
+===================================
