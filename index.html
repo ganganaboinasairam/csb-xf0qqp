@@ -1,15 +1,58 @@
-const versionLabels = JSON.parse(vesion_lables);
-const crStatusArray = JSON.parse(CR_Status);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Archive Text to JSON</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f4f4f4;margin:20px}
+h2{margin-top:0}
+textarea{width:100%;height:280px;font-family:Consolas,monospace}
+pre{background:#111;color:#0f0;padding:10px;white-space:pre-wrap;max-height:450px;overflow:auto}
+button{padding:8px 14px;margin:5px}
+#stats{margin:10px 0;font-weight:bold}
+</style>
+</head>
+<body>
+<h2>Archive Text → JSON Converter</h2>
+<input type="hidden" id="version_label"/>
+<input type="hidden" id="cr_list"/>
+<input type="hidden" id="cr_status"/>
+<input id="ourCR" placeholder="Your CR Number"/>
 
-// Convert array to lookup object
-const crStatus = {};
+<textarea id="input" placeholder="Paste archive text here..."></textarea><br>
 
-crStatusArray.forEach(obj => {
-    const key = Object.keys(obj)[0];
-    crStatus[key] = obj[key];
-});
+<button onclick="checkDepen()">Check Dependencies</button>
+<button onclick="clearAll()">Clear</button>
 
+<div id="stats"></div>
+<pre id="output"></pre>
+
+<script>
+let jsonResult=[];
+
+function checkDepen(){
+ const json = convertToJson(document.getElementById("input").value);
+ const ourCR = document.getElementById('ourCR').value;
+ document.getElementById('version_label').value=JSON.stringify(json[0].versionLabels);
+ document.getElementById('cr_list').value=JSON.stringify(Object.keys(json[0].versionLabels)).replaceAll('"','').replace('[','').replace(']','');
+ getSubLine();
+	
+ const depen = checkDependencies(ourCR)
+ document.getElementById('output').textContent = JSON.stringify(depen,null,2)
+ 
+}
 function checkDependencies(crNo) {
+
+const versionLabels = JSON.parse(document.getElementById('version_label').value);
+	const crStatusArray = JSON.parse(document.getElementById('cr_status').value);
+
+	// Convert array to lookup object
+	const crStatus = {};
+
+	crStatusArray.forEach(obj => {
+		const key = Object.keys(obj)[0];
+		crStatus[key] = obj[key];
+	});
 
     const currentRevision = versionLabels[crNo];
 
@@ -23,9 +66,9 @@ function checkDependencies(crNo) {
     Object.entries(versionLabels).forEach(([cr, rev]) => {
 
         // Dependency
-        if (compareRevision(rev, currentRevision) <= 0) {
+        if (compareRevision(rev, currentRevision) < 0) {
 
-            if (crStatus[cr] === "WBT APPROVED") {
+            if (crStatus[cr] != "PROD PROMOTED") {
                 blocked.push({
                     cr: cr,
                     revision: rev,
@@ -42,6 +85,8 @@ function checkDependencies(crNo) {
         console.table(blocked);
         alert("Found " + blocked.length + " dependency(s) in WBT APPROVED.");
     }
+	
+	return blocked;
 }
 
 function compareRevision(r1, r2) {
@@ -62,3 +107,162 @@ function compareRevision(r1, r2) {
 
     return 0;
 }
+
+
+
+function clearAll(){
+ document.getElementById("input").value="";
+ document.getElementById("output").textContent="";
+ document.getElementById("stats").textContent="";
+ jsonResult=[];
+}
+
+function convertToJson(text) {
+    const blocks = text
+        .replace(/\r/g, "")
+        .split("===================================")
+        .map(b => b.trim())
+        .filter(b => b.length);
+
+    return blocks.map(parseBlock);
+}
+
+function parseBlock(block) {
+
+    const obj = {
+        attributes: [],
+        versionLabels: {}
+    };
+
+    const lines = block.split("\n");
+
+    let section = "";
+
+    for (let line of lines) {
+
+        line = line.trim();
+
+        if (!line || line === "Change History")
+            continue;
+
+        if (line.startsWith("Archive:")) {
+            obj.archive = line.replace("Archive:", "").trim();
+        }
+        else if (line.startsWith("Workfile:")) {
+            obj.workfile = line.replace("Workfile:", "").trim();
+        }
+        else if (line.startsWith("Archive created:")) {
+            obj.archiveCreated = line.replace("Archive created:", "").trim();
+        }
+        else if (line.startsWith("Split mode:")) {
+            obj.splitMode = line.replace("Split mode:", "").trim();
+        }
+        else if (line.startsWith("Owner:")) {
+            obj.owner = line.replace("Owner:", "").trim();
+        }
+        else if (line.startsWith("Last trunk rev:")) {
+            obj.lastTrunkRevision = line.replace("Last trunk rev:", "").trim();
+        }
+        else if (line.startsWith("Locks:")) {
+            obj.locks = line.replace("Locks:", "").trim();
+        }
+        else if (line.startsWith("Groups:")) {
+            obj.groups = line.replace("Groups:", "").trim();
+        }
+        else if (line.startsWith("Rev count:")) {
+            obj.revisionCount = Number(line.replace("Rev count:", "").trim());
+        }
+        else if (line === "Attributes:") {
+            section = "attributes";
+        }
+        else if (line === "Version labels:") {
+            section = "labels";
+        }
+        else if (line === "Description:") {
+            section = "description";
+            obj.description = "";
+        }
+        else if (section === "attributes") {
+
+            if (line.includes("=")) {
+
+                const [key, value] = line.split("=");
+
+                obj[key.trim()] = value.trim().replace(/^"|"$/g, "");
+
+            } else {
+
+                obj.attributes.push(line);
+
+            }
+
+        }
+        else if (section === "labels") {
+
+            const match = line.match(/"(.+?)"\s*=\s*(.+)/);
+
+            if (match) {
+                obj.versionLabels[match[1]] = match[2];
+            }
+
+        }
+        else if (section === "description") {
+
+            obj.description += (obj.description ? "\n" : "") + line;
+
+        }
+    }
+	
+    return obj;
+}
+
+const BASE = 'https://irtracking.statebanktimes.in';
+    const CGI = BASE + '/CGI/Get%20Details/getCompsFromNewJournal_TF.cgi?ir=';
+    const IR_DESC = BASE + '/CGI/Utilities/GetSubjectline.cgi?ir=';
+
+async function getSubLine(){
+
+
+        const param = document.getElementById('cr_list').value;
+        const resp =await fetch(IR_DESC + param,
+        { cache: 'no-store' }
+        );
+
+        if (!resp.ok) {
+          throw new Error(resp.status);
+        }
+
+        const html = await resp.text();
+        
+        const irStatusArr = parseIRDetails(html);
+		
+		document.getElementById('cr_status').value=JSON.stringify(irStatusArr)
+
+        
+      }
+
+
+      
+      function parseIRDetails(html) {
+    	 
+    	  const IRStatus = [];
+
+    	  const textareaRegex = /<textarea[^>]*>([\s\S]*?)<\/textarea>/g;
+    	  const irNumberRegex = /IR Number:\s*(\d+)/g;
+    	  const statusRegex = /STATUS:\s*([A-Z\s]+?)<\/p>/g;
+
+    	  const textareas = [...html.matchAll(textareaRegex)].map(m => m[1]);
+    	  const irNumbers = [...html.matchAll(irNumberRegex)].map(m => m[1]);
+    	  const statuses = [...html.matchAll(statusRegex)].map(m => m[1].trim());
+
+    	  textareas.forEach((raw, i) => {
+    	    IRStatus.push({
+    	    	[irNumbers[i]]:statuses[i]
+    	    })
+    	  });
+
+    	  return IRStatus;
+    	}
+</script>
+</body>
+</html>
