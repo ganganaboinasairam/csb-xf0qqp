@@ -1,9 +1,14 @@
-const vesion_lables = '{"25080098":"4.1","25090164":"4.16","25090166":"4.27","25100174":"4.37","25110039":"4.47","25110041":"4.46","25110096":"4.2","25110115":"4.20","25110132":"4.8","25120116":"4.18","25120176":"4.17","26010237":"4.34","26020027":"4.38","26020147":"4.29","26030018":"4.61","26030159":"4.55","26050050":"4.58","A926":"4.20.1.0"}'
+Hi SIT Team,
 
+We have identified that a few promoted components are missing from the ST environment.
 
+The latest revisions are available in PVCS, but the corresponding files are not present in ST. We also attempted to promote the components again; however, the promotion is not proceeding because the system displays the message "Same revision is already present."
 
-const CR_Status = '[{"26020027":"PROD PROMOTED"},{"26050050":"UNDER UAT"},{"26030159":"PROD PROMOTED"},{"25110132":"PROD PROMOTED"},{"25080098":"PROD PROMOTED"},{"25090166":"PROD PROMOTED"},{"25100174":"PROD PROMOTED"},{"25110039":"PROD PROMOTED"},{"25110041":"PROD PROMOTED"},{"25110096":"PROD PROMOTED"},{"25110115":"PROD PROMOTED"},{"25120116":"PROD PROMOTED"},{"25120176":"PROD PROMOTED"},{"26010237":"PROD PROMOTED"},{"26020147":UNDER UAT},{"26030018":"WBT APPROVED"},{"25090164":"PROD PROMOTED"}]'
+As a result, we are unable to restore the missing files in ST from our end.
 
+Could you please verify the issue and help synchronize the missing components in the ST environment?
 
+Please let us know if you need the list of affected components or any additional details.
 
-i have 2 json objects now , i will give one CR number as input in anu field in the screen like "CRR_CR" the function should check the dependencies on the given CR, if the code of any "WBT APPROVED" CR is contains in given CR then it should display ,"UNDER UAT" and "PROD PROMOTED" are OK.
+Thanks,
+Ganganaboina Sairam
