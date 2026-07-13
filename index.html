@@ -1,3 +1,442 @@
-Identifying missing components only during ST testing or while executing transactions will significantly delay the testing process.
-The issue is not limited to the components promoted as part of the current CR. We have observed that some previously promoted components are also missing from the ST environment, and several of them are dependencies for the current functionality. As a result, we may encounter missing components one after another during testing, leading to repeated interruptions and delays.
-Request you to verify and restore the missing components in the ST environment before testing so that ST execution can proceed smoothly without unexpected failures.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Archive Text to JSON — Dependency Checker</title>
+<style>
+body {
+	font-family: Arial, sans-serif;
+	background: #f4f4f4;
+	margin: 20px
+}
+
+h2 {
+	margin-top: 0
+}
+
+textarea {
+	width: 100%;
+	height: 280px;
+	font-family: Consolas, monospace;
+	box-sizing: border-box
+}
+
+input[type=text], #ourCR {
+	padding: 6px;
+	font-size: 14px;
+	width: 220px
+}
+
+button {
+	padding: 8px 14px;
+	margin: 5px 5px 5px 0;
+	cursor: pointer
+}
+
+button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed
+}
+
+#stats {
+	margin: 12px 0;
+	font-weight: bold
+}
+
+#stats.error {
+	color: #b00020
+}
+
+#stats.ok {
+	color: #0a7a0a
+}
+
+table {
+	border-collapse: collapse;
+	width: 100%;
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, .15)
+}
+
+th, td {
+	border: 1px solid #ddd;
+	padding: 8px 10px;
+	text-align: left;
+	font-size: 13px
+}
+
+th {
+	background: #222;
+	color: #fff;
+	position: sticky;
+	top: 0
+}
+
+tr:nth-child(even) {
+	background: #f8f8f8
+}
+
+tr.blocked td {
+	color: #b00020;
+	font-weight: bold
+}
+
+.badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 10px;
+	font-size: 11px;
+	color: #fff
+}
+
+.badge.blocked {
+	background: #b00020
+}
+
+.badge.ok {
+	background: #0a7a0a
+}
+
+#spinner {
+	display: none;
+	font-style: italic;
+	color: #555
+}
+</style>
+</head>
+<body>
+	<h2>Dependency Checker</h2>
+
+	<textarea id="input"
+		placeholder="Paste one or more archive text blocks here (separated by the standard '===...===' divider)..."></textarea>
+	<br>
+
+	<label for="ourCR">Your CR Number:</label>
+	<br>
+	<input type="text" id="ourCR" placeholder="e.g. 123456" />
+	<br>
+
+	<button id="checkBtn" onclick="checkDepen()">Check
+		Dependencies</button>
+	<button onclick="clearAll()">Clear</button>
+	<span id="spinner">Fetching CR statuses…</span>
+
+	<div id="stats"></div>
+	<div id="output"></div>
+
+	<script>
+const BASE = 'https://irtracking.statebanktimes.in';
+const IR_DESC = BASE + '/CGI/Utilities/GetSubjectline.cgi?ir=';
+
+// ---------- UI helpers ----------
+
+function setStats(msg, cls){
+  const el = document.getElementById('stats');
+  el.textContent = msg;
+  el.className = cls || '';
+}
+
+function clearAll(){
+  document.getElementById('input').value = '';
+  document.getElementById('ourCR').value = '';
+  document.getElementById('output').innerHTML = '';
+  setStats('');
+}
+
+// ---------- parsing ----------
+
+function convertToJson(text) {
+  const blocks = text
+    .replace(/\r/g, "")
+    .split("===================================")
+    .map(b => b.trim())
+    .filter(b => b.length);
+
+  return blocks.map(parseBlock);
+}
+
+function parseBlock(block) {
+  const obj = {
+    attributes: [],
+    versionLabels: {}
+  };
+
+  const lines = block.split("\n");
+  let section = "";
+
+  for (let line of lines) {
+    line = line.trim();
+
+    if (!line || line === "Change History") continue;
+
+    if (line.startsWith("Archive:")) {
+      obj.archive = line.replace("Archive:", "").trim();
+    }
+    else if (line.startsWith("Workfile:")) {
+      obj.workfile = line.replace("Workfile:", "").trim();
+    }
+    else if (line.startsWith("Archive created:")) {
+      obj.archiveCreated = line.replace("Archive created:", "").trim();
+    }
+    else if (line.startsWith("Split mode:")) {
+      obj.splitMode = line.replace("Split mode:", "").trim();
+    }
+    else if (line.startsWith("Owner:")) {
+      obj.owner = line.replace("Owner:", "").trim();
+    }
+    else if (line.startsWith("Last trunk rev:")) {
+      obj.lastTrunkRevision = line.replace("Last trunk rev:", "").trim();
+    }
+    else if (line.startsWith("Locks:")) {
+      obj.locks = line.replace("Locks:", "").trim();
+    }
+    else if (line.startsWith("Groups:")) {
+      obj.groups = line.replace("Groups:", "").trim();
+    }
+    else if (line.startsWith("Rev count:")) {
+      obj.revisionCount = Number(line.replace("Rev count:", "").trim());
+    }
+    else if (line === "Attributes:") {
+      section = "attributes";
+    }
+    else if (line === "Version labels:") {
+      section = "labels";
+    }
+    else if (line === "Description:") {
+      section = "description";
+      obj.description = "";
+    }
+    else if (section === "attributes") {
+      if (line.includes("=")) {
+        const [key, value] = line.split("=");
+        obj[key.trim()] = value.trim().replace(/^"|"$/g, "");
+      } else {
+        obj.attributes.push(line);
+      }
+    }
+    else if (section === "labels") {
+      const match = line.match(/"(.+?)"\s*=\s*(.+)/);
+      if (match) {
+        obj.versionLabels[match[1]] = match[2];
+      }
+    }
+    else if (section === "description") {
+      obj.description += (obj.description ? "\n" : "") + line;
+    }
+  }
+
+  return obj;
+}
+
+// ---------- revision comparison ----------
+
+function compareRevision(r1, r2) {
+  const a = r1.split(".").map(Number);
+  const b = r2.split(".").map(Number);
+  const len = Math.max(a.length, b.length);
+
+  for (let i = 0; i < len; i++) {
+    const x = a[i] || 0;
+    const y = b[i] || 0;
+    if (x > y) return 1;
+    if (x < y) return -1;
+  }
+  return 0;
+}
+
+// ---------- remote status lookup ----------
+
+// Fetches statuses for a list of CR numbers in a single request and
+// returns a lookup object { crNumber: status }.
+async function getCrStatuses(crList) {
+  if (crList.length === 0) return {};
+
+  const param = crList.join(',');
+  const resp = await fetch(IR_DESC + param, { cache: 'no-store' });
+
+  if (!resp.ok) {
+    throw new Error('IR status request failed (HTTP ' + resp.status + ')');
+  }
+
+  const html = await resp.text();
+  const parsed = parseIRDetails(html);
+
+  const lookup = {};
+  parsed.forEach(obj => {
+    const key = Object.keys(obj)[0];
+    lookup[key] = obj[key];
+  });
+  return lookup;
+}
+
+function parseIRDetails(html) {
+  const IRStatus = [];
+
+  const textareaRegex = /<textarea[^>]*>([\s\S]*?)<\/textarea>/g;
+  const irNumberRegex = /IR Number:\s*(\d+)/g;
+  const statusRegex = /STATUS:\s*([A-Z\s]+?)<\/p>/g;
+
+  const textareas = [...html.matchAll(textareaRegex)].map(m => m[1]);
+  const irNumbers = [...html.matchAll(irNumberRegex)].map(m => m[1]);
+  const statuses = [...html.matchAll(statusRegex)].map(m => m[1].trim());
+
+  textareas.forEach((raw, i) => {
+    IRStatus.push({ [irNumbers[i]]: statuses[i] });
+  });
+
+  return IRStatus;
+}
+
+// ---------- dependency logic ----------
+
+// Given one archive's versionLabels and the CR being checked, return
+// the list of blocking entries for that archive.
+let isLatestprodPromoted = false;
+
+function findBlockedForArchive(versionLabels, ourCR, crStatus) {
+  const currentRevision = versionLabels[ourCR];
+  if (!currentRevision) return null; // this archive doesn't mention ourCR
+
+  const blocked = [];
+  Object.entries(versionLabels).forEach(([cr, rev]) => {
+    if (compareRevision(rev, currentRevision) < 0) {
+      const status = crStatus[cr] || 'UNKNOWN';
+      if (status !== 'PROD PROMOTED') {
+        blocked.push({ cr, revision: rev, status });
+      }
+    }else if(compareRevision(rev, currentRevision) > 0){
+		const status = crStatus[cr] || 'UNKNOWN';
+		if (status === 'PROD PROMOTED') {
+        
+		isLatestprodPromoted =  true;
+      }
+	}
+  });
+  return blocked;
+}
+
+// ---------- main flow ----------
+
+async function checkDepen(){
+  const btn = document.getElementById('checkBtn');
+  const spinner = document.getElementById('spinner');
+  const output = document.getElementById('output');
+  const ourCR = document.getElementById('ourCR').value.trim();
+  const rawText = document.getElementById('input').value;
+
+  output.innerHTML = '';
+
+  if (!ourCR) {
+    setStats('Please enter your CR number.', 'error');
+    return;
+  }
+  if (!rawText.trim()) {
+    setStats('Please paste archive text first.', 'error');
+    return;
+  }
+
+  let blocks;
+  try {
+    blocks = convertToJson(rawText);
+  } catch (e) {
+    setStats('Could not parse the archive text: ' + e.message, 'error');
+    return;
+  }
+
+  if (blocks.length === 0) {
+    setStats('No archive blocks found in the pasted text.', 'error');
+    return;
+  }
+
+  // Collect every CR referenced across ALL pasted archives so we only
+  // make a single status request no matter how many files were pasted.
+  const allCRs = new Set();
+  blocks.forEach(b => Object.keys(b.versionLabels).forEach(cr => allCRs.add(cr)));
+
+  btn.disabled = true;
+  spinner.style.display = 'inline';
+  setStats('Fetching statuses for ' + allCRs.size + ' CR(s) across ' + blocks.length + ' archive(s)…');
+
+  let crStatus;
+  try {
+    // This is now correctly awaited before dependency checking runs,
+    // instead of firing in parallel with checkDependencies() as before.
+    crStatus = await getCrStatuses(Array.from(allCRs));
+  } catch (e) {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    setStats('Error fetching CR statuses: ' + e.message, 'error');
+    return;
+  }
+  
+  btn.disabled = false;
+  spinner.style.display = 'none';
+  
+  if(isLatestprodPromoted){
+	setStats('Latest version is already promoted in Production','error');
+	return;
+  }
+
+  // Run the dependency check per archive, since the same CR number can
+  // appear with different revisions in different archives/files.
+  const results = [];
+  let archivesWithCR = 0;
+
+  blocks.forEach((b, idx) => {
+    const label = b.archive || b.workfile || ('Archive ' + (idx + 1));
+    const blocked = findBlockedForArchive(b.versionLabels, ourCR, crStatus);
+    if (blocked === null) return; // ourCR not referenced in this archive
+    archivesWithCR++;
+    blocked.forEach(dep => results.push({ archive: label, ...dep }));
+  });
+
+  if (archivesWithCR === 0) {
+    setStats('CR ' + ourCR + ' was not found in any of the ' + blocks.length + ' pasted archive(s).', 'error');
+    return;
+  }
+
+  if (results.length === 0) {
+    setStats('Checked ' + archivesWithCR + ' archive(s) referencing CR ' + ourCR + '. All dependencies are OK.', 'ok');
+    output.innerHTML = '';
+    return;
+  }
+
+  setStats('Checked ' + archivesWithCR + ' archive(s) referencing CR ' + ourCR + '. Found ' + results.length + ' blocking dependenc' + (results.length === 1 ? 'y' : 'ies') + '.', 'error');
+  renderTable(results);
+}
+
+function renderTable(results){
+  const table = document.createElement('table');
+  table.innerHTML =
+    '<thead><tr>' +
+      '<th>File Name</th><th>Dependent CR</th><th>Revision</th><th>Status</th>' +
+    '</tr></thead>';
+
+  const tbody = document.createElement('tbody');
+  results.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.className = 'blocked';
+    tr.innerHTML =
+      '<td>' + escapeHtml(r.archive) + '</td>' +
+      '<td>' + escapeHtml(r.cr) + '</td>' +
+      '<td>' + escapeHtml(r.revision) + '</td>' +
+      '<td><span class="badge blocked">' + escapeHtml(r.status) + '</span></td>';
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  const output = document.getElementById('output');
+  output.innerHTML = '';
+  output.appendChild(table);
+}
+
+function escapeHtml(str){
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+</script>
+</body>
+</html>
