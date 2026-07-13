@@ -1,25 +1,129 @@
-function hasOfacHitCountIncreased() {
-    var ofacCount = getColumn("OFAC_HIT_COUNT");
-    var shortName = getColumn("C_FUNC_SHORT_NAME");
+function convertToJson(text) {
+    const lines = text.replace(/\r/g, "").split("\n");
 
-    var latest = null;
-    var previous = null;
+    const result = {
+        attributes: [],
+        versionLabels: {},
+        revisions: []
+    };
 
-    for (var i = 0; i < shortName.length; i++) {
-        if (shortName[i] === "IMCC_DEO_DIRPAY") {
-            if (latest === null) {
-                latest = parseInt(ofacCount[i], 10) || 0;
+    let section = "";
+    let currentRevision = null;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        if (!line) continue;
+
+        if (line.startsWith("Archive:")) {
+            result.archive = line.substring(8).trim();
+        } else if (line.startsWith("Workfile:")) {
+            result.workfile = line.substring(9).trim();
+        } else if (line.startsWith("Archive created:")) {
+            result.archiveCreated = line.substring(16).trim();
+        } else if (line.startsWith("Split mode:")) {
+            result.splitMode = line.substring(11).trim();
+        } else if (line.startsWith("Owner:")) {
+            result.owner = line.substring(6).trim();
+        } else if (line.startsWith("Last trunk rev:")) {
+            result.lastTrunkRevision = line.substring(15).trim();
+        } else if (line.startsWith("Locks:")) {
+            result.locks = line.substring(6).trim();
+        } else if (line.startsWith("Groups:")) {
+            result.groups = line.substring(7).trim();
+        } else if (line.startsWith("Rev count:")) {
+            result.revisionCount = Number(line.substring(10).trim());
+        }
+
+        else if (line === "Attributes:") {
+            section = "attributes";
+        }
+
+        else if (line === "Version labels:") {
+            section = "labels";
+        }
+
+        else if (line === "Description:") {
+            section = "description";
+        }
+
+        else if (line.startsWith("Rev ")) {
+            section = "revision";
+
+            if (currentRevision)
+                result.revisions.push(currentRevision);
+
+            currentRevision = {
+                revision: line.replace("Rev", "").trim()
+            };
+        }
+
+        else if (section === "attributes") {
+            if (line.includes("=")) {
+                const parts = line.split("=");
+                result[parts[0].trim()] = parts[1].trim().replace(/^"|"$/g, "");
             } else {
-                previous = parseInt(ofacCount[i], 10) || 0;
-                break;
+                result.attributes.push(line);
+            }
+        }
+
+        else if (section === "labels") {
+            const match = line.match(/"(.+)"\s*=\s*(.+)/);
+            if (match) {
+                result.versionLabels[match[1]] = match[2].trim();
+            }
+        }
+
+        else if (section === "description") {
+            if (!result.description)
+                result.description = "";
+            result.description += line + "\n";
+        }
+
+        else if (section === "revision") {
+
+            if (line.startsWith("Checked in:")) {
+                currentRevision.checkedIn = line.substring(11).trim();
+            }
+
+            else if (line.startsWith("Last modified:")) {
+                currentRevision.lastModified = line.substring(14).trim();
+            }
+
+            else if (line.startsWith("Author id:")) {
+
+                const m = line.match(
+                    /Author id:\s*(\S+).*?(\d+)\/(\d+)\/(\d+)/
+                );
+
+                if (m) {
+                    currentRevision.authorId = m[1];
+                    currentRevision.linesDeleted = Number(m[2]);
+                    currentRevision.linesAdded = Number(m[3]);
+                    currentRevision.linesMoved = Number(m[4]);
+                }
+            }
+
+            else {
+                currentRevision.remarks =
+                    (currentRevision.remarks || "") + " " + line;
             }
         }
     }
 
-    // Less than 2 matching events
-    if (latest === null || previous === null) {
-        return false;
-    }
+    if (currentRevision)
+        result.revisions.push(currentRevision);
 
-    return latest > previous;
+    if (result.description)
+        result.description = result.description.trim();
+
+    return result;
 }
+
+const input = document.getElementById("input").value;
+const json = convertToJson(input);
+
+console.log(json);
+
+document.getElementById("output").textContent =
+    JSON.stringify(json, null, 4);
