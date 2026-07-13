@@ -2,267 +2,343 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Archive Text to JSON</title>
+<title>Archive Text to JSON — Dependency Checker</title>
 <style>
 body{font-family:Arial,sans-serif;background:#f4f4f4;margin:20px}
 h2{margin-top:0}
-textarea{width:100%;height:280px;font-family:Consolas,monospace}
-pre{background:#111;color:#0f0;padding:10px;white-space:pre-wrap;max-height:450px;overflow:auto}
-button{padding:8px 14px;margin:5px}
-#stats{margin:10px 0;font-weight:bold}
+textarea{width:100%;height:280px;font-family:Consolas,monospace;box-sizing:border-box}
+input[type=text],#ourCR{padding:6px;font-size:14px;width:220px}
+button{padding:8px 14px;margin:5px 5px 5px 0;cursor:pointer}
+button:disabled{opacity:0.6;cursor:not-allowed}
+#stats{margin:12px 0;font-weight:bold}
+#stats.error{color:#b00020}
+#stats.ok{color:#0a7a0a}
+table{border-collapse:collapse;width:100%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+th,td{border:1px solid #ddd;padding:8px 10px;text-align:left;font-size:13px}
+th{background:#222;color:#fff;position:sticky;top:0}
+tr:nth-child(even){background:#f8f8f8}
+tr.blocked td{color:#b00020;font-weight:bold}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;color:#fff}
+.badge.blocked{background:#b00020}
+.badge.ok{background:#0a7a0a}
+#spinner{display:none;font-style:italic;color:#555}
 </style>
 </head>
 <body>
-<h2>Archive Text → JSON Converter</h2>
-<input type="hidden" id="version_label"/>
-<input type="hidden" id="cr_list"/>
-<input type="hidden" id="cr_status"/>
-<input id="ourCR" placeholder="Your CR Number"/>
+<h2>Archive Text → JSON Dependency Checker</h2>
 
-<textarea id="input" placeholder="Paste archive text here..."></textarea><br>
+<textarea id="input" placeholder="Paste one or more archive text blocks here (separated by the standard '===...===' divider)..."></textarea><br>
 
-<button onclick="checkDepen()">Check Dependencies</button>
+<label for="ourCR">Your CR Number:</label><br>
+<input type="text" id="ourCR" placeholder="e.g. 123456"/><br>
+
+<button id="checkBtn" onclick="checkDepen()">Check Dependencies</button>
 <button onclick="clearAll()">Clear</button>
+<span id="spinner">Fetching CR statuses…</span>
 
 <div id="stats"></div>
-<pre id="output"></pre>
+<div id="output"></div>
 
 <script>
-let jsonResult=[];
+const BASE = 'https://irtracking.statebanktimes.in';
+const IR_DESC = BASE + '/CGI/Utilities/GetSubjectline.cgi?ir=';
 
-function checkDepen(){
- const json = convertToJson(document.getElementById("input").value);
- const ourCR = document.getElementById('ourCR').value;
- document.getElementById('version_label').value=JSON.stringify(json[0].versionLabels);
- document.getElementById('cr_list').value=JSON.stringify(Object.keys(json[0].versionLabels)).replaceAll('"','').replace('[','').replace(']','');
- getSubLine();
-	
- const depen = checkDependencies(ourCR)
- document.getElementById('output').textContent = JSON.stringify(depen,null,2)
- 
+// ---------- UI helpers ----------
+
+function setStats(msg, cls){
+  const el = document.getElementById('stats');
+  el.textContent = msg;
+  el.className = cls || '';
 }
-function checkDependencies(crNo) {
-
-const versionLabels = JSON.parse(document.getElementById('version_label').value);
-	const crStatusArray = JSON.parse(document.getElementById('cr_status').value);
-
-	// Convert array to lookup object
-	const crStatus = {};
-
-	crStatusArray.forEach(obj => {
-		const key = Object.keys(obj)[0];
-		crStatus[key] = obj[key];
-	});
-
-    const currentRevision = versionLabels[crNo];
-
-    if (!currentRevision) {
-        alert("CR not found");
-        return;
-    }
-
-    const blocked = [];
-
-    Object.entries(versionLabels).forEach(([cr, rev]) => {
-
-        // Dependency
-        if (compareRevision(rev, currentRevision) < 0) {
-
-            if (crStatus[cr] != "PROD PROMOTED") {
-                blocked.push({
-                    cr: cr,
-                    revision: rev,
-                    status: crStatus[cr]
-                });
-            }
-        }
-
-    });
-
-    if (blocked.length === 0) {
-        alert("All dependencies are OK.");
-    } else {
-        console.table(blocked);
-        alert("Found " + blocked.length + " dependency(s) in WBT APPROVED.");
-    }
-	
-	return blocked;
-}
-
-function compareRevision(r1, r2) {
-
-    const a = r1.split(".").map(Number);
-    const b = r2.split(".").map(Number);
-
-    const len = Math.max(a.length, b.length);
-
-    for (let i = 0; i < len; i++) {
-
-        const x = a[i] || 0;
-        const y = b[i] || 0;
-
-        if (x > y) return 1;
-        if (x < y) return -1;
-    }
-
-    return 0;
-}
-
-
 
 function clearAll(){
- document.getElementById("input").value="";
- document.getElementById("output").textContent="";
- document.getElementById("stats").textContent="";
- jsonResult=[];
+  document.getElementById('input').value = '';
+  document.getElementById('ourCR').value = '';
+  document.getElementById('output').innerHTML = '';
+  setStats('');
 }
 
-function convertToJson(text) {
-    const blocks = text
-        .replace(/\r/g, "")
-        .split("===================================")
-        .map(b => b.trim())
-        .filter(b => b.length);
+// ---------- parsing ----------
 
-    return blocks.map(parseBlock);
+function convertToJson(text) {
+  const blocks = text
+    .replace(/\r/g, "")
+    .split("===================================")
+    .map(b => b.trim())
+    .filter(b => b.length);
+
+  return blocks.map(parseBlock);
 }
 
 function parseBlock(block) {
+  const obj = {
+    attributes: [],
+    versionLabels: {}
+  };
 
-    const obj = {
-        attributes: [],
-        versionLabels: {}
-    };
+  const lines = block.split("\n");
+  let section = "";
 
-    const lines = block.split("\n");
+  for (let line of lines) {
+    line = line.trim();
 
-    let section = "";
+    if (!line || line === "Change History") continue;
 
-    for (let line of lines) {
-
-        line = line.trim();
-
-        if (!line || line === "Change History")
-            continue;
-
-        if (line.startsWith("Archive:")) {
-            obj.archive = line.replace("Archive:", "").trim();
-        }
-        else if (line.startsWith("Workfile:")) {
-            obj.workfile = line.replace("Workfile:", "").trim();
-        }
-        else if (line.startsWith("Archive created:")) {
-            obj.archiveCreated = line.replace("Archive created:", "").trim();
-        }
-        else if (line.startsWith("Split mode:")) {
-            obj.splitMode = line.replace("Split mode:", "").trim();
-        }
-        else if (line.startsWith("Owner:")) {
-            obj.owner = line.replace("Owner:", "").trim();
-        }
-        else if (line.startsWith("Last trunk rev:")) {
-            obj.lastTrunkRevision = line.replace("Last trunk rev:", "").trim();
-        }
-        else if (line.startsWith("Locks:")) {
-            obj.locks = line.replace("Locks:", "").trim();
-        }
-        else if (line.startsWith("Groups:")) {
-            obj.groups = line.replace("Groups:", "").trim();
-        }
-        else if (line.startsWith("Rev count:")) {
-            obj.revisionCount = Number(line.replace("Rev count:", "").trim());
-        }
-        else if (line === "Attributes:") {
-            section = "attributes";
-        }
-        else if (line === "Version labels:") {
-            section = "labels";
-        }
-        else if (line === "Description:") {
-            section = "description";
-            obj.description = "";
-        }
-        else if (section === "attributes") {
-
-            if (line.includes("=")) {
-
-                const [key, value] = line.split("=");
-
-                obj[key.trim()] = value.trim().replace(/^"|"$/g, "");
-
-            } else {
-
-                obj.attributes.push(line);
-
-            }
-
-        }
-        else if (section === "labels") {
-
-            const match = line.match(/"(.+?)"\s*=\s*(.+)/);
-
-            if (match) {
-                obj.versionLabels[match[1]] = match[2];
-            }
-
-        }
-        else if (section === "description") {
-
-            obj.description += (obj.description ? "\n" : "") + line;
-
-        }
+    if (line.startsWith("Archive:")) {
+      obj.archive = line.replace("Archive:", "").trim();
     }
-	
-    return obj;
+    else if (line.startsWith("Workfile:")) {
+      obj.workfile = line.replace("Workfile:", "").trim();
+    }
+    else if (line.startsWith("Archive created:")) {
+      obj.archiveCreated = line.replace("Archive created:", "").trim();
+    }
+    else if (line.startsWith("Split mode:")) {
+      obj.splitMode = line.replace("Split mode:", "").trim();
+    }
+    else if (line.startsWith("Owner:")) {
+      obj.owner = line.replace("Owner:", "").trim();
+    }
+    else if (line.startsWith("Last trunk rev:")) {
+      obj.lastTrunkRevision = line.replace("Last trunk rev:", "").trim();
+    }
+    else if (line.startsWith("Locks:")) {
+      obj.locks = line.replace("Locks:", "").trim();
+    }
+    else if (line.startsWith("Groups:")) {
+      obj.groups = line.replace("Groups:", "").trim();
+    }
+    else if (line.startsWith("Rev count:")) {
+      obj.revisionCount = Number(line.replace("Rev count:", "").trim());
+    }
+    else if (line === "Attributes:") {
+      section = "attributes";
+    }
+    else if (line === "Version labels:") {
+      section = "labels";
+    }
+    else if (line === "Description:") {
+      section = "description";
+      obj.description = "";
+    }
+    else if (section === "attributes") {
+      if (line.includes("=")) {
+        const [key, value] = line.split("=");
+        obj[key.trim()] = value.trim().replace(/^"|"$/g, "");
+      } else {
+        obj.attributes.push(line);
+      }
+    }
+    else if (section === "labels") {
+      const match = line.match(/"(.+?)"\s*=\s*(.+)/);
+      if (match) {
+        obj.versionLabels[match[1]] = match[2];
+      }
+    }
+    else if (section === "description") {
+      obj.description += (obj.description ? "\n" : "") + line;
+    }
+  }
+
+  return obj;
 }
 
-const BASE = 'https://irtracking.statebanktimes.in';
-    const CGI = BASE + '/CGI/Get%20Details/getCompsFromNewJournal_TF.cgi?ir=';
-    const IR_DESC = BASE + '/CGI/Utilities/GetSubjectline.cgi?ir=';
+// ---------- revision comparison ----------
 
-async function getSubLine(){
+function compareRevision(r1, r2) {
+  const a = r1.split(".").map(Number);
+  const b = r2.split(".").map(Number);
+  const len = Math.max(a.length, b.length);
 
+  for (let i = 0; i < len; i++) {
+    const x = a[i] || 0;
+    const y = b[i] || 0;
+    if (x > y) return 1;
+    if (x < y) return -1;
+  }
+  return 0;
+}
 
-        const param = document.getElementById('cr_list').value;
-        const resp =await fetch(IR_DESC + param,
-        { cache: 'no-store' }
-        );
+// ---------- remote status lookup ----------
 
-        if (!resp.ok) {
-          throw new Error(resp.status);
-        }
+// Fetches statuses for a list of CR numbers in a single request and
+// returns a lookup object { crNumber: status }.
+async function getCrStatuses(crList) {
+  if (crList.length === 0) return {};
 
-        const html = await resp.text();
-        
-        const irStatusArr = parseIRDetails(html);
-		
-		document.getElementById('cr_status').value=JSON.stringify(irStatusArr)
+  const param = crList.join(',');
+  const resp = await fetch(IR_DESC + param, { cache: 'no-store' });
 
-        
+  if (!resp.ok) {
+    throw new Error('IR status request failed (HTTP ' + resp.status + ')');
+  }
+
+  const html = await resp.text();
+  const parsed = parseIRDetails(html);
+
+  const lookup = {};
+  parsed.forEach(obj => {
+    const key = Object.keys(obj)[0];
+    lookup[key] = obj[key];
+  });
+  return lookup;
+}
+
+function parseIRDetails(html) {
+  const IRStatus = [];
+
+  const textareaRegex = /<textarea[^>]*>([\s\S]*?)<\/textarea>/g;
+  const irNumberRegex = /IR Number:\s*(\d+)/g;
+  const statusRegex = /STATUS:\s*([A-Z\s]+?)<\/p>/g;
+
+  const textareas = [...html.matchAll(textareaRegex)].map(m => m[1]);
+  const irNumbers = [...html.matchAll(irNumberRegex)].map(m => m[1]);
+  const statuses = [...html.matchAll(statusRegex)].map(m => m[1].trim());
+
+  textareas.forEach((raw, i) => {
+    IRStatus.push({ [irNumbers[i]]: statuses[i] });
+  });
+
+  return IRStatus;
+}
+
+// ---------- dependency logic ----------
+
+// Given one archive's versionLabels and the CR being checked, return
+// the list of blocking entries for that archive.
+function findBlockedForArchive(versionLabels, ourCR, crStatus) {
+  const currentRevision = versionLabels[ourCR];
+  if (!currentRevision) return null; // this archive doesn't mention ourCR
+
+  const blocked = [];
+  Object.entries(versionLabels).forEach(([cr, rev]) => {
+    if (compareRevision(rev, currentRevision) < 0) {
+      const status = crStatus[cr] || 'UNKNOWN';
+      if (status !== 'PROD PROMOTED') {
+        blocked.push({ cr, revision: rev, status });
       }
+    }
+  });
+  return blocked;
+}
 
+// ---------- main flow ----------
 
-      
-      function parseIRDetails(html) {
-    	 
-    	  const IRStatus = [];
+async function checkDepen(){
+  const btn = document.getElementById('checkBtn');
+  const spinner = document.getElementById('spinner');
+  const output = document.getElementById('output');
+  const ourCR = document.getElementById('ourCR').value.trim();
+  const rawText = document.getElementById('input').value;
 
-    	  const textareaRegex = /<textarea[^>]*>([\s\S]*?)<\/textarea>/g;
-    	  const irNumberRegex = /IR Number:\s*(\d+)/g;
-    	  const statusRegex = /STATUS:\s*([A-Z\s]+?)<\/p>/g;
+  output.innerHTML = '';
 
-    	  const textareas = [...html.matchAll(textareaRegex)].map(m => m[1]);
-    	  const irNumbers = [...html.matchAll(irNumberRegex)].map(m => m[1]);
-    	  const statuses = [...html.matchAll(statusRegex)].map(m => m[1].trim());
+  if (!ourCR) {
+    setStats('Please enter your CR number.', 'error');
+    return;
+  }
+  if (!rawText.trim()) {
+    setStats('Please paste archive text first.', 'error');
+    return;
+  }
 
-    	  textareas.forEach((raw, i) => {
-    	    IRStatus.push({
-    	    	[irNumbers[i]]:statuses[i]
-    	    })
-    	  });
+  let blocks;
+  try {
+    blocks = convertToJson(rawText);
+  } catch (e) {
+    setStats('Could not parse the archive text: ' + e.message, 'error');
+    return;
+  }
 
-    	  return IRStatus;
-    	}
+  if (blocks.length === 0) {
+    setStats('No archive blocks found in the pasted text.', 'error');
+    return;
+  }
+
+  // Collect every CR referenced across ALL pasted archives so we only
+  // make a single status request no matter how many files were pasted.
+  const allCRs = new Set();
+  blocks.forEach(b => Object.keys(b.versionLabels).forEach(cr => allCRs.add(cr)));
+
+  btn.disabled = true;
+  spinner.style.display = 'inline';
+  setStats('Fetching statuses for ' + allCRs.size + ' CR(s) across ' + blocks.length + ' archive(s)…');
+
+  let crStatus;
+  try {
+    // This is now correctly awaited before dependency checking runs,
+    // instead of firing in parallel with checkDependencies() as before.
+    crStatus = await getCrStatuses(Array.from(allCRs));
+  } catch (e) {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    setStats('Error fetching CR statuses: ' + e.message, 'error');
+    return;
+  }
+
+  btn.disabled = false;
+  spinner.style.display = 'none';
+
+  // Run the dependency check per archive, since the same CR number can
+  // appear with different revisions in different archives/files.
+  const results = [];
+  let archivesWithCR = 0;
+
+  blocks.forEach((b, idx) => {
+    const label = b.archive || b.workfile || ('Archive ' + (idx + 1));
+    const blocked = findBlockedForArchive(b.versionLabels, ourCR, crStatus);
+    if (blocked === null) return; // ourCR not referenced in this archive
+    archivesWithCR++;
+    blocked.forEach(dep => results.push({ archive: label, ...dep }));
+  });
+
+  if (archivesWithCR === 0) {
+    setStats('CR ' + ourCR + ' was not found in any of the ' + blocks.length + ' pasted archive(s).', 'error');
+    return;
+  }
+
+  if (results.length === 0) {
+    setStats('Checked ' + archivesWithCR + ' archive(s) referencing CR ' + ourCR + '. All dependencies are OK.', 'ok');
+    output.innerHTML = '';
+    return;
+  }
+
+  setStats('Checked ' + archivesWithCR + ' archive(s) referencing CR ' + ourCR + '. Found ' + results.length + ' blocking dependenc' + (results.length === 1 ? 'y' : 'ies') + '.', 'error');
+  renderTable(results);
+}
+
+function renderTable(results){
+  const table = document.createElement('table');
+  table.innerHTML =
+    '<thead><tr>' +
+      '<th>Archive</th><th>Dependent CR</th><th>Revision</th><th>Status</th>' +
+    '</tr></thead>';
+
+  const tbody = document.createElement('tbody');
+  results.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.className = 'blocked';
+    tr.innerHTML =
+      '<td>' + escapeHtml(r.archive) + '</td>' +
+      '<td>' + escapeHtml(r.cr) + '</td>' +
+      '<td>' + escapeHtml(r.revision) + '</td>' +
+      '<td><span class="badge blocked">' + escapeHtml(r.status) + '</span></td>';
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  const output = document.getElementById('output');
+  output.innerHTML = '';
+  output.appendChild(table);
+}
+
+function escapeHtml(str){
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
 </script>
 </body>
 </html>
