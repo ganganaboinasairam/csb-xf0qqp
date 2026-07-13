@@ -1,169 +1,98 @@
+function convertToJson(text) {
+    const blocks = text
+        .replace(/\r/g, "")
+        .split("===================================")
+        .map(b => b.trim())
+        .filter(b => b.length);
 
-Change History
+    return blocks.map(parseBlock);
+}
 
-Archive:          \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\CALJS\FUNCLEVEL\SYF_IMCC_IMCC_Modify_Outward_Remittance.js-arc
-Workfile:         SYF_IMCC_IMCC_Modify_Outward_Remittance.js
-Archive created:  Aug 14 2025 16:20:26
-Split mode:       Split \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\CALJS\FUNCLEVEL\SYF_IMCC_IMCC_Modify_Outward_Remittance.js-arc
-Owner:            tfml
-Last trunk rev:   4.61
-Locks:            
-Groups:           
-Rev count:        64
-Attributes:
-   WRITEPROTECT
-   CHECKLOCK
-   NOEXCLUSIVELOCK
-   EXPANDKEYWORDS
-   TRANSLATE
-   NOCOMPRESSDELTA
-   NOCOMPRESSWORKIMAGE
-   GENERATEDELTA
-   COMMENTPREFIX = ""
-   NEWLINE = "\r\n"
-Version labels:
-   "25080098" = 4.1
-   "25110096" = 4.2
-   "25090164" = 4.16
-   "25110132" = 4.8
-   "25090166" = 4.27
-   "25120176" = 4.17
-   "25120116" = 4.18
-   "25110115" = 4.20
-   "25100174" = 4.37
-   "26020147" = 4.29
-   "26010237" = 4.34
-   "A926" = 4.20.1.0
-   "26020027" = 4.38
-   "25110041" = 4.46
-   "25110039" = 4.47
-   "26050050" = 4.58
-   "26030159" = 4.55
-   "26030018" = 4.61
-Description:
-new
+function parseBlock(block) {
 
-===================================
+    const obj = {
+        attributes: [],
+        versionLabels: {}
+    };
 
-Archive:          \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\CALJS\FUNCLEVEL\SYF_IMCC_IMCC_Outward_Remittance_BRU.js-arc
-Workfile:         SYF_IMCC_IMCC_Outward_Remittance_BRU.js
-Archive created:  Aug 14 2025 16:20:28
-Split mode:       Split \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\CALJS\FUNCLEVEL\SYF_IMCC_IMCC_Outward_Remittance_BRU.js-arc
-Owner:            tfml
-Last trunk rev:   4.57
-Locks:            
-Groups:           
-Rev count:        60
-Attributes:
-   WRITEPROTECT
-   CHECKLOCK
-   NOEXCLUSIVELOCK
-   EXPANDKEYWORDS
-   TRANSLATE
-   NOCOMPRESSDELTA
-   NOCOMPRESSWORKIMAGE
-   GENERATEDELTA
-   COMMENTPREFIX = ""
-   NEWLINE = "\r\n"
-Version labels:
-   "25080098" = 4.1
-   "25110096" = 4.2
-   "25090164" = 4.17
-   "25110132" = 4.10
-   "25090166" = 4.24
-   "25120176" = 4.18
-   "25120116" = 4.19
-   "25110115" = 4.21
-   "25100174" = 4.30
-   "26010237" = 4.28
-   "A926" = 4.21.1.0
-   "26020027" = 4.32
-   "25110041" = 4.40
-   "26020174" = 4.42
-   "25110039" = 4.38
-   "25110046" = 4.41
-   "26050050" = 4.52
-   "26030159" = 4.50
-   "26030018" = 4.57
-Description:
-new
+    const lines = block.split("\n");
 
-===================================
+    let section = "";
 
-Archive:          \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\CALJS\FUNCLEVEL\SYF_IMCC_IMCC_Outward_Remittance_DEO.js-arc
-Workfile:         SYF_IMCC_IMCC_Outward_Remittance_DEO.js
-Archive created:  Aug 14 2025 16:20:28
-Split mode:       Split \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\CALJS\FUNCLEVEL\SYF_IMCC_IMCC_Outward_Remittance_DEO.js-arc
-Owner:            tfml
-Last trunk rev:   4.54
-Locks:            
-Groups:           
-Rev count:        56
-Attributes:
-   WRITEPROTECT
-   CHECKLOCK
-   NOEXCLUSIVELOCK
-   EXPANDKEYWORDS
-   TRANSLATE
-   NOCOMPRESSDELTA
-   NOCOMPRESSWORKIMAGE
-   GENERATEDELTA
-   COMMENTPREFIX = ""
-   NEWLINE = "\r\n"
-Version labels:
-   "25080098" = 4.0
-   "25110114" = 4.7
-   "25090164" = 4.3
-   "25090166" = 4.18
-   "25110124" = 4.8
-   "25120116" = 4.13
-   "25120176" = 4.11
-   "25080047" = 4.12
-   "26020004" = 4.21
-   "25100174" = 4.22
-   "26020027" = 4.28
-   "26020037" = 4.29
-   "25110041" = 4.32
-   "26020174" = 4.47
-   "25110040" = 4.42
-   "25110039" = 4.45
-   "25110046" = 4.38
-   "26030159" = 4.50
-   "26030018" = 4.54
-Description:
-new
+    for (let line of lines) {
 
-===================================
+        line = line.trim();
 
-Archive:          \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\CALJS\FUNCLEVEL\SYF_IMCC_Rate_Fetching_Officer.js-arc
-Workfile:         SYF_IMCC_Rate_Fetching_Officer.js
-Archive created:  Aug 14 2025 16:20:44
-Split mode:       Split \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\CALJS\FUNCLEVEL\SYF_IMCC_Rate_Fetching_Officer.js-arc
-Owner:            tfml
-Last trunk rev:   4.15
-Locks:            
-Groups:           
-Rev count:        17
-Attributes:
-   WRITEPROTECT
-   CHECKLOCK
-   NOEXCLUSIVELOCK
-   EXPANDKEYWORDS
-   TRANSLATE
-   NOCOMPRESSDELTA
-   NOCOMPRESSWORKIMAGE
-   GENERATEDELTA
-   COMMENTPREFIX = ""
-   NEWLINE = "\r\n"
-Version labels:
-   "25080098" = 4.2
-   "25110114" = 4.4
-   "25090067" = 4.6
-   "26020037" = 4.7
-   "26030018" = 4.15
-Description:
-new
+        if (!line || line === "Change History")
+            continue;
 
-===================================
+        if (line.startsWith("Archive:")) {
+            obj.archive = line.replace("Archive:", "").trim();
+        }
+        else if (line.startsWith("Workfile:")) {
+            obj.workfile = line.replace("Workfile:", "").trim();
+        }
+        else if (line.startsWith("Archive created:")) {
+            obj.archiveCreated = line.replace("Archive created:", "").trim();
+        }
+        else if (line.startsWith("Split mode:")) {
+            obj.splitMode = line.replace("Split mode:", "").trim();
+        }
+        else if (line.startsWith("Owner:")) {
+            obj.owner = line.replace("Owner:", "").trim();
+        }
+        else if (line.startsWith("Last trunk rev:")) {
+            obj.lastTrunkRevision = line.replace("Last trunk rev:", "").trim();
+        }
+        else if (line.startsWith("Locks:")) {
+            obj.locks = line.replace("Locks:", "").trim();
+        }
+        else if (line.startsWith("Groups:")) {
+            obj.groups = line.replace("Groups:", "").trim();
+        }
+        else if (line.startsWith("Rev count:")) {
+            obj.revisionCount = Number(line.replace("Rev count:", "").trim());
+        }
+        else if (line === "Attributes:") {
+            section = "attributes";
+        }
+        else if (line === "Version labels:") {
+            section = "labels";
+        }
+        else if (line === "Description:") {
+            section = "description";
+            obj.description = "";
+        }
+        else if (section === "attributes") {
 
+            if (line.includes("=")) {
 
+                const [key, value] = line.split("=");
+
+                obj[key.trim()] = value.trim().replace(/^"|"$/g, "");
+
+            } else {
+
+                obj.attributes.push(line);
+
+            }
+
+        }
+        else if (section === "labels") {
+
+            const match = line.match(/"(.+?)"\s*=\s*(.+)/);
+
+            if (match) {
+                obj.versionLabels[match[1]] = match[2];
+            }
+
+        }
+        else if (section === "description") {
+
+            obj.description += (obj.description ? "\n" : "") + line;
+
+        }
+    }
+
+    return obj;
+}
