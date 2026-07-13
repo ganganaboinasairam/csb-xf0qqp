@@ -1,14 +1,64 @@
-Hi SIT Team,
+const versionLabels = JSON.parse(vesion_lables);
+const crStatusArray = JSON.parse(CR_Status);
 
-We have identified that a few promoted components are missing from the ST environment.
+// Convert array to lookup object
+const crStatus = {};
 
-The latest revisions are available in PVCS, but the corresponding files are not present in ST. We also attempted to promote the components again; however, the promotion is not proceeding because the system displays the message "Same revision is already present."
+crStatusArray.forEach(obj => {
+    const key = Object.keys(obj)[0];
+    crStatus[key] = obj[key];
+});
 
-As a result, we are unable to restore the missing files in ST from our end.
+function checkDependencies(crNo) {
 
-Could you please verify the issue and help synchronize the missing components in the ST environment?
+    const currentRevision = versionLabels[crNo];
 
-Please let us know if you need the list of affected components or any additional details.
+    if (!currentRevision) {
+        alert("CR not found");
+        return;
+    }
 
-Thanks,
-Ganganaboina Sairam
+    const blocked = [];
+
+    Object.entries(versionLabels).forEach(([cr, rev]) => {
+
+        // Dependency
+        if (compareRevision(rev, currentRevision) <= 0) {
+
+            if (crStatus[cr] === "WBT APPROVED") {
+                blocked.push({
+                    cr: cr,
+                    revision: rev,
+                    status: crStatus[cr]
+                });
+            }
+        }
+
+    });
+
+    if (blocked.length === 0) {
+        alert("All dependencies are OK.");
+    } else {
+        console.table(blocked);
+        alert("Found " + blocked.length + " dependency(s) in WBT APPROVED.");
+    }
+}
+
+function compareRevision(r1, r2) {
+
+    const a = r1.split(".").map(Number);
+    const b = r2.split(".").map(Number);
+
+    const len = Math.max(a.length, b.length);
+
+    for (let i = 0; i < len; i++) {
+
+        const x = a[i] || 0;
+        const y = b[i] || 0;
+
+        if (x > y) return 1;
+        if (x < y) return -1;
+    }
+
+    return 0;
+}
