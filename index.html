@@ -1,442 +1,317 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Archive Text to JSON — Dependency Checker</title>
-<style>
-body {
-	font-family: Arial, sans-serif;
-	background: #f4f4f4;
-	margin: 20px
-}
+package com.cs.inquiry.servicesss;
 
-h2 {
-	margin-top: 0
-}
+import java.security.SecureRandom;
+import java.sql.Types;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Calendar;
 
-textarea {
-	width: 100%;
-	height: 280px;
-	font-family: Consolas, monospace;
-	box-sizing: border-box
-}
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
-input[type=text], #ourCR {
-	padding: 6px;
-	font-size: 14px;
-	width: 220px
-}
+import com.cs.common.model.GAPIHeaderData;
+import com.cs.core.utility.CSEEDAOHelper;
+import com.cs.esp.org.json.JSONObject;
+import com.cs.eximap.utility.APLog;
+import com.cs.eximap.utility.CSSQLClause;
+import com.cs.eximap.utility.CSSQLStatement;
+import com.cs.idea.utilities.IdeaProperties;
+import com.cs.idea.utilities.RestClient;
+import com.cs.utilities.SBIBaseService;
+import com.cs.utilities.SBIUtility;
+import com.cs.utilities.SignUtils;
+import com.google.common.base.Strings;
+import com.tcs.idea.handler.RequestHandler;
 
-button {
-	padding: 8px 14px;
-	margin: 5px 5px 5px 0;
-	cursor: pointer
-}
+public class RateConfirmation extends SBIBaseService implements RequestHandler {
+	private static String TELLER_ID = "";
+	private static String orgBranchCode;
+	private static String gtfcBranchCode;
+	private static String cif;
+	private static String currency1;
+	private static String currency2;
+	private String cmainref;
+	private String rate;
+	private String nostroBankId;
+	private String amount1;
+	private String amount2;
+	private String referenceNumber;
+	private String marginAmount;
+	private String transTypeCode;
+	private String rateType;
+	private static String EEFCRandomString;
+	private static String existingEEFCRefNo;
+	private static final SecureRandom EEFC_RANDOM = new SecureRandom();
 
-button:disabled {
-	opacity: 0.6;
-	cursor: not-allowed
-}
-
-#stats {
-	margin: 12px 0;
-	font-weight: bold
-}
-
-#stats.error {
-	color: #b00020
-}
-
-#stats.ok {
-	color: #0a7a0a
-}
-
-table {
-	border-collapse: collapse;
-	width: 100%;
-	background: #fff;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, .15)
-}
-
-th, td {
-	border: 1px solid #ddd;
-	padding: 8px 10px;
-	text-align: left;
-	font-size: 13px
-}
-
-th {
-	background: #222;
-	color: #fff;
-	position: sticky;
-	top: 0
-}
-
-tr:nth-child(even) {
-	background: #f8f8f8
-}
-
-tr.blocked td {
-	color: #b00020;
-	font-weight: bold
-}
-
-.badge {
-	display: inline-block;
-	padding: 2px 8px;
-	border-radius: 10px;
-	font-size: 11px;
-	color: #fff
-}
-
-.badge.blocked {
-	background: #b00020
-}
-
-.badge.ok {
-	background: #0a7a0a
-}
-
-#spinner {
-	display: none;
-	font-style: italic;
-	color: #555
-}
-</style>
-</head>
-<body>
-	<h2>Dependency Checker</h2>
-
-	<textarea id="input"
-		placeholder="Paste one or more archive text blocks here (separated by the standard '===...===' divider)..."></textarea>
-	<br>
-
-	<label for="ourCR">Your CR Number:</label>
-	<br>
-	<input type="text" id="ourCR" placeholder="e.g. 123456" />
-	<br>
-
-	<button id="checkBtn" onclick="checkDepen()">Check
-		Dependencies</button>
-	<button onclick="clearAll()">Clear</button>
-	<span id="spinner">Fetching CR statuses…</span>
-
-	<div id="stats"></div>
-	<div id="output"></div>
-
-	<script>
-const BASE = 'https://irtracking.statebanktimes.in';
-const IR_DESC = BASE + '/CGI/Utilities/GetSubjectline.cgi?ir=';
-
-// ---------- UI helpers ----------
-
-function setStats(msg, cls){
-  const el = document.getElementById('stats');
-  el.textContent = msg;
-  el.className = cls || '';
-}
-
-function clearAll(){
-  document.getElementById('input').value = '';
-  document.getElementById('ourCR').value = '';
-  document.getElementById('output').innerHTML = '';
-  setStats('');
-}
-
-// ---------- parsing ----------
-
-function convertToJson(text) {
-  const blocks = text
-    .replace(/\r/g, "")
-    .split("===================================")
-    .map(b => b.trim())
-    .filter(b => b.length);
-
-  return blocks.map(parseBlock);
-}
-
-function parseBlock(block) {
-  const obj = {
-    attributes: [],
-    versionLabels: {}
-  };
-
-  const lines = block.split("\n");
-  let section = "";
-
-  for (let line of lines) {
-    line = line.trim();
-
-    if (!line || line === "Change History") continue;
-
-    if (line.startsWith("Archive:")) {
-      obj.archive = line.replace("Archive:", "").trim();
-    }
-    else if (line.startsWith("Workfile:")) {
-      obj.workfile = line.replace("Workfile:", "").trim();
-    }
-    else if (line.startsWith("Archive created:")) {
-      obj.archiveCreated = line.replace("Archive created:", "").trim();
-    }
-    else if (line.startsWith("Split mode:")) {
-      obj.splitMode = line.replace("Split mode:", "").trim();
-    }
-    else if (line.startsWith("Owner:")) {
-      obj.owner = line.replace("Owner:", "").trim();
-    }
-    else if (line.startsWith("Last trunk rev:")) {
-      obj.lastTrunkRevision = line.replace("Last trunk rev:", "").trim();
-    }
-    else if (line.startsWith("Locks:")) {
-      obj.locks = line.replace("Locks:", "").trim();
-    }
-    else if (line.startsWith("Groups:")) {
-      obj.groups = line.replace("Groups:", "").trim();
-    }
-    else if (line.startsWith("Rev count:")) {
-      obj.revisionCount = Number(line.replace("Rev count:", "").trim());
-    }
-    else if (line === "Attributes:") {
-      section = "attributes";
-    }
-    else if (line === "Version labels:") {
-      section = "labels";
-    }
-    else if (line === "Description:") {
-      section = "description";
-      obj.description = "";
-    }
-    else if (section === "attributes") {
-      if (line.includes("=")) {
-        const [key, value] = line.split("=");
-        obj[key.trim()] = value.trim().replace(/^"|"$/g, "");
-      } else {
-        obj.attributes.push(line);
-      }
-    }
-    else if (section === "labels") {
-      const match = line.match(/"(.+?)"\s*=\s*(.+)/);
-      if (match) {
-        obj.versionLabels[match[1]] = match[2];
-      }
-    }
-    else if (section === "description") {
-      obj.description += (obj.description ? "\n" : "") + line;
-    }
-  }
-
-  return obj;
-}
-
-// ---------- revision comparison ----------
-
-function compareRevision(r1, r2) {
-  const a = r1.split(".").map(Number);
-  const b = r2.split(".").map(Number);
-  const len = Math.max(a.length, b.length);
-
-  for (let i = 0; i < len; i++) {
-    const x = a[i] || 0;
-    const y = b[i] || 0;
-    if (x > y) return 1;
-    if (x < y) return -1;
-  }
-  return 0;
-}
-
-// ---------- remote status lookup ----------
-
-// Fetches statuses for a list of CR numbers in a single request and
-// returns a lookup object { crNumber: status }.
-async function getCrStatuses(crList) {
-  if (crList.length === 0) return {};
-
-  const param = crList.join(',');
-  const resp = await fetch(IR_DESC + param, { cache: 'no-store' });
-
-  if (!resp.ok) {
-    throw new Error('IR status request failed (HTTP ' + resp.status + ')');
-  }
-
-  const html = await resp.text();
-  const parsed = parseIRDetails(html);
-
-  const lookup = {};
-  parsed.forEach(obj => {
-    const key = Object.keys(obj)[0];
-    lookup[key] = obj[key];
-  });
-  return lookup;
-}
-
-function parseIRDetails(html) {
-  const IRStatus = [];
-
-  const textareaRegex = /<textarea[^>]*>([\s\S]*?)<\/textarea>/g;
-  const irNumberRegex = /IR Number:\s*(\d+)/g;
-  const statusRegex = /STATUS:\s*([A-Z\s]+?)<\/p>/g;
-
-  const textareas = [...html.matchAll(textareaRegex)].map(m => m[1]);
-  const irNumbers = [...html.matchAll(irNumberRegex)].map(m => m[1]);
-  const statuses = [...html.matchAll(statusRegex)].map(m => m[1].trim());
-
-  textareas.forEach((raw, i) => {
-    IRStatus.push({ [irNumbers[i]]: statuses[i] });
-  });
-
-  return IRStatus;
-}
-
-// ---------- dependency logic ----------
-
-// Given one archive's versionLabels and the CR being checked, return
-// the list of blocking entries for that archive.
-let isLatestprodPromoted = false;
-
-function findBlockedForArchive(versionLabels, ourCR, crStatus) {
-  const currentRevision = versionLabels[ourCR];
-  if (!currentRevision) return null; // this archive doesn't mention ourCR
-
-  const blocked = [];
-  Object.entries(versionLabels).forEach(([cr, rev]) => {
-    if (compareRevision(rev, currentRevision) < 0) {
-      const status = crStatus[cr] || 'UNKNOWN';
-      if (status !== 'PROD PROMOTED') {
-        blocked.push({ cr, revision: rev, status });
-      }
-    }else if(compareRevision(rev, currentRevision) > 0){
-		const status = crStatus[cr] || 'UNKNOWN';
-		if (status === 'PROD PROMOTED') {
-        
-		isLatestprodPromoted =  true;
-      }
+	public RateConfirmation(GAPIHeaderData gapiHeaderData) throws Exception {
+		super(gapiHeaderData);
 	}
-  });
-  return blocked;
+
+	@Override
+	public String process(String json) throws Exception {
+		return getRateConfirmation(json);
+	}
+
+	public String getRateConfirmation(String jspToGapiJosn) throws Exception {
+		String sReqRefNum = "";
+		String rateConfirmationResp = "";
+		IdeaProperties IdeaProperties = new IdeaProperties();
+		try {
+			APLog.reportLog("Received JSON data from screen for RateConfirmation: " + jspToGapiJosn);
+	
+			JSONObject jsonObj = new JSONObject(jspToGapiJosn);
+			TELLER_ID = (String) jsonObj.get("UserId");
+			orgBranchCode = (String) jsonObj.get("orgBranchCode");
+			gtfcBranchCode = (String) jsonObj.get("gtfcBranchCode");
+			cif = (String) jsonObj.get("cif");
+			currency1 = (String) jsonObj.get("currency1");
+			currency2 = (String) jsonObj.get("currency2");
+			amount1 = (String) jsonObj.get("amount1");
+			cmainref = (String) jsonObj.get("cmainref");
+			if (isEEFCUnqRefNoAlreadyPresent()) {
+				EEFCRandomString = existingEEFCRefNo;
+			} else {
+				EEFCRandomString = EEFCRandomStringGenerator();
+			}
+			if (jsonObj.get("rateType").equals("EEFC")) {
+				referenceNumber = EEFCRandomString;
+			} else {
+				referenceNumber = (String) jsonObj.get("referenceNumber");
+			}
+			rate = (String) jsonObj.get("rate");
+			nostroBankId = (String) jsonObj.get("nostroBankId");
+			amount2 = (String) jsonObj.get("amount2");
+			// externalNo=(String) jsonObj.get("externalNo");
+			marginAmount = (String) jsonObj.get("marginAmount");
+			transTypeCode = (String) jsonObj.get("transTypeCode");
+			rateType = (String) jsonObj.get("rateType");
+
+			sReqRefNum = SBIUtility.getSBIRequestRefNumber(TELLER_ID, "TF");
+			String sReqId = sReqRefNum.substring(3);
+			JSONObject rateConfirmation = new JSONObject();
+			JSONObject rateConfirmationPayload = new JSONObject();
+			rateConfirmation.put("\"SOURCE_ID\"", IdeaProperties.IdeaProperties.getProperty("SOURCE_ID"));
+			rateConfirmationPayload.put("\"requestId\"", sReqId);
+			rateConfirmationPayload.put("\"requestTime\"", CardRatesInq.getTimeStamp());
+			rateConfirmationPayload.put("\"source\"", "TF");
+			rateConfirmationPayload.put("\"referenceNumber\"", referenceNumber);
+			rateConfirmationPayload.put("\"rate\"", rate);
+			rateConfirmationPayload.put("\"orgBranchCode\"", orgBranchCode); // get from screen
+			rateConfirmationPayload.put("\"gtfcBranchCode\"", gtfcBranchCode); // get from screen
+			rateConfirmationPayload.put("\"cif\"", cif); // get from screen
+			rateConfirmationPayload.put("\"transTypeCode\"", transTypeCode);
+			rateConfirmationPayload.put("\"currency1\"", currency1); // get from screen
+			rateConfirmationPayload.put("\"currency2\"", currency2); // get from screen
+			rateConfirmationPayload.put("\"amount1\"", amount1); // get from screen
+			rateConfirmationPayload.put("\"amount2\"", amount2);
+			rateConfirmationPayload.put("\"valueDate\"", getDate());
+			rateConfirmationPayload.put("\"rateType\"", "");
+			rateConfirmationPayload.put("\"buySell\"", "");
+			rateConfirmationPayload.put("\"nostroBankId\"", nostroBankId);
+			rateConfirmationPayload.put("\"externalNo\"", cmainref);
+			rateConfirmationPayload.put("\"marginAmount\"", marginAmount);
+			rateConfirmationPayload.put("\"signData\"", SignUtils.signData(sReqId));
+			rateConfirmation.put("\"EIS_PAYLOAD\"", rateConfirmationPayload);
+			rateConfirmation.put("\"REQUEST_REFERENCE_NUMBER\"", sReqRefNum);
+			rateConfirmation.put("\"DESTINATION\"", "IT_TSS");
+			rateConfirmation.put("\"TXN_TYPE\"", "FXS_RATESERVICE");
+			rateConfirmation.put("\"TXN_SUB_TYPE\"", "CARDRATE_CONFIRMATION");
+
+			APLog.reportLog("Rate confirmation Details Request=========" + rateConfirmation);
+			String url = IdeaProperties.IdeaProperties.getProperty("RATE_CONFIRMATION_URL");
+			APLog.reportLog("Endpoint URL of Rate confirmation is : =========" + url);
+			RestClient restClient = new RestClient();
+			rateConfirmationResp = restClient.SendPostRequest(rateConfirmation, sReqRefNum, url,
+					"rateConfirmationResponse.json", null, null, SBIUtility.isRespFromStub("rateConfirmation"));
+			APLog.reportLog("Rate confirmation Details Response==========\n" + rateConfirmationResp);
+
+			JSONObject rateConfirmApiResp = new JSONObject(rateConfirmationResp);
+			String Response_status = rateConfirmApiResp.getString("RESPONSE_STATUS");
+			JSONObject EIS_RESPONSE = rateConfirmApiResp.getJSONObject("EIS_RESPONSE");
+			// JSONObject response = EIS_RESPONSE.getJSONObject("response");
+			String rateConfirmRefNo = EIS_RESPONSE.getString("accountingReference");
+			String c_main_ref_upd = (String) jsonObj.get("cmainref");
+			APLog.reportLog("c_main_ref_upd" + c_main_ref_upd);
+
+			if (rateType.equalsIgnoreCase("EEFC") && !isEEFCUnqRefNoAlreadyPresent()) {
+				CSSQLStatement insertStatement = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_INSERT,
+						"EXIMTRX.IDEA_AUDIT_DTAL", "EXIMT");
+
+				insertStatement.addField("C_MAIN_REF", c_main_ref_upd, Types.VARCHAR);
+				insertStatement.addField("REQUEST_ID", sReqId, Types.VARCHAR);
+				insertStatement.addField("CIF", cif, Types.VARCHAR);
+				insertStatement.addField("REQUEST_REFERENCE_NUMBER", sReqRefNum, Types.VARCHAR);
+				// insertStatement.addField("uniqueReferenceNo", uniqueReferenceNo,
+				// Types.VARCHAR);
+				insertStatement.addField("marginAmount", marginAmount, Types.VARCHAR);
+				insertStatement.addField("rate", rate, Types.VARCHAR);
+				insertStatement.addField("currency1", currency1, Types.VARCHAR);
+				insertStatement.addField("currency2", currency2, Types.VARCHAR);
+				insertStatement.addField("amount1", amount1, Types.VARCHAR);
+				insertStatement.addField("amount2", amount2, Types.VARCHAR);
+				insertStatement.addField("transTypeCode", transTypeCode, Types.VARCHAR);
+				insertStatement.addField("orgBranchCode", orgBranchCode, Types.VARCHAR);
+				insertStatement.addField("linkedCCategoryBranchCode", "", Types.VARCHAR);
+				insertStatement.addField("gtfcBranchCode", gtfcBranchCode, Types.VARCHAR);
+				insertStatement.addField("REQUEST", rateConfirmation, Types.CLOB);
+				insertStatement.addField("RESPONSE", rateConfirmationResp, Types.CLOB);
+				insertStatement.addField("RATE_TYPE", rateType, Types.VARCHAR);
+				if (Response_status.equalsIgnoreCase("0") && !Strings.isNullOrEmpty(rateConfirmRefNo)
+						&& !rateConfirmRefNo.equalsIgnoreCase("null")) {
+					insertStatement.addField("rateConfirmRefNo", rateConfirmRefNo, Types.VARCHAR);
+					insertStatement.addField("RATE_CONFIRM_SUCCESS", "Y", Types.VARCHAR);
+					insertStatement.addField("uniqueReferenceNo", EEFCRandomString, Types.VARCHAR);
+					APLog.reportLog("insert done for eefc with Random String");
+				}
+				CSEEDAOHelper.commExecuteUpdate(insertStatement);
+				APLog.reportLog("insert done for eefc");
+			} else {
+				CSSQLStatement updStatement = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_UPDATE,
+						"EXIMTRX.IDEA_AUDIT_DTAL", "EXIMT");
+				updStatement.addField("rateConfirmRefReq", rateConfirmation, Types.CLOB);
+				updStatement.addField("rateConfirmationResp", rateConfirmationResp, Types.CLOB);
+				String whereCon1 = "WHERE  C_MAIN_REF = '" + c_main_ref_upd + "' AND UNIQUEREFERENCENO = '"
+						+ referenceNumber + "'";
+				CSSQLClause CSSQLClause1 = new CSSQLClause();
+				CSSQLClause1.setClause(whereCon1, null, null);
+				updStatement.setClause(CSSQLClause1);
+				int count1 = CSEEDAOHelper.commExecuteUpdate(updStatement);
+				APLog.reportLog("request and response upd for RateConfirmation" + count1);
+
+				if (Response_status.equalsIgnoreCase("0") && !Strings.isNullOrEmpty(rateConfirmRefNo)
+						&& !rateConfirmRefNo.equalsIgnoreCase("null")) {
+					CSSQLStatement sqlStatement = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_UPDATE,
+							"EXIMTRX.IDEA_AUDIT_DTAL", "EXIMT");
+					sqlStatement.addField("rateConfirmRefNo", rateConfirmRefNo, Types.VARCHAR);
+					sqlStatement.addField("RATE_CONFIRM_SUCCESS", "Y", Types.VARCHAR);
+					String whereCon = "WHERE  C_MAIN_REF = '" + c_main_ref_upd + "' AND UNIQUEREFERENCENO = '"
+							+ referenceNumber + "'";
+					CSSQLClause CSSQLClause = new CSSQLClause();
+					CSSQLClause.setClause(whereCon, null, null);
+					sqlStatement.setClause(CSSQLClause);
+					int count = CSEEDAOHelper.commExecuteUpdate(sqlStatement);
+					APLog.reportLog("Rate confirm updated count is : " + count);
+				}
+
+			}
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			APLog.reportErrLog(e.getMessage());
+		}
+		return rateConfirmationResp;
+	}
+
+	public static String getDate() {
+		// Get the current date and time
+		LocalDateTime now = LocalDateTime.now();
+
+		// Define the desired format
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+		// Format the current date and time
+		String formattedTimestamp = now.format(formatter);
+
+		// Print the formatted timestamp
+		APLog.reportLog("Formatted Timestamp: " + formattedTimestamp);
+		return formattedTimestamp;
+	}
+
+	public String getRequestId(String sReqRefNum) {
+		LocalDateTime now = LocalDateTime.now();
+
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyy");
+
+		String formattedTimestamp = now.format(formatter);
+
+		APLog.reportLog("Formatted Timestamp: " + formattedTimestamp);
+		formattedTimestamp = formattedTimestamp + "EEFC" + sReqRefNum.substring(19, sReqRefNum.length());
+		return formattedTimestamp;
+	}
+
+	public static String EEFCRandomStringGenerator() {
+		try {
+			String sReqRefNum = null;
+			do {
+			LocalDateTime now = LocalDateTime.now();
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HHmmssSSS");
+			String formattedTimestamp = now.format(formatter);
+			Calendar calendar = Calendar.getInstance();
+			int yr = calendar.get(1);
+			int doy = 0;
+			doy = calendar.get(6);
+			String timestamp = formattedTimestamp;
+			String doyoy = null;
+			doyoy = String.valueOf(doy);
+			StringBuilder sb = new StringBuilder();
+			while (sb.length() + doyoy.length() < 3)
+				sb.append('0');
+			sb.append(doyoy);
+			doyoy = sb.toString();
+			sReqRefNum = "EFC" + yr + doyoy + timestamp;
+			}while
+				(isEEFCUnqRefNoAlreadyPresent(sReqRefNum));
+			return sReqRefNum;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+
+	private boolean isEEFCUnqRefNoAlreadyPresent() {
+		try {
+			APLog.reportLog("inside isEEFCUnqRefNoAlreadyPresent");
+			CSSQLStatement selectStat = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_SELECT, "EXIMTRX.IDEA_AUDIT_DTAL","EXIMT");
+			selectStat.addField("UNIQUEREFERENCENO", null, null);
+			String where = "WHERE C_MAIN_REF = '" + cmainref + "' AND RATE_TYPE = 'EEFC'";
+			CSSQLClause clause = new CSSQLClause();
+			clause.setClause(where, new Object[0], new Integer[0]);
+			selectStat.setClause(clause);
+			Document doc = CSEEDAOHelper.commExecuteQuery(selectStat);
+			NodeList nl = doc.getDocumentElement().getElementsByTagName("record");
+			Node node = nl.item(0);
+			existingEEFCRefNo =  getNodeValue(node, "UNIQUEREFERENCENO");
+			APLog.reportLog("existingEEFCRefNo value is "+ existingEEFCRefNo);
+			return (existingEEFCRefNo.isEmpty())?  false : true;
+		}  catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+	
+	private static boolean isEEFCUnqRefNoAlreadyPresent(String sReqRefNum) {
+		try {
+			APLog.reportLog("inside isEEFCUnqRefNoAlreadyPresent");
+			CSSQLStatement selectStat = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_SELECT, "EXIMTRX.IDEA_AUDIT_DTAL","EXIMT");
+			selectStat.addField("UNIQUEREFERENCENO", null, null);
+			String where = "WHERE UNIQUEREFERENCENO = '" + sReqRefNum + "'";
+			CSSQLClause clause = new CSSQLClause();
+			clause.setClause(where, new Object[0], new Integer[0]);
+			selectStat.setClause(clause);
+			Document doc = CSEEDAOHelper.commExecuteQuery(selectStat);
+			NodeList nl = doc.getDocumentElement().getElementsByTagName("record");
+			Node node = nl.item(0);
+			String RefNo =  getNodeValue(node, "UNIQUEREFERENCENO");
+			APLog.reportLog("existingEEFCRefNo value is "+ existingEEFCRefNo);
+			return (RefNo.isEmpty())?  false : true;
+		}  catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+	
+	private static String getNodeValue(Node node, String tagName) {
+		try {
+			Element el = (Element) node;
+			NodeList list = el.getElementsByTagName(tagName);
+			if ((list != null) && (list.getLength() > 0) && (list.item(0).getFirstChild() != null))
+				return list.item(0).getFirstChild().getNodeValue();
+		} catch (Exception localException) {
+		}
+		return null;
+	}
 }
-
-// ---------- main flow ----------
-
-async function checkDepen(){
-  const btn = document.getElementById('checkBtn');
-  const spinner = document.getElementById('spinner');
-  const output = document.getElementById('output');
-  const ourCR = document.getElementById('ourCR').value.trim();
-  const rawText = document.getElementById('input').value;
-
-  output.innerHTML = '';
-
-  if (!ourCR) {
-    setStats('Please enter your CR number.', 'error');
-    return;
-  }
-  if (!rawText.trim()) {
-    setStats('Please paste archive text first.', 'error');
-    return;
-  }
-
-  let blocks;
-  try {
-    blocks = convertToJson(rawText);
-  } catch (e) {
-    setStats('Could not parse the archive text: ' + e.message, 'error');
-    return;
-  }
-
-  if (blocks.length === 0) {
-    setStats('No archive blocks found in the pasted text.', 'error');
-    return;
-  }
-
-  // Collect every CR referenced across ALL pasted archives so we only
-  // make a single status request no matter how many files were pasted.
-  const allCRs = new Set();
-  blocks.forEach(b => Object.keys(b.versionLabels).forEach(cr => allCRs.add(cr)));
-
-  btn.disabled = true;
-  spinner.style.display = 'inline';
-  setStats('Fetching statuses for ' + allCRs.size + ' CR(s) across ' + blocks.length + ' archive(s)…');
-
-  let crStatus;
-  try {
-    // This is now correctly awaited before dependency checking runs,
-    // instead of firing in parallel with checkDependencies() as before.
-    crStatus = await getCrStatuses(Array.from(allCRs));
-  } catch (e) {
-    btn.disabled = false;
-    spinner.style.display = 'none';
-    setStats('Error fetching CR statuses: ' + e.message, 'error');
-    return;
-  }
-  
-  btn.disabled = false;
-  spinner.style.display = 'none';
-  
-  if(isLatestprodPromoted){
-	setStats('Latest version is already promoted in Production','error');
-	return;
-  }
-
-  // Run the dependency check per archive, since the same CR number can
-  // appear with different revisions in different archives/files.
-  const results = [];
-  let archivesWithCR = 0;
-
-  blocks.forEach((b, idx) => {
-    const label = b.archive || b.workfile || ('Archive ' + (idx + 1));
-    const blocked = findBlockedForArchive(b.versionLabels, ourCR, crStatus);
-    if (blocked === null) return; // ourCR not referenced in this archive
-    archivesWithCR++;
-    blocked.forEach(dep => results.push({ archive: label, ...dep }));
-  });
-
-  if (archivesWithCR === 0) {
-    setStats('CR ' + ourCR + ' was not found in any of the ' + blocks.length + ' pasted archive(s).', 'error');
-    return;
-  }
-
-  if (results.length === 0) {
-    setStats('Checked ' + archivesWithCR + ' archive(s) referencing CR ' + ourCR + '. All dependencies are OK.', 'ok');
-    output.innerHTML = '';
-    return;
-  }
-
-  setStats('Checked ' + archivesWithCR + ' archive(s) referencing CR ' + ourCR + '. Found ' + results.length + ' blocking dependenc' + (results.length === 1 ? 'y' : 'ies') + '.', 'error');
-  renderTable(results);
-}
-
-function renderTable(results){
-  const table = document.createElement('table');
-  table.innerHTML =
-    '<thead><tr>' +
-      '<th>File Name</th><th>Dependent CR</th><th>Revision</th><th>Status</th>' +
-    '</tr></thead>';
-
-  const tbody = document.createElement('tbody');
-  results.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.className = 'blocked';
-    tr.innerHTML =
-      '<td>' + escapeHtml(r.archive) + '</td>' +
-      '<td>' + escapeHtml(r.cr) + '</td>' +
-      '<td>' + escapeHtml(r.revision) + '</td>' +
-      '<td><span class="badge blocked">' + escapeHtml(r.status) + '</span></td>';
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
-
-  const output = document.getElementById('output');
-  output.innerHTML = '';
-  output.appendChild(table);
-}
-
-function escapeHtml(str){
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
-}
-</script>
-</body>
-</html>
