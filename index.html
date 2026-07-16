@@ -26,292 +26,283 @@ import com.google.common.base.Strings;
 import com.tcs.idea.handler.RequestHandler;
 
 public class RateConfirmation extends SBIBaseService implements RequestHandler {
-	private static String TELLER_ID = "";
-	private static String orgBranchCode;
-	private static String gtfcBranchCode;
-	private static String cif;
-	private static String currency1;
-	private static String currency2;
-	private String cmainref;
-	private String rate;
-	private String nostroBankId;
-	private String amount1;
-	private String amount2;
-	private String referenceNumber;
-	private String marginAmount;
-	private String transTypeCode;
-	private String rateType;
-	private static String EEFCRandomString;
-	private static String existingEEFCRefNo;
-	private static final SecureRandom EEFC_RANDOM = new SecureRandom();
 
-	public RateConfirmation(GAPIHeaderData gapiHeaderData) throws Exception {
-		super(gapiHeaderData);
-	}
+    // FIX: these were `static`, which is unsafe for a class instantiated
+    // per-request in a multi-threaded environment — concurrent requests
+    // would overwrite each other's teller/branch/CIF/currency values.
+    // They are now plain instance fields.
+    private String TELLER_ID = "";
+    private String orgBranchCode;
+    private String gtfcBranchCode;
+    private String cif;
+    private String currency1;
+    private String currency2;
+    private String cmainref;
+    private String rate;
+    private String nostroBankId;
+    private String amount1;
+    private String amount2;
+    private String referenceNumber;
+    private String marginAmount;
+    private String transTypeCode;
+    private String rateType;
+    private String EEFCRandomString;
+    private String existingEEFCRefNo;
 
-	@Override
-	public String process(String json) throws Exception {
-		return getRateConfirmation(json);
-	}
+    private static final SecureRandom EEFC_RANDOM = new SecureRandom();
 
-	public String getRateConfirmation(String jspToGapiJosn) throws Exception {
-		String sReqRefNum = "";
-		String rateConfirmationResp = "";
-		IdeaProperties IdeaProperties = new IdeaProperties();
-		try {
-			APLog.reportLog("Received JSON data from screen for RateConfirmation: " + jspToGapiJosn);
-	
-			JSONObject jsonObj = new JSONObject(jspToGapiJosn);
-			TELLER_ID = (String) jsonObj.get("UserId");
-			orgBranchCode = (String) jsonObj.get("orgBranchCode");
-			gtfcBranchCode = (String) jsonObj.get("gtfcBranchCode");
-			cif = (String) jsonObj.get("cif");
-			currency1 = (String) jsonObj.get("currency1");
-			currency2 = (String) jsonObj.get("currency2");
-			amount1 = (String) jsonObj.get("amount1");
-			cmainref = (String) jsonObj.get("cmainref");
-			if (isEEFCUnqRefNoAlreadyPresent()) {
-				EEFCRandomString = existingEEFCRefNo;
-			} else {
-				EEFCRandomString = EEFCRandomStringGenerator();
-			}
-			if (jsonObj.get("rateType").equals("EEFC")) {
-				referenceNumber = EEFCRandomString;
-			} else {
-				referenceNumber = (String) jsonObj.get("referenceNumber");
-			}
-			rate = (String) jsonObj.get("rate");
-			nostroBankId = (String) jsonObj.get("nostroBankId");
-			amount2 = (String) jsonObj.get("amount2");
-			// externalNo=(String) jsonObj.get("externalNo");
-			marginAmount = (String) jsonObj.get("marginAmount");
-			transTypeCode = (String) jsonObj.get("transTypeCode");
-			rateType = (String) jsonObj.get("rateType");
+    // FIX: build formatters once instead of on every call.
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+    private static final DateTimeFormatter EEFC_STAMP_FORMATTER = DateTimeFormatter.ofPattern("HHmmssSSS");
+    private static final DateTimeFormatter REQUEST_ID_FORMATTER = DateTimeFormatter.ofPattern("ddMMyyyy");
 
-			sReqRefNum = SBIUtility.getSBIRequestRefNumber(TELLER_ID, "TF");
-			String sReqId = sReqRefNum.substring(3);
-			JSONObject rateConfirmation = new JSONObject();
-			JSONObject rateConfirmationPayload = new JSONObject();
-			rateConfirmation.put("\"SOURCE_ID\"", IdeaProperties.IdeaProperties.getProperty("SOURCE_ID"));
-			rateConfirmationPayload.put("\"requestId\"", sReqId);
-			rateConfirmationPayload.put("\"requestTime\"", CardRatesInq.getTimeStamp());
-			rateConfirmationPayload.put("\"source\"", "TF");
-			rateConfirmationPayload.put("\"referenceNumber\"", referenceNumber);
-			rateConfirmationPayload.put("\"rate\"", rate);
-			rateConfirmationPayload.put("\"orgBranchCode\"", orgBranchCode); // get from screen
-			rateConfirmationPayload.put("\"gtfcBranchCode\"", gtfcBranchCode); // get from screen
-			rateConfirmationPayload.put("\"cif\"", cif); // get from screen
-			rateConfirmationPayload.put("\"transTypeCode\"", transTypeCode);
-			rateConfirmationPayload.put("\"currency1\"", currency1); // get from screen
-			rateConfirmationPayload.put("\"currency2\"", currency2); // get from screen
-			rateConfirmationPayload.put("\"amount1\"", amount1); // get from screen
-			rateConfirmationPayload.put("\"amount2\"", amount2);
-			rateConfirmationPayload.put("\"valueDate\"", getDate());
-			rateConfirmationPayload.put("\"rateType\"", "");
-			rateConfirmationPayload.put("\"buySell\"", "");
-			rateConfirmationPayload.put("\"nostroBankId\"", nostroBankId);
-			rateConfirmationPayload.put("\"externalNo\"", cmainref);
-			rateConfirmationPayload.put("\"marginAmount\"", marginAmount);
-			rateConfirmationPayload.put("\"signData\"", SignUtils.signData(sReqId));
-			rateConfirmation.put("\"EIS_PAYLOAD\"", rateConfirmationPayload);
-			rateConfirmation.put("\"REQUEST_REFERENCE_NUMBER\"", sReqRefNum);
-			rateConfirmation.put("\"DESTINATION\"", "IT_TSS");
-			rateConfirmation.put("\"TXN_TYPE\"", "FXS_RATESERVICE");
-			rateConfirmation.put("\"TXN_SUB_TYPE\"", "CARDRATE_CONFIRMATION");
+    public RateConfirmation(GAPIHeaderData gapiHeaderData) throws Exception {
+        super(gapiHeaderData);
+    }
 
-			APLog.reportLog("Rate confirmation Details Request=========" + rateConfirmation);
-			String url = IdeaProperties.IdeaProperties.getProperty("RATE_CONFIRMATION_URL");
-			APLog.reportLog("Endpoint URL of Rate confirmation is : =========" + url);
-			RestClient restClient = new RestClient();
-			rateConfirmationResp = restClient.SendPostRequest(rateConfirmation, sReqRefNum, url,
-					"rateConfirmationResponse.json", null, null, SBIUtility.isRespFromStub("rateConfirmation"));
-			APLog.reportLog("Rate confirmation Details Response==========\n" + rateConfirmationResp);
+    @Override
+    public String process(String json) throws Exception {
+        return getRateConfirmation(json);
+    }
 
-			JSONObject rateConfirmApiResp = new JSONObject(rateConfirmationResp);
-			String Response_status = rateConfirmApiResp.getString("RESPONSE_STATUS");
-			JSONObject EIS_RESPONSE = rateConfirmApiResp.getJSONObject("EIS_RESPONSE");
-			// JSONObject response = EIS_RESPONSE.getJSONObject("response");
-			String rateConfirmRefNo = EIS_RESPONSE.getString("accountingReference");
-			String c_main_ref_upd = (String) jsonObj.get("cmainref");
-			APLog.reportLog("c_main_ref_upd" + c_main_ref_upd);
+    public String getRateConfirmation(String jspToGapiJosn) throws Exception {
+        String sReqRefNum = "";
+        String rateConfirmationResp = "";
+        IdeaProperties ideaProperties = new IdeaProperties();
 
-			if (rateType.equalsIgnoreCase("EEFC") && !isEEFCUnqRefNoAlreadyPresent()) {
-				CSSQLStatement insertStatement = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_INSERT,
-						"EXIMTRX.IDEA_AUDIT_DTAL", "EXIMT");
+        APLog.reportLog("Received JSON data from screen for RateConfirmation: " + jspToGapiJosn);
 
-				insertStatement.addField("C_MAIN_REF", c_main_ref_upd, Types.VARCHAR);
-				insertStatement.addField("REQUEST_ID", sReqId, Types.VARCHAR);
-				insertStatement.addField("CIF", cif, Types.VARCHAR);
-				insertStatement.addField("REQUEST_REFERENCE_NUMBER", sReqRefNum, Types.VARCHAR);
-				// insertStatement.addField("uniqueReferenceNo", uniqueReferenceNo,
-				// Types.VARCHAR);
-				insertStatement.addField("marginAmount", marginAmount, Types.VARCHAR);
-				insertStatement.addField("rate", rate, Types.VARCHAR);
-				insertStatement.addField("currency1", currency1, Types.VARCHAR);
-				insertStatement.addField("currency2", currency2, Types.VARCHAR);
-				insertStatement.addField("amount1", amount1, Types.VARCHAR);
-				insertStatement.addField("amount2", amount2, Types.VARCHAR);
-				insertStatement.addField("transTypeCode", transTypeCode, Types.VARCHAR);
-				insertStatement.addField("orgBranchCode", orgBranchCode, Types.VARCHAR);
-				insertStatement.addField("linkedCCategoryBranchCode", "", Types.VARCHAR);
-				insertStatement.addField("gtfcBranchCode", gtfcBranchCode, Types.VARCHAR);
-				insertStatement.addField("REQUEST", rateConfirmation, Types.CLOB);
-				insertStatement.addField("RESPONSE", rateConfirmationResp, Types.CLOB);
-				insertStatement.addField("RATE_TYPE", rateType, Types.VARCHAR);
-				if (Response_status.equalsIgnoreCase("0") && !Strings.isNullOrEmpty(rateConfirmRefNo)
-						&& !rateConfirmRefNo.equalsIgnoreCase("null")) {
-					insertStatement.addField("rateConfirmRefNo", rateConfirmRefNo, Types.VARCHAR);
-					insertStatement.addField("RATE_CONFIRM_SUCCESS", "Y", Types.VARCHAR);
-					insertStatement.addField("uniqueReferenceNo", EEFCRandomString, Types.VARCHAR);
-					APLog.reportLog("insert done for eefc with Random String");
-				}
-				CSEEDAOHelper.commExecuteUpdate(insertStatement);
-				APLog.reportLog("insert done for eefc");
-			} else {
-				CSSQLStatement updStatement = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_UPDATE,
-						"EXIMTRX.IDEA_AUDIT_DTAL", "EXIMT");
-				updStatement.addField("rateConfirmRefReq", rateConfirmation, Types.CLOB);
-				updStatement.addField("rateConfirmationResp", rateConfirmationResp, Types.CLOB);
-				String whereCon1 = "WHERE  C_MAIN_REF = '" + c_main_ref_upd + "' AND UNIQUEREFERENCENO = '"
-						+ referenceNumber + "'";
-				CSSQLClause CSSQLClause1 = new CSSQLClause();
-				CSSQLClause1.setClause(whereCon1, null, null);
-				updStatement.setClause(CSSQLClause1);
-				int count1 = CSEEDAOHelper.commExecuteUpdate(updStatement);
-				APLog.reportLog("request and response upd for RateConfirmation" + count1);
+        JSONObject jsonObj = new JSONObject(jspToGapiJosn);
+        TELLER_ID = (String) jsonObj.get("UserId");
+        orgBranchCode = (String) jsonObj.get("orgBranchCode");
+        gtfcBranchCode = (String) jsonObj.get("gtfcBranchCode");
+        cif = (String) jsonObj.get("cif");
+        currency1 = (String) jsonObj.get("currency1");
+        currency2 = (String) jsonObj.get("currency2");
+        amount1 = (String) jsonObj.get("amount1");
+        cmainref = (String) jsonObj.get("cmainref");
 
-				if (Response_status.equalsIgnoreCase("0") && !Strings.isNullOrEmpty(rateConfirmRefNo)
-						&& !rateConfirmRefNo.equalsIgnoreCase("null")) {
-					CSSQLStatement sqlStatement = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_UPDATE,
-							"EXIMTRX.IDEA_AUDIT_DTAL", "EXIMT");
-					sqlStatement.addField("rateConfirmRefNo", rateConfirmRefNo, Types.VARCHAR);
-					sqlStatement.addField("RATE_CONFIRM_SUCCESS", "Y", Types.VARCHAR);
-					String whereCon = "WHERE  C_MAIN_REF = '" + c_main_ref_upd + "' AND UNIQUEREFERENCENO = '"
-							+ referenceNumber + "'";
-					CSSQLClause CSSQLClause = new CSSQLClause();
-					CSSQLClause.setClause(whereCon, null, null);
-					sqlStatement.setClause(CSSQLClause);
-					int count = CSEEDAOHelper.commExecuteUpdate(sqlStatement);
-					APLog.reportLog("Rate confirm updated count is : " + count);
-				}
+        if (isEEFCUnqRefNoAlreadyPresent(cmainref, "RATE_TYPE = 'EEFC'")) {
+            EEFCRandomString = existingEEFCRefNo;
+        } else {
+            EEFCRandomString = eefcRandomStringGenerator();
+        }
 
-			}
+        if (jsonObj.get("rateType").equals("EEFC")) {
+            referenceNumber = EEFCRandomString;
+        } else {
+            referenceNumber = (String) jsonObj.get("referenceNumber");
+        }
+        rate = (String) jsonObj.get("rate");
+        nostroBankId = (String) jsonObj.get("nostroBankId");
+        amount2 = (String) jsonObj.get("amount2");
+        marginAmount = (String) jsonObj.get("marginAmount");
+        transTypeCode = (String) jsonObj.get("transTypeCode");
+        rateType = (String) jsonObj.get("rateType");
 
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			APLog.reportErrLog(e.getMessage());
-		}
-		return rateConfirmationResp;
-	}
+        sReqRefNum = SBIUtility.getSBIRequestRefNumber(TELLER_ID, "TF");
+        String sReqId = sReqRefNum.substring(3);
 
-	public static String getDate() {
-		// Get the current date and time
-		LocalDateTime now = LocalDateTime.now();
+        // FIX: keys no longer contain literal escaped quotes — JSONObject.put
+        // already serializes the key as a quoted JSON string; the old code
+        // was baking `"SOURCE_ID"` (with quotes) in as the literal key name,
+        // which corrupts the payload sent to IT_TSS.
+        JSONObject rateConfirmationPayload = new JSONObject();
+        rateConfirmationPayload.put("requestId", sReqId);
+        rateConfirmationPayload.put("requestTime", CardRatesInq.getTimeStamp());
+        rateConfirmationPayload.put("source", "TF");
+        rateConfirmationPayload.put("referenceNumber", referenceNumber);
+        rateConfirmationPayload.put("rate", rate);
+        rateConfirmationPayload.put("orgBranchCode", orgBranchCode);
+        rateConfirmationPayload.put("gtfcBranchCode", gtfcBranchCode);
+        rateConfirmationPayload.put("cif", cif);
+        rateConfirmationPayload.put("transTypeCode", transTypeCode);
+        rateConfirmationPayload.put("currency1", currency1);
+        rateConfirmationPayload.put("currency2", currency2);
+        rateConfirmationPayload.put("amount1", amount1);
+        rateConfirmationPayload.put("amount2", amount2);
+        rateConfirmationPayload.put("valueDate", getDate());
+        rateConfirmationPayload.put("rateType", "");
+        rateConfirmationPayload.put("buySell", "");
+        rateConfirmationPayload.put("nostroBankId", nostroBankId);
+        rateConfirmationPayload.put("externalNo", cmainref);
+        rateConfirmationPayload.put("marginAmount", marginAmount);
+        rateConfirmationPayload.put("signData", SignUtils.signData(sReqId));
 
-		// Define the desired format
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        JSONObject rateConfirmation = new JSONObject();
+        rateConfirmation.put("SOURCE_ID", ideaProperties.IdeaProperties.getProperty("SOURCE_ID"));
+        rateConfirmation.put("EIS_PAYLOAD", rateConfirmationPayload);
+        rateConfirmation.put("REQUEST_REFERENCE_NUMBER", sReqRefNum);
+        rateConfirmation.put("DESTINATION", "IT_TSS");
+        rateConfirmation.put("TXN_TYPE", "FXS_RATESERVICE");
+        rateConfirmation.put("TXN_SUB_TYPE", "CARDRATE_CONFIRMATION");
 
-		// Format the current date and time
-		String formattedTimestamp = now.format(formatter);
+        APLog.reportLog("Rate confirmation Details Request=========" + rateConfirmation);
+        String url = ideaProperties.IdeaProperties.getProperty("RATE_CONFIRMATION_URL");
+        APLog.reportLog("Endpoint URL of Rate confirmation is : =========" + url);
 
-		// Print the formatted timestamp
-		APLog.reportLog("Formatted Timestamp: " + formattedTimestamp);
-		return formattedTimestamp;
-	}
+        RestClient restClient = new RestClient();
+        rateConfirmationResp = restClient.SendPostRequest(rateConfirmation, sReqRefNum, url,
+                "rateConfirmationResponse.json", null, null, SBIUtility.isRespFromStub("rateConfirmation"));
+        APLog.reportLog("Rate confirmation Details Response==========\n" + rateConfirmationResp);
 
-	public String getRequestId(String sReqRefNum) {
-		LocalDateTime now = LocalDateTime.now();
+        JSONObject rateConfirmApiResp = new JSONObject(rateConfirmationResp);
+        String responseStatus = rateConfirmApiResp.getString("RESPONSE_STATUS");
+        JSONObject eisResponse = rateConfirmApiResp.getJSONObject("EIS_RESPONSE");
+        String rateConfirmRefNo = eisResponse.getString("accountingReference");
+        String cMainRefUpd = (String) jsonObj.get("cmainref");
+        APLog.reportLog("c_main_ref_upd" + cMainRefUpd);
 
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyy");
+        boolean isSuccess = responseStatus.equalsIgnoreCase("0")
+                && !Strings.isNullOrEmpty(rateConfirmRefNo)
+                && !rateConfirmRefNo.equalsIgnoreCase("null");
 
-		String formattedTimestamp = now.format(formatter);
+        if (rateType.equalsIgnoreCase("EEFC") && !isEEFCUnqRefNoAlreadyPresent(cmainref, "RATE_TYPE = 'EEFC'")) {
+            insertEefcAuditRecord(cMainRefUpd, sReqId, sReqRefNum, rateConfirmation, rateConfirmationResp,
+                    rateConfirmRefNo, isSuccess);
+        } else {
+            updateAuditRecord(cMainRefUpd, rateConfirmation, rateConfirmationResp, rateConfirmRefNo, isSuccess);
+        }
 
-		APLog.reportLog("Formatted Timestamp: " + formattedTimestamp);
-		formattedTimestamp = formattedTimestamp + "EEFC" + sReqRefNum.substring(19, sReqRefNum.length());
-		return formattedTimestamp;
-	}
+        return rateConfirmationResp;
+    }
 
-	public static String EEFCRandomStringGenerator() {
-		try {
-			String sReqRefNum = null;
-			do {
-			LocalDateTime now = LocalDateTime.now();
-			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HHmmssSSS");
-			String formattedTimestamp = now.format(formatter);
-			Calendar calendar = Calendar.getInstance();
-			int yr = calendar.get(1);
-			int doy = 0;
-			doy = calendar.get(6);
-			String timestamp = formattedTimestamp;
-			String doyoy = null;
-			doyoy = String.valueOf(doy);
-			StringBuilder sb = new StringBuilder();
-			while (sb.length() + doyoy.length() < 3)
-				sb.append('0');
-			sb.append(doyoy);
-			doyoy = sb.toString();
-			sReqRefNum = "EFC" + yr + doyoy + timestamp;
-			}while
-				(isEEFCUnqRefNoAlreadyPresent(sReqRefNum));
-			return sReqRefNum;
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
-	}
+    private void insertEefcAuditRecord(String cMainRefUpd, String sReqId, String sReqRefNum,
+            JSONObject requestPayload, String responsePayload, String rateConfirmRefNo, boolean isSuccess) {
+        CSSQLStatement insertStatement = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_INSERT,
+                "EXIMTRX.IDEA_AUDIT_DTAL", "EXIMT");
 
+        insertStatement.addField("C_MAIN_REF", cMainRefUpd, Types.VARCHAR);
+        insertStatement.addField("REQUEST_ID", sReqId, Types.VARCHAR);
+        insertStatement.addField("CIF", cif, Types.VARCHAR);
+        insertStatement.addField("REQUEST_REFERENCE_NUMBER", sReqRefNum, Types.VARCHAR);
+        insertStatement.addField("marginAmount", marginAmount, Types.VARCHAR);
+        insertStatement.addField("rate", rate, Types.VARCHAR);
+        insertStatement.addField("currency1", currency1, Types.VARCHAR);
+        insertStatement.addField("currency2", currency2, Types.VARCHAR);
+        insertStatement.addField("amount1", amount1, Types.VARCHAR);
+        insertStatement.addField("amount2", amount2, Types.VARCHAR);
+        insertStatement.addField("transTypeCode", transTypeCode, Types.VARCHAR);
+        insertStatement.addField("orgBranchCode", orgBranchCode, Types.VARCHAR);
+        insertStatement.addField("linkedCCategoryBranchCode", "", Types.VARCHAR);
+        insertStatement.addField("gtfcBranchCode", gtfcBranchCode, Types.VARCHAR);
+        insertStatement.addField("REQUEST", requestPayload, Types.CLOB);
+        insertStatement.addField("RESPONSE", responsePayload, Types.CLOB);
+        insertStatement.addField("RATE_TYPE", rateType, Types.VARCHAR);
 
-	private boolean isEEFCUnqRefNoAlreadyPresent() {
-		try {
-			APLog.reportLog("inside isEEFCUnqRefNoAlreadyPresent");
-			CSSQLStatement selectStat = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_SELECT, "EXIMTRX.IDEA_AUDIT_DTAL","EXIMT");
-			selectStat.addField("UNIQUEREFERENCENO", null, null);
-			String where = "WHERE C_MAIN_REF = '" + cmainref + "' AND RATE_TYPE = 'EEFC'";
-			CSSQLClause clause = new CSSQLClause();
-			clause.setClause(where, new Object[0], new Integer[0]);
-			selectStat.setClause(clause);
-			Document doc = CSEEDAOHelper.commExecuteQuery(selectStat);
-			NodeList nl = doc.getDocumentElement().getElementsByTagName("record");
-			Node node = nl.item(0);
-			existingEEFCRefNo =  getNodeValue(node, "UNIQUEREFERENCENO");
-			APLog.reportLog("existingEEFCRefNo value is "+ existingEEFCRefNo);
-			return (existingEEFCRefNo.isEmpty())?  false : true;
-		}  catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-	
-	private static boolean isEEFCUnqRefNoAlreadyPresent(String sReqRefNum) {
-		try {
-			APLog.reportLog("inside isEEFCUnqRefNoAlreadyPresent");
-			CSSQLStatement selectStat = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_SELECT, "EXIMTRX.IDEA_AUDIT_DTAL","EXIMT");
-			selectStat.addField("UNIQUEREFERENCENO", null, null);
-			String where = "WHERE UNIQUEREFERENCENO = '" + sReqRefNum + "'";
-			CSSQLClause clause = new CSSQLClause();
-			clause.setClause(where, new Object[0], new Integer[0]);
-			selectStat.setClause(clause);
-			Document doc = CSEEDAOHelper.commExecuteQuery(selectStat);
-			NodeList nl = doc.getDocumentElement().getElementsByTagName("record");
-			Node node = nl.item(0);
-			String RefNo =  getNodeValue(node, "UNIQUEREFERENCENO");
-			APLog.reportLog("existingEEFCRefNo value is "+ existingEEFCRefNo);
-			return (RefNo.isEmpty())?  false : true;
-		}  catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-	
-	private static String getNodeValue(Node node, String tagName) {
-		try {
-			Element el = (Element) node;
-			NodeList list = el.getElementsByTagName(tagName);
-			if ((list != null) && (list.getLength() > 0) && (list.item(0).getFirstChild() != null))
-				return list.item(0).getFirstChild().getNodeValue();
-		} catch (Exception localException) {
-		}
-		return null;
-	}
+        if (isSuccess) {
+            insertStatement.addField("rateConfirmRefNo", rateConfirmRefNo, Types.VARCHAR);
+            insertStatement.addField("RATE_CONFIRM_SUCCESS", "Y", Types.VARCHAR);
+            insertStatement.addField("uniqueReferenceNo", EEFCRandomString, Types.VARCHAR);
+            APLog.reportLog("insert done for eefc with Random String");
+        }
+        CSEEDAOHelper.commExecuteUpdate(insertStatement);
+        APLog.reportLog("insert done for eefc");
+    }
+
+    private void updateAuditRecord(String cMainRefUpd, JSONObject requestPayload, String responsePayload,
+            String rateConfirmRefNo, boolean isSuccess) {
+        // FIX: bind params instead of concatenating values into the WHERE clause.
+        String whereClause = "WHERE C_MAIN_REF = ? AND UNIQUEREFERENCENO = ?";
+        Object[] whereParams = new Object[] { cMainRefUpd, referenceNumber };
+        Integer[] whereTypes = new Integer[] { Types.VARCHAR, Types.VARCHAR };
+
+        CSSQLStatement updStatement = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_UPDATE,
+                "EXIMTRX.IDEA_AUDIT_DTAL", "EXIMT");
+        updStatement.addField("rateConfirmRefReq", requestPayload, Types.CLOB);
+        updStatement.addField("rateConfirmationResp", responsePayload, Types.CLOB);
+        CSSQLClause clause1 = new CSSQLClause();
+        clause1.setClause(whereClause, whereParams, whereTypes);
+        updStatement.setClause(clause1);
+        int count1 = CSEEDAOHelper.commExecuteUpdate(updStatement);
+        APLog.reportLog("request and response upd for RateConfirmation" + count1);
+
+        if (isSuccess) {
+            CSSQLStatement sqlStatement = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_UPDATE,
+                    "EXIMTRX.IDEA_AUDIT_DTAL", "EXIMT");
+            sqlStatement.addField("rateConfirmRefNo", rateConfirmRefNo, Types.VARCHAR);
+            sqlStatement.addField("RATE_CONFIRM_SUCCESS", "Y", Types.VARCHAR);
+            CSSQLClause clause2 = new CSSQLClause();
+            clause2.setClause(whereClause, whereParams, whereTypes);
+            sqlStatement.setClause(clause2);
+            int count = CSEEDAOHelper.commExecuteUpdate(sqlStatement);
+            APLog.reportLog("Rate confirm updated count is : " + count);
+        }
+    }
+
+    public String getDate() {
+        String formattedTimestamp = LocalDateTime.now().format(DATE_FORMATTER);
+        APLog.reportLog("Formatted Timestamp: " + formattedTimestamp);
+        return formattedTimestamp;
+    }
+
+    public String getRequestId(String sReqRefNum) {
+        String formattedTimestamp = LocalDateTime.now().format(REQUEST_ID_FORMATTER);
+        APLog.reportLog("Formatted Timestamp: " + formattedTimestamp);
+        return formattedTimestamp + "EEFC" + sReqRefNum.substring(19, sReqRefNum.length());
+    }
+
+    public String eefcRandomStringGenerator() {
+        String sReqRefNum;
+        Calendar calendar = Calendar.getInstance();
+        int yr = calendar.get(Calendar.YEAR);
+        int doy = calendar.get(Calendar.DAY_OF_YEAR);
+        String doyoy = String.format("%03d", doy);
+
+        do {
+            String timestamp = LocalDateTime.now().format(EEFC_STAMP_FORMATTER);
+            sReqRefNum = "EFC" + yr + doyoy + timestamp;
+        } while (isEEFCUnqRefNoAlreadyPresent(null, "UNIQUEREFERENCENO = '" + sReqRefNum + "'"));
+
+        return sReqRefNum;
+    }
+
+    // FIX: the two near-duplicate lookup methods (one keyed by cmainref,
+    // one keyed by a generated reference number) are now a single method.
+    // NOTE: the second condition fragment is still concatenated directly
+    // (matching the original's behavior for a value we generate ourselves,
+    // not user input), but the cmainref case now goes through a bind param.
+    private boolean isEEFCUnqRefNoAlreadyPresent(String mainRef, String extraCondition) {
+        try {
+            APLog.reportLog("inside isEEFCUnqRefNoAlreadyPresent");
+            CSSQLStatement selectStat = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_SELECT,
+                    "EXIMTRX.IDEA_AUDIT_DTAL", "EXIMT");
+            selectStat.addField("UNIQUEREFERENCENO", null, null);
+
+            CSSQLClause clause = new CSSQLClause();
+            if (mainRef != null) {
+                clause.setClause("WHERE C_MAIN_REF = ? AND " + extraCondition,
+                        new Object[] { mainRef }, new Integer[] { Types.VARCHAR });
+            } else {
+                clause.setClause("WHERE " + extraCondition, new Object[0], new Integer[0]);
+            }
+            selectStat.setClause(clause);
+
+            Document doc = CSEEDAOHelper.commExecuteQuery(selectStat);
+            NodeList nl = doc.getDocumentElement().getElementsByTagName("record");
+            Node node = nl.item(0);
+            String refNo = getNodeValue(node, "UNIQUEREFERENCENO");
+
+            if (mainRef != null) {
+                existingEEFCRefNo = refNo;
+            }
+            APLog.reportLog("existingEEFCRefNo value is " + refNo);
+            return refNo != null && !refNo.isEmpty();
+        } catch (Exception e) {
+            APLog.reportErrLog(e.getMessage());
+        }
+        return false;
+    }
+
+    private static String getNodeValue(Node node, String tagName) {
+        try {
+            Element el = (Element) node;
+            NodeList list = el.getElementsByTagName(tagName);
+            if ((list != null) && (list.getLength() > 0) && (list.item(0).getFirstChild() != null))
+                return list.item(0).getFirstChild().getNodeValue();
+        } catch (Exception localException) {
+            APLog.reportErrLog(localException.getMessage());
+        }
+        return null;
+    }
 }
