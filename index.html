@@ -1,96 +1,116 @@
-package com.cs.eximap.utility;
-
-import java.io.File;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.xerces.dom.DocumentImpl;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-
-import com.cs.base.utility.ASPathConst;
-import com.cs.base.xml.XMLManager;
-import com.cs.eximweb.utility.WSTools;
-import com.google.common.base.Strings;
-
-public class DeleteDoRecordInDB {
-
-	public static DocumentImpl deleteDoRecordInDB(String strMainRef2, String sFunctionId2, DocumentImpl paraDOM)
-			throws Exception {
-		CSSQLStatement deleteEntries = null;
-		Document deleteSQLDom = null;
-		List<CSSQLStatement> deleteSqlList = new ArrayList<CSSQLStatement>();
-		try {
-			APLog.reportLog("deleteDoRecordInDB : function ID is "+sFunctionId2 + ",C_MAIN_REF is "+strMainRef2);
-			String functionList = ASPathConst.getUserDirPath() + File.separator + "INT" + File.separator + "DeleteDoRecords.xml";
-			Document docPara = XMLManager.xmlFileToDom(functionList);
-			Element eRoot = docPara.getDocumentElement();
-			Node txnNode = XMLManager.findNode(eRoot, sFunctionId2);
-			String table_Name = XMLManager.getChildNodeValue(txnNode, "TABLE", true);
-			String whereClause = XMLManager.getChildNodeValue(txnNode, "CLAUSE", true);
-			String doName = XMLManager.getChildNodeValue(txnNode, "DO_NAME", true);
-			APLog.reportLog("deleteDoRecordInDB : table_Name is "+table_Name + ",whereClause is "+whereClause+",doName is "+doName);
-			Element domDataInfo = (Element)paraDOM.getElementsByTagName("domData").item(0);
-			List<Node> columnsList = XMLManager.findChildNodes(domDataInfo, doName);
-			APLog.reportLog("DO Records for "+doName+" are "+columnsList.size());
-			if(columnsList!=null) {
-			for (int i = 0; i < columnsList.size(); i++) {
-				Node column = columnsList.get(i);
-				String Type = XMLManager.getNodeAttribute(column, "Type");
-				if(Type.equalsIgnoreCase("D")) {
-					
-						String sb_no =  XMLManager.getChildNodeValue(column,"SB_NO",true);
-					
-						if (Strings.isNullOrEmpty(sFunctionId2)) {
-							APLog.reportLog("Delete do record skipped due to FunctionId is is null for the following ref number - " + strMainRef2);
-						}else {
-							deleteEntries = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_DELETE, table_Name, "EXIMT");
-							Object[] cValues = { strMainRef2, sb_no};
-							Integer[] cTypes = { Types.VARCHAR,Types.VARCHAR};
-							CSSQLClause csClause = new CSSQLClause();
-							csClause.setClause(whereClause, cValues, cTypes);
-							deleteEntries.setClause(csClause);
-							deleteSqlList.add(deleteEntries);
-							deleteSQLDom = generateSqlDom(deleteSqlList);
-							APLog.reportLog("DO table insert dom SQL Data  : " + XMLManager.convertDomToString(deleteSQLDom));
-							return (DocumentImpl) deleteSQLDom;
-						}
-				}
-				
-			}
-			}
-
-			
-		} catch (Exception e) {
-			APLog.reportLog(WSTools.getErrorStackTrace(e));
-			APLog.reportLog("error " + e.getMessage());
-		}
-		return (DocumentImpl) deleteSQLDom;
-	}
-
-	private static Document generateSqlDom(List<CSSQLStatement> alCSSQL) throws Exception {
-		Document sqlDom = XMLManager.createDocument("root");
-		Element root = sqlDom.getDocumentElement();
-		Element eleSQLStatement = sqlDom.createElement("SQLStatement");
-		root.appendChild(eleSQLStatement);
-		if ((alCSSQL == null) || (alCSSQL.size() == 0)) {
-			return sqlDom;
-		}
-		CSSQLStatement csSQL = (CSSQLStatement) alCSSQL.get(0);
-		String strDS = csSQL.getDS();
-		Element eleDS = sqlDom.createElement("C_DS_ID");
-		eleDS.appendChild(sqlDom.createTextNode(strDS));
-		root.appendChild(eleDS);
-		Element eleSQL = (Element) csSQL.genSqlNode();
-		eleSQLStatement.appendChild(sqlDom.importNode(eleSQL, true));
-		for (int i = 1; i < alCSSQL.size(); ++i) {
-			csSQL = (CSSQLStatement) alCSSQL.get(i);
-			eleSQLStatement.appendChild(eleSQLStatement.getOwnerDocument().importNode(csSQL.genSqlNode(), true));
-		}
-		return sqlDom;
-
-	}
-
-}
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://tcs.com" xmlns:apachesoap="http://xml.apache.org/xml-soap" xmlns:impl="http://tcs.com" xmlns:intf="http://tcs.com"
+	xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<!--WSDL created by Apache Axis version: 1.4 Built on Apr 22, 2006 (06:55:48 PDT)-->
+	<wsdl:types>
+		<schema elementFormDefault="qualified" targetNamespace="http://tcs.com" xmlns="http://www.w3.org/2001/XMLSchema">
+			<element name="fetchData">
+				<complexType>
+					<sequence>
+						<element name="procedureName" type="xsd:string" />
+						<element name="tranRefNoJSONString" type="xsd:string" />
+					</sequence>
+				</complexType>
+			</element>
+			<element name="fetchDataResponse">
+				<complexType>
+					<sequence>
+						<element name="fetchDataReturn" type="xsd:string" />
+					</sequence>
+				</complexType>
+			</element>
+			<element name="updateData">
+				<complexType>
+					<sequence>
+						<element name="procedureName" type="xsd:string" />
+						<element name="requestJSONString" type="xsd:string" />
+					</sequence>
+				</complexType>
+			</element>
+			<element name="updateDataResponse">
+				<complexType>
+					<sequence>
+						<element name="updateDataReturn" type="xsd:string" />
+					</sequence>
+				</complexType>
+			</element>
+			<element name="CustomisedException">
+				<complexType>
+					<sequence>
+						<element name="CustomisedException" type="xsd:string" />
+					</sequence>
+				</complexType>
+			</element>
+		</schema>
+	</wsdl:types>
+	<wsdl:message name="CustomisedException">
+		<wsdl:part element="impl:CustomisedException" name="fault">
+		</wsdl:part>
+	</wsdl:message>
+	<wsdl:message name="updateDataRequest">
+		<wsdl:part element="impl:updateData" name="parameters">
+		</wsdl:part>
+	</wsdl:message>
+	<wsdl:message name="fetchDataRequest">
+		<wsdl:part element="impl:fetchData" name="parameters">
+		</wsdl:part>
+	</wsdl:message>
+	<wsdl:message name="updateDataResponse">
+		<wsdl:part element="impl:updateDataResponse" name="parameters">
+		</wsdl:part>
+	</wsdl:message>
+	<wsdl:message name="fetchDataResponse">
+		<wsdl:part element="impl:fetchDataResponse" name="parameters">
+		</wsdl:part>
+	</wsdl:message>
+	<wsdl:portType name="Mercury">
+		<wsdl:operation name="fetchData">
+			<wsdl:input message="impl:fetchDataRequest" name="fetchDataRequest">
+			</wsdl:input>
+			<wsdl:output message="impl:fetchDataResponse" name="fetchDataResponse">
+			</wsdl:output>
+			<wsdl:fault message="impl:CustomisedException" name="CustomisedException">
+			</wsdl:fault>
+		</wsdl:operation>
+		<wsdl:operation name="updateData">
+			<wsdl:input message="impl:updateDataRequest" name="updateDataRequest">
+			</wsdl:input>
+			<wsdl:output message="impl:updateDataResponse" name="updateDataResponse">
+			</wsdl:output>
+			<wsdl:fault message="impl:CustomisedException" name="CustomisedException">
+			</wsdl:fault>
+		</wsdl:operation>
+	</wsdl:portType>
+	<wsdl:binding name="MercurySoapBinding" type="impl:Mercury">
+		<wsdlsoap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http" />
+		<wsdl:operation name="fetchData">
+			<wsdlsoap:operation soapAction="" />
+			<wsdl:input name="fetchDataRequest">
+				<wsdlsoap:body use="literal" />
+			</wsdl:input>
+			<wsdl:output name="fetchDataResponse">
+				<wsdlsoap:body use="literal" />
+			</wsdl:output>
+			<wsdl:fault name="CustomisedException">
+				<wsdlsoap:fault use="literal" name="CustomisedException" />
+			</wsdl:fault>
+		</wsdl:operation>
+		<wsdl:operation name="updateData">
+			<wsdlsoap:operation soapAction="" />
+			<wsdl:input name="updateDataRequest">
+				<wsdlsoap:body use="literal" />
+			</wsdl:input>
+			<wsdl:output name="updateDataResponse">
+				<wsdlsoap:body use="literal" />
+			</wsdl:output>
+			<wsdl:fault name="CustomisedException">
+				<wsdlsoap:fault use="literal" name="CustomisedException" />
+			</wsdl:fault>
+		</wsdl:operation>
+	</wsdl:binding>
+	<wsdl:service name="MercuryService">
+		<wsdl:port binding="impl:MercurySoapBinding" name="Mercury">
+			<wsdlsoap:address location="http://localhost:8080/MercuryFxServer/services/Mercury" />
+		</wsdl:port>
+	</wsdl:service>
+</wsdl:definitions>
