@@ -176,5 +176,284 @@ function processResponse(t){
 </body>
 </html>
 
+package com.jarupdater;
+
+import java.io.IOException;
+
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
+@WebServlet("/api/addProject")
+public class AddProjectServlet extends HttpServlet{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	protected void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException {
+		JsonObject config = ConfigLoader.getConfig();
+		JsonObject newProject = new Gson().fromJson(req.getReader(),JsonObject.class);
+		config.getAsJsonArray("projects").add(newProject);
+		ConfigLoader.save(config);
+		res.getWriter().write("SUCCESS");
+	}
+}
+
+package com.jarupdater;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+
+import com.google.gson.*;
+
+public class ConfigLoader {
+	private static JsonObject JARconfig;
+
+	private static final String BASE_DIR = System.getProperty("catalina.base") + File.separator + "jar-data";
+
+	private static final String FILE_PATH = BASE_DIR + File.separator + "/JARdata.json";
+	static {
+		try {
+
+			File file = new File(FILE_PATH);
+
+			if (!file.exists()) {
+
+				file.getParentFile().mkdirs();
+
+				Files.write(file.toPath(), "{}".getBytes(StandardCharsets.UTF_8));
+			}
+
+			String json = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+			JARconfig = JsonParser.parseString(json).getAsJsonObject();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static JsonObject getConfig() {
+		return JARconfig;
+	}
+
+	public static void save(JsonObject config) throws IOException {
+		// TODO Auto-generated method stub
+		try(FileWriter fw = new FileWriter(FILE_PATH)){
+			new GsonBuilder().setPrettyPrinting().create().toJson(config,fw);
+		}
+	}
+}
+
+package com.jarupdater;
+
+import java.io.IOException;
+
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+@WebServlet("/api/jarup/delete")
+public class DeleteProjectServlet extends HttpServlet{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	protected void doPost(HttpServletRequest req,HttpServletResponse res) throws IOException {
+		JsonObject request = new Gson().fromJson(req.getReader(), JsonObject.class);
+		
+		String ProjectId  = request.get("projectId").getAsString();
+		
+		JsonObject config = ConfigLoader.getConfig();
+		JsonArray projects = config.getAsJsonArray("projects");
+		
+		for(int i=0;i<projects.size();i++) {
+			JsonObject p = projects.get(i).getAsJsonObject();
+			
+			if(ProjectId.equals(p.get("id").getAsString())) {
+				projects.remove(i);
+				break;
+			}
+		}
+		
+		ConfigLoader.save(config);
+		
+		res.getWriter().write("Project deleted successfully.");
+	}
+}
+
+
+package com.jarupdater;
+
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.stream.*;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+@WebServlet("/api/classes")
+public class GetClassesServlet extends HttpServlet {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+		String projectId = req.getParameter("projectId");
+		JsonArray arr = ConfigLoader.getConfig().getAsJsonArray("projects");
+		String workspace = null;
+		for (int i = 0; i < arr.size(); i++) {
+			JsonObject o = arr.get(i).getAsJsonObject();
+			if (projectId.equals(o.get("id").getAsString()))
+				workspace = o.get("workspace").getAsString();
+		}
+		Path root = Paths.get(workspace);
+		List<String> classes = Files.walk(root).filter(f -> f.toString().endsWith(".class")).map(root::relativize)
+				.map(Path::toString).map(s -> s.replace("\\\\", "/")).filter(s -> !s.contains("$")).sorted()
+				.collect(Collectors.toList());
+		resp.setContentType("application/json");
+		resp.getWriter().write(new Gson().toJson(classes));
+	}
+}
+
+package com.jarupdater;
+
+import java.io.IOException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.*;
+
+@WebServlet("/api/projects")
+public class GetProjectsServlet extends HttpServlet {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+		resp.setContentType("application/json");
+		resp.getWriter().write(ConfigLoader.getConfig().getAsJsonArray("projects").toString());
+	}
+}
+
+package com.jarupdater;
+public class ProjectConfig {
+    public String id;
+    public String name;
+    public String jarPath;
+    public String workspace;
+}
+
+package com.jarupdater;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+@WebServlet("/api/updateJar")
+public class UpdateJarServlet extends HttpServlet {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+		try {
+
+			BufferedReader reader = req.getReader();
+			JarUpdateReq request = new Gson().fromJson(reader, JarUpdateReq.class);
+			JsonArray arr = ConfigLoader.getConfig().getAsJsonArray("projects");
+
+			String projectId = request.projectId;
+			String[] classFiles = request.classFiles;
+			String jarPath = null, workspace = null, srcPath = null;
+			for (int i = 0; i < arr.size(); i++) {
+				JsonObject o = arr.get(i).getAsJsonObject();
+				if (projectId.equals(o.get("id").getAsString())) {
+					jarPath = o.get("jarPath").getAsString();
+					workspace = o.get("workspace").getAsString();
+					srcPath = o.get("srcPath").getAsString();
+				}
+			}
+			String backup = ConfigLoader.getConfig().get("backupFolder").getAsString();
+			System.out.println("backup folder :  " + backup);
+			Files.createDirectories(Paths.get(backup));
+			Path jar = Paths.get(jarPath);
+			System.out.println("jar folder :  " + jar);
+			Date date = new Date();
+			SimpleDateFormat sdf =
+	                new SimpleDateFormat("_ddMMyyyy_HHmm");
+
+	        String strDate = sdf.format(date);
+			Files.copy(jar, Paths.get(backup, jar.getFileName().toString()+strDate), StandardCopyOption.REPLACE_EXISTING);
+			// ProcessBuilder pb = new ProcessBuilder("jar", "uf", jarPath, "-C", workspace,
+			// classFile);
+			// int rc = pb.start().waitFor();
+			boolean failed = false;
+			for (String classFile : classFiles) {
+				ProcessBuilder classPb = new ProcessBuilder("jar", "uf", jarPath, "-C", workspace, classFile);
+				int classRc = classPb.start().waitFor();
+
+				if (classRc != 0) {
+					failed = true;
+					continue;
+				}
+
+				String javaFile = classFile.replaceAll("\\.class$", ".java");
+
+				Path javaPath = Paths.get(srcPath, javaFile);
+				if (Files.exists(javaPath)) {
+					ProcessBuilder javaPb = new ProcessBuilder("jar", "uf", jarPath, "-C", srcPath, javaFile);
+					int javaRc = javaPb.start().waitFor();
+
+					if (javaRc != 0) {
+						failed = true;
+					}
+
+				}
+			}
+			resp.getWriter().write(failed ? "PARTIAL_SUCCESS" : "SUCCESS");
+		}catch (java.nio.file.NoSuchFileException e){
+			resp.getWriter().write("File Not Found: "+e.getMessage());
+		} catch (Exception e) {
+			
+			resp.getWriter().write("Error: "+e.getMessage());
+		}
+	}
+}
+
+class JarUpdateReq {
+	String projectId;
+	String[] classFiles;
+}
+
+
 
 add featuers to view and edit projects and dont cache projects , load every time from the file .
