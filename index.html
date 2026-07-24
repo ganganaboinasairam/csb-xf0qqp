@@ -1,116 +1,41 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<wsdl:definitions targetNamespace="http://tcs.com" xmlns:apachesoap="http://xml.apache.org/xml-soap" xmlns:impl="http://tcs.com" xmlns:intf="http://tcs.com"
-	xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-	<!--WSDL created by Apache Axis version: 1.4 Built on Apr 22, 2006 (06:55:48 PDT)-->
-	<wsdl:types>
-		<schema elementFormDefault="qualified" targetNamespace="http://tcs.com" xmlns="http://www.w3.org/2001/XMLSchema">
-			<element name="fetchData">
-				<complexType>
-					<sequence>
-						<element name="procedureName" type="xsd:string" />
-						<element name="tranRefNoJSONString" type="xsd:string" />
-					</sequence>
-				</complexType>
-			</element>
-			<element name="fetchDataResponse">
-				<complexType>
-					<sequence>
-						<element name="fetchDataReturn" type="xsd:string" />
-					</sequence>
-				</complexType>
-			</element>
-			<element name="updateData">
-				<complexType>
-					<sequence>
-						<element name="procedureName" type="xsd:string" />
-						<element name="requestJSONString" type="xsd:string" />
-					</sequence>
-				</complexType>
-			</element>
-			<element name="updateDataResponse">
-				<complexType>
-					<sequence>
-						<element name="updateDataReturn" type="xsd:string" />
-					</sequence>
-				</complexType>
-			</element>
-			<element name="CustomisedException">
-				<complexType>
-					<sequence>
-						<element name="CustomisedException" type="xsd:string" />
-					</sequence>
-				</complexType>
-			</element>
-		</schema>
-	</wsdl:types>
-	<wsdl:message name="CustomisedException">
-		<wsdl:part element="impl:CustomisedException" name="fault">
-		</wsdl:part>
-	</wsdl:message>
-	<wsdl:message name="updateDataRequest">
-		<wsdl:part element="impl:updateData" name="parameters">
-		</wsdl:part>
-	</wsdl:message>
-	<wsdl:message name="fetchDataRequest">
-		<wsdl:part element="impl:fetchData" name="parameters">
-		</wsdl:part>
-	</wsdl:message>
-	<wsdl:message name="updateDataResponse">
-		<wsdl:part element="impl:updateDataResponse" name="parameters">
-		</wsdl:part>
-	</wsdl:message>
-	<wsdl:message name="fetchDataResponse">
-		<wsdl:part element="impl:fetchDataResponse" name="parameters">
-		</wsdl:part>
-	</wsdl:message>
-	<wsdl:portType name="Mercury">
-		<wsdl:operation name="fetchData">
-			<wsdl:input message="impl:fetchDataRequest" name="fetchDataRequest">
-			</wsdl:input>
-			<wsdl:output message="impl:fetchDataResponse" name="fetchDataResponse">
-			</wsdl:output>
-			<wsdl:fault message="impl:CustomisedException" name="CustomisedException">
-			</wsdl:fault>
-		</wsdl:operation>
-		<wsdl:operation name="updateData">
-			<wsdl:input message="impl:updateDataRequest" name="updateDataRequest">
-			</wsdl:input>
-			<wsdl:output message="impl:updateDataResponse" name="updateDataResponse">
-			</wsdl:output>
-			<wsdl:fault message="impl:CustomisedException" name="CustomisedException">
-			</wsdl:fault>
-		</wsdl:operation>
-	</wsdl:portType>
-	<wsdl:binding name="MercurySoapBinding" type="impl:Mercury">
-		<wsdlsoap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http" />
-		<wsdl:operation name="fetchData">
-			<wsdlsoap:operation soapAction="" />
-			<wsdl:input name="fetchDataRequest">
-				<wsdlsoap:body use="literal" />
-			</wsdl:input>
-			<wsdl:output name="fetchDataResponse">
-				<wsdlsoap:body use="literal" />
-			</wsdl:output>
-			<wsdl:fault name="CustomisedException">
-				<wsdlsoap:fault use="literal" name="CustomisedException" />
-			</wsdl:fault>
-		</wsdl:operation>
-		<wsdl:operation name="updateData">
-			<wsdlsoap:operation soapAction="" />
-			<wsdl:input name="updateDataRequest">
-				<wsdlsoap:body use="literal" />
-			</wsdl:input>
-			<wsdl:output name="updateDataResponse">
-				<wsdlsoap:body use="literal" />
-			</wsdl:output>
-			<wsdl:fault name="CustomisedException">
-				<wsdlsoap:fault use="literal" name="CustomisedException" />
-			</wsdl:fault>
-		</wsdl:operation>
-	</wsdl:binding>
-	<wsdl:service name="MercuryService">
-		<wsdl:port binding="impl:MercurySoapBinding" name="Mercury">
-			<wsdlsoap:address location="http://localhost:8080/MercuryFxServer/services/Mercury" />
-		</wsdl:port>
-	</wsdl:service>
-</wsdl:definitions>
+input :
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXBL_EXBL_Paymt_modifyBRU.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXBL_Inward_Remittance.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXBL_ModifyInwardRemit.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXBL_Payment_Coll_Bills_BRU.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXNE_BillPmt_BeforeCryst_BRU.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXNE_ModifyBefCryst.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_IMCC_BRU_Payment_TF.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_IMCC_Modify_Outward_Remittance.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_IMCC_Modify_Payment.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_IMCC_Outward_Remittance_BRU.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_ModifyRegisterPayment.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_Register_Advance_Payment.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMLC_IMLB_Reg_Payment_Of_Bills.js
+/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMLC_IMLB_Register_Payment_of_Bills_BRU.js
+/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/EXBL_Inward_Remittance_Register.jsp
+/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/EXBL_PAY_OF_COLL_BILLS_BRU_TF.jsp
+/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/EXNE_BillPmt_BefCryst_BRU.jsp
+/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Advance_Payment_BRU.jsp
+/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Modify_Advance_Payment.jsp
+/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Outward_Remittance_BRU.jsp
+/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Payment_nonLC_BRU.jsp
+/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/IMLB_Register_Payment_of_Bills_BRU.jsp
+/TFEEAPP/base_domain/Default/FUNCATTR/fattr_mbDwxwqZDK4GI.xml
+/TFEEAPP/base_domain/Default/FUNCATTR/fattr_mbDwxwqZDK4GP.xml
+
+
+
+
+function convertStrc(){
+			var fileList = document.getElementById("manualInput").value;
+			var output = fileList.replaceAll('\n','*;*')
+			document.getElementById('regexOutput').value = "*"+output+"*";
+		}
+		
+		
+but i need output like :
+
+FUNCLEVEL : *SYF_EXBL_EXBL_Paymt_modifyBRU.js*;*SYF_EXBL_Inward_Remittance.js*;*......
+SCRN : *EXBL_Inward_Remittance_Register.jsp*;*EXBL_PAY_OF_COLL_BILLS_BRU_TF.jsp*;*EXNE_BillPmt_BefCryst_BRU.jsp*;*.....
+FUNCATTR : *fattr_mbDwxwqZDK4GI.xml*;*fattr_mbDwxwqZDK4GP.xml*
