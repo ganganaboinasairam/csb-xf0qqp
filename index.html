@@ -1,41 +1,28 @@
-input :
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXBL_EXBL_Paymt_modifyBRU.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXBL_Inward_Remittance.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXBL_ModifyInwardRemit.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXBL_Payment_Coll_Bills_BRU.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXNE_BillPmt_BeforeCryst_BRU.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_EXNE_ModifyBefCryst.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_IMCC_BRU_Payment_TF.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_IMCC_Modify_Outward_Remittance.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_IMCC_Modify_Payment.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_IMCC_Outward_Remittance_BRU.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_ModifyRegisterPayment.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMCC_Register_Advance_Payment.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMLC_IMLB_Reg_Payment_Of_Bills.js
-/TFEEAPP/base_domain/CALJS/FUNCLEVEL/SYF_IMLC_IMLB_Register_Payment_of_Bills_BRU.js
-/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/EXBL_Inward_Remittance_Register.jsp
-/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/EXBL_PAY_OF_COLL_BILLS_BRU_TF.jsp
-/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/EXNE_BillPmt_BefCryst_BRU.jsp
-/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Advance_Payment_BRU.jsp
-/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Modify_Advance_Payment.jsp
-/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Outward_Remittance_BRU.jsp
-/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/IMCC_Payment_nonLC_BRU.jsp
-/TFEEAPP/base_domain/EE.ear/EximBillWeb.war/SCRN/IMLB_Register_Payment_of_Bills_BRU.jsp
-/TFEEAPP/base_domain/Default/FUNCATTR/fattr_mbDwxwqZDK4GI.xml
-/TFEEAPP/base_domain/Default/FUNCATTR/fattr_mbDwxwqZDK4GP.xml
+function convertStrc() {
+    const fileList = document.getElementById("manualInput").value.trim().split("\n");
 
+    const groups = {};
 
+    fileList.forEach(path => {
+        path = path.trim();
+        if (!path) return;
 
+        const parts = path.split("/");
+        const folder = parts[parts.length - 2];   // FUNCLEVEL, SCRN, FUNCATTR
+        const fileName = parts[parts.length - 1]; // Actual file name
 
-function convertStrc(){
-			var fileList = document.getElementById("manualInput").value;
-			var output = fileList.replaceAll('\n','*;*')
-			document.getElementById('regexOutput').value = "*"+output+"*";
-		}
-		
-		
-but i need output like :
+        if (!groups[folder]) {
+            groups[folder] = [];
+        }
 
-FUNCLEVEL : *SYF_EXBL_EXBL_Paymt_modifyBRU.js*;*SYF_EXBL_Inward_Remittance.js*;*......
-SCRN : *EXBL_Inward_Remittance_Register.jsp*;*EXBL_PAY_OF_COLL_BILLS_BRU_TF.jsp*;*EXNE_BillPmt_BefCryst_BRU.jsp*;*.....
-FUNCATTR : *fattr_mbDwxwqZDK4GI.xml*;*fattr_mbDwxwqZDK4GP.xml*
+        groups[folder].push(`*${fileName}*`);
+    });
+
+    let output = "";
+
+    for (const folder in groups) {
+        output += `${folder} : ${groups[folder].join(";")}\n`;
+    }
+
+    document.getElementById("regexOutput").value = output.trim();
+}
