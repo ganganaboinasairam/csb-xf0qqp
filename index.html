@@ -1,28 +1,180 @@
-function convertStrc() {
-    const fileList = document.getElementById("manualInput").value.trim().split("\n");
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+	<div class="container">
 
-    const groups = {};
+		<div class="topBar">
+			<h2>Jar Updater</h2>
+			<div>
+				<button onclick="openProjectPopup()" style="margin-right: 5px;">+ Add Project</button>
+				<button onclick="loadProjects();" style="margin-right: 5px;">Refresh</button>
+				<button class="danger" onclick="deleteProject()">Delete Project</button>
+			</div>
+		</div>
 
-    fileList.forEach(path => {
-        path = path.trim();
-        if (!path) return;
+		<label><b>Project</b></label> <select id="project"></select> <input
+			id="search" type="text" placeholder="Search class...">
 
-        const parts = path.split("/");
-        const folder = parts[parts.length - 2];   // FUNCLEVEL, SCRN, FUNCATTR
-        const fileName = parts[parts.length - 1]; // Actual file name
+		<div id="classes"></div>
 
-        if (!groups[folder]) {
-            groups[folder] = [];
-        }
+		<div class="actions">
+			<button onclick="updateJar()">Backup & Update JAR</button>
+		</div>
 
-        groups[folder].push(`*${fileName}*`);
-    });
+		<div id="msg"></div>
 
-    let output = "";
+	</div>
 
-    for (const folder in groups) {
-        output += `${folder} : ${groups[folder].join(";")}\n`;
-    }
+	<div id="projectModal" class="modal">
+		<div class="modal-content">
 
-    document.getElementById("regexOutput").value = output.trim();
+			<span class="close" onclick="closeProjectPopup()">&times;</span>
+			<h3>Add New Project</h3>
+			<input id="pid" placeholder="Project ID"> 
+			<input id="pname" placeholder="Project Name">
+			<input id="pworkspace" placeholder="Bin Folder"> 
+			<input id="psrc" placeholder="Source Folder"> 
+			<input id="pjar" placeholder="JAR Path">
+
+			<div class="modal-buttons">
+				<button class="secondary" onclick="closeProjectPopup()">Cancel</button>
+				<button onclick="saveProject()">Save Project</button>
+			</div>
+
+		</div>
+	</div>
+	<script>
+let all=[];
+fetch('../api/projects').then(r=>r.json()).then(d=>{
+ let p=document.getElementById('project');
+ d.forEach(x=>p.add(new Option(x.name,x.id)));
+ load();
+});
+
+function loadProjects(){
+	fetch('../api/projects').then(r=>r.json()).then(d=>{
+ let p=document.getElementById('project');
+ d.forEach(x=>p.add(new Option(x.name,x.id)));
+ load();
+});
 }
+function load(){
+ fetch('../api/classes?projectId='+project.value).then(r=>r.json()).then(d=>{all=d;fill(d);});
+}
+
+function deleteProject(){
+if(!project.value){
+	alert('Select a Project');
+	return;
+}
+
+if(!confirm("Deleted the selected project ?")){
+	return;
+}
+fetch("../api/jarup/delete",{
+	method:"POST",
+	headers:{
+		"Content-Type":"application/json"
+	},
+	body:JSON.stringify({
+		projectId:project.value
+	})
+})
+.then(r=>r.text())
+.then(t=>{
+	alert(t);
+	loadProjects();
+})
+}
+
+function openProjectPopup(){
+	document.getElementById("projectModal").style.display="block";
+}
+
+function closeProjectPopup(){
+	document.getElementById("projectModal").style.display="none";
+}
+
+function saveProject(){
+	fetch("../api/addProject",{
+		method:"POST",
+		headers:{
+			"Content-type":"application/json"
+		},
+		body:JSON.stringify({
+			id:pid.value,
+			name:pname.value,
+			workspace:pworkspace.value,
+			srcPath:psrc.value,
+			jarPath:pjar.value
+		})
+		
+	}).then(r=>r.text())
+		.then(
+			t=>{
+				alert(t);
+				closeProjectPopup();
+				loadProjects();
+			}
+		)
+}
+
+project.onchange=load;
+function fill(a){
+	classes.innerHTML='';
+	a.forEach(x=>{
+		let div = document.createElement("div");
+		div.innerHTML = "<label>" + "<input type='checkbox' value='"+x+"'>"+x+"</label>";
+		classes.appendChild(div);
+	});
+	}
+
+	function getSelectedClasses(){
+		let arr = [];
+		document.querySelectorAll("#classes input[type=checkbox]:checked").forEach(c=>arr.push(c.value));
+		return arr;
+	}
+
+search.onkeyup=()=>fill(all.filter(x=>x.toLowerCase().includes(search.value.toLowerCase())));
+
+function updateJar(){
+
+	let selected = getSelectedClasses();
+
+	if(selected.length == 0){
+		alert("select at least one class");
+		return;
+	}
+
+
+ fetch('../api/updateJar',{
+	method:'POST',
+	headers:{
+		'Content-Type':'application/json'
+	},
+ body:JSON.stringify({
+	projectId:project.value,
+	classFiles:selected
+ })
+})
+ .then(r=>r.text())
+ .then(t=>{processResponse(t)});
+}
+
+function processResponse(t){
+	if(t.includes('File Not Found')){
+		msg.innerHTML = t
+	}else if (t == 'SUCCESS'){
+		msg.innerHTML = 'All .class files and .java Source files are moved successfully';
+	}else if (t == 'PARTIAL_SUCCESS'){
+		msg.innerHTML = 'All .class files are moved successfully';
+	}
+}
+</script>
+</body>
+</html>
+
+
+add featuers to view and edit projects and dont cache projects , load every time from the file .
