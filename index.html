@@ -1,20 +1,56 @@
-function parseIRDetails(html) {
-    const result = [];
-
-    const blocks = html.split("<textarea").slice(1);
-
-    for (const block of blocks) {
-
-        const irMatch = block.match(/IR Number:\s*(\d+)/);
-        if (!irMatch) continue;
-
-        const statusMatch = block.match(/STATUS:\s*([^<]+)/);
-
-        result.push({
-            irNumber: irMatch[1],
-            status: statusMatch ? statusMatch[1].trim() : null
-        });
-    }
-
-    return result;
-}
+SELECT
+    c_main_ref,
+    c_unit_code,
+    i_event_times,
+    c_trx_ref,
+    currnt_status,
+    lc_flg,
+    close_flg,
+    drwr_id,
+    drwr_nm,
+    lc_no,
+    adv_ref,
+    coll_ccy,
+    coll_amt_ccy,
+    maturity_dt,
+    c_func_short_name,
+    c_trx_status,
+    etrade_flag
+FROM
+    eximtrx.exbl_master
+WHERE
+    ( 1 = 1
+      AND c_trx_status = 'M'
+      AND rej_flagfo IS NULL
+      AND maturity_dt > TO_DATE('2026-07-28', 'YYYY-MM-DD')
+      AND ( ( ( ( currnt_status = 'EXBL_DEO_Lodgement'
+                  AND ( tenor_type = '1'
+                        OR tenor_type = '2' )
+                  AND cust_borrow = 'Yes' )
+                OR ( currnt_status = 'EXBL_DEO_Lodgement'
+                     AND ( tenor_type = '1'
+                           OR tenor_type = '2' )
+                     AND cust_borrow = 'No'
+                     AND lc_flg = '2' )
+                OR ( currnt_status IN ( 'EXBL_DEO_RegisterAcceptance', 'EXBL_MN_ACP_DEO' )
+                     AND ( tenor_type = '1'
+                           OR tenor_type = '2' )
+                     AND cust_borrow = 'No'
+                     AND lc_flg = '1'
+                     AND discrepancy_flag IN ( '1', '3' ) ) )
+              AND ( bill_received <> '2'
+                    AND export_tp <> '6'
+                    AND ( close_flg = '1'
+                          OR close_flg IS NULL )
+                    AND ( conv_flg <> 'Yes'
+                          OR conv_flg IS NULL ) ) )
+            OR ( c_func_short_name = 'RegExCollBill'
+                 AND bill_type IN ( '1', '2' )
+                 OR ( currnt_status IN ( 'EXBL_DEO_RegisterAcceptance', 'EXBL_MN_ACP_DEO' )
+                      AND ( ( lc_flg = '1'
+                              AND discrepancy_flag IN ( '1', '3' ) )
+                            OR ( lc_flg = '2'
+                                 AND acp_status_nonlc IN ( '1', '4' ) ) ) )
+                 OR ( c_func_short_name = 'EXBL_CovBill' ) ) ) ) and (c_unit_code = '09995')
+ORDER BY
+    c_main_ref;
