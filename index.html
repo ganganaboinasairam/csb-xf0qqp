@@ -1,82 +1,172 @@
-WHERE c_trx_status = 'M'
-  AND rej_flagfo IS NULL
-  AND maturity_dt > DATE '2026-07-28'
-  AND c_unit_code = '09995'
-  AND (
-        (
-            (
-                (currnt_status = 'EXBL_DEO_Lodgement'
-                    AND tenor_type IN ('1','2')
-                    AND cust_borrow = 'Yes')
-
-             OR (currnt_status = 'EXBL_DEO_Lodgement'
-                    AND tenor_type IN ('1','2')
-                    AND cust_borrow = 'No'
-                    AND lc_flg = '2')
-
-             OR (currnt_status IN ('EXBL_DEO_RegisterAcceptance',
-                                   'EXBL_MN_ACP_DEO')
-                    AND tenor_type IN ('1','2')
-                    AND cust_borrow = 'No'
-                    AND lc_flg = '1'
-                    AND discrepancy_flag IN ('1','3'))
-            )
-
-            AND bill_received <> '2'
-            AND export_tp <> '6'
-            AND NVL(close_flg,'1') = '1'
-            AND NVL(conv_flg,'No') <> 'Yes'
-        )
-
-        OR
-
-        (
-            (c_func_short_name = 'RegExCollBill'
-             AND bill_type IN ('1','2'))
-
-            OR
-
-            (currnt_status IN ('EXBL_DEO_RegisterAcceptance',
-                               'EXBL_MN_ACP_DEO')
-             AND (
-                    (lc_flg='1'
-                     AND discrepancy_flag IN ('1','3'))
-                 OR (lc_flg='2'
-                     AND acp_status_nonlc IN ('1','4'))
-                 )
-            )
-
-            OR
-
-            c_func_short_name = 'EXBL_CovBill'
-        )
-      );
+function SYF_EXNE_InterestAmtBeforeIntEqualization () {
+	try {
+		if(SYS_FUNCTION_TYPE!="IQ"){
+		var negoAmt = SYS_BeFloat(document.MAINFORM.NEGO_AMT.value);
+		var negoDays = SYS_BeFloat(document.MAINFORM.NEGO_PERIOD_DAYS.value);
+		var type_of_int = document.MAINFORM.MCLR_REPO_TP.value;
+		var tbill = 0;
+		if (type_of_int == '1') {
+			tbill = Number(document.MAINFORM.MRGN_RT.value);
+		} else {
+			tbill = Number(document.MAINFORM.SPREAD_PER.value);
+		}
+		var int_sub_flag = document.MAINFORM.INT_SUBVENTN.value;
+		if (int_sub_flag == '2') {
+			var intSubv = 0;
+		} else {
+			var intSubv = SYS_BeFloat(document.MAINFORM.INT_SUBVENTION.value);
+		}
+		if (document.MAINFORM.EXPORT_BILL_TYPE.value == "1" || document.MAINFORM.EXPORT_BILL_TYPE.value == "2") {
+			var grossrate = (tbill + SYS_BeFloat(document.MAINFORM.CAL_INT_RATE.value) - SYS_BeFloat(document.MAINFORM.NEGO_DISC_CONSN_INTRST.value) - intSubv).toFixed(6);
+			document.MAINFORM.EXCH_RATE3.value = grossrate;
+		} else {
+			var libor_rate = SYS_BeFloat(document.MAINFORM.LIBOR_RT.value);
+			var margin_rate = SYS_BeFloat(document.MAINFORM.MRGN_RT.value);
+			var var1 = libor_rate + margin_rate;
+			document.MAINFORM.EXCH_RATE3.value = var1.toFixed(3);
+			var grossrate = document.MAINFORM.EXCH_RATE3.value;
+		}
+		if ((document.MAINFORM.EXPORT_BILL_TYPE.value == "1") || (document.MAINFORM.INT_APPL_METHOD.value == '1' && negoDays <= 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2") || (negoDays > 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2")) {
+			document.MAINFORM.INT_BFR_EQTN.value = (negoAmt / (1 + (grossrate * negoDays / 36500))).toFixed(2);
+		} else {
+			document.MAINFORM.INT_BFR_EQTN.value = negoAmt - (negoAmt * grossrate * negoDays / 36500).toFixed(2);
+		}
+		}
+	} catch (e) {
+		DisExcpt("SYF_EXNE_DEO_Conv_of_Coll_to_Nego.js*SYF_EXNE_InterestAmtBeforeIntEqualization", e);
+	}
+}
 
 
-Group A
+function SYF_EXNE_InterestAmtAfterIntEqualization() {
+	try {
+		if(SYS_FUNCTION_TYPE!="IQ"){
+		var negoAmt = SYS_BeFloat(document.MAINFORM.NEGO_AMT.value);
+		var negoDays = SYS_BeFloat(document.MAINFORM.NEGO_PERIOD_DAYS.value);
+		var type_of_int = document.MAINFORM.MCLR_REPO_TP.value;
+		var tbill = 0;
+		if (type_of_int == '1') {
+			tbill = SYS_BeFloat(document.MAINFORM.MRGN_RT.value);
+		} else {
+			tbill = SYS_BeFloat(document.MAINFORM.SPREAD_PER.value);
+		}
+		var int_sub_flag = document.MAINFORM.INT_SUBVENTN.value;
+		if (int_sub_flag == '2') {
+			var intSubv = 0;
+		} else {
+			var intSubv = SYS_BeFloat(document.MAINFORM.INT_SUBVENTION.value);
+		}
 
-(
-    Lodgement with Borrow=Yes
- OR Lodgement with Borrow=No and LC=2
- OR RegisterAcceptance with LC=1 and discrepancy
-)
 
-AND
+		if (document.MAINFORM.EXPORT_BILL_TYPE.value == "1" || document.MAINFORM.EXPORT_BILL_TYPE.value == "2") {
+			var grossrate = (tbill + SYS_BeFloat(document.MAINFORM.CAL_INT_RATE.value) - SYS_BeFloat(document.MAINFORM.NEGO_DISC_CONSN_INTRST.value) - intSubv).toFixed(6);
+			document.MAINFORM.EXCH_RATE3.value = grossrate;
+		} else {
 
-Bill not received
-Export type not 6
-Not closed
-Not converted
+			var libor_rate = SYS_BeFloat(document.MAINFORM.LIBOR_RT.value);
+			var margin_rate = SYS_BeFloat(document.MAINFORM.MRGN_RT.value);
+			var var1 = libor_rate + margin_rate;
+			document.MAINFORM.EXCH_RATE3.value = var1.toFixed(3);
+			var grossrate = document.MAINFORM.EXCH_RATE3.value;
+		}
+
+		if (grossrate < 0) {
+			var grossrate = document.MAINFORM.EXCH_RATE3.value = 0;
+		}
+
+		var readyAmt = SYS_BeFloat(document.MAINFORM.NEGO_AMT1.value);
+
+		if ((document.MAINFORM.EXPORT_BILL_TYPE.value == "1") || (document.MAINFORM.INT_APPL_METHOD.value == '1' && negoDays <= 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2") || (negoDays > 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2")) {
+			document.MAINFORM.INT_AFT_EQTN.value = (negoAmt / (1 + (grossrate * negoDays / 36500))).toFixed(2);
+
+		} else {
+			document.MAINFORM.INT_AFT_EQTN.value = negoAmt - (negoAmt * grossrate * negoDays / 36500).toFixed(2);
+		}
+		}
+
+	}
+	catch (e) {
+		DisExcpt("SYF_EXNE_DEO_Conv_of_Coll_to_Nego.js*SYF_EXNE_InterestAmtAfterIntEqualization", e);
+	}
+}
+
+function SYF_EXNE_Calculated_Interest_Amt() {
+	try {
+		if(SYS_FUNCTION_TYPE!="IQ"){
+		var readyAmt = SYS_BeFloat(document.MAINFORM.NEGO_AMT1.value);
+		var intAmtB4Eq = SYS_BeFloat(document.MAINFORM.INT_AFT_EQTN.value);
+		var excRate = SYS_BeFloat(document.MAINFORM.EXCH_RATE1.value);
+		var GrossRate = SYS_BeFloat(document.MAINFORM.EXCH_RATE3.value);
+		var NoDays = SYS_BeFloat(document.MAINFORM.NEGO_PERIOD_DAYS.value);
+		var IntrestAmount = 0;
+		if(document.MAINFORM.EBR_NONEBR.value!="1"){
+		var calAmt = (readyAmt - intAmtB4Eq).toFixed(2) * excRate;
+		if ((document.MAINFORM.EXPORT_BILL_TYPE.value == "1") || (document.MAINFORM.INT_APPL_METHOD.value == '1' && NoDays <= 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2") || (NoDays > 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2")) {
+			document.MAINFORM.NEGO_DISC_CAL_INTRST.value = SYT_AmtFormat('INR', calAmt.toFixed(2));
+		} else {
+			IntrestAmount = ((readyAmt * GrossRate * NoDays) / 36500) * excRate;
+			document.MAINFORM.NEGO_DISC_CAL_INTRST.value = SYT_AmtFormat('INR', IntrestAmount.toFixed(2));
+		}
+		}
+		document.MAINFORM.NEGO_DISC_INT_AMT.value = Math.round(SYS_BeFloat(document.MAINFORM.NEGO_DISC_CAL_INTRST.value));
+		document.MAINFORM.NEGO_DISC_INT_AMT.value = SYT_AmtFormat('INR', document.MAINFORM.NEGO_DISC_INT_AMT.value);
+		if (document.MAINFORM.NEGO_DISC_INT_AMT.value <= 0) {
+			document.MAINFORM.NEGO_DISC_INT_AMT.value = '0';
+			if (document.MAINFORM.NEGO_DISC_INT_AMT.value != '') {
+				if (SYS_BeFloat(document.MAINFORM.NEGO_DISC_INT_AMT.value) == '0')
+					if (document.MAINFORM.EBR_NONEBR.value == 1) {
+						document.getElementById('NEGO_DISC_INT_AMT').className = 'AMT_P';
+					} else {
+						document.getElementById('NEGO_DISC_INT_AMT').className = 'CHAR_M';
+					}
+			}
+			document.MAINFORM.NEGO_DISC_CAL_INTRST.value = '0';
+		} else {
+			document.getElementById('NEGO_DISC_INT_AMT').className = 'AMT_M';
+		}
+		}
+	} catch (e) {
+		DisExcpt("SYF_EXNE_DEO_Conv_of_Coll_to_Nego.js*SYF_EXNE_Calculated_Interest_Amt", e);
+	}
+}
 
 
-Group B
+function SYF_EXNE_EBR_Interest_amount_validation() {
+	try {
+		if (document.MAINFORM.NEGO_PERIOD_DAYS.value != '' && document.MAINFORM.MRGN_RT.value != '') {
+			var var1 = document.MAINFORM.LIBOR_RT.value;
+			var var2 = EEHtml.getElementById('MRGN_RT').value;
+			var a = document.MAINFORM.NEGO_DISC_CONSN_INTRST.value;
+			var var3 = (SYS_BeFloat(var1) + SYS_BeFloat(var2)) - SYS_BeFloat(a);
+			amt = EEHtml.getElementById('NEGO_AMT').value;
+			amt = SYS_BeFloat(amt);
+			var negoPeriod = EEHtml.getElementById('NEGO_PERIOD_DAYS').value;
+			var var4 = amt * negoPeriod;
+			var4 = SYS_BeFloat(var4);
+			var var5 = var3 * var4;
+			var var6;
+			if (document.MAINFORM.BILL_FINC_CCY.value == 'GBP') {
+				var6 = 36500;
+			} else {
+				var6 = 36000;
+			}
 
-(
-    RegExCollBill with BillType 1/2
+			if (document.MAINFORM.NEGO_BASIS_FLG.value != '') {
+				var var7 = (var5 / var6);
+				var7 = var7.toFixed(2);
+				if ((document.MAINFORM.EXPORT_BILL_TYPE.value == "3") || (document.MAINFORM.INT_APPL_METHOD.value == '1' && SYS_BeFloat(negoPeriod) < 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "4")) {
+					document.MAINFORM.EBR_INT_AMT.value = SYT_AmtFormat(document.MAINFORM.DRFT_CCY.value, amt - (amt / (1 + (var3 * SYS_BeFloat(negoPeriod) / var6))));
+				} else {
+					document.MAINFORM.EBR_INT_AMT.value = SYT_AmtFormat(document.MAINFORM.DRFT_CCY.value, var7);
+				}
 
- OR RegisterAcceptance with
-        LC=1 & discrepancy
-     OR LC=2 & acceptance status
-
- OR EXBL_CovBill
-)
+			} else {
+				document.MAINFORM.EBR_INT_AMT.value = 0;
+			}
+		} else {
+			document.MAINFORM.EBR_INT_AMT.value = 0;
+		}
+	} catch (e) {
+		DisExcpt("SYF_EXNE_DEO_Conv_of_Coll_to_Nego.js*SYF_EXNE_EBR_Interest_amount_validation", e);
+	}
+}
