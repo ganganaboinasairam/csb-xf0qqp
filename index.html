@@ -1,96 +1,31 @@
-function SYF_EXNE_InterestAmtBeforeIntEqualization () {
-	try {
-		if(SYS_FUNCTION_TYPE!="IQ"){
-		var negoAmt = SYS_BeFloat(document.MAINFORM.NEGO_AMT.value);
-		var negoDays = SYS_BeFloat(document.MAINFORM.NEGO_PERIOD_DAYS.value);
-		var type_of_int = document.MAINFORM.MCLR_REPO_TP.value;
-		var tbill = 0;
-		if (type_of_int == '1') {
-			tbill = Number(document.MAINFORM.MRGN_RT.value);
-		} else {
-			tbill = Number(document.MAINFORM.SPREAD_PER.value);
-		}
-		var int_sub_flag = document.MAINFORM.INT_SUBVENTN.value;
-		if (int_sub_flag == '2') {
-			var intSubv = 0;
-		} else {
-			var intSubv = SYS_BeFloat(document.MAINFORM.INT_SUBVENTION.value);
-		}
-		if (document.MAINFORM.EXPORT_BILL_TYPE.value == "1" || document.MAINFORM.EXPORT_BILL_TYPE.value == "2") {
-			var grossrate = (tbill + SYS_BeFloat(document.MAINFORM.CAL_INT_RATE.value) - SYS_BeFloat(document.MAINFORM.NEGO_DISC_CONSN_INTRST.value) - intSubv).toFixed(6);
-			document.MAINFORM.EXCH_RATE3.value = grossrate;
-		} else {
-			var libor_rate = SYS_BeFloat(document.MAINFORM.LIBOR_RT.value);
-			var margin_rate = SYS_BeFloat(document.MAINFORM.MRGN_RT.value);
-			var var1 = libor_rate + margin_rate;
-			document.MAINFORM.EXCH_RATE3.value = var1.toFixed(3);
-			var grossrate = document.MAINFORM.EXCH_RATE3.value;
-		}
-		if ((document.MAINFORM.EXPORT_BILL_TYPE.value == "1") || (document.MAINFORM.INT_APPL_METHOD.value == '1' && negoDays <= 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2") || (negoDays > 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2")) {
-			document.MAINFORM.INT_BFR_EQTN.value = (negoAmt / (1 + (grossrate * negoDays / 36500))).toFixed(2);
-		} else {
-			document.MAINFORM.INT_BFR_EQTN.value = negoAmt - (negoAmt * grossrate * negoDays / 36500).toFixed(2);
-		}
-		}
-	} catch (e) {
-		DisExcpt("SYF_EXNE_DEO_Conv_of_Coll_to_Nego.js*SYF_EXNE_InterestAmtBeforeIntEqualization", e);
+function getExportBillType() {
+	if(IS_BILL_FND_TOBE_DISCPR_AVAIL == 'Y'){
+		var exportBillType;
+		
+		var EBR = document.MAINFORM.EBR_NONEBR.value;
+        var LC_NONLC = '2';
+
+        if (EBR == 1 && LC_NONLC == 1) {
+            document.MAINFORM.EXPORT_BILL_TYPE.value = 3;
+
+        } else if (EBR == 1 && LC_NONLC == 2) {
+            document.MAINFORM.EXPORT_BILL_TYPE.value = 4;
+
+        } else if (EBR == 2 && LC_NONLC == 1) {
+            document.MAINFORM.EXPORT_BILL_TYPE.value = 1;
+
+        } else if (EBR == 2 && LC_NONLC == 2) {
+            document.MAINFORM.EXPORT_BILL_TYPE.value = 2;
+
+        }
+		
+	return exportBillType;
+	}else{
+		return document.MAINFORM.EXPORT_BILL_TYPE.value;
 	}
 }
 
-
-function SYF_EXNE_InterestAmtAfterIntEqualization() {
-	try {
-		if(SYS_FUNCTION_TYPE!="IQ"){
-		var negoAmt = SYS_BeFloat(document.MAINFORM.NEGO_AMT.value);
-		var negoDays = SYS_BeFloat(document.MAINFORM.NEGO_PERIOD_DAYS.value);
-		var type_of_int = document.MAINFORM.MCLR_REPO_TP.value;
-		var tbill = 0;
-		if (type_of_int == '1') {
-			tbill = SYS_BeFloat(document.MAINFORM.MRGN_RT.value);
-		} else {
-			tbill = SYS_BeFloat(document.MAINFORM.SPREAD_PER.value);
-		}
-		var int_sub_flag = document.MAINFORM.INT_SUBVENTN.value;
-		if (int_sub_flag == '2') {
-			var intSubv = 0;
-		} else {
-			var intSubv = SYS_BeFloat(document.MAINFORM.INT_SUBVENTION.value);
-		}
-
-
-		if (document.MAINFORM.EXPORT_BILL_TYPE.value == "1" || document.MAINFORM.EXPORT_BILL_TYPE.value == "2") {
-			var grossrate = (tbill + SYS_BeFloat(document.MAINFORM.CAL_INT_RATE.value) - SYS_BeFloat(document.MAINFORM.NEGO_DISC_CONSN_INTRST.value) - intSubv).toFixed(6);
-			document.MAINFORM.EXCH_RATE3.value = grossrate;
-		} else {
-
-			var libor_rate = SYS_BeFloat(document.MAINFORM.LIBOR_RT.value);
-			var margin_rate = SYS_BeFloat(document.MAINFORM.MRGN_RT.value);
-			var var1 = libor_rate + margin_rate;
-			document.MAINFORM.EXCH_RATE3.value = var1.toFixed(3);
-			var grossrate = document.MAINFORM.EXCH_RATE3.value;
-		}
-
-		if (grossrate < 0) {
-			var grossrate = document.MAINFORM.EXCH_RATE3.value = 0;
-		}
-
-		var readyAmt = SYS_BeFloat(document.MAINFORM.NEGO_AMT1.value);
-
-		if ((document.MAINFORM.EXPORT_BILL_TYPE.value == "1") || (document.MAINFORM.INT_APPL_METHOD.value == '1' && negoDays <= 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2") || (negoDays > 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2")) {
-			document.MAINFORM.INT_AFT_EQTN.value = (negoAmt / (1 + (grossrate * negoDays / 36500))).toFixed(2);
-
-		} else {
-			document.MAINFORM.INT_AFT_EQTN.value = negoAmt - (negoAmt * grossrate * negoDays / 36500).toFixed(2);
-		}
-		}
-
-	}
-	catch (e) {
-		DisExcpt("SYF_EXNE_DEO_Conv_of_Coll_to_Nego.js*SYF_EXNE_InterestAmtAfterIntEqualization", e);
-	}
-}
-
-function SYF_EXNE_Calculated_Interest_Amt() {
+csFuncLevelProto.SYF_EXNE_Calculated_Interest_Amt = function () {
 	try {
 		if(SYS_FUNCTION_TYPE!="IQ"){
 		var readyAmt = SYS_BeFloat(document.MAINFORM.NEGO_AMT1.value);
@@ -98,18 +33,25 @@ function SYF_EXNE_Calculated_Interest_Amt() {
 		var excRate = SYS_BeFloat(document.MAINFORM.EXCH_RATE1.value);
 		var GrossRate = SYS_BeFloat(document.MAINFORM.EXCH_RATE3.value);
 		var NoDays = SYS_BeFloat(document.MAINFORM.NEGO_PERIOD_DAYS.value);
+		
+		var exportBillType = getExportBillType();
+		
+		var intrestType = document.MAINFORM.INT_APPL_METHOD.value;
 		var IntrestAmount = 0;
 		if(document.MAINFORM.EBR_NONEBR.value!="1"){
 		var calAmt = (readyAmt - intAmtB4Eq).toFixed(2) * excRate;
-		if ((document.MAINFORM.EXPORT_BILL_TYPE.value == "1") || (document.MAINFORM.INT_APPL_METHOD.value == '1' && NoDays <= 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2") || (NoDays > 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "2")) {
+		if ((exportBillType == "1") || (intrestType == '1' && NoDays <= 180 && exportBillType == "2") || (NoDays > 180 && exportBillType == "2")) {
 			document.MAINFORM.NEGO_DISC_CAL_INTRST.value = SYT_AmtFormat('INR', calAmt.toFixed(2));
 		} else {
 			IntrestAmount = ((readyAmt * GrossRate * NoDays) / 36500) * excRate;
 			document.MAINFORM.NEGO_DISC_CAL_INTRST.value = SYT_AmtFormat('INR', IntrestAmount.toFixed(2));
 		}
 		}
+		
 		document.MAINFORM.NEGO_DISC_INT_AMT.value = Math.round(SYS_BeFloat(document.MAINFORM.NEGO_DISC_CAL_INTRST.value));
+		
 		document.MAINFORM.NEGO_DISC_INT_AMT.value = SYT_AmtFormat('INR', document.MAINFORM.NEGO_DISC_INT_AMT.value);
+		
 		if (document.MAINFORM.NEGO_DISC_INT_AMT.value <= 0) {
 			document.MAINFORM.NEGO_DISC_INT_AMT.value = '0';
 			if (document.MAINFORM.NEGO_DISC_INT_AMT.value != '') {
@@ -130,10 +72,10 @@ function SYF_EXNE_Calculated_Interest_Amt() {
 	}
 }
 
-
-function SYF_EXNE_EBR_Interest_amount_validation() {
+csFuncLevelProto.SYF_EXNE_EBR_Interest_amount_validation = function () {
 	try {
 		if (document.MAINFORM.NEGO_PERIOD_DAYS.value != '' && document.MAINFORM.MRGN_RT.value != '') {
+			var exportBillType = getExportBillType();
 			var var1 = document.MAINFORM.LIBOR_RT.value;
 			var var2 = EEHtml.getElementById('MRGN_RT').value;
 			var a = document.MAINFORM.NEGO_DISC_CONSN_INTRST.value;
@@ -154,7 +96,7 @@ function SYF_EXNE_EBR_Interest_amount_validation() {
 			if (document.MAINFORM.NEGO_BASIS_FLG.value != '') {
 				var var7 = (var5 / var6);
 				var7 = var7.toFixed(2);
-				if ((document.MAINFORM.EXPORT_BILL_TYPE.value == "3") || (document.MAINFORM.INT_APPL_METHOD.value == '1' && SYS_BeFloat(negoPeriod) < 180 && document.MAINFORM.EXPORT_BILL_TYPE.value == "4")) {
+				if ((exportBillType == "3") || (document.MAINFORM.INT_APPL_METHOD.value == '1' && SYS_BeFloat(negoPeriod) < 180 && exportBillType == "4")) {
 					document.MAINFORM.EBR_INT_AMT.value = SYT_AmtFormat(document.MAINFORM.DRFT_CCY.value, amt - (amt / (1 + (var3 * SYS_BeFloat(negoPeriod) / var6))));
 				} else {
 					document.MAINFORM.EBR_INT_AMT.value = SYT_AmtFormat(document.MAINFORM.DRFT_CCY.value, var7);
