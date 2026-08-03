@@ -1,114 +1,312 @@
-function getExportBillType() {
-	if(IS_BILL_FND_TOBE_DISCPR_AVAIL == 'Y'){
-		var exportBillType;
-		
-		var EBR = document.MAINFORM.EBR_NONEBR.value;
-        var LC_NONLC = '2';
+OLD INPUT : 
 
-        if (EBR == 1 && LC_NONLC == 1) {
-            document.MAINFORM.EXPORT_BILL_TYPE.value = 3;
+Change History
 
-        } else if (EBR == 1 && LC_NONLC == 2) {
-            document.MAINFORM.EXPORT_BILL_TYPE.value = 4;
+Archive:          \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\EE.ear\EximBillWeb.war\SCRN\BGIF_Inland_Closure_BankGuarantee.jsp-arc
+Workfile:         BGIF_Inland_Closure_BankGuarantee.jsp
+Archive created:  Aug 13 2025 20:04:46
+Split mode:       Split \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\EE.ear\EximBillWeb.war\SCRN\BGIF_Inland_Closure_BankGuarantee.jsp-arc
+Owner:            tfml
+Last trunk rev:   4.7
+Locks:            
+Groups:           
+Rev count:        9
+Attributes:
+   WRITEPROTECT
+   CHECKLOCK
+   NOEXCLUSIVELOCK
+   NOEXPANDKEYWORDS
+   NOTRANSLATE
+   NOCOMPRESSDELTA
+   NOCOMPRESSWORKIMAGE
+   NOGENERATEDELTA
+   COMMENTPREFIX = ""
+   NEWLINE = "\r\n"
+Version labels:
+   "25080098" = 4.1
+   "25110124" = 4.2
+   "25090065" = 4.7
+   "26020098" = 4.6
+Description:
+new
 
-        } else if (EBR == 2 && LC_NONLC == 1) {
-            document.MAINFORM.EXPORT_BILL_TYPE.value = 1;
+===================================
 
-        } else if (EBR == 2 && LC_NONLC == 2) {
-            document.MAINFORM.EXPORT_BILL_TYPE.value = 2;
+Change History
 
-        }
-		
-	return exportBillType;
-	}else{
-		return document.MAINFORM.EXPORT_BILL_TYPE.value;
-	}
+Archive:          \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\EE_SYS\FUNCGRP\grp_37944967Q747.xml-arc
+Workfile:         grp_37944967Q747.xml
+Archive created:  Aug 14 2025 18:07:08
+Split mode:       Split \\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\EE_SYS\FUNCGRP\grp_37944967Q747.xml-arc
+Owner:            tfml
+Last trunk rev:   4.4
+Locks:            
+Groups:           
+Rev count:        6
+Attributes:
+   WRITEPROTECT
+   CHECKLOCK
+   NOEXCLUSIVELOCK
+   NOEXPANDKEYWORDS
+   NOTRANSLATE
+   NOCOMPRESSDELTA
+   NOCOMPRESSWORKIMAGE
+   NOGENERATEDELTA
+   COMMENTPREFIX = ""
+   NEWLINE = "\r\n"
+Version labels:
+   "25080098" = 4.1
+   "25090130" = 4.2
+   "25120015" = 4.3
+   "25090052" = 4.4
+Description:
+new
+
+===================================
+
+OLD OUTPUT:
+
+[
+    {
+        "versionLabels": {
+            "25080098": "4.1",
+            "25090065": "4.7",
+            "25110124": "4.2",
+            "26020098": "4.6"
+        },
+        "archive": "/Eximbill_Enterprise_5.3.1/base_domain/EE.ear/EximBillWeb.war/SCRN/BGIF_Inland_Closure_BankGuarantee.jsp",
+        "workfile": "BGIF_Inland_Closure_BankGuarantee.jsp",
+        "lastTrunkRevision": "4.7",
+        "revisionCount": 9,
+    },
+    {
+        "versionLabels": {
+            "25080098": "4.1",
+            "25090052": "4.4",
+            "25090130": "4.2",
+            "25120015": "4.3"
+        },
+        "archive": "/Eximbill_Enterprise_5.3.1/base_domain/EE_SYS/FUNCGRP/grp_37944967Q747.xml",
+        "workfile": "grp_37944967Q747.xml",
+        "lastTrunkRevision": "4.4",
+        "revisionCount": 6,
+    }
+]
+
+
+
+CODE :
+
+function convertToJson(text) {
+  const blocks = text
+    .replace(/\r/g, "")
+    .split("===================================")
+    .map(b => b.trim())
+    .filter(b => b.length);
+
+  return blocks.map(parseBlock);
 }
 
-csFuncLevelProto.SYF_EXNE_Calculated_Interest_Amt = function () {
-	try {
-		if(SYS_FUNCTION_TYPE!="IQ"){
-		var readyAmt = SYS_BeFloat(document.MAINFORM.NEGO_AMT1.value);
-		var intAmtB4Eq = SYS_BeFloat(document.MAINFORM.INT_AFT_EQTN.value);
-		var excRate = SYS_BeFloat(document.MAINFORM.EXCH_RATE1.value);
-		var GrossRate = SYS_BeFloat(document.MAINFORM.EXCH_RATE3.value);
-		var NoDays = SYS_BeFloat(document.MAINFORM.NEGO_PERIOD_DAYS.value);
-		
-		var exportBillType = getExportBillType();
-		
-		var intrestType = document.MAINFORM.INT_APPL_METHOD.value;
-		var IntrestAmount = 0;
-		if(document.MAINFORM.EBR_NONEBR.value!="1"){
-		var calAmt = (readyAmt - intAmtB4Eq).toFixed(2) * excRate;
-		if ((exportBillType == "1") || (intrestType == '1' && NoDays <= 180 && exportBillType == "2") || (NoDays > 180 && exportBillType == "2")) {
-			document.MAINFORM.NEGO_DISC_CAL_INTRST.value = SYT_AmtFormat('INR', calAmt.toFixed(2));
-		} else {
-			IntrestAmount = ((readyAmt * GrossRate * NoDays) / 36500) * excRate;
-			document.MAINFORM.NEGO_DISC_CAL_INTRST.value = SYT_AmtFormat('INR', IntrestAmount.toFixed(2));
+function parseBlock(block) {
+  const obj = {
+    attributes: [],
+    versionLabels: {}
+  };
+
+  const lines = block.split("\n");
+  let section = "";
+
+  for (let line of lines) {
+    line = line.trim();
+
+    if (!line || line === "Change History") continue;
+
+    if (line.startsWith("Archive:")) {
+      obj.archive = line.replace("Archive:", "").replaceAll("\\","/").replaceAll("//TCSSBITF/archives","").replaceAll("-arc","").trim()
+    }
+    else if (line.startsWith("Workfile:")) {
+      obj.workfile = line.replace("Workfile:", "").trim();
+    }
+    else if (line.startsWith("Archive created:")) {
+      obj.archiveCreated = line.replace("Archive created:", "").trim();
+    }
+    else if (line.startsWith("Split mode:")) {
+      obj.splitMode = line.replace("Split mode:", "").trim();
+    }
+    else if (line.startsWith("Owner:")) {
+      obj.owner = line.replace("Owner:", "").trim();
+    }
+    else if (line.startsWith("Last trunk rev:")) {
+      obj.lastTrunkRevision = line.replace("Last trunk rev:", "").trim();
+    }
+    else if (line.startsWith("Locks:")) {
+      obj.locks = line.replace("Locks:", "").trim();
+    }
+    else if (line.startsWith("Groups:")) {
+      obj.groups = line.replace("Groups:", "").trim();
+    }
+    else if (line.startsWith("Rev count:")) {
+      obj.revisionCount = Number(line.replace("Rev count:", "").trim());
+    }
+    else if (line === "Attributes:") {
+      section = "attributes";
+    }
+    else if (line === "Version labels:") {
+      section = "labels";
+    }
+    else if (line === "Description:") {
+      section = "description";
+      obj.description = "";
+    }
+    else if (section === "attributes") {
+      if (line.includes("=")) {
+        const [key, value] = line.split("=");
+        obj[key.trim()] = value.trim().replace(/^"|"$/g, "");
+      } else {
+        obj.attributes.push(line);
+      }
+    }
+    else if (section === "labels") {
+      const match = line.match(/"(.+?)"\s*=\s*(.+)/);
+      if (match) {
+	  if(!match[1].startsWith('A')){
+        obj.versionLabels[match[1]] = match[2];
 		}
-		}
-		
-		document.MAINFORM.NEGO_DISC_INT_AMT.value = Math.round(SYS_BeFloat(document.MAINFORM.NEGO_DISC_CAL_INTRST.value));
-		
-		document.MAINFORM.NEGO_DISC_INT_AMT.value = SYT_AmtFormat('INR', document.MAINFORM.NEGO_DISC_INT_AMT.value);
-		
-		if (document.MAINFORM.NEGO_DISC_INT_AMT.value <= 0) {
-			document.MAINFORM.NEGO_DISC_INT_AMT.value = '0';
-			if (document.MAINFORM.NEGO_DISC_INT_AMT.value != '') {
-				if (SYS_BeFloat(document.MAINFORM.NEGO_DISC_INT_AMT.value) == '0')
-					if (document.MAINFORM.EBR_NONEBR.value == 1) {
-						document.getElementById('NEGO_DISC_INT_AMT').className = 'AMT_P';
-					} else {
-						document.getElementById('NEGO_DISC_INT_AMT').className = 'CHAR_M';
-					}
-			}
-			document.MAINFORM.NEGO_DISC_CAL_INTRST.value = '0';
-		} else {
-			document.getElementById('NEGO_DISC_INT_AMT').className = 'AMT_M';
-		}
-		}
-	} catch (e) {
-		DisExcpt("SYF_EXNE_DEO_Conv_of_Coll_to_Nego.js*SYF_EXNE_Calculated_Interest_Amt", e);
-	}
+      }
+    }
+    else if (section === "description") {
+      obj.description += (obj.description ? "\n" : "") + line;
+    }
+  }
+
+  return obj;
 }
 
-csFuncLevelProto.SYF_EXNE_EBR_Interest_amount_validation = function () {
-	try {
-		if (document.MAINFORM.NEGO_PERIOD_DAYS.value != '' && document.MAINFORM.MRGN_RT.value != '') {
-			var exportBillType = getExportBillType();
-			var var1 = document.MAINFORM.LIBOR_RT.value;
-			var var2 = EEHtml.getElementById('MRGN_RT').value;
-			var a = document.MAINFORM.NEGO_DISC_CONSN_INTRST.value;
-			var var3 = (SYS_BeFloat(var1) + SYS_BeFloat(var2)) - SYS_BeFloat(a);
-			amt = EEHtml.getElementById('NEGO_AMT').value;
-			amt = SYS_BeFloat(amt);
-			var negoPeriod = EEHtml.getElementById('NEGO_PERIOD_DAYS').value;
-			var var4 = amt * negoPeriod;
-			var4 = SYS_BeFloat(var4);
-			var var5 = var3 * var4;
-			var var6;
-			if (document.MAINFORM.BILL_FINC_CCY.value == 'GBP') {
-				var6 = 36500;
-			} else {
-				var6 = 36000;
-			}
 
-			if (document.MAINFORM.NEGO_BASIS_FLG.value != '') {
-				var var7 = (var5 / var6);
-				var7 = var7.toFixed(2);
-				if ((exportBillType == "3") || (document.MAINFORM.INT_APPL_METHOD.value == '1' && SYS_BeFloat(negoPeriod) < 180 && exportBillType == "4")) {
-					document.MAINFORM.EBR_INT_AMT.value = SYT_AmtFormat(document.MAINFORM.DRFT_CCY.value, amt - (amt / (1 + (var3 * SYS_BeFloat(negoPeriod) / var6))));
-				} else {
-					document.MAINFORM.EBR_INT_AMT.value = SYT_AmtFormat(document.MAINFORM.DRFT_CCY.value, var7);
-				}
 
-			} else {
-				document.MAINFORM.EBR_INT_AMT.value = 0;
-			}
-		} else {
-			document.MAINFORM.EBR_INT_AMT.value = 0;
-		}
-	} catch (e) {
-		DisExcpt("SYF_EXNE_DEO_Conv_of_Coll_to_Nego.js*SYF_EXNE_EBR_Interest_amount_validation", e);
-	}
-}
+NEW INPUT :
+
+
+
+Change History
+
+\\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\EE.ear\EximBillWeb.war\SCRN\BGIF_Inland_Closure_BankGuarantee.jsp-arc(BGIF_Inland_Closure_BankGuarantee.jsp)
+-----------------------------------
+Rev 4.7
+Checked in:     Jun 22 2026 20:23:48
+Last modified:  Jun 22 2026 17:00:10
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25090065/TFRE-20260313-007869/Change/Desc:TF-Revamp-Implementation of Legal Compliance certificate in Inland Bank Guarantee Module
+Sai Ram.
+-----------------------------------
+Rev 4.6
+Checked in:     Jun 11 2026 15:24:44
+Last modified:  Jun 10 2026 12:11:34
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 26020098/TFRE-20260216-007694
+Desc:Margin module for all Inland BG functions of issuance, amendment, closure, cancellations, invocation and settlement (BGIF)
+Seeta
+-----------------------------------
+Rev 4.5
+Checked in:     May 13 2026 18:41:16
+Last modified:  May 13 2026 17:06:42
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25090065/TFRE-20260313-007869/Change/Desc:TF-Revamp-Implementation of Legal Compliance certificate in Inland Bank Guarantee Module
+Sai Ram.
+-----------------------------------
+Rev 4.4
+Checked in:     Mar 16 2026 17:39:02
+Last modified:  Mar 16 2026 15:48:50
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25090065/TFRE-20260313-007869/Change/Desc:TF-Revamp-Implementation of Legal Compliance certificate in Inland Bank Guarantee Module
+SAI
+-----------------------------------
+Rev 4.3
+Checked in:     Feb 16 2026 16:50:34
+Last modified:  Feb 16 2026 13:23:14
+Author id: tfml     lines deleted/added/moved: 0/0/0
+Detachment done as per the developer request on 17th Feb-2026 ,
+2:09 from SURESH NALLALA
+
+-----------------------------------
+Rev 4.2
+Checked in:     Dec 03 2025 12:48:18
+Last modified:  Dec 02 2025 17:57:18
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25110124/TFRE-20251124-007197
+Desc:Revamp: Providing predefined LOV for return option to Checkers in all Revamp Modules
+Ramya Somisetti
+-----------------------------------
+Rev 4.1
+Checked in:     Aug 25 2025 18:58:02
+Last modified:  Aug 25 2025 15:46:40
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25080098/TFRE-20250816-006616
+Desc:Regularizations of all the direct fixes related revamp in non-production region through PVCS.
+Tejeswara Reddy
+-----------------------------------
+Rev 4.0
+Checked in:     Aug 18 2025 15:27:50
+Last modified:  Aug 13 2025 16:40:52
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25080098/TFRE-20250816-006616
+Desc:Regularizations of all the direct fixes related revamp in non-production region through PVCS.
+TF-REVAMP
+-----------------------------------
+Rev 1.0
+Checked in:     Aug 13 2025 20:04:46
+Last modified:  Aug 13 2025 16:40:52
+Author id: tfml     lines deleted/added/moved: 0/0/0
+Initial revision.
+===================================
+
+
+\\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\EE_SYS\FUNCGRP\grp_37944967Q747.xml-arc(grp_37944967Q747.xml)
+-----------------------------------
+Rev 4.4
+Checked in:     Mar 27 2026 10:25:02
+Last modified:  Mar 26 2026 17:59:06
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25090052/TFRE-20260217-007701
+Desc:The screen which is used for demerge function should be available to the branch. The fields which are getting updated through demerge should be editable for the branch users to input the values.
+User should be able to register acceptance/refusal through this function if the auto demerge register acceptance function is not completed.
+Karthik Arukonda
+-----------------------------------
+Rev 4.3
+Checked in:     Feb 26 2026 15:10:42
+Last modified:  Feb 26 2026 13:49:46
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25120015/TFRE-20260225-007757
+Desc:Export Bill Lodgment and Payment in single event 
+M. Nagendra.
+-----------------------------------
+Rev 4.2
+Checked in:     Feb 24 2026 16:59:58
+Last modified:  Feb 24 2026 16:40:44
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25090130/TFRE-20260212-007685
+Desc:Bill return functionality is not available. When bill is dishonored by the collecting bank
+Boyapati Yasaswini
+-----------------------------------
+Rev 4.1
+Checked in:     Aug 25 2025 19:24:26
+Last modified:  Aug 25 2025 15:46:44
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25080098/TFRE-20250816-006616
+Desc:Regularizations of all the direct fixes related revamp in non-production region through PVCS.
+Tejeswara Reddy
+-----------------------------------
+Rev 4.0
+Checked in:     Aug 18 2025 20:49:42
+Last modified:  Aug 13 2025 16:50:02
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25080098/TFRE-20250816-006616
+Desc:Regularizations of all the direct fixes related revamp in non-production region through PVCS.
+TF-REVAMP
+-----------------------------------
+Rev 1.0
+Checked in:     Aug 14 2025 18:07:10
+Last modified:  Aug 13 2025 16:50:02
+Author id: tfml     lines deleted/added/moved: 0/0/0
+Initial revision.
+===================================
