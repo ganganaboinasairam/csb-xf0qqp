@@ -1,3 +1,35 @@
+	<script>
+const BASE = 'https://times.in';
+const IR_DESC = BASE + '/CGI/Utilities/GetSubjectline.cgi?ir=';
+
+
+document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("dep_type").value = sessionStorage.getItem("dep_type")
+	renderTable([]);
+});
+
+function setDependencyType(){
+	sessionStorage.setItem("dep_type",document.getElementById("dep_type").value)
+}
+
+// ---------- UI helpers ----------
+
+function setStats(msg, cls){
+  const el = document.getElementById('stats');
+  el.textContent = msg;
+  el.className = cls || '';
+}
+
+function clearAll(){
+  document.getElementById('input').value = '';
+  document.getElementById('ourCR').value = '';
+  document.getElementById('output').innerHTML = '';
+  localStorage.removeItem("crResults");
+  setStats('');
+}
+
+// ---------- parsing ----------
+
 function convertToJson(text) {
     return text
         .replace(/\r/g, "")
@@ -65,3 +97,275 @@ function parseBlock(block) {
 
     return obj;
 }
+
+// ---------- revision comparison ----------
+
+function compareRevision(r1, r2) {
+  const a = r1.split(".").map(Number);
+  const b = r2.split(".").map(Number);
+  const len = Math.max(a.length, b.length);
+
+  for (let i = 0; i < len; i++) {
+    const x = a[i] || 0;
+    const y = b[i] || 0;
+    if (x > y) return 1;
+    if (x < y) return -1;
+  }
+  return 0;
+}
+
+// ---------- remote status lookup ----------
+
+// Fetches statuses for a list of CR numbers in a single request and
+// returns a lookup object { crNumber: status }.
+async function getCrStatuses(crList) {
+  if (crList.length === 0) return {};
+
+  const param = crList.join(',');
+  const resp = await fetch(IR_DESC + param, { cache: 'no-store' });
+
+  if (!resp.ok) {
+    throw new Error('IR status request failed (HTTP ' + resp.status + ')');
+  }
+
+  const html = await resp.text();
+  const parsed = parseIRDetails(html);
+
+  const lookup = {};
+  parsed.forEach(obj => {
+    const key = Object.keys(obj)[0];
+    lookup[key] = obj[key];
+  });
+  return lookup;
+}
+
+function parseIRDetails(html) {
+    const result = [];
+
+    const blocks = html.split("<textarea").slice(1);
+
+    for (const block of blocks) {
+
+        const irMatch = block.match(/IR Number:\s*(\d+)/);
+        if (!irMatch) continue;
+
+        const statusMatch = block.match(/STATUS:\s*([^<]+)/);
+
+        result.push({
+            [irMatch[1]]: statusMatch ? statusMatch[1].trim() : null
+        });
+    }
+
+    return result;
+}
+
+// ---------- dependency logic ----------
+
+// Given one archive's versionLabels and the CR being checked, return
+// the list of blocking entries for that archive.
+let isLatestprodPromoted = false;
+
+function findBlockedForArchive(versionLabels, ourCR, crStatus) {
+  const currentRevision = versionLabels[ourCR];
+  if (!currentRevision) return null; // this archive doesn't mention ourCR
+
+  const blocked = [];
+  Object.entries(versionLabels).forEach(([cr, rev]) => {
+    if (compareRevision(rev, currentRevision) < 0) {
+      const status = crStatus[cr] || 'UNKNOWN';
+	  if(document.getElementById("dep_type").value === "UAT"){
+			if (status === 'WBT APPROVED') {
+			blocked.push({ cr, revision: rev, status });
+      }
+	  }else{
+			if (status !== 'PROD PROMOTED') {
+			blocked.push({ cr, revision: rev, status });
+		}
+	  }
+      
+    }else if(compareRevision(rev, currentRevision) > 0){
+		const status = crStatus[cr] || 'UNKNOWN';
+		if (status === 'PROD PROMOTED') {
+        blocked.push({ cr, revision: rev, status });
+		isLatestprodPromoted =  true;
+      }
+	}
+  });
+  return blocked;
+}
+
+// ---------- main flow ----------
+
+async function checkDepen(){
+  const btn = document.getElementById('checkBtn');
+  const spinner = document.getElementById('spinner');
+  const output = document.getElementById('output');
+  const ourCR = document.getElementById('ourCR').value.trim();
+  const rawText = document.getElementById('input').value;
+
+  output.innerHTML = '';
+
+  if (!ourCR) {
+    setStats('Please enter your CR number.', 'error');
+    return;
+  }
+  if (!rawText.trim()) {
+    setStats('Please paste archive text first.', 'error');
+    return;
+  }
+
+  let blocks;
+  try {
+    blocks = convertToJson(rawText);
+  } catch (e) {
+    setStats('Could not parse the archive text: ' + e.message, 'error');
+    return;
+  }
+
+  if (blocks.length === 0) {
+    setStats('No archive blocks found in the pasted text.', 'error');
+    return;
+  }
+
+  // Collect every CR referenced across ALL pasted archives so we only
+  // make a single status request no matter how many files were pasted.
+  const allCRs = new Set();
+  blocks.forEach(b => Object.keys(b.versionLabels).forEach(cr => {
+		if(!cr.startsWith('A')){
+			allCRs.add(cr)
+		}
+	}));
+
+  btn.disabled = true;
+  spinner.style.display = 'inline';
+  setStats('Fetching statuses for ' + allCRs.size + ' CR(s) across ' + blocks.length + ' archive(s)…');
+
+  let crStatus;
+  try {
+    // This is now correctly awaited before dependency checking runs,
+    // instead of firing in parallel with checkDependencies() as before.
+    crStatus = await getCrStatuses(Array.from(allCRs));
+  } catch (e) {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    setStats('Error fetching CR statuses: ' + e.message, 'error');
+    return;
+  }
+  
+  btn.disabled = false;
+  spinner.style.display = 'none';
+  
+  
+
+  // Run the dependency check per archive, since the same CR number can
+  // appear with different revisions in different archives/files.
+  const results = [];
+  let archivesWithCR = 0;
+
+  blocks.forEach((b, idx) => {
+    const label = b.archive || b.workfile || ('Archive ' + (idx + 1));
+    const blocked = findBlockedForArchive(b.versionLabels, ourCR, crStatus);
+    if (blocked === null) return; // ourCR not referenced in this archive
+    archivesWithCR++;
+    blocked.forEach(dep => results.push({ archive: label, ...dep }));
+  });
+  renderTable(results);
+  
+  if(isLatestprodPromoted){
+	setStats('Latest version is already promoted in Production','error');
+	isLatestprodPromoted = false;
+	return;
+  }
+
+  if (archivesWithCR === 0) {
+    setStats('CR ' + ourCR + ' was not found in any of the ' + blocks.length + ' pasted archive(s).', 'error');
+    return;
+  }
+
+  if (results.length === 0) {
+    setStats('Checked ' + archivesWithCR + ' archive(s) referencing CR ' + ourCR + '. All dependencies are OK.', 'ok');
+    output.innerHTML = '';
+    return;
+  }
+
+  setStats('Checked ' + archivesWithCR + ' archive(s) referencing CR ' + ourCR + '. Found ' + results.length + ' blocking dependenc' + (results.length === 1 ? 'y' : 'ies') + '.', 'error');
+  renderTable(results);
+}
+
+function renderTable(results){
+
+let allResults = JSON.parse(localStorage.getItem("crResults")) || [];
+	
+	allResults.push(...results)
+	
+	allResults = allResults.filter((item,index,self) => 
+		index === self.findIndex(x =>
+			x.archive === item.archive && x.cr === item.cr && x.revision === item.revision )
+		);
+		
+	localStorage.setItem("crResults",JSON.stringify(allResults));
+  const table = document.createElement('table');
+  table.innerHTML =
+    '<thead><tr>' +
+      '<th>File Name</th><th>Dependent CR</th><th>Revision</th><th>Status</th>' +
+    '</tr></thead>';
+
+  const tbody = document.createElement('tbody');
+  allResults.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.className = 'blocked';
+    tr.innerHTML =
+      '<td>' + escapeHtml(r.archive) + '</td>' +
+      '<td>' + escapeHtml(r.cr) + '</td>' +
+      '<td>' + escapeHtml(r.revision) + '</td>' +
+      '<td><span class="badge">' + escapeHtml(r.status) + '</span></td>';
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  const output = document.getElementById('output');
+  output.innerHTML = '';
+  output.appendChild(table);
+}
+
+function escapeHtml(str){
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function convertStrc() {
+    const fileList = document.getElementById("manualInput").value.trim().split("\n");
+
+    const groups = {};
+
+    fileList.forEach(path => {
+        path = path.trim();
+        if (!path) return;
+
+        const parts = path.split("/");
+        const folder = parts[parts.length - 2];   // FUNCLEVEL, SCRN, FUNCATTR
+        const fileName = parts[parts.length - 1]; // Actual file name
+
+        if (!groups[folder]) {
+            groups[folder] = [];
+        }
+
+        groups[folder].push(`*${fileName}*`);
+    });
+
+    let output = "";
+
+    for (const folder in groups) {
+        output += `${folder} : ${groups[folder].join(";")}\n`;
+    }
+
+    document.getElementById("regexOutput").value = output.trim();
+}
+</script>
+
+
+
+ADJUST THE SCRIPT TO HANDLE THE NEW STRUCTURE .
