@@ -1,31 +1,117 @@
-DISPLAY QMGR CONNAUTH CHLAUTH AUTHOREV ADOPTCTX
-     2 : DISPLAY QMGR CONNAUTH CHLAUTH AUTHOREV ADOPTCTX
-AMQ8405I: Syntax error detected at or near end of command segment below:-
-DISPLAY QMGR CONNAUTH CHLAUTH AUTHOREV ADOPTCTX
+[mqm@TFNEWMQSVR01 ~]$ runmqsc QM_CEDEV
+5724-H72 (C) Copyright IBM Corp. 1994, 2026.
+Starting MQSC for queue manager QM_CEDEV.
 
-AMQ8427I: Valid syntax for the MQSC command:
 
-  DISPLAY QMGR
-     [ ALL      ]
+DISPLAY QMGR ALL
+     1 : DISPLAY QMGR ALL
+AMQ8408I: Display Queue Manager details.
+   QMNAME(QM_CEDEV)                        ACCTCONO(DISABLED)
+   ACCTINT(1800)                           ACCTMQI(OFF)
+   ACCTQ(OFF)                              ACTIVREC(MSG)
+   ACTVCONO(DISABLED)                      ACTVTRC(OFF)
+   ADVCAP(ENABLED)                         ALTDATE(2026-05-21)
+   ALTTIME(12.12.51)                       AMQPCAP(YES)
+   AUTHOREV(DISABLED)                      CCSID(1208)
+   CERTLABL(ibmwebspheremqQM_CEDEV)        CERTVPOL(ANY)
+   CHAD(DISABLED)                          CHADEV(DISABLED)
+   CHADEXIT( )                             CHLEV(DISABLED)
+   CHLAUTH(DISABLED)                       CLWLDATA( )
+   CLWLEXIT( )                             CLWLLEN(100)
+   CLWLMRUC(999999999)                     CLWLUSEQ(LOCAL)
+   CMDEV(DISABLED)                         CMDLEVEL(940)
+   COMMANDQ(SYSTEM.ADMIN.COMMAND.QUEUE)    CONFIGEV(DISABLED)
+   CONNAUTH(DISABLED)                      CRDATE(2025-06-18)
+   CRTIME(17.02.46)                        CUSTOM( )
+   DEADQ( )                                DEFCLXQ(SCTQ)
+   DEFXMITQ( )                             DESCR( )
+   DISTL(YES)                              IMGINTVL(60)
+   IMGLOGLN(OFF)                           IMGRCOVO(YES)
+   IMGRCOVQ(YES)                           IMGSCHED(MANUAL)
+   INHIBTEV(DISABLED)                      INITKEY( )
+   IPADDRV(IPV4)                           LOCALEV(DISABLED)
+   LOGGEREV(DISABLED)                      MARKINT(5000)
+   MAXHANDS(256)                           MAXMSGL(104857600)
+   MAXPROPL(NOLIMIT)                       MAXPRTY(9)
+   MAXUMSGS(10000)                         MONACLS(QMGR)
+   MONCHL(OFF)                             MONQ(OFF)
+   PARENT( )                               PERFMEV(DISABLED)
+   PLATFORM(UNIX)                          PSMODE(ENABLED)
+   PSCLUS(ENABLED)                         PSNPMSG(DISCARD)
+   PSNPRES(NORMAL)                         PSRTYCNT(5)
+   PSSYNCPT(IFPER)                         QMID(QM_CEDEV_2025-06-18_17.02.46)
+   REMOTEEV(DISABLED)                      REPOS( )
+   REPOSNL( )                              REVDNS(ENABLED)
+   ROUTEREC(MSG)                           SCHINIT(QMGR)
+   SCMDSERV(QMGR)                          SPLCAP(ENABLED)
+   SSLCRLNL( )                             SSLCRYP( )
+   SSLEV(DISABLED)                         SSLFIPS(NO)
+   KEYRPWD( )
+   SSLKEYR(/var/mqm/qmgrs/QM_CEDEV/ssl/key)
+   SSLRKEYC(0)                             STATACLS(QMGR)
+   STATCHL(OFF)                            STATINT(1800)
+   STATMQI(OFF)                            STATQ(OFF)
+   STRSTPEV(ENABLED)                       SUITEB(NONE)
+   SYNCPT                                  TREELIFE(1800)
+   TRIGINT(999999999)                      VERSION(09040025)
+   XRCAP(YES)
+One MQSC command read.
+No commands have a syntax error.
+All valid MQSC commands were processed.
+[mqm@TFNEWMQSVR01 ~]$ runmqsc QM_CESIT
+5724-H72 (C) Copyright IBM Corp. 1994, 2026.
+Starting MQSC for queue manager QM_CESIT.
 
-     [ CHINIT   ] [ CLUSTER  ] [ EVENT    ] [ PUBSUB   ] [ SYSTEM   ]
 
-     [ ACCTCONO ] [ ACCTINT  ] [ ACCTMQI  ] [ ACCTQ    ] [ ACTIVREC ]
-     [ ACTVCONO ] [ ACTVTRC  ] [ ADVCAP   ] [ ALTDATE  ] [ ALTTIME  ]
-     [ AUTHOREV ] [ CCSID    ] [ CERTLABL ] [ CERTVPOL ] [ CHAD     ]
-     [ CHADEV   ] [ CHADEXIT ] [ CHLAUTH  ] [ CHLEV    ] [ CLWLDATA ]
-     [ CLWLEXIT ] [ CLWLLEN  ] [ CLWLMRUC ] [ CLWLUSEQ ] [ CMDEV    ]
-     [ CMDLEVEL ] [ COMMANDQ ] [ CONFIGEV ] [ CONNAUTH ] [ CRDATE   ]
-     [ CRTIME   ] [ CUSTOM   ] [ DEADQ    ] [ DEFCLXQ  ] [ DEFXMITQ ]
-     [ DESCR    ] [ DISTL    ] [ IMGINTVL ] [ IMGLOGLN ] [ IMGRCOVO ]
-     [ IMGRCOVQ ] [ IMGSCHED ] [ INHIBTEV ] [ INITKEY  ] [ IPADDRV  ]
-     [ KEYRPWD  ] [ LOCALEV  ] [ LOGGEREV ] [ MARKINT  ] [ MAXHANDS ]
-     [ MAXMSGL  ] [ MAXPROPL ] [ MAXPRTY  ] [ MAXUMSGS ] [ MONACLS  ]
-     [ MONCHL   ] [ MONQ     ] [ PARENT   ] [ PERFMEV  ] [ PLATFORM ]
-     [ PSCLUS   ] [ PSMODE   ] [ PSNPMSG  ] [ PSNPRES  ] [ PSRTYCNT ]
-     [ PSSYNCPT ] [ QMID     ] [ QMNAME   ] [ REMOTEEV ] [ REPOS    ]
-     [ REPOSNL  ] [ REVDNS   ] [ ROUTEREC ] [ SCHINIT  ] [ SCMDSERV ]
-     [ SPLCAP   ] [ SSLCRLNL ] [ SSLCRYP  ] [ SSLEV    ] [ SSLFIPS  ]
-     [ SSLKEYR  ] [ SSLRKEYC ] [ STATACLS ] [ STATCHL  ] [ STATINT  ]
-     [ STATMQI  ] [ STATQ    ] [ STRSTPEV ] [ SUITEB   ] [ SYNCPT   ]
-     [ TREELIFE ] [ TRIGINT  ] [ VERSION  ] [ XRCAP    ]
+DISPLAY QMGR ALL
+     1 : DISPLAY QMGR ALL
+AMQ8408I: Display Queue Manager details.
+   QMNAME(QM_CESIT)                        ACCTCONO(DISABLED)
+   ACCTINT(1800)                           ACCTMQI(OFF)
+   ACCTQ(OFF)                              ACTIVREC(MSG)
+   ACTVCONO(DISABLED)                      ACTVTRC(OFF)
+   ADVCAP(ENABLED)                         ALTDATE(2026-05-08)
+   ALTTIME(16.37.34)                       AMQPCAP(YES)
+   AUTHOREV(DISABLED)                      CCSID(1208)
+   CERTLABL(ibmwebspheremqqm_cesit)        CERTVPOL(ANY)
+   CHAD(DISABLED)                          CHADEV(DISABLED)
+   CHADEXIT( )                             CHLEV(DISABLED)
+   CHLAUTH(DISABLED)                       CLWLDATA( )
+   CLWLEXIT( )                             CLWLLEN(100)
+   CLWLMRUC(999999999)                     CLWLUSEQ(LOCAL)
+   CMDEV(DISABLED)                         CMDLEVEL(940)
+   COMMANDQ(SYSTEM.ADMIN.COMMAND.QUEUE)    CONFIGEV(DISABLED)
+   CONNAUTH(DISABLED)                      CRDATE(2024-07-10)
+   CRTIME(16.01.58)                        CUSTOM( )
+   DEADQ(SYSTEM.DEAD.LETTER.QUEUE)         DEFCLXQ(SCTQ)
+   DEFXMITQ( )                             DESCR( )
+   DISTL(YES)                              IMGINTVL(60)
+   IMGLOGLN(OFF)                           IMGRCOVO(YES)
+   IMGRCOVQ(YES)                           IMGSCHED(MANUAL)
+   INHIBTEV(DISABLED)                      INITKEY( )
+   IPADDRV(IPV4)                           LOCALEV(DISABLED)
+   LOGGEREV(DISABLED)                      MARKINT(5000)
+   MAXHANDS(256)                           MAXMSGL(104857600)
+   MAXPROPL(NOLIMIT)                       MAXPRTY(9)
+   MAXUMSGS(10000)                         MONACLS(QMGR)
+   MONCHL(OFF)                             MONQ(OFF)
+   PARENT( )                               PERFMEV(DISABLED)
+   PLATFORM(UNIX)                          PSMODE(ENABLED)
+   PSCLUS(ENABLED)                         PSNPMSG(DISCARD)
+   PSNPRES(NORMAL)                         PSRTYCNT(5)
+   PSSYNCPT(IFPER)                         QMID(QM_CESIT_2024-07-10_16.01.58)
+   REMOTEEV(DISABLED)                      REPOS( )
+   REPOSNL( )                              REVDNS(ENABLED)
+   ROUTEREC(MSG)                           SCHINIT(QMGR)
+   SCMDSERV(QMGR)                          SPLCAP(ENABLED)
+   SSLCRLNL( )                             SSLCRYP( )
+   SSLEV(DISABLED)                         SSLFIPS(NO)
+   KEYRPWD( )
+   SSLKEYR(/var/mqm/qmgrs/QM_CESIT/ssl/key)
+   SSLRKEYC(0)                             STATACLS(QMGR)
+   STATCHL(OFF)                            STATINT(1800)
+   STATMQI(OFF)                            STATQ(OFF)
+   STRSTPEV(ENABLED)                       SUITEB(NONE)
+   SYNCPT                                  TREELIFE(1800)
+   TRIGINT(999999999)                      VERSION(09040025)
+   XRCAP(YES)
