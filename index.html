@@ -1,39 +1,13 @@
-[mqm@TFNEWMQSVR01 ~]$ runmqsc QM_CEDEV
-5724-H72 (C) Copyright IBM Corp. 1994, 2026.
-Starting MQSC for queue manager QM_CEDEV.
-
-
 DISPLAY CHANNEL(EEDEV.TO.CEDEV) ALL
      1 : DISPLAY CHANNEL(EEDEV.TO.CEDEV) ALL
 AMQ8414I: Display Channel details.
-   CHANNEL(EEDEV.TO.CEDEV)                 CHLTYPE(RCVR)
-   ALTDATE(2026-05-21)                     ALTTIME(15.11.20)
-   BATCHSZ(50)                             CERTLABL( )
-   COMPHDR(NONE)                           COMPMSG(NONE)
-   DESCR( )                                HBINT(300)
-   KAINT(AUTO)                             MAXMSGL(4194304)
-   MCAUSER( )                              MONCHL(QMGR)
-   MRDATA( )                               MREXIT( )
-   MRRTY(10)                               MRTMR(1000)
-   MSGDATA( )                              MSGEXIT( )
-   NPMSPEED(FAST)                          PUTAUT(DEF)
-   RCVDATA( )                              RCVEXIT( )
-   RESETSEQ(1)                             SCYDATA( )
-   SCYEXIT( )                              SENDDATA( )
-   SENDEXIT( )                             SEQWRAP(999999999)
-   SSLCAUTH(REQUIRED)                      SSLCIPH(TLS_AES_256_GCM_SHA384)
-   SSLPEER( )                              STATCHL(QMGR)
-   TRPTYPE(TCP)                            USEDLQ(YES)
-DISPLAY CHANNEL(CEDEV.TO.EEDEV)
-     2 : DISPLAY CHANNEL(CEDEV.TO.EEDEV)
-AMQ8414I: Display Channel details.
-   CHANNEL(CEDEV.TO.EEDEV)                 CHLTYPE(SDR)
-   ALTDATE(2026-07-30)                     ALTTIME(20.08.08)
+   CHANNEL(EEDEV.TO.CEDEV)                 CHLTYPE(SDR)
+   ALTDATE(2026-07-20)                     ALTTIME(18.44.53)
    BATCHHB(0)                              BATCHINT(0)
    BATCHLIM(5000)                          BATCHSZ(50)
    CERTLABL( )                             COMPHDR(NONE)
-   COMPMSG(NONE)                           CONNAME(10.177.141.90(1415))
-   CONVERT(NO)                             DESCR( )
+   COMPMSG(NONE)                           CONNAME(10.177.141.89(1416))
+   CONVERT(NO)                             DESCR(channel for ee dev to ce dev)
    DISCINT(6000)                           HBINT(300)
    KAINT(AUTO)                             LOCLADDR( )
    LONGRTY(999999999)                      LONGTMR(1200)
@@ -51,25 +25,17 @@ AMQ8414I: Display Channel details.
    SSLPEER( )                              STATCHL(QMGR)
    TPNAME( )                               TRPTYPE(TCP)
    USEDLQ(YES)                             USERID( )
-   XMITQ(CEUAT_XMITQ)
-2 MQSC commands read.
-No commands have a syntax error.
-All valid MQSC commands were processed.
-[mqm@TFNEWMQSVR01 ~]$ runmqsc QM_CESIT
-5724-H72 (C) Copyright IBM Corp. 1994, 2026.
-Starting MQSC for queue manager QM_CESIT.
-
-
-DISPLAY CHANNEL(CESIT.TO.EESIT) ALL
-     1 : DISPLAY CHANNEL(CESIT.TO.EESIT) ALL
+   XMITQ(CE..XMITQ.DEV.86)
+DISPLAY CHANNEL(EESIT.TO.CESIT) ALL
+     2 : DISPLAY CHANNEL(EESIT.TO.CESIT) ALL
 AMQ8414I: Display Channel details.
-   CHANNEL(CESIT.TO.EESIT)                 CHLTYPE(SDR)
-   ALTDATE(2026-07-22)                     ALTTIME(21.06.12)
+   CHANNEL(EESIT.TO.CESIT)                 CHLTYPE(SDR)
+   ALTDATE(2026-03-07)                     ALTTIME(15.48.34)
    BATCHHB(0)                              BATCHINT(0)
    BATCHLIM(5000)                          BATCHSZ(50)
    CERTLABL( )                             COMPHDR(NONE)
-   COMPMSG(NONE)                           CONNAME(10.177.141.90(1415))
-   CONVERT(NO)                             DESCR( )
+   COMPMSG(NONE)                           CONNAME(10.177.141.89(1415))
+   CONVERT(NO)                             DESCR(EE(90) to CE (93))
    DISCINT(0)                              HBINT(300)
    KAINT(AUTO)                             LOCLADDR( )
    LONGRTY(999999999)                      LONGTMR(1200)
@@ -87,26 +53,4 @@ AMQ8414I: Display Channel details.
    SSLPEER( )                              STATCHL(QMGR)
    TPNAME( )                               TRPTYPE(TCP)
    USEDLQ(YES)                             USERID( )
-   XMITQ(CESIT_XMITQ)
-DISPLAY CHANNEL(EESIT.TO.CESIT) ALL
-     2 : DISPLAY CHANNEL(EESIT.TO.CESIT) ALL
-AMQ8414I: Display Channel details.
-   CHANNEL(EESIT.TO.CESIT)                 CHLTYPE(RCVR)
-   ALTDATE(2025-12-11)                     ALTTIME(18.13.22)
-   BATCHSZ(50)                             CERTLABL( )
-   COMPHDR(NONE)                           COMPMSG(NONE)
-   DESCR( )                                HBINT(300)
-   KAINT(AUTO)                             MAXMSGL(104857600)
-   MCAUSER( )                              MONCHL(QMGR)
-   MRDATA( )                               MREXIT( )
-   MRRTY(10)                               MRTMR(1000)
-   MSGDATA( )                              MSGEXIT( )
-   NPMSPEED(FAST)                          PUTAUT(DEF)
-   RCVDATA( )                              RCVEXIT( )
-   RESETSEQ(NO)                            SCYDATA( )
-   SCYEXIT( )                              SENDDATA( )
-   SENDEXIT( )                             SEQWRAP(999999999)
-   SSLCAUTH(REQUIRED)                      SSLCIPH( )
-   SSLPEER( )                              STATCHL(QMGR)
-   TRPTYPE(TCP)                            USEDLQ(YES)
-
+   XMITQ(CE.TO.EE_93_XMITQ)
