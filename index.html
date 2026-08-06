@@ -1,295 +1,33 @@
------ amqrmrsa.c : 628 --------------------------------------------------------
-08/06/2026 04:39:01 PM - Process(3454536.699) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:09:01.959Z)
-                    ArithInsert1(2085)
-                    CommentInsert1(DISABLED)
+[mqm@TFNEWMQSVR01 ~]$ runmqsc QM_CEDEV
+5724-H72 (C) Copyright IBM Corp. 1994, 2026.
+Starting MQSC for queue manager QM_CEDEV.
 
-AMQ9623E: Error inquiring on AUTHINFO object 'DISABLED'.
 
-EXPLANATION:
-A channel or channel process has failed to start because reason code 2085 was
-returned when an inquire was performed on AUTHINFO object 'DISABLED'.
-ACTION:
-Look at the MQRC_ values in the IBM MQ Application Programming Reference to
-determine the meaning of reason code 2085, correct the error, and restart the
-failing channel or channel process.
------ cmqxrmsa.c : 6589 -------------------------------------------------------
-08/06/2026 04:39:01 PM - Process(3454536.699) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:09:01.990Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-
-AMQ9534E: Channel 'EEDEV.TO.CEDEV' is currently not enabled.
-
-EXPLANATION:
-The channel program ended because the channel is currently not enabled.
-ACTION:
-Issue the START CHANNEL command to re-enable the channel.
------ amqrcsia.c : 832 --------------------------------------------------------
-08/06/2026 04:39:01 PM - Process(3454536.699) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:09:01.991Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-                    CommentInsert2(3454536)
-                    CommentInsert3(10.177.141.90)
-
-AMQ9999E: Channel 'EEDEV.TO.CEDEV' to host '10.177.141.90' ended abnormally.
-
-EXPLANATION:
-The channel program running under process ID 3454536 for channel
-'EEDEV.TO.CEDEV' ended abnormally. The host name is '10.177.141.90'; in some
-cases the host name cannot be determined and so is shown as '????'.
-ACTION:
-Look at previous error messages for the channel program in the error logs to
-determine the cause of the failure. Note that this message can be excluded
-completely or suppressed by tuning the "ExcludeMessage" or "SuppressMessage"
-attributes under the "QMErrorLog" stanza in qm.ini. Further information can be
-found in the System Administration Guide.
------ amqrmrsa.c : 628 --------------------------------------------------------
-08/06/2026 04:39:12 PM - Process(3454536.700) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:09:12.072Z)
-                    ArithInsert1(2085)
-                    CommentInsert1(DISABLED)
-
-AMQ9623E: Error inquiring on AUTHINFO object 'DISABLED'.
-
-EXPLANATION:
-A channel or channel process has failed to start because reason code 2085 was
-returned when an inquire was performed on AUTHINFO object 'DISABLED'.
-ACTION:
-Look at the MQRC_ values in the IBM MQ Application Programming Reference to
-determine the meaning of reason code 2085, correct the error, and restart the
-failing channel or channel process.
------ cmqxrmsa.c : 6589 -------------------------------------------------------
-08/06/2026 04:39:12 PM - Process(3454536.700) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:09:12.102Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-
-AMQ9534E: Channel 'EEDEV.TO.CEDEV' is currently not enabled.
-
-EXPLANATION:
-The channel program ended because the channel is currently not enabled.
-ACTION:
-Issue the START CHANNEL command to re-enable the channel.
------ amqrcsia.c : 832 --------------------------------------------------------
-08/06/2026 04:39:12 PM - Process(3454536.700) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:09:12.103Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-                    CommentInsert2(3454536)
-                    CommentInsert3(10.177.141.90)
-
-AMQ9999E: Channel 'EEDEV.TO.CEDEV' to host '10.177.141.90' ended abnormally.
-
-EXPLANATION:
-The channel program running under process ID 3454536 for channel
-'EEDEV.TO.CEDEV' ended abnormally. The host name is '10.177.141.90'; in some
-cases the host name cannot be determined and so is shown as '????'.
-ACTION:
-Look at previous error messages for the channel program in the error logs to
-determine the cause of the failure. Note that this message can be excluded
-completely or suppressed by tuning the "ExcludeMessage" or "SuppressMessage"
-attributes under the "QMErrorLog" stanza in qm.ini. Further information can be
-found in the System Administration Guide.
------ amqrmrsa.c : 628 --------------------------------------------------------
-08/06/2026 04:40:12 PM - Process(3454536.701) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:10:12.079Z)
-                    ArithInsert1(2085)
-                    CommentInsert1(DISABLED)
-
-AMQ9623E: Error inquiring on AUTHINFO object 'DISABLED'.
-
-EXPLANATION:
-A channel or channel process has failed to start because reason code 2085 was
-returned when an inquire was performed on AUTHINFO object 'DISABLED'.
-ACTION:
-Look at the MQRC_ values in the IBM MQ Application Programming Reference to
-determine the meaning of reason code 2085, correct the error, and restart the
-failing channel or channel process.
------ cmqxrmsa.c : 6589 -------------------------------------------------------
-08/06/2026 04:40:12 PM - Process(3454536.701) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:10:12.109Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-
-AMQ9534E: Channel 'EEDEV.TO.CEDEV' is currently not enabled.
-
-EXPLANATION:
-The channel program ended because the channel is currently not enabled.
-ACTION:
-Issue the START CHANNEL command to re-enable the channel.
------ amqrcsia.c : 832 --------------------------------------------------------
-08/06/2026 04:40:12 PM - Process(3454536.701) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:10:12.109Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-                    CommentInsert2(3454536)
-                    CommentInsert3(10.177.141.90)
-
-AMQ9999E: Channel 'EEDEV.TO.CEDEV' to host '10.177.141.90' ended abnormally.
-
-EXPLANATION:
-The channel program running under process ID 3454536 for channel
-'EEDEV.TO.CEDEV' ended abnormally. The host name is '10.177.141.90'; in some
-cases the host name cannot be determined and so is shown as '????'.
-ACTION:
-Look at previous error messages for the channel program in the error logs to
-determine the cause of the failure. Note that this message can be excluded
-completely or suppressed by tuning the "ExcludeMessage" or "SuppressMessage"
-attributes under the "QMErrorLog" stanza in qm.ini. Further information can be
-found in the System Administration Guide.
------ amqrmrsa.c : 628 --------------------------------------------------------
-08/06/2026 04:41:12 PM - Process(3454536.702) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:11:12.078Z)
-                    ArithInsert1(2085)
-                    CommentInsert1(DISABLED)
-
-AMQ9623E: Error inquiring on AUTHINFO object 'DISABLED'.
-
-EXPLANATION:
-A channel or channel process has failed to start because reason code 2085 was
-returned when an inquire was performed on AUTHINFO object 'DISABLED'.
-ACTION:
-Look at the MQRC_ values in the IBM MQ Application Programming Reference to
-determine the meaning of reason code 2085, correct the error, and restart the
-failing channel or channel process.
------ cmqxrmsa.c : 6589 -------------------------------------------------------
-08/06/2026 04:41:12 PM - Process(3454536.702) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:11:12.107Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-
-AMQ9534E: Channel 'EEDEV.TO.CEDEV' is currently not enabled.
-
-EXPLANATION:
-The channel program ended because the channel is currently not enabled.
-ACTION:
-Issue the START CHANNEL command to re-enable the channel.
------ amqrcsia.c : 832 --------------------------------------------------------
-08/06/2026 04:41:12 PM - Process(3454536.702) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:11:12.109Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-                    CommentInsert2(3454536)
-                    CommentInsert3(10.177.141.90)
-
-AMQ9999E: Channel 'EEDEV.TO.CEDEV' to host '10.177.141.90' ended abnormally.
-
-EXPLANATION:
-The channel program running under process ID 3454536 for channel
-'EEDEV.TO.CEDEV' ended abnormally. The host name is '10.177.141.90'; in some
-cases the host name cannot be determined and so is shown as '????'.
-ACTION:
-Look at previous error messages for the channel program in the error logs to
-determine the cause of the failure. Note that this message can be excluded
-completely or suppressed by tuning the "ExcludeMessage" or "SuppressMessage"
-attributes under the "QMErrorLog" stanza in qm.ini. Further information can be
-found in the System Administration Guide.
------ amqrmrsa.c : 628 --------------------------------------------------------
-08/06/2026 04:42:12 PM - Process(3454536.703) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:12:12.083Z)
-                    ArithInsert1(2085)
-                    CommentInsert1(DISABLED)
-
-AMQ9623E: Error inquiring on AUTHINFO object 'DISABLED'.
-
-EXPLANATION:
-A channel or channel process has failed to start because reason code 2085 was
-returned when an inquire was performed on AUTHINFO object 'DISABLED'.
-ACTION:
-Look at the MQRC_ values in the IBM MQ Application Programming Reference to
-determine the meaning of reason code 2085, correct the error, and restart the
-failing channel or channel process.
------ cmqxrmsa.c : 6589 -------------------------------------------------------
-08/06/2026 04:42:12 PM - Process(3454536.703) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:12:12.113Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-
-AMQ9534E: Channel 'EEDEV.TO.CEDEV' is currently not enabled.
-
-EXPLANATION:
-The channel program ended because the channel is currently not enabled.
-ACTION:
-Issue the START CHANNEL command to re-enable the channel.
------ amqrcsia.c : 832 --------------------------------------------------------
-08/06/2026 04:42:12 PM - Process(3454536.703) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:12:12.114Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-                    CommentInsert2(3454536)
-                    CommentInsert3(10.177.141.90)
-
-AMQ9999E: Channel 'EEDEV.TO.CEDEV' to host '10.177.141.90' ended abnormally.
-
-EXPLANATION:
-The channel program running under process ID 3454536 for channel
-'EEDEV.TO.CEDEV' ended abnormally. The host name is '10.177.141.90'; in some
-cases the host name cannot be determined and so is shown as '????'.
-ACTION:
-Look at previous error messages for the channel program in the error logs to
-determine the cause of the failure. Note that this message can be excluded
-completely or suppressed by tuning the "ExcludeMessage" or "SuppressMessage"
-attributes under the "QMErrorLog" stanza in qm.ini. Further information can be
-found in the System Administration Guide.
------ amqrmrsa.c : 628 --------------------------------------------------------
-08/06/2026 04:43:12 PM - Process(3454536.704) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:13:12.081Z)
-                    ArithInsert1(2085)
-                    CommentInsert1(DISABLED)
-
-AMQ9623E: Error inquiring on AUTHINFO object 'DISABLED'.
-
-EXPLANATION:
-A channel or channel process has failed to start because reason code 2085 was
-returned when an inquire was performed on AUTHINFO object 'DISABLED'.
-ACTION:
-Look at the MQRC_ values in the IBM MQ Application Programming Reference to
-determine the meaning of reason code 2085, correct the error, and restart the
-failing channel or channel process.
------ cmqxrmsa.c : 6589 -------------------------------------------------------
-08/06/2026 04:43:12 PM - Process(3454536.704) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:13:12.111Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-
-AMQ9534E: Channel 'EEDEV.TO.CEDEV' is currently not enabled.
-
-EXPLANATION:
-The channel program ended because the channel is currently not enabled.
-ACTION:
-Issue the START CHANNEL command to re-enable the channel.
------ amqrcsia.c : 832 --------------------------------------------------------
-08/06/2026 04:43:12 PM - Process(3454536.704) User(mqm) Program(amqrmppa)
-                    Host(TFNEWMQSVR01) Installation(Installation1)
-                    VRMF(9.4.0.25) QMgr(QM_CEDEV)
-                    Time(2026-08-06T11:13:12.111Z)
-                    CommentInsert1(EEDEV.TO.CEDEV)
-                    CommentInsert2(3454536)
-                    CommentInsert3(10.177.141.90)
-
-AMQ9999E: Channel 'EEDEV.TO.CEDEV' to host '10.177.141.90' ended abnormally.
+DISPLAY QMGR CONNAUTH
+     1 : DISPLAY QMGR CONNAUTH
+AMQ8408I: Display Queue Manager details.
+   QMNAME(QM_CEDEV)                        CONNAUTH(DISABLED)
+DISPLAY AUTHINFO(DISABLED) ALL
+     2 : DISPLAY AUTHINFO(DISABLED) ALL
+AMQ8147E: IBM MQ object DISABLED not found.
+DISPLAY AUTHINFO(DISABLED) ALL
+     3 : DISPLAY AUTHINFO(DISABLED) ALL
+AMQ8147E: IBM MQ object DISABLED not found.
+DISPLAY QMGR CHLAUTH
+     4 : DISPLAY QMGR CHLAUTH
+AMQ8408I: Display Queue Manager details.
+   QMNAME(QM_CEDEV)                        CHLAUTH(DISABLED)
+DISPLAY AUTHINFO(*)
+     5 : DISPLAY AUTHINFO(*)
+AMQ8566I: Display authentication information details.
+   AUTHINFO(SYSTEM.DEFAULT.AUTHINFO.IDPWLDAP)
+   AUTHTYPE(IDPWLDAP)
+AMQ8566I: Display authentication information details.
+   AUTHINFO(SYSTEM.DEFAULT.AUTHINFO.IDPWOS)
+   AUTHTYPE(IDPWOS)
+AMQ8566I: Display authentication information details.
+   AUTHINFO(SYSTEM.DEFAULT.AUTHINFO.OCSP)
+   AUTHTYPE(OCSP)
+AMQ8566I: Display authentication information details.
+   AUTHINFO(SYSTEM.DEFAULT.AUTHINFO.CRLLDAP)
+   AUTHTYPE(CRLLDAP)
