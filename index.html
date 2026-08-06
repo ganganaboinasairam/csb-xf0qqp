@@ -1,80 +1,160 @@
-blocks.forEach(b => {
-    b.versionLabels.forEach(v => {
-        if (!v.cr.startsWith("A")) {
-            allCRs.add(v.cr);
-        }
-    });
-});
+[mqm@TFNEWMQSVR02 ~]$ runmqsc QM_EE
+5724-H72 (C) Copyright IBM Corp. 1994, 2026.
+Starting MQSC for queue manager QM_EE.
 
 
-function findBlockedForArchive(versionLabels, ourCR, crStatus) {
+START CHANNEL(EEDEV.TO.CEDEV)
+     1 : START CHANNEL(EEDEV.TO.CEDEV)
+AMQ8018I: Start IBM MQ channel accepted.
+DISPLAY QLOCAL(*XMIT*)
+     2 : DISPLAY QLOCAL(*XMIT*)
+AMQ8424E: Error detected in a name keyword.
 
-    const currentEntries = versionLabels.filter(v => v.cr === ourCR);
 
-    if (currentEntries.length === 0) {
-        return null;
-    }
+08/06/2026 04:39:01 PM - Process(2616076.13) User(mqm) Program(amqzmur0)
+                    Host(TFNEWMQSVR02) Installation(Installation1)
+                    VRMF(9.4.0.25) QMgr(QM_EE)
+                    Time(2026-08-06T11:09:01.926Z)
+                    CommentInsert1(Linux 5.14.0-687.12.1.el9_8.x86_64 (MQ Linux (x86-64 platform) 64-bit))
+                    CommentInsert2(/opt/mqm (Installation1))
+                    CommentInsert3(9.4.0.25 (p940-025-260610))
+                   
+AMQ6287I: IBM MQ V9.4.0.25 (p940-025-260610).
 
-    const blocked = [];
+EXPLANATION:
+IBM MQ system information: 
+Host Info         :- Linux 5.14.0-687.12.1.el9_8.x86_64 (MQ Linux (x86-64
+platform) 64-bit) 
+Installation      :- /opt/mqm (Installation1) 
+Version           :- 9.4.0.25 (p940-025-260610)
+ACTION:
+None.
+----- amqxeida.c : 7117 -------------------------------------------------------
+08/06/2026 04:39:01 PM - Process(893212.1) User(mqm) Program(runmqchl)
+                    Host(TFNEWMQSVR02) Installation(Installation1)
+                    VRMF(9.4.0.25) QMgr(QM_EE)
+                    Time(2026-08-06T11:09:01.926Z)
+                    CommentInsert1(EEDEV.TO.CEDEV)
+                   
+AMQ9002I: Channel 'EEDEV.TO.CEDEV' is starting.
 
-    currentEntries.forEach(current => {
+EXPLANATION:
+Channel 'EEDEV.TO.CEDEV' is starting.
+ACTION:
+None.
+----- amqrccca.c : 529 --------------------------------------------------------
+08/06/2026 04:39:02 PM - Process(893212.1) User(mqm) Program(runmqchl)
+                    Host(TFNEWMQSVR02) Installation(Installation1)
+                    VRMF(9.4.0.25) QMgr(QM_EE)
+                    Time(2026-08-06T11:09:02.022Z)
+                    RemoteHost(10.177.141.89)
+                    CommentInsert1(EEDEV.TO.CEDEV)
+                    CommentInsert2(10.177.141.89(1416))
+                   
+AMQ9558E: The remote channel 'EEDEV.TO.CEDEV' on host '10.177.141.89(1416)' is
+not currently available.
 
-        versionLabels.forEach(entry => {
+EXPLANATION:
+The channel program ended because an instance of channel 'EEDEV.TO.CEDEV' could
+not be started on the remote system. 
 
-            if (entry === current) {
-                return;
-            }
+The local queue manager where this error is written does not have information
+about the reason the remote channel program did not start. Check the error logs
+on the remote queue manager for the reason. 
 
-            const status = crStatus[entry.cr] || "UNKNOWN";
+Here are a few examples of possible reasons: 
+- The channel is disabled. 
+- The remote system does not have sufficient resources to run another instance
+of the channel. 
+- In the case of a client-connection channel, the limit on the number of
+instances configured for the remote server-connection channel was reached.
+ACTION:
+Check the error logs on the remote system and ensure that the channel is able
+to run. Try the operation again.
+----- cmqxrfpt.c : 899 --------------------------------------------------------
+08/06/2026 04:39:02 PM - Process(893212.1) User(mqm) Program(runmqchl)
+                    Host(TFNEWMQSVR02) Installation(Installation1)
+                    VRMF(9.4.0.25) QMgr(QM_EE)
+                    Time(2026-08-06T11:09:02.022Z)
+                    CommentInsert1(EEDEV.TO.CEDEV)
+                    CommentInsert2(893212)
+                    CommentInsert3(10.177.141.89(1416))
+                   
+AMQ9999E: Channel 'EEDEV.TO.CEDEV' to host '10.177.141.89(1416)' ended
+abnormally.
 
-            if (compareRevision(entry.revision, current.revision) < 0) {
+EXPLANATION:
+The channel program running under process ID 893212 for channel
+'EEDEV.TO.CEDEV' ended abnormally. The host name is '10.177.141.89(1416)'; in
+some cases the host name cannot be determined and so is shown as '????'.
+ACTION:
+Look at previous error messages for the channel program in the error logs to
+determine the cause of the failure. Note that this message can be excluded
+completely or suppressed by tuning the "ExcludeMessage" or "SuppressMessage"
+attributes under the "QMErrorLog" stanza in qm.ini. Further information can be
+found in the System Administration Guide.
+----- amqrccca.c : 1257 -------------------------------------------------------
+08/06/2026 04:39:12 PM - Process(893223.1) User(mqm) Program(runmqchl)
+                    Host(TFNEWMQSVR02) Installation(Installation1)
+                    VRMF(9.4.0.25) QMgr(QM_EE)
+                    Time(2026-08-06T11:09:12.040Z)
+                    CommentInsert1(EEDEV.TO.CEDEV)
+                   
+AMQ9002I: Channel 'EEDEV.TO.CEDEV' is starting.
 
-                if (document.getElementById("dep_type").value === "UAT") {
+EXPLANATION:
+Channel 'EEDEV.TO.CEDEV' is starting.
+ACTION:
+None.
+----- amqrccca.c : 529 --------------------------------------------------------
+08/06/2026 04:39:12 PM - Process(893223.1) User(mqm) Program(runmqchl)
+                    Host(TFNEWMQSVR02) Installation(Installation1)
+                    VRMF(9.4.0.25) QMgr(QM_EE)
+                    Time(2026-08-06T11:09:12.133Z)
+                    RemoteHost(10.177.141.89)
+                    CommentInsert1(EEDEV.TO.CEDEV)
+                    CommentInsert2(10.177.141.89(1416))
+                   
+AMQ9558E: The remote channel 'EEDEV.TO.CEDEV' on host '10.177.141.89(1416)' is
+not currently available.
 
-                    if (status === "WBT APPROVED") {
-                        blocked.push({
-                            cr: entry.cr,
-                            revision: entry.revision,
-                            status
-                        });
-                    }
+EXPLANATION:
+The channel program ended because an instance of channel 'EEDEV.TO.CEDEV' could
+not be started on the remote system. 
 
-                } else {
+The local queue manager where this error is written does not have information
+about the reason the remote channel program did not start. Check the error logs
+on the remote queue manager for the reason. 
 
-                    if (status !== "PROD PROMOTED") {
-                        blocked.push({
-                            cr: entry.cr,
-                            revision: entry.revision,
-                            status
-                        });
-                    }
+Here are a few examples of possible reasons: 
+- The channel is disabled. 
+- The remote system does not have sufficient resources to run another instance
+of the channel. 
+- In the case of a client-connection channel, the limit on the number of
+instances configured for the remote server-connection channel was reached.
+ACTION:
+Check the error logs on the remote system and ensure that the channel is able
+to run. Try the operation again.
+----- cmqxrfpt.c : 899 --------------------------------------------------------
+08/06/2026 04:39:12 PM - Process(893223.1) User(mqm) Program(runmqchl)
+                    Host(TFNEWMQSVR02) Installation(Installation1)
+                    VRMF(9.4.0.25) QMgr(QM_EE)
+                    Time(2026-08-06T11:09:12.134Z)
+                    CommentInsert1(EEDEV.TO.CEDEV)
+                    CommentInsert2(893223)
+                    CommentInsert3(10.177.141.89(1416))
+                   
+AMQ9999E: Channel 'EEDEV.TO.CEDEV' to host '10.177.141.89(1416)' ended
+abnormally.
 
-                }
-
-            } else if (compareRevision(entry.revision, current.revision) > 0) {
-
-                if (status === "PROD PROMOTED") {
-
-                    blocked.push({
-                        cr: entry.cr,
-                        revision: entry.revision,
-                        status
-                    });
-
-                    isLatestprodPromoted = true;
-                }
-            }
-
-        });
-
-    });
-
-    return blocked;
-}
-
-return blocked.filter((item, index, self) =>
-    index === self.findIndex(x =>
-        x.cr === item.cr &&
-        x.revision === item.revision
-    )
-);
+EXPLANATION:
+The channel program running under process ID 893223 for channel
+'EEDEV.TO.CEDEV' ended abnormally. The host name is '10.177.141.89(1416)'; in
+some cases the host name cannot be determined and so is shown as '????'.
+ACTION:
+Look at previous error messages for the channel program in the error logs to
+determine the cause of the failure. Note that this message can be excluded
+completely or suppressed by tuning the "ExcludeMessage" or "SuppressMessage"
+attributes under the "QMErrorLog" stanza in qm.ini. Further information can be
+found in the System Administration Guide.
+----- amqrccca.c : 1257 -------------------------------------------------------
