@@ -1,82 +1,24 @@
-try {
-    var checked = document.querySelectorAll("#RatesCheckboxes input[type='checkbox']:checked");
-    var selected = [];
+function enableAutoRound(inputId) {
+    const input = document.getElementById(inputId);
 
-    checked.forEach(function (cb) {
-        if (cb && cb.title) {
-            selected.push(cb.title);
+    if (!input) {
+        return;
+    }
+
+    const valueDescriptor = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+    );
+
+    Object.defineProperty(input, "value", {
+        get: function () {
+            return valueDescriptor.get.call(this);
+        },
+        set: function (val) {
+            if (val !== "" && !isNaN(val)) {
+                val = Number(val).toFixed(2);
+            }
+            valueDescriptor.set.call(this, val);
         }
     });
-
-    var cMainRef = document.MAINFORM.C_MAIN_REF.value;
-    var sTableName = "EXIMTRX.IMCC_LEDGER";
-    var sWhereClause = "C_MAIN_REF='" + cMainRef + "' ORDER BY I_EVENT_TIMES DESC";
-    var sFiledList = "C_FUNC_SHORT_NAME;I_EVENT_TIMES;C_CREA_BY;T_CREA_TIME";
-
-    SYS_GetTableMultiDataToArray_S(sTableName, sWhereClause, sFiledList, true);
-
-    if (!SYS_MULTI_DATA || !SYS_MULTI_DATA.length) {
-        return false;
-    }
-
-    function getColumn(colName) {
-        for (var i = 0; i < SYS_MULTI_DATA.length; i++) {
-            if (SYS_MULTI_DATA[i] && SYS_MULTI_DATA[i][0] === colName) {
-                return SYS_MULTI_DATA[i][1] || [];
-            }
-        }
-        return [];
-    }
-
-    var C_FUNC_SHORT_NAME = getColumn("C_FUNC_SHORT_NAME");
-    var C_CREA_BY = getColumn("C_CREA_BY");
-    var T_CREA_TIME = getColumn("T_CREA_TIME");
-
-    var RFOIeventTimes = -1;
-
-    for (var i = 0; i < C_FUNC_SHORT_NAME.length; i++) {
-        if (C_FUNC_SHORT_NAME[i] === "IMCC_AdvPMT_RFO") {
-            RFOIeventTimes = i;
-            break;
-        }
-    }
-
-    var rfoConfirmUser = "";
-    var formattedDate = "";
-
-    if (
-        RFOIeventTimes !== -1 &&
-        C_CREA_BY[RFOIeventTimes] &&
-        T_CREA_TIME[RFOIeventTimes]
-    ) {
-        rfoConfirmUser = SYS_GetTableData_S(
-            "EXIMUSER.SEC_USER_INFO",
-            "C_USER_ID='" + C_CREA_BY[RFOIeventTimes] + "'",
-            "C_USER_DESC",
-            "rfoConfirmUser",
-            "N"
-        ) || "";
-
-        var rfoConfirmTime = T_CREA_TIME[RFOIeventTimes];
-
-        if (rfoConfirmTime.indexOf(" ") !== -1) {
-            var parts = rfoConfirmTime.split(" ");
-
-            if (parts.length === 2) {
-                var date = parts[0].split("-");
-
-                if (date.length === 3) {
-                    formattedDate =
-                        date[2] + "-" + date[1] + "-" + date[0] + " " + parts[1];
-                }
-            }
-        }
-    }
-
-    document.MAINFORM.RATE_TYPE_LIST.value = selected.join(",");
-    document.MAINFORM.RATE_CONFIRM_USER.value = rfoConfirmUser;
-    document.MAINFORM.RATE_CONFIRM_TIME.value = formattedDate;
-
-} catch (e) {
-    DisExcpt("SYF_IMLC_IMLB_Lodg_LC_Bills.js*SYF_IMLC_GET_RATE_TYPE_LIST", e);
 }
