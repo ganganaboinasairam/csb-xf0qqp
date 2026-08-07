@@ -1,56 +1,52 @@
-DISPLAY CHANNEL(EEDEV.TO.CEDEV) ALL
-     1 : DISPLAY CHANNEL(EEDEV.TO.CEDEV) ALL
-AMQ8414I: Display Channel details.
-   CHANNEL(EEDEV.TO.CEDEV)                 CHLTYPE(SDR)
-   ALTDATE(2026-07-20)                     ALTTIME(18.44.53)
-   BATCHHB(0)                              BATCHINT(0)
-   BATCHLIM(5000)                          BATCHSZ(50)
-   CERTLABL( )                             COMPHDR(NONE)
-   COMPMSG(NONE)                           CONNAME(10.177.141.89(1416))
-   CONVERT(NO)                             DESCR(channel for ee dev to ce dev)
-   DISCINT(6000)                           HBINT(300)
-   KAINT(AUTO)                             LOCLADDR( )
-   LONGRTY(999999999)                      LONGTMR(1200)
-   MAXMSGL(104857600)                      MCANAME( )
-   MCATYPE(PROCESS)                        MCAUSER( )
-   MODENAME( )                             MONCHL(QMGR)
-   MSGDATA( )                              MSGEXIT( )
-   NPMSPEED(FAST)                          PASSWORD( )
-   PROPCTL(COMPAT)                         RCVDATA( )
-   RCVEXIT( )                              RESETSEQ(1)
-   SCYDATA( )                              SCYEXIT( )
-   SENDDATA( )                             SENDEXIT( )
-   SEQWRAP(999999999)                      SHORTRTY(10)
-   SHORTTMR(60)                            SSLCIPH(TLS_AES_256_GCM_SHA384)
-   SSLPEER( )                              STATCHL(QMGR)
-   TPNAME( )                               TRPTYPE(TCP)
-   USEDLQ(YES)                             USERID( )
-   XMITQ(CE..XMITQ.DEV.86)
-DISPLAY CHANNEL(EESIT.TO.CESIT) ALL
-     2 : DISPLAY CHANNEL(EESIT.TO.CESIT) ALL
-AMQ8414I: Display Channel details.
-   CHANNEL(EESIT.TO.CESIT)                 CHLTYPE(SDR)
-   ALTDATE(2026-03-07)                     ALTTIME(15.48.34)
-   BATCHHB(0)                              BATCHINT(0)
-   BATCHLIM(5000)                          BATCHSZ(50)
-   CERTLABL( )                             COMPHDR(NONE)
-   COMPMSG(NONE)                           CONNAME(10.177.141.89(1415))
-   CONVERT(NO)                             DESCR(EE(90) to CE (93))
-   DISCINT(0)                              HBINT(300)
-   KAINT(AUTO)                             LOCLADDR( )
-   LONGRTY(999999999)                      LONGTMR(1200)
-   MAXMSGL(104857600)                      MCANAME( )
-   MCATYPE(PROCESS)                        MCAUSER( )
-   MODENAME( )                             MONCHL(QMGR)
-   MSGDATA( )                              MSGEXIT( )
-   NPMSPEED(FAST)                          PASSWORD( )
-   PROPCTL(COMPAT)                         RCVDATA( )
-   RCVEXIT( )                              RESETSEQ(NO)
-   SCYDATA( )                              SCYEXIT( )
-   SENDDATA( )                             SENDEXIT( )
-   SEQWRAP(999999999)                      SHORTRTY(10)
-   SHORTTMR(60)                            SSLCIPH( )
-   SSLPEER( )                              STATCHL(QMGR)
-   TPNAME( )                               TRPTYPE(TCP)
-   USEDLQ(YES)                             USERID( )
-   XMITQ(CE.TO.EE_93_XMITQ)
+try {
+        var checked = document.querySelectorAll("#RatesCheckboxes input[type='checkbox']:checked");
+        var selected = [];
+        checked.forEach((cb)=>{
+            selected.push(cb.title)
+        })
+    
+
+    var cMainRef = document.MAINFORM.C_MAIN_REF.value;
+    var sTableName = "EXIMTRX.IMCC_LEDGER";
+    var sWhereClause = "C_MAIN_REF='" + cMainRef + "' ORDER BY I_EVENT_TIMES DESC ";
+    var sFiledList = "C_FUNC_SHORT_NAME;I_EVENT_TIMES;C_CREA_BY;T_CREA_TIME"
+    SYS_GetTableMultiDataToArray_S(sTableName,sWhereClause,sFiledList,true);
+    if (!SYS_MULTI_DATA || SYS_MULTI_DATA.length === 0) return false;
+
+    // Helper to extract column
+    function getColumn(colName) {
+        for (var i = 0; i < SYS_MULTI_DATA.length; i++) {
+            if (SYS_MULTI_DATA[i][0] === colName) {
+                return SYS_MULTI_DATA[i][1];
+            }
+        }
+        return [];
+    }
+
+    var C_FUNC_SHORT_NAME = getColumn("C_FUNC_SHORT_NAME");
+    var I_EVENT_TIMES = getColumn("I_EVENT_TIMES");
+    var C_CREA_BY = getColumn("C_CREA_BY");
+    var T_CREA_TIME = getColumn("T_CREA_TIME");
+    var RFOIeventTimes;
+
+    for(i=0;i < C_FUNC_SHORT_NAME.length;i++){
+        if(C_FUNC_SHORT_NAME[i] == "IMCC_AdvPMT_RFO"){
+            RFOIeventTimes =  i;
+            break;
+        }
+    }
+
+    var rfoConfirmUser = SYS_GetTableData_S("EXIMUSER.SEC_USER_INFO", "C_USER_ID='" + C_CREA_BY[RFOIeventTimes] + "'", "C_USER_DESC", "rfoConfirmUser", 'N');
+    var rfoConfirmTime = T_CREA_TIME[RFOIeventTimes];
+
+    var parts = rfoConfirmTime.split(" ");
+    var date = parts[0].split("-");
+    var formattedDate = `${date[2]}-${date[1]}-${date[0]} ${parts[1]}`;
+
+    document.MAINFORM.RATE_TYPE_LIST.value = selected.join(",");
+    document.MAINFORM.RATE_CONFIRM_USER.value = rfoConfirmUser;
+    document.MAINFORM.RATE_CONFIRM_TIME.value = formattedDate;
+
+    } catch (e) {
+        DisExcpt("SYF_IMLC_IMLB_Lodg_LC_Bills.js*SYF_IMLC_GET_RATE_TYPE_LIST", e);
+    }
