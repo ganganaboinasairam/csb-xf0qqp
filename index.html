@@ -1,13 +1,15 @@
-function formatAmount(value) {
-    if (value == null || value === "") {
-        return "";
-    }
+function formatAmountFields(fields) {
+    fields.split(";").forEach(function(field) {
+        field = field.trim();
+        if (!field) return;
 
-    value = String(value).replace(/,/g, "").trim();
+        var input = document.getElementById(field) || document.MAINFORM[field];
+        if (!input) return;
 
-    if (isNaN(value)) {
-        return "";
-    }
+        var value = String(input.value || "").replace(/,/g, "").trim();
 
-    return Number(value).toFixed(2);
+        if (value !== "" && !isNaN(value)) {
+            input.value = Number(value).toFixed(2);
+        }
+    });
 }
