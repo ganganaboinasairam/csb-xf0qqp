@@ -1,9 +1,5 @@
-function enableAutoRound(inputId) {
-    const input = document.getElementById(inputId);
-
-    if (!input) {
-        return;
-    }
+function enableAutoRound(input) {
+    if (!input) return;
 
     const valueDescriptor = Object.getOwnPropertyDescriptor(
         HTMLInputElement.prototype,
