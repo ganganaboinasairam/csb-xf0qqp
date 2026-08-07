@@ -1,20 +1,13 @@
-function enableAutoRound(input) {
-    if (!input) return;
+function formatAmount(value) {
+    if (value == null || value === "") {
+        return "";
+    }
 
-    const valueDescriptor = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value"
-    );
+    value = String(value).replace(/,/g, "").trim();
 
-    Object.defineProperty(input, "value", {
-        get: function () {
-            return valueDescriptor.get.call(this);
-        },
-        set: function (val) {
-            if (val !== "" && !isNaN(val)) {
-                val = Number(val).toFixed(2);
-            }
-            valueDescriptor.set.call(this, val);
-        }
-    });
+    if (isNaN(value)) {
+        return "";
+    }
+
+    return Number(value).toFixed(2);
 }
