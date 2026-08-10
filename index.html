@@ -1,470 +1,616 @@
-<!--<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Archive Text to JSON — Dependency Checker</title>
-
-</head>
-<body>
-<div class="main-div"> 
-<div class="main-sub-div">
-	<h2>Dependency Checker</h2>
-
-	<textarea id="input"
-		placeholder="Paste one or more archive text blocks here (separated by the standard '===...===' divider)..."></textarea>
-		</div>
-
-<div class="filter-sec ">
-<h2>PVCS Wild card Filter</h2>
-<div class="filter-text-box">
-<h3>Input Filenames</h3>
-<textarea onchange='convertStrc()' rows="10" cols="80" id='manualInput' placeholder='Manual input of file names:' style="
-    height: 150px;
-"></textarea>
-</div>
-<div class="filter-text-box">
-<h3>Generated Output:</h3>
-    <textarea id="regexOutput" rows="10" cols="80" style="
-    height: 150px;
-"></textarea>
-	</div>
-</div>
-</div>
-<br>
-
-	<label for="ourCR">Your CR Number:</label>
-	<br>
-	<input type="text" class="custom-input" id="ourCR" placeholder="e.g. 123456" />
-	<select id="dep_type" class="custom-select" onchange="setDependencyType()">
-	<option value="" selected></option>
-    <option value="UAT">UAT Dependency</option>
-    <option value="PROD">PROD Dependency</option>
-	</select>
-	<br>
-
-	<button id="checkBtn" onclick="checkDepen()">Check
-		Dependencies</button>
-	<button onclick="clearAll()" class="btn-danger">Clear Dependency table</button>
-	<span id="spinner">Fetching CR statuses…</span>
-
-	<div id="stats"></div>
-	<div id="output"></div>
-
-		<script>
-const BASE = 'https://irtracking.statebanktimes.in';
-const IR_DESC = BASE + '/CGI/Utilities/GetSubjectline.cgi?ir=';
-
-
-document.addEventListener("DOMContentLoaded", function() {
-    document.getElementById("dep_type").value = sessionStorage.getItem("dep_type")
-	renderTable([]);
-});
-
-function setDependencyType(){
-	sessionStorage.setItem("dep_type",document.getElementById("dep_type").value)
-}
-
-// ---------- UI helpers ----------
-
-function setStats(msg, cls){
-  const el = document.getElementById('stats');
-  el.textContent = msg;
-  el.className = cls || '';
-}
-
-function clearAll(){
-  document.getElementById('input').value = '';
-  document.getElementById('ourCR').value = '';
-  document.getElementById('output').innerHTML = '';
-  localStorage.removeItem("crResults");
-  setStats('');
-}
-
-// ---------- parsing ----------
-
-function convertToJson(text) {
-    return text
-        .replace(/\r/g, "")
-        .split("===================================")
-        .map(b => b.trim())
-        .filter(Boolean)
-        .map(parseBlock);
-}
-
-function parseBlock(block) {
-
-    const obj = {
-        versionLabels: []
-    };
-
-    const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
-
-    // First line after "Change History"
-    const archiveLine = lines.find(l => l.startsWith("\\\\TCSSBITF"));
 
-    if (archiveLine) {
+Change History
+
+\\TCSSBITF\archives\Eximbill_Enterprise_5.3.1\base_domain\CALJS\FUNCLEVEL\SYF_EXBL_EXBL_DEO_Amendment_Bills.js-arc(SYF_EXBL_EXBL_DEO_Amendment_Bills.js)
+-----------------------------------
+Rev 4.64
+Checked in:     Jul 30 2026 12:49:06
+Last modified:  Jul 29 2026 15:16:18
+Author id: tfml     lines deleted/added/moved: 2/13/0
+IR 26060100/TFRE-20260729-008658
+Desc:Transaction from YB to be available in BST, the transaction will be available in BST after the BRC release of lodgment and amendment functions and Original Documents Received status will be available as a filter where you can pick up transactions  those haven't received original documents and  BST cannot confirm the transaction  but transaction history can be viewed.
+Sri Hari Sai Koturu
+-----------------------------------
+Rev 4.63
+Checked in:     Jul 10 2026 15:01:52
+Last modified:  Jul 10 2026 14:45:44
+Author id: tfml     lines deleted/added/moved: 11/42/80
+IR 26050050/TFEX-20260612-008415/Change/Desc:Updating Circle Allocation mapping among Correspondent Banks for routing of USD Denominated Trade & Non-Trade transactions (MT103 & 202 messages) to be implemented in all outward remittances (including i...
+M. Nagendra.
+-----------------------------------
+Rev 4.62
+Checked in:     Jul 09 2026 15:36:26
+Last modified:  Jul 09 2026 14:33:12
+Author id: tfml     lines deleted/added/moved: 2/5/0
+IR 26050050/TFEX-20260612-008415
+Desc:Updating Circle Allocation mapping among Correspondent Banks for
+routing of USD Denominated Trade & Non-Trade transactions (MT103 & 202 messages) to be implemented in all
+outward remittances (including import) in pre-revamp and post revamp modules.
+The existing circle allocation, which was valid from 1st March 2024 to 28th February 2026, has been reviewed
+and a fresh allocation has been approved by Competent Authority vide note IBG/FIG/CR/2026-27 dated
+09.04.2026, effective 1st May 2026 to 30th April 2028.
+M. Nagendra
+-----------------------------------
+Rev 4.61
+Checked in:     Jun 15 2026 16:56:04
+Last modified:  Jun 15 2026 16:26:00
+Author id: tfml     lines deleted/added/moved: 4260/4279/0
+IR 25110051/TFRE-20260504-008184
+Desc:EX Courier API has to be triggered once again
+M. Nagendra
+-----------------------------------
+Rev 4.60
+Checked in:     Jun 15 2026 12:08:40
+Last modified:  Jun 15 2026 11:45:12
+Author id: tfml     lines deleted/added/moved: 7/12/0
+IR 26030103/TFRE-20260512-008229/Change/Desc:In case of direct dispatch by customer, the transaction is received at Branch and Branch maker selects NA in Document Dispatch Mode under Documents details tab. Then in e TRADE tab, the field Original Do...
+Kokkula Shashank.
+-----------------------------------
+Rev 4.59
+Checked in:     Jun 12 2026 14:39:54
+Last modified:  Jun 12 2026 13:22:48
+Author id: tfml     lines deleted/added/moved: 4232/4255/0
+IR 25090052/TFRE-20260217-007701/Change/Desc:The screen which is used for demerge function should be available to the branch. The fields which are getting updated through demerge should be editable for the branch users to input the values. User sho...
+Saideepa Pendyala
+-----------------------------------
+Rev 4.58
+Checked in:     Jun 11 2026 17:05:24
+Last modified:  Jun 11 2026 16:05:10
+Author id: tfml     lines deleted/added/moved: 0/3/2
+IR 26030103/TFRE-20260512-008229
+Desc:In case of direct dispatch by customer, the transaction is received at Branch and Branch maker selects NA in Document Dispatch Mode under Documents details tab. Then in e TRADE tab, the field Original Documents Received field will be by default NO and to be made available for DSO authorisation. Show stopper to be removed. In other cases, the transaction is received at Branch
+S. Karima Shahid
+-----------------------------------
+Rev 4.57
+Checked in:     Jun 09 2026 12:32:16
+Last modified:  Jun 09 2026 12:06:30
+Author id: tfml     lines deleted/added/moved: 1/1/0
+IR 26030103/TFRE-20260512-008229
+Desc:In case of direct dispatch by customer, the transaction is received at Branch and Branch maker selects NA in Document Dispatch Mode under Documents details tab. Then in e TRADE tab, the field Original Documents Received field will be by default NO and to be made available for DSO authorisation. Show stopper to be removed. In other cases, the transaction is received at Branch
+Sri Hari Sai Koturu
+-----------------------------------
+Rev 4.56
+Checked in:     Jun 05 2026 15:33:56
+Last modified:  Jun 04 2026 13:18:18
+Author id: tfml     lines deleted/added/moved: 1/1/0
+IR 26030103/TFRE-20260512-008229
+Desc:In case of direct dispatch by customer, the transaction is received at Branch and Branch maker selects NA in Document Dispatch Mode under Documents details tab. Then in e TRADE tab, the field Original Documents Received field will be by default NO and to be made available for DSO authorisation. Show stopper to be removed. In other cases, the transaction is received at Branch
+Sri Hari Sai Koturu
+-----------------------------------
+Rev 4.55
+Checked in:     Jun 02 2026 15:46:58
+Last modified:  Jun 02 2026 14:56:12
+Author id: tfml     lines deleted/added/moved: 1/5/0
+IR 26030103/TFRE-20260512-008229/Change/Desc:In case of direct dispatch by customer, the transaction is received at Branch and Branch maker selects NA in Document Dispatch Mode under Documents details tab. Then in e TRADE tab, the field Original Do...
+Sri Hari Sai Koturu
+
+-----------------------------------
+Rev 4.54
+Checked in:     May 26 2026 14:19:54
+Last modified:  May 26 2026 13:12:06
+Author id: tfml     lines deleted/added/moved: 1/6/0
+IR 25110051/TFRE-20260504-008184/Change/Desc:EX Courier API has to be triggered once again
+M. Nagendra.
+-----------------------------------
+Rev 4.53
+Checked in:     May 20 2026 12:23:58
+Last modified:  May 18 2026 15:18:58
+Author id: tfml     lines deleted/added/moved: 0/4/0
+IR 25090052/TFRE-20260217-007701/Change/Desc:The screen which is used for demerge function should be available to the branch. The fields which are getting updated through demerge should be editable for the branch users to input the values. User sho...
+Karthik Arukonda
+-----------------------------------
+Rev 4.52
+Checked in:     May 15 2026 19:30:22
+Last modified:  May 15 2026 16:40:12
+Author id: tfml     lines deleted/added/moved: 1/1/0
+IR 25110051/TFRE-20260504-008184/Change/Desc:EX Courier API has to be triggered once again/UAT-HASH(0x378 
+S. Karima Shahid,
+-----------------------------------
+Rev 4.51
+Checked in:     May 12 2026 14:49:40
+Last modified:  May 08 2026 19:12:36
+Author id: tfml     lines deleted/added/moved: 0/26/0
+IR 26030103/TFRE-20260512-008229/Change/Desc:In case of direct dispatch by customer, the transaction is received at Branch and Branch maker selects NA in Document Dispatch Mode under Documents details tab. Then in e TRADE tab, the field Original Documents
+Sri Hari Sai Koturu
+-----------------------------------
+Rev 4.50
+Checked in:     May 05 2026 14:24:56
+Last modified:  May 05 2026 12:58:28
+Author id: tfml     lines deleted/added/moved: 7/21/0
+IR 25110051/TFRE-20260504-008184/Change/Desc:EX Courier API has to be triggered once again
+M. Nagendra.
+-----------------------------------
+Rev 4.49
+Checked in:     May 04 2026 18:43:08
+Last modified:  May 04 2026 15:10:54
+Author id: tfml     lines deleted/added/moved: 0/30/0
+IR 25110051/TFRE-20260504-008184/Change/Desc:EX Courier API has to be triggered once again
+M. Nagendra.
+-----------------------------------
+Rev 4.48
+Checked in:     Mar 18 2026 15:12:58
+Last modified:  Mar 17 2026 19:57:30
+Author id: tfml     lines deleted/added/moved: 0/5/0
+IR 25090143/TFRE-20251107-007104
+Desc:MT742 reimbursement functionality for usance bill is not available. multiple 742 are required in case of deferred and Mixed payments
+S. Karima Shahid,
+-----------------------------------
+Rev 4.47
+Checked in:     Feb 18 2026 12:45:26
+Last modified:  Feb 18 2026 12:00:34
+Author id: tfml     lines deleted/added/moved: 7/22/0
+IR 26020157/TFEX-20260218-007710
+Desc:Child CR of CR No : 25090060 for fixing UAT defects
+Sravan Kumar
+-----------------------------------
+Rev 4.46
+Checked in:     Feb 06 2026 14:50:10
+Last modified:  Feb 06 2026 12:41:06
+Author id: tfml     lines deleted/added/moved: 2/2/0
+IR 26020004/TFRE-20260202-007621
+Desc:Child CR for 25110116 to regularize SLA code in EE Application for Export EXBL, EXNE, EXAD, EPCM, SHGT, NLRF, FWCO)
+Vinaya Sri
+-----------------------------------
+Rev 4.45
+Checked in:     Feb 05 2026 19:59:50
+Last modified:  Feb 05 2026 18:52:06
+Author id: tfml     lines deleted/added/moved: 0/3/0
+PROM T02092/IR 26010237/TFRE-20260131-007613/Change/Desc:Child CR for CR#25090063 to fix the defects arises during UAT
+Sairam
+-----------------------------------
+Rev 4.44
+Checked in:     Feb 05 2026 15:20:08
+Last modified:  Feb 05 2026 13:24:22
+Author id: tfml     lines deleted/added/moved: 0/14/0
+IR 26020004/TFRE-20260202-007621
+Desc:Child CR for 25110116 to regularize SLA code in EE Application for Export EXBL, EXNE, EXAD, EPCM, SHGT, NLRF, FWCO).
+BHANU TEJASWI
+-----------------------------------
+Rev 4.43
+Checked in:     Jan 27 2026 12:35:02
+Last modified:  Jan 22 2026 16:03:14
+Author id: tfml     lines deleted/added/moved: 1/1/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.42
+Checked in:     Jan 21 2026 17:56:12
+Last modified:  Jan 21 2026 17:05:20
+Author id: tfml     lines deleted/added/moved: 1/1/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.41
+Checked in:     Jan 21 2026 16:43:46
+Last modified:  Jan 21 2026 16:10:16
+Author id: tfml     lines deleted/added/moved: 0/3/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.40
+Checked in:     Jan 21 2026 12:32:36
+Last modified:  Jan 21 2026 11:59:56
+Author id: tfml     lines deleted/added/moved: 1/0/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.39
+Checked in:     Jan 21 2026 11:55:22
+Last modified:  Jan 21 2026 11:43:34
+Author id: tfml     lines deleted/added/moved: 15/18/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+G Sairam
+-----------------------------------
+Rev 4.38
+Checked in:     Jan 20 2026 20:29:36
+Last modified:  Jan 20 2026 20:07:48
+Author id: tfml     lines deleted/added/moved: 5/12/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+G Sairam
+-----------------------------------
+Rev 4.37
+Checked in:     Jan 20 2026 18:35:28
+Last modified:  Jan 20 2026 17:13:56
+Author id: tfml     lines deleted/added/moved: 0/6/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.36
+Checked in:     Jan 20 2026 16:27:24
+Last modified:  Jan 20 2026 16:07:36
+Author id: tfml     lines deleted/added/moved: 1/1/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.35
+Checked in:     Jan 20 2026 13:54:14
+Last modified:  Jan 20 2026 12:11:38
+Author id: tfml     lines deleted/added/moved: 0/6/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.34
+Checked in:     Jan 17 2026 16:31:52
+Last modified:  Jan 17 2026 15:33:58
+Author id: tfml     lines deleted/added/moved: 0/5/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.33
+Checked in:     Jan 16 2026 13:30:34
+Last modified:  Jan 16 2026 13:00:18
+Author id: tfml     lines deleted/added/moved: 1/1/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.32
+Checked in:     Jan 14 2026 16:45:36
+Last modified:  Jan 14 2026 16:04:48
+Author id: tfml     lines deleted/added/moved: 1/2/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.31
+Checked in:     Jan 14 2026 13:09:56
+Last modified:  Jan 14 2026 12:35:20
+Author id: tfml     lines deleted/added/moved: 0/2/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.30
+Checked in:     Jan 12 2026 19:43:00
+Last modified:  Jan 12 2026 19:04:36
+Author id: tfml     lines deleted/added/moved: 0/10/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.29
+Checked in:     Jan 12 2026 18:40:24
+Last modified:  Jan 12 2026 18:20:08
+Author id: tfml     lines deleted/added/moved: 2/10/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.28
+Checked in:     Jan 09 2026 18:05:40
+Last modified:  Jan 09 2026 17:36:52
+Author id: tfml     lines deleted/added/moved: 1/1/2
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+Sairam G
+-----------------------------------
+Rev 4.27
+Checked in:     Jan 09 2026 17:13:18
+Last modified:  Jan 09 2026 17:03:02
+Author id: tfml     lines deleted/added/moved: 15/17/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+G Sairam
+-----------------------------------
+Rev 4.26
+Checked in:     Jan 09 2026 16:09:18
+Last modified:  Jan 09 2026 15:53:26
+Author id: tfml     lines deleted/added/moved: 0/24/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+G Sairam
+-----------------------------------
+Rev 4.25
+Checked in:     Jan 09 2026 12:43:06
+Last modified:  Jan 09 2026 12:23:42
+Author id: tfml     lines deleted/added/moved: 1/1/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.24
+Checked in:     Jan 07 2026 16:01:50
+Last modified:  Jan 07 2026 14:52:18
+Author id: tfml     lines deleted/added/moved: 8/16/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+G Sairam
+-----------------------------------
+Rev 4.23
+Checked in:     Jan 06 2026 17:47:42
+Last modified:  Jan 06 2026 16:50:56
+Author id: tfml     lines deleted/added/moved: 5/9/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+G Sairam
+-----------------------------------
+Rev 4.22
+Checked in:     Jan 06 2026 15:02:08
+Last modified:  Jan 06 2026 14:23:52
+Author id: tfml     lines deleted/added/moved: 8/9/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+G Sairam
+-----------------------------------
+Rev 4.21
+Checked in:     Jan 06 2026 14:06:02
+Last modified:  Jan 06 2026 13:34:42
+Author id: tfml     lines deleted/added/moved: 10/12/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+G Sairam
+-----------------------------------
+Rev 4.20
+Checked in:     Jan 06 2026 11:21:16
+Last modified:  Jan 05 2026 20:02:52
+Author id: tfml     lines deleted/added/moved: 71/69/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+G Sairam
+-----------------------------------
+Rev 4.19
+Checked in:     Jan 05 2026 17:57:02
+Last modified:  Jan 05 2026 17:39:58
+Author id: tfml     lines deleted/added/moved: 169/208/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+G Sairam
+-----------------------------------
+Rev 4.18
+Checked in:     Dec 31 2025 13:07:42
+Last modified:  Dec 31 2025 11:43:28
+Author id: tfml     lines deleted/added/moved: 10/297/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+G Sairam
+-----------------------------------
+Rev 4.17
+Checked in:     Dec 16 2025 15:39:38
+Last modified:  Dec 15 2025 18:54:10
+Author id: tfml     lines deleted/added/moved: 1/144/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.16
+Checked in:     Dec 12 2025 20:35:20
+Last modified:  Dec 12 2025 19:54:00
+Author id: tfml     lines deleted/added/moved: 184/272/0
+IR 25120053/TFRE-20251210-007309
+Desc:Child CR of CR No. 25070014
+For Bluedart: 
+â€‚â€‚â€‚â€‚"ConsigneeMobile" â€” It should be 10 digits 
+â€‚â€‚â€‚â€‚  "OriginArea":"",  --- It should not be null, in some cases it is going as blank
+â€‚â€‚â€‚â€‚   "VendorCode":"" â€” It should not be null, in some cases it is going as blank
+
+For DHL:
+
+â€‚â€‚â€‚â€‚ShipTimestamp --- Please map system date and time stamp should be always 10:00 AM in capability check API, as this api calls are failing in the evenings as DHL is considering timestamp as pickup time and giving "The requested product(s) not available for the requested pickup date"  error response. Hence we need to fix this.
+
+Need to fix Country code --- "The destination country code could not be found"
+Tejeswara Reddy
+-----------------------------------
+Rev 4.15
+Checked in:     Dec 10 2025 19:56:10
+Last modified:  Dec 10 2025 19:26:34
+Author id: tfml     lines deleted/added/moved: 21/38/0
+IR 25120053/TFRE-20251210-007309
+Desc:Child CR of CR No. 25070014
+For Bluedart: 
+â€‚â€‚â€‚â€‚"ConsigneeMobile" â€” It should be 10 digits 
+â€‚â€‚â€‚â€‚  "OriginArea":"",  --- It should not be null, in some cases it is going as blank
+â€‚â€‚â€‚â€‚   "VendorCode":"" â€” It should not be null, in some cases it is going as blank
+
+For DHL:
+
+â€‚â€‚â€‚â€‚ShipTimestamp --- Please map system date and time stamp should be always 10:00 AM in capability check API, as this api calls are failing in the evenings as DHL is considering timestamp as pickup time and giving "The requested product(s) not available for the requested pickup date"  error response. Hence we need to fix this.
+
+Need to fix Country code --- "The destination country code could not be found"
+Tejeswara Reddy
+
+-----------------------------------
+Rev 4.14
+Checked in:     Dec 08 2025 20:23:00
+Last modified:  Dec 08 2025 18:24:16
+Author id: tfml     lines deleted/added/moved: 0/3/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.13
+Checked in:     Dec 04 2025 12:19:26
+Last modified:  Dec 04 2025 11:17:42
+Author id: tfml     lines deleted/added/moved: 80/369/0
+IR 25090062/TFRE-20251107-007100
+Desc:Please note that we are unable to complete lodgement of Bill reference, 0048625NC0B01053 as the customer request letter states to send documents to Notify Party.
+Presently in Eximbill the "send documents to" function has only three options as under:
+1. Documents to be sent to bank details
+2. Documents to be sent to drawee details 
+3. Not Applicable
+Sai Ram
+-----------------------------------
+Rev 4.12
+Checked in:     Dec 02 2025 15:50:30
+Last modified:  Dec 02 2025 14:34:06
+Author id: tfml     lines deleted/added/moved: 0/22/0
+IR 25090060
+Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+
+-----------------------------------
+Rev 4.11
+Checked in:     Nov 26 2025 12:12:22
+Last modified:  Nov 25 2025 19:19:00
+Author id: tfml     lines deleted/added/moved: 1/91/0
+IR 25090060/TFRE-20251107-007099
+Desc:Tenor detail field should have LOV as others also along with other date field. As in some cases, due date is to be calculated from specific document. For such cases "Others" LOV is required
+Sravan Kumar
+-----------------------------------
+Rev 4.10
+Checked in:     Nov 25 2025 12:47:54
+Last modified:  Nov 25 2025 11:49:02
+Author id: tfml     lines deleted/added/moved: 2/2/0
+IR 25090057/TFRE-20251009-006948
+Desc:IN COLLECTION BILL COVER LETTER, COUNTRY NAME IS NOT SHOWING OF BENEFICIARY/BANK.
+
+In Address i.e., document to be sent to field in Address field Country name is mentioned that should be available in Covering Schedule. The address requirement is covered in Export Bill Lodgment solution document page number 71 â€“covering schedule format.  The country name and ZIP code to appear in Covering schedule to enable Courier to get delivered to right place. 
+M. Nagendra. 
+-----------------------------------
+Rev 4.9
+Checked in:     Nov 21 2025 14:29:24
+Last modified:  Nov 21 2025 13:08:08
+Author id: tfml     lines deleted/added/moved: 0/9/0
+IR 25110116/TFRE-20251118-007161
+Desc:IMPLEMENTATION OF SLA IN EE APPLICATION for EXBL Module
+BHANU TEJASWI,
+-----------------------------------
+Rev 4.8
+Checked in:     Nov 20 2025 13:42:44
+Last modified:  Nov 20 2025 13:08:42
+Author id: tfml     lines deleted/added/moved: 0/12/0
+IR 25090057/TFRE-20251009-006948
+Desc:IN COLLECTION BILL COVER LETTER, COUNTRY NAME IS NOT SHOWING OF BENEFICIARY/BANK.
+
+In Address i.e., document to be sent to field in Address field Country name is mentioned that should be available in Covering Schedule. The address requirement is covered in Export Bill Lodgment solution document page number 71 â€“covering schedule format.  The country name and ZIP code to appear in Covering schedule to enable Courier to get delivered to right place. 
+M. Nagendra.
+-----------------------------------
+Rev 4.7
+Checked in:     Nov 18 2025 17:17:48
+Last modified:  Nov 18 2025 16:40:14
+Author id: tfml     lines deleted/added/moved: 2/8/0
+IR 25090057/TFRE-20251009-006948
+Desc:IN COLLECTION BILL COVER LETTER, COUNTRY NAME IS NOT SHOWING OF BENEFICIARY/BANK.
+
+In Address i.e., document to be sent to field in Address field Country name is mentioned that should be available in Covering Schedule. The address requirement is covered in Export Bill Lodgment solution document page number 71 â€“covering schedule format.  The country name and ZIP code to appear in Covering schedule to enable Courier to get delivered to right place. 
+M. Nagendra.
+-----------------------------------
+Rev 4.6
+Checked in:     Nov 05 2025 11:28:30
+Last modified:  Nov 04 2025 15:31:18
+Author id: tfml     lines deleted/added/moved: 0/7/0
+IR 25090054/TFRE-20251104-007075/Change/Desc:Bill Acceptance amount field is missing at NPD payment screen:
+
+An new field to be added in post Acceptance event to subsequent events- Bill Amendment, Bill Payment, SB Marking off, Write off 
+The New Field is â€œAccepted Bill Amountâ€? to be auto fetched from Acceptance process.
+
+K. Lakshmi Prasanna 
+-----------------------------------
+Rev 4.5
+Checked in:     Oct 23 2025 12:09:02
+Last modified:  Oct 23 2025 11:17:32
+Author id: tfml     lines deleted/added/moved: 2/9/0
+IR 25090061/TFRE-20251015-006994/Change/Desc:Unable to lodge "Full Advance Payment" bills if any short amount is there in TP and bill lodgement. This differential amount is due to bank charges but system is not allowing to mention bank charges and facing issue that bill.
+
+In BRU lodgement under Bills details, the Bank Charges fields are greyed out at present.  These fields should be editable and non mandatory.  The validation provided for other types of bills to be made available for Full Advance payment bills also. /UAT-HASH(0x36e 
+
+K. Lakshmi Prasanna 
+-----------------------------------
+Rev 4.4
+Checked in:     Oct 15 2025 18:31:18
+Last modified:  Oct 15 2025 18:29:02
+Author id: tfml     lines deleted/added/moved: 8/558/0
+IR 25090059/TFRE-20251009-006946/
+Desc:Customer Intimation letter generating at BRU stage is showing outstanding amount as lodgement amount. It should be actual lodgement amount and not the outstanding amount. 
+
+This is wrong mapping of the field in Advice.  The Bill amount to be available instead of outstanding amount.
+
+Tejas
+-----------------------------------
+Rev 4.3
+Checked in:     Sep 03 2025 14:39:06
+Last modified:  Sep 02 2025 18:47:54
+Author id: tfml     lines deleted/added/moved: 7/7/0
+IR 25080098/TFRE-20250816-006616
+Desc:Regularizations of all the direct fixes related revamp in non-production region through PVCS.
+Teja
+-----------------------------------
+Rev 4.2
+Checked in:     Sep 02 2025 14:22:36
+Last modified:  Sep 01 2025 19:08:30
+Author id: tfml     lines deleted/added/moved: 14/39/1
+IR 25080098/TFRE-20250816-006616
+Desc:Regularizations of all the direct fixes related revamp in non-production region through PVCS.
+TF-REVAMP
+-----------------------------------
+Rev 4.1
+Checked in:     Aug 25 2025 17:05:08
+Last modified:  Aug 25 2025 15:46:24
+Author id: tfml     lines deleted/added/moved: 1/59/0
+IR 25080098/TFRE-20250816-006616
+Desc:Regularizations of all the direct fixes related revamp in non-production region through PVCS.
+Tejeswara Reddy
+-----------------------------------
+Rev 4.0
+Checked in:     Aug 18 2025 11:23:10
+Last modified:  Aug 13 2025 14:40:04
+Author id: tfml     lines deleted/added/moved: 0/0/0
+IR 25080098/TFRE-20250816-006616
+Desc:Regularizations of all the direct fixes related revamp in non-production region through PVCS.
+TF-REVAMP
+-----------------------------------
+Rev 1.0
+Checked in:     Aug 14 2025 16:17:20
+Last modified:  Aug 13 2025 14:40:04
+Author id: tfml     lines deleted/added/moved: 0/0/0
+Initial revision.
+===================================
 
-        const match = archiveLine.match(/^(.*?)\-arc\((.*?)\)$/);
 
-        if (match) {
-            obj.archive = match[1]
-                .replaceAll("\\", "/")
-                .replace("//TCSSBITF/archives", "");
-
-            obj.workfile = match[2];
-        }
-    }
-
-    const revIndexes = [];
-
-    for (let i = 0; i < lines.length; i++) {
-        if (/^Rev\s+/.test(lines[i])) {
-            revIndexes.push(i);
-        }
-    }
-
-    obj.revisionCount = revIndexes.length;
-
-    if (revIndexes.length) {
-        obj.lastTrunkRevision = lines[revIndexes[0]].replace("Rev", "").trim();
-    }
-
-    for (let i = 0; i < revIndexes.length; i++) {
-
-        const start = revIndexes[i];
-        const end = (i + 1 < revIndexes.length) ? revIndexes[i + 1] : lines.length;
-
-        const revision = lines[start].replace("Rev", "").trim();
-
-        for (let j = start + 1; j < end; j++) {
-
-            const irMatch = lines[j].match(/^IR\s+(\d+)/);
-
-            if (irMatch) {
-                //obj.versionLabels[irMatch[1]] = revision;
-				obj.versionLabels.push({
-					cr:irMatch[1],
-					revision:revision
-				})
-                break; // only first IR for this revision
-            }
-        }
-    }
-
-    return obj;
-}
-
-// ---------- revision comparison ----------
-
-function compareRevision(r1, r2) {
-  const a = r1.split(".").map(Number);
-  const b = r2.split(".").map(Number);
-  const len = Math.max(a.length, b.length);
-
-  for (let i = 0; i < len; i++) {
-    const x = a[i] || 0;
-    const y = b[i] || 0;
-    if (x > y) return 1;
-    if (x < y) return -1;
-  }
-  return 0;
-}
-
-// ---------- remote status lookup ----------
-
-// Fetches statuses for a list of CR numbers in a single request and
-// returns a lookup object { crNumber: status }.
-async function getCrStatuses(crList) {
-  if (crList.length === 0) return {};
-
-  const param = crList.join(',');
-  const resp = await fetch(IR_DESC + param, { cache: 'no-store' });
-
-  if (!resp.ok) {
-    throw new Error('IR status request failed (HTTP ' + resp.status + ')');
-  }
-
-  const html = await resp.text();
-  const parsed = parseIRDetails(html);
-
-  const lookup = {};
-  parsed.forEach(obj => {
-    const key = Object.keys(obj)[0];
-    lookup[key] = obj[key];
-  });
-  return lookup;
-}
-
-function parseIRDetails(html) {
-    const result = [];
-
-    const blocks = html.split("<textarea").slice(1);
-
-    for (const block of blocks) {
-
-        const irMatch = block.match(/IR Number:\s*(\d+)/);
-        if (!irMatch) continue;
-
-        const statusMatch = block.match(/STATUS:\s*([^<]+)/);
-
-        result.push({
-            [irMatch[1]]: statusMatch ? statusMatch[1].trim() : null
-        });
-    }
-
-    return result;
-}
-
-// ---------- dependency logic ----------
-
-// Given one archive's versionLabels and the CR being checked, return
-// the list of blocking entries for that archive.
-let isLatestprodPromoted = false;
-
-function findBlockedForArchive(versionLabels, ourCR, crStatus) {
-
-    const currentEntries = versionLabels.filter(v => v.cr === ourCR);
-
-    if (currentEntries.length === 0) {
-        return null;
-    }
-
-    const blocked = [];
-
-    currentEntries.forEach(current => {
-
-        versionLabels.forEach(entry => {
-
-            if (entry === current) {
-                return;
-            }
-
-            const status = crStatus[entry.cr] || "UNKNOWN";
-
-            if (compareRevision(entry.revision, current.revision) < 0) {
-
-                if (document.getElementById("dep_type").value === "UAT") {
-
-                    if (status === "WBT APPROVED") {
-                        blocked.push({
-                            cr: entry.cr,
-                            revision: entry.revision,
-                            status
-                        });
-                    }
-
-                } else {
-
-                    if (status !== "PROD PROMOTED") {
-                        blocked.push({
-                            cr: entry.cr,
-                            revision: entry.revision,
-                            status
-                        });
-                    }
-
-                }
-
-            } else if (compareRevision(entry.revision, current.revision) > 0) {
-
-                if (status === "PROD PROMOTED") {
-
-                    blocked.push({
-                        cr: entry.cr,
-                        revision: entry.revision,
-                        status
-                    });
-
-                    isLatestprodPromoted = true;
-                }
-            }
-
-        });
-
-    });
-
-    return blocked.filter((item, index, self) =>
-		index === self.findIndex(x =>
-			x.cr === item.cr &&
-			x.revision === item.revision
-		)
-		);
-}
-
-// ---------- main flow ----------
-
-async function checkDepen(){
-  const btn = document.getElementById('checkBtn');
-  const spinner = document.getElementById('spinner');
-  const output = document.getElementById('output');
-  const ourCR = document.getElementById('ourCR').value.trim();
-  const rawText = document.getElementById('input').value;
-
-  output.innerHTML = '';
-
-  if (!ourCR) {
-    setStats('Please enter your CR number.', 'error');
-    return;
-  }
-  if (!rawText.trim()) {
-    setStats('Please paste archive text first.', 'error');
-    return;
-  }
-
-  let blocks;
-  try {
-    blocks = convertToJson(rawText);
-  } catch (e) {
-    setStats('Could not parse the archive text: ' + e.message, 'error');
-    return;
-  }
-
-  if (blocks.length === 0) {
-    setStats('No archive blocks found in the pasted text.', 'error');
-    return;
-  }
-
-  // Collect every CR referenced across ALL pasted archives so we only
-  // make a single status request no matter how many files were pasted.
-  const allCRs = new Set();
-	  blocks.forEach(b => {
-		b.versionLabels.forEach(v => {
-			if (!v.cr.startsWith("A")) {
-				allCRs.add(v.cr);
-			}
-		});
-	});
-
-
-  btn.disabled = true;
-  spinner.style.display = 'inline';
-  setStats('Fetching statuses for ' + allCRs.size + ' CR(s) across ' + blocks.length + ' archive(s)…');
-
-  let crStatus;
-  try {
-    // This is now correctly awaited before dependency checking runs,
-    // instead of firing in parallel with checkDependencies() as before.
-    crStatus = await getCrStatuses(Array.from(allCRs));
-  } catch (e) {
-    btn.disabled = false;
-    spinner.style.display = 'none';
-    setStats('Error fetching CR statuses: ' + e.message, 'error');
-    return;
-  }
-  
-  btn.disabled = false;
-  spinner.style.display = 'none';
-  
-  
-
-  // Run the dependency check per archive, since the same CR number can
-  // appear with different revisions in different archives/files.
-  const results = [];
-  let archivesWithCR = 0;
-
-  blocks.forEach((b, idx) => {
-    const label = b.archive || b.workfile || ('Archive ' + (idx + 1));
-    const blocked = findBlockedForArchive(b.versionLabels, ourCR, crStatus);
-    if (blocked === null) return; // ourCR not referenced in this archive
-    archivesWithCR++;
-    blocked.forEach(dep => results.push({ archive: label, ...dep }));
-  });
-  renderTable(results);
-  
-  if(isLatestprodPromoted){
-	setStats('Latest version is already promoted in Production','error');
-	isLatestprodPromoted = false;
-	return;
-  }
-
-  if (archivesWithCR === 0) {
-    setStats('CR ' + ourCR + ' was not found in any of the ' + blocks.length + ' pasted archive(s).', 'error');
-    return;
-  }
-
-  if (results.length === 0) {
-    setStats('Checked ' + archivesWithCR + ' archive(s) referencing CR ' + ourCR + '. All dependencies are OK.', 'ok');
-    output.innerHTML = '';
-    return;
-  }
-
-  setStats('Checked ' + archivesWithCR + ' archive(s) referencing CR ' + ourCR + '. Found ' + results.length + ' blocking dependenc' + (results.length === 1 ? 'y' : 'ies') + '.', 'error');
-  renderTable(results);
-}
-
-function renderTable(results){
-
-let allResults = JSON.parse(localStorage.getItem("crResults")) || [];
-	
-	allResults.push(...results)
-	
-	allResults = allResults.filter((item,index,self) => 
-		index === self.findIndex(x =>
-			x.archive === item.archive && x.cr === item.cr && x.revision === item.revision )
-		);
-		
-	localStorage.setItem("crResults",JSON.stringify(allResults));
-  const table = document.createElement('table');
-  table.innerHTML =
-    '<thead><tr>' +
-      '<th>File Name</th><th>Dependent CR</th><th>Revision</th><th>Status</th>' +
-    '</tr></thead>';
-
-  const tbody = document.createElement('tbody');
-  allResults.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.className = 'blocked';
-    tr.innerHTML =
-      '<td>' + escapeHtml(r.archive) + '</td>' +
-      '<td>' + escapeHtml(r.cr) + '</td>' +
-      '<td>' + escapeHtml(r.revision) + '</td>' +
-      '<td><span class="badge">' + escapeHtml(r.status) + '</span></td>';
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
-
-  const output = document.getElementById('output');
-  output.innerHTML = '';
-  output.appendChild(table);
-}
-
-function escapeHtml(str){
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
-}
-
-function convertStrc() {
-    const fileList = document.getElementById("manualInput").value.trim().split("\n");
-
-    const groups = {};
-
-    fileList.forEach(path => {
-        path = path.trim();
-        if (!path) return;
-
-        const parts = path.split("/");
-        const folder = parts[parts.length - 2];   // FUNCLEVEL, SCRN, FUNCATTR
-        const fileName = parts[parts.length - 1]; // Actual file name
-
-        if (!groups[folder]) {
-            groups[folder] = [];
-        }
-
-        groups[folder].push(`*${fileName}*`);
-    });
-
-    let output = "";
-
-    for (const folder in groups) {
-        output += `${folder} : ${groups[folder].join(";")}\n`;
-    }
-
-    document.getElementById("regexOutput").value = output.trim();
-}
-</script>
-
-</body>
-</html>-->
