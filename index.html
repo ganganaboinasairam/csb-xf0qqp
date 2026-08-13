@@ -1,36 +1,173 @@
-const versionMap = new Map();
+package com.cs.ceweb.servlets;
 
-for (let i = 0; i < revIndexes.length; i++) {
+import com.cs.core.pojo.buinfo.SysInfo;
+import com.cs.core.xml.object.func.Func;
+import com.cs.core.xml.object.func.function.Function;
+import com.cs.eximap.log.CELogSTDExec;
+import com.google.gson.Gson;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-    const start = revIndexes[i];
-    const end = (i + 1 < revIndexes.length)
-        ? revIndexes[i + 1]
-        : lines.length;
+public class LoadTemplateData extends HttpServlet {
+   private static final long serialVersionUID = 1L;
 
-    const revision = lines[start].replace("Rev", "").trim();
+   protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+      CELogSTDExec.info("Inside Load Template");
+      String inputStringTemplateName = request.getParameter("inputStringTemplateName");
+      String tempCodeName = "";
+      if (inputStringTemplateName.equals("Inland")) {
+         tempCodeName = "INIS";
+      } else if (inputStringTemplateName.equals("Import")) {
+         tempCodeName = "IMIS";
+      } else if (inputStringTemplateName.equals("BGIS")) {
+         tempCodeName = "BGIS";
+      } else if (inputStringTemplateName.equals("Importpaymet")) {
+         tempCodeName = "IMCP";
+      } else if ("Forward".equals(inputStringTemplateName)) {
+         tempCodeName = "FWCO";
+      } else if ("exportNego".equals(inputStringTemplateName)) {
+         tempCodeName = "EXND";
+      } else if ("exportColl".equals(inputStringTemplateName)) {
+         tempCodeName = "EXBC";
+      } else if (inputStringTemplateName.equals("EPCM")) {
+         tempCodeName = "EPCM";
+      }  else if ("Shipguarnt".equals(inputStringTemplateName)) {
+          tempCodeName = "SHGT";
+      } else if (inputStringTemplateName.equals("DRTI")) {
+         tempCodeName = "DRTI";
+      } else if (inputStringTemplateName.equals("FRTI")) {
+         tempCodeName = "FRTI";
+      } 
+      else if ("BGIF".equalsIgnoreCase(inputStringTemplateName)) {
+         tempCodeName = "BGIF";
+      } else if ("INWR".equalsIgnoreCase(inputStringTemplateName)) {
+         tempCodeName = "BGIF";
+      }
 
-    for (let j = start + 1; j < end; j++) {
-
-        const irMatch = lines[j].match(/^IR\s+(\d+)/);
-
-        if (irMatch) {
-
-            const cr = irMatch[1];
-
-            const existing = versionMap.get(cr);
-
-            // Keep only the highest revision for this CR
-            if (!existing || compareRevision(revision, existing.revision) > 0) {
-
-                versionMap.set(cr, {
-                    cr: cr,
-                    revision: revision
-                });
+      CELogSTDExec.info("inputStringTemplateName>>>" + inputStringTemplateName);
+      CELogSTDExec.info("tempCodeName>>>" + tempCodeName);
+      TemplateDao amddao = new TemplateDao();
+      new ArrayList();
+      new ArrayList();
+      String trimIp;
+      String C_UNIT_CODE;
+      String C_MAIN_REF;
+      String C_LOCKED_BU;
+      if (request.getParameter("ActionType") != null && request.getParameter("ActionType").equalsIgnoreCase("Fetch")) {
+         C_UNIT_CODE = request.getParameter("createdBu");
+         C_MAIN_REF = request.getParameter("createdBy");
+         C_LOCKED_BU = request.getParameter("unitCode");
+         List amendlist = amddao.getData(C_UNIT_CODE, C_MAIN_REF, C_LOCKED_BU, tempCodeName);
+         Gson gs = new Gson();
+         trimIp = gs.toJson(amendlist);
+         response.getWriter().write(trimIp);
+      } else {
+         String C_LOCKED_OP;
+         if (request.getParameter("ActionType") != null && request.getParameter("ActionType").equalsIgnoreCase("Delete")) {
+            C_UNIT_CODE = request.getParameter("C_BK_GROUP_ID");
+            C_MAIN_REF = request.getParameter("C_UNIT_CODE");
+            C_LOCKED_BU = request.getParameter("C_USER_ID");
+            C_LOCKED_OP = request.getParameter("templateID");
+            InetAddress localhost = InetAddress.getLocalHost();
+            trimIp = localhost.getHostAddress().trim();
+            int count = amddao.deleteTemplate(C_LOCKED_OP, C_UNIT_CODE, C_MAIN_REF, C_LOCKED_BU, trimIp, tempCodeName);
+            if (count > 0) {
+               response.getWriter().write("Template Id : " + C_LOCKED_OP + " deleted succesfully.");
+            } else {
+               response.getWriter().write("Some error occured. Please try again or contact Administrator.");
+            }
+         } else if (request.getParameter("ActionType") != null && request.getParameter("ActionType").equalsIgnoreCase("LoadDrafts")) {
+            C_UNIT_CODE = request.getParameter("C_UNIT_CODE");
+            List draftsBeanList = amddao.getDraftsData(C_UNIT_CODE, tempCodeName);
+            Gson gs = new Gson();
+            C_LOCKED_OP = gs.toJson(draftsBeanList);
+            response.getWriter().write(C_LOCKED_OP);
+         } else if (request.getParameter("ActionType") != null && request.getParameter("ActionType").equalsIgnoreCase("DeleteDrafts")) {
+            C_UNIT_CODE = request.getParameter("C_UNIT_CODE");
+            C_MAIN_REF = request.getParameter("C_MAIN_REF");
+            C_LOCKED_BU = request.getParameter("C_LOCKED_BU");
+            C_LOCKED_OP = request.getParameter("C_LOCKED_OP");
+            String message = "";
+            message = amddao.deleteDraftsData(C_UNIT_CODE, C_MAIN_REF, C_LOCKED_BU, C_LOCKED_OP, tempCodeName);
+            if (message.contains("problem")) {
+               response.getWriter().write(message);
+            } else {
+               response.getWriter().write("C_MAIN_REF:" + C_MAIN_REF);
+            }
+         } else {
+            if (request.getParameter("ActionType") == null || !request.getParameter("ActionType").equalsIgnoreCase("SetFunctionId")) {
+               return;
             }
 
-            break;
-        }
-    }
-}
+            try {
+               SysInfo sysInfo = WSSessionManager.getSysInfo(request);
+               if (sysInfo != null) {
+                  if (request.getParameter("Function_Id") != null) {
+                     sysInfo.setFuncId(request.getParameter("Function_Id"));
+                     WSSessionManager.setSysInfo(request, sysInfo);
+                     Func func = WSTools.getFunction(request);
+                     if (func != null) {
+                        Function function = func.getFunction();
+                        if (function != null) {
+                           function.setId(request.getParameter("Function_Id"));
+                           function.setDesc(request.getParameter("Function_Desc"));
+                           return;
+                        }
 
-obj.versionLabels = Array.from(versionMap.values());
+                        response.getWriter().write("Error");
+                        return;
+                     }
+
+                     response.getWriter().write("Error");
+                     return;
+                  }
+
+                  if (tempCodeName == "INIS") {
+                     sysInfo.setFuncId("F05030701011");
+                  } else if (tempCodeName == "BGIS") {
+                     sysInfo.setFuncId("F05030701031");
+                  } else if (tempCodeName == "IMCP") {
+                     sysInfo.setFuncId("F05030701189");
+                  } else if ("BGIF".equalsIgnoreCase(tempCodeName)) {
+                     sysInfo.setFuncId("fy0MRbD2sPf0");
+                  } else if ("FWCO".equals(tempCodeName)) {
+                     sysInfo.setFuncId("F05030701664");
+                  } else if ("EXND".equals(tempCodeName)) {
+                     sysInfo.setFuncId("F05030701268");
+                  } else if ("EXBC".equals(tempCodeName)) {
+                      sysInfo.setFuncId("F05030700976");
+                  } else if ("SHGT".equals(tempCodeName)) {
+                       sysInfo.setFuncId("F04837798368");
+                   }else if (tempCodeName == "EPCM") {
+                     sysInfo.setFuncId("F05030702004");
+                  } else if (tempCodeName == "INWR") {
+                     sysInfo.setFuncId("b6Sai1fBKJkE");
+                  } else if (tempCodeName == "DRTI") {
+                     sysInfo.setFuncId("F05030702018");
+                  } else if (tempCodeName == "FRTI") {
+                     sysInfo.setFuncId("F05030702028");
+                  } else {
+                     sysInfo.setFuncId("F05030701012");
+                  }
+
+                  WSSessionManager.setSysInfo(request, sysInfo);
+                  response.getWriter().write("Error");
+                  return;
+               }
+
+               response.getWriter().write("Error");
+            } catch (Exception var13) {
+               var13.getMessage();
+            }
+         }
+      }
+
+   }
+}
+    
