@@ -1,146 +1,338 @@
-package com.cs.ceweb.servlets;
+function doPageInit(){
+	
+	
+	setFldValue("TRX_DT",SYS_BUSI_DATE);
+	setFldValue("PMT_DT",SYS_BUSI_DATE);
+	console.log("doPageInit starts");
+	    /*BRCH_RATE_OnChange();  
+		PCFCAmountAvailable();
+		FC_UTILI_AMT_OnChange();*/
+	
+	$("#B_CONTENT").css("background-color","#e4e4e4");
+	
+  var C_MAIN_REF=getFldValue("C_MAIN_REF");
+			
+			$.ajax({
+	url: '../servlets/LodgeActiveStatus',
+		type: 'get',
+		async : false,
+		dataType : 'json',
+		data : {refNumber : C_MAIN_REF},
+		success: function(responseText)
+		{		
+		
+		
+		var pre=responseText.split("$");
+		var status=pre[0];
+		var lastAction=pre[1];
+		
+			$("#C_TRX_STATUS").val(status);
+			  $("#LastAction").val(lastAction);
+			
+		},
+		error: function(err){
+			console.log("Error STAUS"+err);
+		}
+		}); 
+	rearrangeDo('TEMP_FLDSS','H_div');	
+	rearrangeDo('READY_AMT','I_div');
+	rearrangeDo('sample1','J_div');
+	
+		
+		
+		$('#TrxSysBtnsDiv').hide();
+		$('#TrxTabs').hide();
+		$('#paymentButton').css('background-color','white');
+	    $('#paymentButton').css('color','#5b1d8d');
+	    $('#paymentButton').css('border-right','1px solid white');
+	
+   
+	
+	if(ITEM_ID!="ModifyTrx" || sessionStorage.getItem('draftFlag')=='P' || sessionStorage.getItem('draftFlagset')=='P') {
+			sessionStorage.setItem('EditFlag','N')
+			{
+				$(".subbacbutton").hide();
+				$("#activepasttab").hide();
+			}
+			sessionStorage.setItem('draftFlagset','');
+		} 
+        $("#confirmButtonid").hide();
+//FOR CHECKER
+  if(sessionStorage.getItem('role')=='C'){
+  debugger;
+  
+  document.getElementById("checkBox2").checked = true;
+		$("#TrxSysBtnsDiv1").hide();
+		$("#TrxSysBtnsDivChecker").show();
+		
+		 $("#releaseTab, #COMMENT_BTN, #sec_cancel, #btnMaker, #SavedActTrx, #save_tab").hide();
+		
+        $('#authLCButton1').removeAttr('disabled');
+		$('#unlockLCButton').removeAttr('disabled');
+		$('#viewLCButton1').removeAttr('disabled');
+		$('.prim_release').removeAttr('disabled');  
+		$('.sec_cancel1').attr('disabled',false);  
+		$('.auth_button').attr('disabled',false);  
+       
+		$("#btnChecker").show();
+		  $('#Viewdocs').show();
+		rearrangeDo('TEMP_FLDSS','H_div');
+				checkMandatoryFieldsForSections();
+					BRCH_RATE_OnChange();  
+		
+			if (document.getElementById("TEMP_ROW_COUNT").value > 0){
+			document.getElementById("tick7").style.display="inline";
+			$('#number6').hide();
+		}
+		else {
+		document.getElementById("tick7").style.display="none";
+		}
+	
+			   
+					if(sessionStorage.getItem('AuthStatus')=='Auth')
+					{
+					$("input[name=REJECT]").show();
+					}
+					else if(sessionStorage.getItem('AuthStatus')=='Rej')
+					{
+					$("input[name=AUTHORISE]").show();
+					}
+		           if($("#APPL_ID").val().indexOf("00000080875812998") ==0){
+		            insertCommentsOnAuth("s");
+		            $("#issueLcIdTd").addClass(' star');
+		            $("#C_AUDIT_COMMENTR").removeAttr("readonly");
+		            if (document.getElementById("CASE_ID")){
+			         $("#CASE_ID").removeAttr("readonly");
+		             }
+			         if (document.getElementById("C_DROP_DOWN")){
+				     $("#C_DROP_DOWN").removeAttr("disabled");
+			         }
+		             }
+                     if($("#APPL_ID").val().indexOf("00000080875812998") ==-1){
+		             $("#issueLcId").css("display","none");
+		             }
+					 
+	
+			
+	//View and manage in checker
+		if(sessionStorage.getItem('EditFlag')=='Y'  )
+		{
+		     $('.sec_cancel').hide();
+			
+		     disableAllFields('directpayDiv');
+			 $("#backButtonid").attr("disabled",false);     
+		     $('#viewLCButton1').css('background-color','white');
+	         $('#viewLCButton1').css('color','#5b1d8d');
+	         $('#viewLCButton1').css('border-right','1px solid white');
+			 $('#authLCButton').css('background-color','');
+	         $('#authLCButton').css('color','');
+	         $('#authLCButton').css('border-right','1px solid white');
+			 $("#tdconfirmChecker").hide();	
+			 $("#btnChecker").css("display","none");
+			 $("#btnMaker").hide();
+			 $("#btnChecker").show();
+			 $("#deleteTab").hide();
+			 $('#SavedActTrx').show();
+			$('#Viewdocs').hide();
+			 $("#editid").hide();
+			 $("#editspan").hide();
+			 $(".rejectdiv").hide();
+			 $("#expportAsid").show();
+			 $("#expportAsid1").show();
+			 $(".subbacbutton").show();
+			 $('.use-existing-template').hide();
+			 $("#submitButtonid").hide();
+			 $("#confirmButtonid").hide();
+			 /* UI/UX Changes*/
+			checkMandatoryFieldsForSections();
+		
+		
+		}	
+ }
+	
+if(sessionStorage.getItem('role')=='M'){
+		
+		$("#TrxSysBtnsDivChecker").hide();
+		$("#btnChecker").hide();
+		$("#TrxSysBtnsDiv1").show();
+		$('#SavedActTrx').hide();
+		 $('#Viewdocs').show();
+	$("#buttonContainer").hide();
+		$("#btnMaker").show();
+		ForwardContract();
+			//BOE_RECEIVED_OnChange();
+			NON_BOE_OnChange();
 
-import com.cs.core.pojo.buinfo.SysInfo;
-import com.cs.core.xml.object.func.Func;
-import com.cs.core.xml.object.func.function.Function;
-import com.cs.eximap.log.CELogSTDExec;
-import org.json.JSONArray;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+		
+		if (document.getElementById("TEMP_ROW_COUNT").value > 0){
+		document.getElementById("tick7").style.display="inline";
+		$('#number6').hide();
+		}
+		else {
+		document.getElementById("tick7").style.display="none";
+		} 
+			
+		setTimeout(function(){
+			 if(sessionStorage.getItem('EditFlag')=='N' ){
+		
+		
+			rearrangeDo('TEMP_FLDSS','H_div');
+			rearrangeDo('READY_AMT','I_div');
+			rearrangeDo('sample1','J_div');
+			
+	}
+	},300);
+	
+	
+		
+//For saved transaction(active transaction)
+	
+	if(sessionStorage.getItem('EditFlag')=='Y' && sessionStorage.getItem('draftFlag')!='P'){
+	     
+		    enabledFlag=false;
+			disableAllFields('directpayDiv');
 
-public class LoadTemplateData extends HttpServlet {
-   private static final long serialVersionUID = 1L;
+		    $("#backButtonid").attr("disabled",false);
+            $('.sec_cancel').hide();
+			$('#tdconfirmChecker').hide();
+			
+			$(".search").attr("disabled",true); 
+			$('#SavedActTrx').show();
+			$('#Viewdocs').hide();
+		    $("#expportAsid").attr("disabled",false);
+	         $("#submitButtonid").attr("disabled",true);
+			$("#prim_next").hide();
+			$('#prim_save').hide();
+			$('.use-existing-template').hide();
+			$("#editid").show();
+			 $("#editspan").show();
+			$("#submitButtonid").show();
+			setTimeout(function(){
+			$("#TrxSysBtnsDiv1").hide();	
+			},300);
+			$("#btnMaker").show();			
+			$("#buttonContainer").hide();
+			$('#tabsForChecker').hide();
+			$('#viewLCButton').css('background-color','white');
+	         $('#viewLCButton').css('color','#5b1d8d');
+	         $('#viewLCButton').css('border-right','1px solid white');
+			$('#paymentButton').css('background-color','');
+	        $('#paymentButton').css('color','');
+	        $('#paymentButton').css('border-right','');
+			setFldValue('DECL_CHCK','');
+		   checkMandatoryFieldsForSections();
+		  	    //BOE_RECEIVED_OnChange();
+			NON_BOE_OnChange();
+		   
+		  
+		checkMandatoryFieldsForDiv();
+		updateStepperProgress();
+		
+			var C_MAIN_REF=getFldValue("C_MAIN_REF");
+			var moduleProductCode=PRODUCT_ID;			
+			$.ajax({
+	url: '../servlets/ActiveStatus',
+		type: 'get',
+		async : false,
+		dataType : 'json',
+		data : {refNumber : C_MAIN_REF,moduleProductCode : moduleProductCode},
+		success: function(responseText)
+		{				
+		var pre=responseText.split("$");
+		var status=pre[0];
+		var lastAction=pre[1];
+		
+			$("#C_TRX_STATUS").val(status);
+			  $("#LastAction").val(lastAction);		
+		},
+		error: function(err){
+			console.log("Error STAUS"+err);
+		}
+		});
+		const s = $("#C_TRX_STATUS").val();
+        let status = "";
+        const hideEdit = ["A", "B", "C", "D", "E", "J", "M", "S"];
 
-   // Template name -> template code lookup, replacing the long if/else chain.
-   private static final Map<String, String> TEMPLATE_CODE_MAP = new HashMap<>();
-   static {
-      TEMPLATE_CODE_MAP.put("inland", "INIS");
-      TEMPLATE_CODE_MAP.put("import", "IMIS");
-      TEMPLATE_CODE_MAP.put("bgis", "BGIS");
-      TEMPLATE_CODE_MAP.put("importpaymet", "IMCP");
-      TEMPLATE_CODE_MAP.put("forward", "FWCO");
-      TEMPLATE_CODE_MAP.put("exportnego", "EXND");
-      TEMPLATE_CODE_MAP.put("exportcoll", "EXBC");
-      TEMPLATE_CODE_MAP.put("epcm", "EPCM");
-      TEMPLATE_CODE_MAP.put("shipguarnt", "SHGT");
-      TEMPLATE_CODE_MAP.put("drti", "DRTI");
-      TEMPLATE_CODE_MAP.put("frti", "FRTI");
-      TEMPLATE_CODE_MAP.put("bgif", "BGIF");
-      // NOTE: preserved from original — "INWR" also mapped to tempCodeName "BGIF" here,
-      // even though it is later treated as its own case ("INWR") in the FuncId switch below.
-      // This mirrors the original behavior exactly (see original else-if chain).
-      TEMPLATE_CODE_MAP.put("inwr", "BGIF");
-   }
+        const statusMap = {
+            'A': "Rejected by Bank",
+            'B': "Pending Bank Authorisation",
+            'C': "Processed",
+            'D': "Incomplete",
+            'E': "Modification",
+            'J': "Rejected by Customer Checker",
+            'M': "Authorised",
+            'P': "Pending with Customer Checker",
+            'R': "Rejected by Customer Checker",
+            'S': "Pending with Bank",
+            'T': "Pending with Customer Checker",
+            'Z': "Saved as Draft"
+        };
 
-   // Template code -> function id lookup, replacing the long if/else chain.
-   private static final Map<String, String> FUNC_ID_MAP = new HashMap<>();
-   static {
-      FUNC_ID_MAP.put("INIS", "F05030701011");
-      FUNC_ID_MAP.put("BGIS", "F05030701031");
-      FUNC_ID_MAP.put("IMCP", "F05030701189");
-      FUNC_ID_MAP.put("BGIF", "fy0MRbD2sPf0");
-      FUNC_ID_MAP.put("FWCO", "F05030701664");
-      FUNC_ID_MAP.put("EXND", "F05030701268");
-      FUNC_ID_MAP.put("EXBC", "F05030700976");
-      FUNC_ID_MAP.put("SHGT", "F04837798368");
-      FUNC_ID_MAP.put("EPCM", "F05030702004");
-      FUNC_ID_MAP.put("INWR", "b6Sai1fBKJkE");
-      FUNC_ID_MAP.put("DRTI", "F05030702018");
-      FUNC_ID_MAP.put("FRTI", "F05030702028");
-   }
-   private static final String DEFAULT_FUNC_ID = "F05030701012";
+        if (statusMap[s]) status = statusMap[s];
+        if (hideEdit.includes(s)) {
+            $("#editspan, #editid").hide();
+        }
 
-   protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-      CELogSTDExec.info("Inside Load Template");
-      String inputStringTemplateName = request.getParameter("inputStringTemplateName");
-      String tempCodeName = TEMPLATE_CODE_MAP.getOrDefault(
-            inputStringTemplateName == null ? "" : inputStringTemplateName.toLowerCase(),
-            "");
+        if (s === 'A') {
+            $("#makerrejreason").val(getFldValue("NOTES"));
+        } else {
+            $("#makerrejreason").val($("input[name='C_REFUSE_REASON']").val());
+        }
+           $("#makerrejstatus").val(status);  
+		   $("#editspan, #editid").show();
+		   
+		   PCFC_AVAIL_OnChange();
+		   EEFCAmountAvailable();
+		   PURP_OF_IMPORT_OnChange();
+		   GOLD_IMPORT_OnChange();
+            GoldImport();
+		   COLL_TYPE_OnChange();
+	
+		}
+		
+		}
+	if(FUNC_ID != ''){
 
-      CELogSTDExec.info("inputStringTemplateName>>>" + inputStringTemplateName);
-      CELogSTDExec.info("tempCodeName>>>" + tempCodeName);
+		setFldValue("TEMP_ORG_FUNC_ID", FUNC_ID);
 
-      TemplateDao amddao = new TemplateDao();
-      String actionType = request.getParameter("ActionType");
-
-      if ("Fetch".equalsIgnoreCase(actionType)) {
-         String C_UNIT_CODE = request.getParameter("createdBu");
-         String C_MAIN_REF = request.getParameter("createdBy");
-         String C_LOCKED_BU = request.getParameter("unitCode");
-         List amendlist = amddao.getData(C_UNIT_CODE, C_MAIN_REF, C_LOCKED_BU, tempCodeName);
-         response.getWriter().write(new JSONArray(amendlist).toString());
-
-      } else if ("Delete".equalsIgnoreCase(actionType)) {
-         String C_UNIT_CODE = request.getParameter("C_BK_GROUP_ID");
-         String C_MAIN_REF = request.getParameter("C_UNIT_CODE");
-         String C_LOCKED_BU = request.getParameter("C_USER_ID");
-         String C_LOCKED_OP = request.getParameter("templateID");
-         InetAddress localhost = InetAddress.getLocalHost();
-         String trimIp = localhost.getHostAddress().trim();
-         int count = amddao.deleteTemplate(C_LOCKED_OP, C_UNIT_CODE, C_MAIN_REF, C_LOCKED_BU, trimIp, tempCodeName);
-         if (count > 0) {
-            response.getWriter().write("Template Id : " + C_LOCKED_OP + " deleted succesfully.");
-         } else {
-            response.getWriter().write("Some error occured. Please try again or contact Administrator.");
-         }
-
-      } else if ("LoadDrafts".equalsIgnoreCase(actionType)) {
-         String C_UNIT_CODE = request.getParameter("C_UNIT_CODE");
-         List draftsBeanList = amddao.getDraftsData(C_UNIT_CODE, tempCodeName);
-         response.getWriter().write(new JSONArray(draftsBeanList).toString());
-
-      } else if ("DeleteDrafts".equalsIgnoreCase(actionType)) {
-         String C_UNIT_CODE = request.getParameter("C_UNIT_CODE");
-         String C_MAIN_REF = request.getParameter("C_MAIN_REF");
-         String C_LOCKED_BU = request.getParameter("C_LOCKED_BU");
-         String C_LOCKED_OP = request.getParameter("C_LOCKED_OP");
-         String message = amddao.deleteDraftsData(C_UNIT_CODE, C_MAIN_REF, C_LOCKED_BU, C_LOCKED_OP, tempCodeName);
-         if (message.contains("problem")) {
-            response.getWriter().write(message);
-         } else {
-            response.getWriter().write("C_MAIN_REF:" + C_MAIN_REF);
-         }
-
-      } else if ("SetFunctionId".equalsIgnoreCase(actionType)) {
-         try {
-            SysInfo sysInfo = WSSessionManager.getSysInfo(request);
-            if (sysInfo != null) {
-               if (request.getParameter("Function_Id") != null) {
-                  sysInfo.setFuncId(request.getParameter("Function_Id"));
-                  WSSessionManager.setSysInfo(request, sysInfo);
-                  Func func = WSTools.getFunction(request);
-                  if (func != null) {
-                     Function function = func.getFunction();
-                     if (function != null) {
-                        function.setId(request.getParameter("Function_Id"));
-                        function.setDesc(request.getParameter("Function_Desc"));
-                        return;
-                     }
-                     response.getWriter().write("Error");
-                     return;
-                  }
-                  response.getWriter().write("Error");
-                  return;
-               }
-
-               sysInfo.setFuncId(FUNC_ID_MAP.getOrDefault(tempCodeName, DEFAULT_FUNC_ID));
-               WSSessionManager.setSysInfo(request, sysInfo);
-               response.getWriter().write("Error");
-               return;
-            }
-
-            response.getWriter().write("Error");
-         } catch (Exception var13) {
-            var13.getMessage();
-         }
-      }
-      // else: ActionType missing/unrecognized -> no-op, matches original behavior
-   }
+		}
+		
+		
+		
+		if(sesFuncId == "F05030701188"){
+		enabledFlag=false;
+		sessionStorage.setItem('EditFlag','Y');
+			//disableAllFields('directpayDiv');
+			$("#checkBox2").attr("checked","checked");
+		document.getElementById("checkBox2").value = 'yes';
+				$('#viewLCButton').css('background-color','white');
+			 $('#viewLCButton').css('color','#5b1d8d');
+	         $('#viewLCButton').css('border-right','1px solid white');
+			$('#paymentButton').css('background-color','');
+	       $('#paymentButton').css('color','');
+	       $('#paymentButton').css('border-right','');
+		   $("#prim_save").hide();
+		   $("#PRE_BT").hide();
+		   $("#TEMP_BT").hide();
+		   $("#useTemplateId").hide();
+		   $(".next-button").hide();
+		   $(".use-existing-template").hide();
+			 $("#backButtonid").attr("disabled",false);   
+		 $('#NEXT_BT').hide();
+		 $('#tdconfirmChecker').hide();
+		 $('#tdcancelChecker').find('input').removeAttr('disabled');
+		 $('#sec_cancel').removeAttr('disabled')
+		 
+		}
+		
+		checkMandatoryFieldsForSections();
+		checkMandatoryFieldsForDiv();
+		
+		if (document.getElementById("BRCH_RATE").value == '1'){
+	 $('#DealerForex').show();
+	 refreshDO(1);
+	 }
+	 else if (document.getElementById("BRCH_RATE").value == '2'){
+	 $('#DealerForex').hide();
+	 }
 }
