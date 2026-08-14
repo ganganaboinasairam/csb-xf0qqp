@@ -1,338 +1,430 @@
-function doPageInit(){
-	
-	
-	setFldValue("TRX_DT",SYS_BUSI_DATE);
-	setFldValue("PMT_DT",SYS_BUSI_DATE);
-	console.log("doPageInit starts");
-	    /*BRCH_RATE_OnChange();  
-		PCFCAmountAvailable();
-		FC_UTILI_AMT_OnChange();*/
-	
-	$("#B_CONTENT").css("background-color","#e4e4e4");
-	
-  var C_MAIN_REF=getFldValue("C_MAIN_REF");
-			
-			$.ajax({
-	url: '../servlets/LodgeActiveStatus',
-		type: 'get',
-		async : false,
-		dataType : 'json',
-		data : {refNumber : C_MAIN_REF},
-		success: function(responseText)
-		{		
-		
-		
-		var pre=responseText.split("$");
-		var status=pre[0];
-		var lastAction=pre[1];
-		
-			$("#C_TRX_STATUS").val(status);
-			  $("#LastAction").val(lastAction);
-			
-		},
-		error: function(err){
-			console.log("Error STAUS"+err);
-		}
-		}); 
-	rearrangeDo('TEMP_FLDSS','H_div');	
-	rearrangeDo('READY_AMT','I_div');
-	rearrangeDo('sample1','J_div');
-	
-		
-		
-		$('#TrxSysBtnsDiv').hide();
-		$('#TrxTabs').hide();
-		$('#paymentButton').css('background-color','white');
-	    $('#paymentButton').css('color','#5b1d8d');
-	    $('#paymentButton').css('border-right','1px solid white');
-	
-   
-	
-	if(ITEM_ID!="ModifyTrx" || sessionStorage.getItem('draftFlag')=='P' || sessionStorage.getItem('draftFlagset')=='P') {
-			sessionStorage.setItem('EditFlag','N')
-			{
-				$(".subbacbutton").hide();
-				$("#activepasttab").hide();
-			}
-			sessionStorage.setItem('draftFlagset','');
-		} 
-        $("#confirmButtonid").hide();
-//FOR CHECKER
-  if(sessionStorage.getItem('role')=='C'){
-  debugger;
-  
-  document.getElementById("checkBox2").checked = true;
-		$("#TrxSysBtnsDiv1").hide();
-		$("#TrxSysBtnsDivChecker").show();
-		
-		 $("#releaseTab, #COMMENT_BTN, #sec_cancel, #btnMaker, #SavedActTrx, #save_tab").hide();
-		
-        $('#authLCButton1').removeAttr('disabled');
-		$('#unlockLCButton').removeAttr('disabled');
-		$('#viewLCButton1').removeAttr('disabled');
-		$('.prim_release').removeAttr('disabled');  
-		$('.sec_cancel1').attr('disabled',false);  
-		$('.auth_button').attr('disabled',false);  
-       
-		$("#btnChecker").show();
-		  $('#Viewdocs').show();
-		rearrangeDo('TEMP_FLDSS','H_div');
-				checkMandatoryFieldsForSections();
-					BRCH_RATE_OnChange();  
-		
-			if (document.getElementById("TEMP_ROW_COUNT").value > 0){
-			document.getElementById("tick7").style.display="inline";
-			$('#number6').hide();
-		}
-		else {
-		document.getElementById("tick7").style.display="none";
-		}
-	
-			   
-					if(sessionStorage.getItem('AuthStatus')=='Auth')
-					{
-					$("input[name=REJECT]").show();
-					}
-					else if(sessionStorage.getItem('AuthStatus')=='Rej')
-					{
-					$("input[name=AUTHORISE]").show();
-					}
-		           if($("#APPL_ID").val().indexOf("00000080875812998") ==0){
-		            insertCommentsOnAuth("s");
-		            $("#issueLcIdTd").addClass(' star');
-		            $("#C_AUDIT_COMMENTR").removeAttr("readonly");
-		            if (document.getElementById("CASE_ID")){
-			         $("#CASE_ID").removeAttr("readonly");
-		             }
-			         if (document.getElementById("C_DROP_DOWN")){
-				     $("#C_DROP_DOWN").removeAttr("disabled");
-			         }
-		             }
-                     if($("#APPL_ID").val().indexOf("00000080875812998") ==-1){
-		             $("#issueLcId").css("display","none");
-		             }
-					 
-	
-			
-	//View and manage in checker
-		if(sessionStorage.getItem('EditFlag')=='Y'  )
-		{
-		     $('.sec_cancel').hide();
-			
-		     disableAllFields('directpayDiv');
-			 $("#backButtonid").attr("disabled",false);     
-		     $('#viewLCButton1').css('background-color','white');
-	         $('#viewLCButton1').css('color','#5b1d8d');
-	         $('#viewLCButton1').css('border-right','1px solid white');
-			 $('#authLCButton').css('background-color','');
-	         $('#authLCButton').css('color','');
-	         $('#authLCButton').css('border-right','1px solid white');
-			 $("#tdconfirmChecker").hide();	
-			 $("#btnChecker").css("display","none");
-			 $("#btnMaker").hide();
-			 $("#btnChecker").show();
-			 $("#deleteTab").hide();
-			 $('#SavedActTrx').show();
-			$('#Viewdocs').hide();
-			 $("#editid").hide();
-			 $("#editspan").hide();
-			 $(".rejectdiv").hide();
-			 $("#expportAsid").show();
-			 $("#expportAsid1").show();
-			 $(".subbacbutton").show();
-			 $('.use-existing-template').hide();
-			 $("#submitButtonid").hide();
-			 $("#confirmButtonid").hide();
-			 /* UI/UX Changes*/
-			checkMandatoryFieldsForSections();
-		
-		
-		}	
- }
-	
-if(sessionStorage.getItem('role')=='M'){
-		
-		$("#TrxSysBtnsDivChecker").hide();
-		$("#btnChecker").hide();
-		$("#TrxSysBtnsDiv1").show();
-		$('#SavedActTrx').hide();
-		 $('#Viewdocs').show();
-	$("#buttonContainer").hide();
-		$("#btnMaker").show();
-		ForwardContract();
-			//BOE_RECEIVED_OnChange();
-			NON_BOE_OnChange();
+// =====================================================================
+// doPageInit - REWRITTEN & OPTIMIZED VERSION
+// Same behavior as original, just split into small, named functions
+// so each part of the page-load logic is easy to find and read.
+// No ES6 features used (no let/const/arrow functions) to match
+// existing code style.
+// =====================================================================
 
-		
-		if (document.getElementById("TEMP_ROW_COUNT").value > 0){
-		document.getElementById("tick7").style.display="inline";
-		$('#number6').hide();
-		}
-		else {
-		document.getElementById("tick7").style.display="none";
-		} 
-			
-		setTimeout(function(){
-			 if(sessionStorage.getItem('EditFlag')=='N' ){
-		
-		
-			rearrangeDo('TEMP_FLDSS','H_div');
-			rearrangeDo('READY_AMT','I_div');
-			rearrangeDo('sample1','J_div');
-			
-	}
-	},300);
-	
-	
-		
-//For saved transaction(active transaction)
-	
-	if(sessionStorage.getItem('EditFlag')=='Y' && sessionStorage.getItem('draftFlag')!='P'){
-	     
-		    enabledFlag=false;
-			disableAllFields('directpayDiv');
+function doPageInit() {
 
-		    $("#backButtonid").attr("disabled",false);
-            $('.sec_cancel').hide();
-			$('#tdconfirmChecker').hide();
-			
-			$(".search").attr("disabled",true); 
-			$('#SavedActTrx').show();
-			$('#Viewdocs').hide();
-		    $("#expportAsid").attr("disabled",false);
-	         $("#submitButtonid").attr("disabled",true);
-			$("#prim_next").hide();
-			$('#prim_save').hide();
-			$('.use-existing-template').hide();
-			$("#editid").show();
-			 $("#editspan").show();
-			$("#submitButtonid").show();
-			setTimeout(function(){
-			$("#TrxSysBtnsDiv1").hide();	
-			},300);
-			$("#btnMaker").show();			
-			$("#buttonContainer").hide();
-			$('#tabsForChecker').hide();
-			$('#viewLCButton').css('background-color','white');
-	         $('#viewLCButton').css('color','#5b1d8d');
-	         $('#viewLCButton').css('border-right','1px solid white');
-			$('#paymentButton').css('background-color','');
-	        $('#paymentButton').css('color','');
-	        $('#paymentButton').css('border-right','');
-			setFldValue('DECL_CHCK','');
-		   checkMandatoryFieldsForSections();
-		  	    //BOE_RECEIVED_OnChange();
-			NON_BOE_OnChange();
-		   
-		  
-		checkMandatoryFieldsForDiv();
-		updateStepperProgress();
-		
-			var C_MAIN_REF=getFldValue("C_MAIN_REF");
-			var moduleProductCode=PRODUCT_ID;			
-			$.ajax({
-	url: '../servlets/ActiveStatus',
-		type: 'get',
-		async : false,
-		dataType : 'json',
-		data : {refNumber : C_MAIN_REF,moduleProductCode : moduleProductCode},
-		success: function(responseText)
-		{				
-		var pre=responseText.split("$");
-		var status=pre[0];
-		var lastAction=pre[1];
-		
-			$("#C_TRX_STATUS").val(status);
-			  $("#LastAction").val(lastAction);		
-		},
-		error: function(err){
-			console.log("Error STAUS"+err);
-		}
-		});
-		const s = $("#C_TRX_STATUS").val();
-        let status = "";
-        const hideEdit = ["A", "B", "C", "D", "E", "J", "M", "S"];
+    console.log("doPageInit starts");
 
-        const statusMap = {
-            'A': "Rejected by Bank",
-            'B': "Pending Bank Authorisation",
-            'C': "Processed",
-            'D': "Incomplete",
-            'E': "Modification",
-            'J': "Rejected by Customer Checker",
-            'M': "Authorised",
-            'P': "Pending with Customer Checker",
-            'R': "Rejected by Customer Checker",
-            'S': "Pending with Bank",
-            'T': "Pending with Customer Checker",
-            'Z': "Saved as Draft"
-        };
+    initDefaultFields();
+    loadTrxStatus("LodgeActiveStatus", "C_MAIN_REF", null);
+    rearrangeSections();
+    setupTopButtons();
+    setupInitialEditFlag();
 
-        if (statusMap[s]) status = statusMap[s];
-        if (hideEdit.includes(s)) {
-            $("#editspan, #editid").hide();
+    $("#confirmButtonid").hide();
+
+    // Role based setup
+    if (sessionStorage.getItem('role') == 'C') {
+        setupCheckerRole();
+    }
+
+    if (sessionStorage.getItem('role') == 'M') {
+        setupMakerRole();
+    }
+
+    if (FUNC_ID != '') {
+        setFldValue("TEMP_ORG_FUNC_ID", FUNC_ID);
+    }
+
+    setupSpecialFunction();
+
+    checkMandatoryFieldsForSections();
+    checkMandatoryFieldsForDiv();
+
+    toggleDealerForex();
+}
+
+
+// ---------------------------------------------------------------------
+// Basic default field values + background style
+// ---------------------------------------------------------------------
+function initDefaultFields() {
+    setFldValue("TRX_DT", SYS_BUSI_DATE);
+    setFldValue("PMT_DT", SYS_BUSI_DATE);
+    $("#B_CONTENT").css("background-color", "#e4e4e4");
+}
+
+
+// ---------------------------------------------------------------------
+// Common AJAX call used to fetch transaction status.
+// Both "LodgeActiveStatus" and "ActiveStatus" servlets return the
+// same "status$lastAction" format, so one function now handles both.
+// ---------------------------------------------------------------------
+function loadTrxStatus(servletName, refFieldId, moduleProductCode) {
+
+    var refNumber = getFldValue(refFieldId);
+    var requestData = { refNumber: refNumber };
+
+    if (moduleProductCode) {
+        requestData.moduleProductCode = moduleProductCode;
+    }
+
+    $.ajax({
+        url: '../servlets/' + servletName,
+        type: 'get',
+        async: false,
+        dataType: 'json',
+        data: requestData,
+        success: function (responseText) {
+            var parts = responseText.split("$");
+            var status = parts[0];
+            var lastAction = parts[1];
+
+            $("#C_TRX_STATUS").val(status);
+            $("#LastAction").val(lastAction);
+        },
+        error: function (err) {
+            console.log("Error STATUS" + err);
         }
+    });
+}
 
-        if (s === 'A') {
-            $("#makerrejreason").val(getFldValue("NOTES"));
-        } else {
-            $("#makerrejreason").val($("input[name='C_REFUSE_REASON']").val());
+
+// ---------------------------------------------------------------------
+// Rearranges the repeated field sections on the page
+// ---------------------------------------------------------------------
+function rearrangeSections() {
+    rearrangeDo('TEMP_FLDSS', 'H_div');
+    rearrangeDo('READY_AMT', 'I_div');
+    rearrangeDo('sample1', 'J_div');
+}
+
+
+// ---------------------------------------------------------------------
+// Top tab/button visibility + styling on load
+// ---------------------------------------------------------------------
+function setupTopButtons() {
+    $('#TrxSysBtnsDiv').hide();
+    $('#TrxTabs').hide();
+
+    $('#paymentButton').css({
+        'background-color': 'white',
+        'color': '#5b1d8d',
+        'border-right': '1px solid white'
+    });
+}
+
+
+// ---------------------------------------------------------------------
+// Sets the initial EditFlag when NOT modifying an existing (draft) trx
+// ---------------------------------------------------------------------
+function setupInitialEditFlag() {
+
+    var isDraft = sessionStorage.getItem('draftFlag') == 'P' ||
+                  sessionStorage.getItem('draftFlagset') == 'P';
+
+    if (ITEM_ID != "ModifyTrx" || isDraft) {
+        sessionStorage.setItem('EditFlag', 'N');
+        $(".subbacbutton").hide();
+        $("#activepasttab").hide();
+        sessionStorage.setItem('draftFlagset', '');
+    }
+}
+
+
+// ---------------------------------------------------------------------
+// CHECKER ROLE SETUP
+// ---------------------------------------------------------------------
+function setupCheckerRole() {
+
+    document.getElementById("checkBox2").checked = true;
+
+    $("#TrxSysBtnsDiv1").hide();
+    $("#TrxSysBtnsDivChecker").show();
+    $("#releaseTab, #COMMENT_BTN, #sec_cancel, #btnMaker, #SavedActTrx, #save_tab").hide();
+
+    $('#authLCButton1').removeAttr('disabled');
+    $('#unlockLCButton').removeAttr('disabled');
+    $('#viewLCButton1').removeAttr('disabled');
+    $('.prim_release').removeAttr('disabled');
+    $('.sec_cancel1').attr('disabled', false);
+    $('.auth_button').attr('disabled', false);
+
+    $("#btnChecker").show();
+    $('#Viewdocs').show();
+
+    rearrangeDo('TEMP_FLDSS', 'H_div');
+    checkMandatoryFieldsForSections();
+    BRCH_RATE_OnChange();
+
+    toggleTempRowCountIcon();
+    showAuthOrRejectButton();
+    handleIssueLcSpecialCase();
+
+    // View-only mode when checker is just reviewing (not editing)
+    if (sessionStorage.getItem('EditFlag') == 'Y') {
+        setupCheckerViewMode();
+    }
+}
+
+
+function toggleTempRowCountIcon() {
+    if (document.getElementById("TEMP_ROW_COUNT").value > 0) {
+        document.getElementById("tick7").style.display = "inline";
+        $('#number6').hide();
+    } else {
+        document.getElementById("tick7").style.display = "none";
+    }
+}
+
+
+function showAuthOrRejectButton() {
+    var authStatus = sessionStorage.getItem('AuthStatus');
+
+    if (authStatus == 'Auth') {
+        $("input[name=REJECT]").show();
+    } else if (authStatus == 'Rej') {
+        $("input[name=AUTHORISE]").show();
+    }
+}
+
+
+function handleIssueLcSpecialCase() {
+    var applId = $("#APPL_ID").val();
+    var specialApplId = "00000080875812998";
+
+    if (applId.indexOf(specialApplId) == 0) {
+        insertCommentsOnAuth("s");
+        $("#issueLcIdTd").addClass('star');
+        $("#C_AUDIT_COMMENTR").removeAttr("readonly");
+
+        if (document.getElementById("CASE_ID")) {
+            $("#CASE_ID").removeAttr("readonly");
         }
-           $("#makerrejstatus").val(status);  
-		   $("#editspan, #editid").show();
-		   
-		   PCFC_AVAIL_OnChange();
-		   EEFCAmountAvailable();
-		   PURP_OF_IMPORT_OnChange();
-		   GOLD_IMPORT_OnChange();
-            GoldImport();
-		   COLL_TYPE_OnChange();
-	
-		}
-		
-		}
-	if(FUNC_ID != ''){
+        if (document.getElementById("C_DROP_DOWN")) {
+            $("#C_DROP_DOWN").removeAttr("disabled");
+        }
+    }
 
-		setFldValue("TEMP_ORG_FUNC_ID", FUNC_ID);
+    if (applId.indexOf(specialApplId) == -1) {
+        $("#issueLcId").css("display", "none");
+    }
+}
 
-		}
-		
-		
-		
-		if(sesFuncId == "F05030701188"){
-		enabledFlag=false;
-		sessionStorage.setItem('EditFlag','Y');
-			//disableAllFields('directpayDiv');
-			$("#checkBox2").attr("checked","checked");
-		document.getElementById("checkBox2").value = 'yes';
-				$('#viewLCButton').css('background-color','white');
-			 $('#viewLCButton').css('color','#5b1d8d');
-	         $('#viewLCButton').css('border-right','1px solid white');
-			$('#paymentButton').css('background-color','');
-	       $('#paymentButton').css('color','');
-	       $('#paymentButton').css('border-right','');
-		   $("#prim_save").hide();
-		   $("#PRE_BT").hide();
-		   $("#TEMP_BT").hide();
-		   $("#useTemplateId").hide();
-		   $(".next-button").hide();
-		   $(".use-existing-template").hide();
-			 $("#backButtonid").attr("disabled",false);   
-		 $('#NEXT_BT').hide();
-		 $('#tdconfirmChecker').hide();
-		 $('#tdcancelChecker').find('input').removeAttr('disabled');
-		 $('#sec_cancel').removeAttr('disabled')
-		 
-		}
-		
-		checkMandatoryFieldsForSections();
-		checkMandatoryFieldsForDiv();
-		
-		if (document.getElementById("BRCH_RATE").value == '1'){
-	 $('#DealerForex').show();
-	 refreshDO(1);
-	 }
-	 else if (document.getElementById("BRCH_RATE").value == '2'){
-	 $('#DealerForex').hide();
-	 }
+
+// Checker viewing an already-actioned (view/manage) transaction
+function setupCheckerViewMode() {
+    $('.sec_cancel').hide();
+    disableAllFields('directpayDiv');
+
+    $("#backButtonid").attr("disabled", false);
+
+    $('#viewLCButton1').css({
+        'background-color': 'white',
+        'color': '#5b1d8d',
+        'border-right': '1px solid white'
+    });
+    $('#authLCButton').css({
+        'background-color': '',
+        'color': '',
+        'border-right': '1px solid white'
+    });
+
+    $("#tdconfirmChecker").hide();
+    $("#btnChecker").css("display", "none");
+    $("#btnMaker").hide();
+    $("#btnChecker").show();
+    $("#deleteTab").hide();
+    $('#SavedActTrx').show();
+    $('#Viewdocs').hide();
+    $("#editid").hide();
+    $("#editspan").hide();
+    $(".rejectdiv").hide();
+    $("#expportAsid").show();
+    $("#expportAsid1").show();
+    $(".subbacbutton").show();
+    $('.use-existing-template').hide();
+    $("#submitButtonid").hide();
+    $("#confirmButtonid").hide();
+
+    checkMandatoryFieldsForSections();
+}
+
+
+// ---------------------------------------------------------------------
+// MAKER ROLE SETUP
+// ---------------------------------------------------------------------
+function setupMakerRole() {
+
+    $("#TrxSysBtnsDivChecker").hide();
+    $("#btnChecker").hide();
+    $("#TrxSysBtnsDiv1").show();
+    $('#SavedActTrx').hide();
+    $('#Viewdocs').show();
+    $("#buttonContainer").hide();
+    $("#btnMaker").show();
+
+    ForwardContract();
+    NON_BOE_OnChange();
+
+    toggleTempRowCountIcon();
+
+    setTimeout(function () {
+        if (sessionStorage.getItem('EditFlag') == 'N') {
+            rearrangeSections();
+        }
+    }, 300);
+
+    if (sessionStorage.getItem('EditFlag') == 'Y' && sessionStorage.getItem('draftFlag') != 'P') {
+        setupMakerActiveTransaction();
+    }
+}
+
+
+// Maker editing/viewing an already-saved (active) transaction
+function setupMakerActiveTransaction() {
+
+    enabledFlag = false;
+    disableAllFields('directpayDiv');
+
+    $("#backButtonid").attr("disabled", false);
+    $('.sec_cancel').hide();
+    $('#tdconfirmChecker').hide();
+    $(".search").attr("disabled", true);
+    $('#SavedActTrx').show();
+    $('#Viewdocs').hide();
+    $("#expportAsid").attr("disabled", false);
+    $("#submitButtonid").attr("disabled", true);
+    $("#prim_next").hide();
+    $('#prim_save').hide();
+    $('.use-existing-template').hide();
+    $("#editid").show();
+    $("#editspan").show();
+    $("#submitButtonid").show();
+
+    setTimeout(function () {
+        $("#TrxSysBtnsDiv1").hide();
+    }, 300);
+
+    $("#btnMaker").show();
+    $("#buttonContainer").hide();
+    $('#tabsForChecker').hide();
+
+    $('#viewLCButton').css({
+        'background-color': 'white',
+        'color': '#5b1d8d',
+        'border-right': '1px solid white'
+    });
+    $('#paymentButton').css({
+        'background-color': '',
+        'color': '',
+        'border-right': ''
+    });
+
+    setFldValue('DECL_CHCK', '');
+    checkMandatoryFieldsForSections();
+    NON_BOE_OnChange();
+    checkMandatoryFieldsForDiv();
+    updateStepperProgress();
+
+    loadTrxStatus("ActiveStatus", "C_MAIN_REF", PRODUCT_ID);
+    applyTrxStatusLabel();
+
+    PCFC_AVAIL_OnChange();
+    EEFCAmountAvailable();
+    PURP_OF_IMPORT_OnChange();
+    GOLD_IMPORT_OnChange();
+    GoldImport();
+    COLL_TYPE_OnChange();
+}
+
+
+// Maps the C_TRX_STATUS code to a readable label and shows/hides Edit
+function applyTrxStatusLabel() {
+
+    var statusMap = {
+        'A': "Rejected by Bank",
+        'B': "Pending Bank Authorisation",
+        'C': "Processed",
+        'D': "Incomplete",
+        'E': "Modification",
+        'J': "Rejected by Customer Checker",
+        'M': "Authorised",
+        'P': "Pending with Customer Checker",
+        'R': "Rejected by Customer Checker",
+        'S': "Pending with Bank",
+        'T': "Pending with Customer Checker",
+        'Z': "Saved as Draft"
+    };
+
+    var hideEditStatuses = ["A", "B", "C", "D", "E", "J", "M", "S"];
+
+    var currentStatus = $("#C_TRX_STATUS").val();
+    var statusLabel = statusMap[currentStatus] ? statusMap[currentStatus] : "";
+
+    // Note: original code hides edit for these statuses, then always
+    // shows it again right after - kept as-is to preserve behavior.
+    if (hideEditStatuses.indexOf(currentStatus) != -1) {
+        $("#editspan, #editid").hide();
+    }
+
+    if (currentStatus == 'A') {
+        $("#makerrejreason").val(getFldValue("NOTES"));
+    } else {
+        $("#makerrejreason").val($("input[name='C_REFUSE_REASON']").val());
+    }
+
+    $("#makerrejstatus").val(statusLabel);
+    $("#editspan, #editid").show();
+}
+
+
+// ---------------------------------------------------------------------
+// Special handling for one specific function id
+// ---------------------------------------------------------------------
+function setupSpecialFunction() {
+
+    if (sesFuncId != "F05030701188") {
+        return;
+    }
+
+    enabledFlag = false;
+    sessionStorage.setItem('EditFlag', 'Y');
+
+    $("#checkBox2").attr("checked", "checked");
+    document.getElementById("checkBox2").value = 'yes';
+
+    $('#viewLCButton').css({
+        'background-color': 'white',
+        'color': '#5b1d8d',
+        'border-right': '1px solid white'
+    });
+    $('#paymentButton').css({
+        'background-color': '',
+        'color': '',
+        'border-right': ''
+    });
+
+    $("#prim_save").hide();
+    $("#PRE_BT").hide();
+    $("#TEMP_BT").hide();
+    $("#useTemplateId").hide();
+    $(".next-button").hide();
+    $(".use-existing-template").hide();
+
+    $("#backButtonid").attr("disabled", false);
+    $('#NEXT_BT').hide();
+    $('#tdconfirmChecker').hide();
+    $('#tdcancelChecker').find('input').removeAttr('disabled');
+    $('#sec_cancel').removeAttr('disabled');
+}
+
+
+// ---------------------------------------------------------------------
+// Show/hide dealer forex section based on branch rate flag
+// ---------------------------------------------------------------------
+function toggleDealerForex() {
+    var brchRate = document.getElementById("BRCH_RATE").value;
+
+    if (brchRate == '1') {
+        $('#DealerForex').show();
+        refreshDO(1);
+    } else if (brchRate == '2') {
+        $('#DealerForex').hide();
+    }
 }
