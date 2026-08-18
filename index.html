@@ -1,10 +1,236 @@
-Hi Team,
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiple Text Replacer</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    color: #222;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 24px auto;
+    padding: 0 16px;
+  }
+  h1 { margin-bottom: 6px; }
+  .subtitle { color: #666; margin-top: 0; }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  textarea {
+    width: 100%;
+    min-height: 300px;
+    resize: vertical;
+    padding: 12px;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    font-family: Consolas, monospace;
+    font-size: 14px;
+  }
+  #inputText, #outputText { min-height: 420px; }
+  .mapping-help {
+    color: #666;
+    font-size: 13px;
+    margin: 6px 0 10px;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 16px 0;
+  }
+  button {
+    border: 0;
+    border-radius: 6px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .primary { background: #1769aa; color: white; }
+  .secondary { background: #e8edf2; color: #222; }
+  .danger { background: #d9534f; color: white; }
+  .options {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  .stats {
+    margin-top: 10px;
+    font-size: 13px;
+    color: #555;
+  }
+  @media (max-width: 800px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Multiple Text Replacer</h1>
+  <p class="subtitle">Paste replacement mappings and text, then replace everything in one operation.</p>
 
-We are facing an issue with the WebLogic application. The application is working fine initially, but after some time it becomes very slow and the response time increases.
+  <div class="card">
+    <label for="mappings">Replacement Mappings</label>
+    <div class="mapping-help">
+      One mapping per line. Format: <b>old → new</b> (also supports <b>old -> new</b> or tab-separated values)
+    </div>
+    <textarea id="mappings" placeholder="apple → mango
+orange → grapes
+banana → apple"></textarea>
 
-When we restart the WebLogic server, the application starts working normally again. However, after using the application for some time, the same issue occurs again.
+    <div class="options">
+      <label style="font-weight:normal;margin:0;">
+        <input type="checkbox" id="caseInsensitive"> Case insensitive
+      </label>
+      <label style="font-weight:normal;margin:0;">
+        <input type="checkbox" id="wholeWord"> Whole word only
+      </label>
+    </div>
+  </div>
 
-Could you please check the WebLogic server and identify what is causing the application to become slow? Please check the server logs, memory usage, threads, connection pool, and other relevant parameters during the time of the issue.
+  <div class="grid" style="margin-top:16px;">
+    <div class="card">
+      <label for="inputText">Input Text</label>
+      <textarea id="inputText" placeholder="Paste your text here..."></textarea>
+    </div>
 
-Thanks,
-Sairam
+    <div class="card">
+      <label for="outputText">Output</label>
+      <textarea id="outputText" readonly placeholder="Replaced text will appear here..."></textarea>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="primary" onclick="replaceAll()">Replace All</button>
+    <button class="secondary" onclick="copyOutput()">Copy Output</button>
+    <button class="secondary" onclick="swapOutputToInput()">Use Output as Input</button>
+    <button class="danger" onclick="clearAll()">Clear</button>
+  </div>
+
+  <div id="stats" class="stats"></div>
+</div>
+
+<script>
+function parseMappings() {
+  const lines = document.getElementById("mappings").value.split(/\r?\n/);
+  const mappings = [];
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    let parts;
+    if (line.includes("→")) {
+      parts = line.split("→");
+    } else if (line.includes("->")) {
+      parts = line.split("->");
+    } else if (line.includes("\\t")) {
+      parts = line.split("\\t");
+    } else {
+      const tabParts = rawLine.split("\\t");
+      if (tabParts.length >= 2) parts = tabParts;
+    }
+
+    if (!parts || parts.length < 2) continue;
+
+    const from = parts[0].trim();
+    const to = parts.slice(1).join("→").trim();
+
+    if (from) mappings.push({ from, to });
+  }
+
+  return mappings;
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function replaceAll() {
+  let text = document.getElementById("inputText").value;
+  const mappings = parseMappings();
+  const insensitive = document.getElementById("caseInsensitive").checked;
+  const wholeWord = document.getElementById("wholeWord").checked;
+
+  if (!mappings.length) {
+    alert("Enter at least one valid mapping.");
+    return;
+  }
+
+  // Sort longest first to avoid shorter keys interfering with longer keys.
+  mappings.sort((a, b) => b.from.length - a.from.length);
+
+  let count = 0;
+
+  for (const mapping of mappings) {
+    let pattern = escapeRegex(mapping.from);
+
+    if (wholeWord) {
+      pattern = "\\b" + pattern + "\\b";
+    }
+
+    const flags = insensitive ? "gi" : "g";
+    const regex = new RegExp(pattern, flags);
+
+    text = text.replace(regex, () => {
+      count++;
+      return mapping.to;
+    });
+  }
+
+  document.getElementById("outputText").value = text;
+  document.getElementById("stats").textContent =
+    mappings.length + " mappings processed | " + count + " replacements made";
+}
+
+async function copyOutput() {
+  const output = document.getElementById("outputText").value;
+  if (!output) return;
+  try {
+    await navigator.clipboard.writeText(output);
+    document.getElementById("stats").textContent = "Output copied to clipboard.";
+  } catch (e) {
+    const area = document.getElementById("outputText");
+    area.removeAttribute("readonly");
+    area.select();
+    document.execCommand("copy");
+    area.setAttribute("readonly", true);
+    document.getElementById("stats").textContent = "Output copied to clipboard.";
+  }
+}
+
+function swapOutputToInput() {
+  const output = document.getElementById("outputText").value;
+  document.getElementById("inputText").value = output;
+}
+
+function clearAll() {
+  document.getElementById("mappings").value = "";
+  document.getElementById("inputText").value = "";
+  document.getElementById("outputText").value = "";
+  document.getElementById("stats").textContent = "";
+}
+</script>
+</body>
+</html>
