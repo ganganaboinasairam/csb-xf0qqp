@@ -3,233 +3,232 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Multiple Text Replacer</title>
+<title>XML Duplicate Field ID Remover - Folder Mode</title>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f6f8;
-    color: #222;
-  }
-  .container {
-    max-width: 1200px;
-    margin: 24px auto;
-    padding: 0 16px;
-  }
-  h1 { margin-bottom: 6px; }
-  .subtitle { color: #666; margin-top: 0; }
-  .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-  .card {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 16px;
-  }
-  label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 8px;
-  }
-  textarea {
-    width: 100%;
-    min-height: 300px;
-    resize: vertical;
-    padding: 12px;
-    border: 1px solid #bbb;
-    border-radius: 6px;
-    font-family: Consolas, monospace;
-    font-size: 14px;
-  }
-  #inputText, #outputText { min-height: 420px; }
-  .mapping-help {
-    color: #666;
-    font-size: 13px;
-    margin: 6px 0 10px;
-  }
-  .controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin: 16px 0;
-  }
-  button {
-    border: 0;
-    border-radius: 6px;
-    padding: 10px 16px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-  .primary { background: #1769aa; color: white; }
-  .secondary { background: #e8edf2; color: #222; }
-  .danger { background: #d9534f; color: white; }
-  .options {
-    display: flex;
-    gap: 18px;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-top: 10px;
-    font-size: 14px;
-  }
-  .stats {
-    margin-top: 10px;
-    font-size: 13px;
-    color: #555;
-  }
-  @media (max-width: 800px) {
-    .grid { grid-template-columns: 1fr; }
-  }
+body{font-family:Arial,sans-serif;margin:0;background:#f4f6f8;color:#222}
+.wrap{max-width:1150px;margin:30px auto;padding:0 18px}
+.card{background:#fff;border-radius:12px;padding:22px;box-shadow:0 2px 10px #0001;margin-bottom:18px}
+h1{margin-top:0;font-size:25px}
+button{border:0;border-radius:7px;padding:10px 16px;cursor:pointer;font-weight:600;margin:8px 8px 8px 0}
+.primary{background:#1769e0;color:#fff}.secondary{background:#e9edf2;color:#222}
+input[type=file]{margin:10px 0}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.stat{background:#f1f5f9;padding:10px 14px;border-radius:8px}
+.hint{color:#555;font-size:14px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{text-align:left;border-bottom:1px solid #ddd;padding:8px}
+th{background:#f7f7f7}
+.ok{color:#188038}.dup{color:#c5221f}
+progress{width:100%;height:20px}
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Multiple Text Replacer</h1>
-  <p class="subtitle">Paste replacement mappings and text, then replace everything in one operation.</p>
+<div class="wrap">
+<div class="card">
+<h1>XML Duplicate Field ID Remover</h1>
+<p class="hint">
+Select a <b>folder/directory</b> containing XML files. Each XML file is processed independently.
+The first occurrence of each DISP_PARA field ID is kept and later duplicate DISP_PARA entries are removed.
+</p>
 
-  <div class="card">
-    <label for="mappings">Replacement Mappings</label>
-    <div class="mapping-help">
-      One mapping per line. Format: <b>old → new</b> (also supports <b>old -> new</b> or tab-separated values)
-    </div>
-    <textarea id="mappings" placeholder="apple → mango
-orange → grapes
-banana → apple"></textarea>
+<input type="file" id="folderInput" webkitdirectory directory multiple accept=".xml,.txt">
+<br>
+<button class="primary" onclick="processFolder()">Process Folder</button>
+<button class="secondary" onclick="clearAll()">Clear</button>
 
-    <div class="options">
-      <label style="font-weight:normal;margin:0;">
-        <input type="checkbox" id="caseInsensitive"> Case insensitive
-      </label>
-      <label style="font-weight:normal;margin:0;">
-        <input type="checkbox" id="wholeWord"> Whole word only
-      </label>
-    </div>
-  </div>
+<div id="progressArea" style="display:none">
+<p id="status"></p>
+<progress id="progress" value="0" max="100"></progress>
+</div>
+</div>
 
-  <div class="grid" style="margin-top:16px;">
-    <div class="card">
-      <label for="inputText">Input Text</label>
-      <textarea id="inputText" placeholder="Paste your text here..."></textarea>
-    </div>
+<div class="card" id="resultCard" style="display:none">
+<h2>Processing Result</h2>
+<div class="stats">
+<div class="stat">Files: <b id="fileCount">0</b></div>
+<div class="stat">Fields found: <b id="totalFields">0</b></div>
+<div class="stat">Unique fields: <b id="uniqueFields">0</b></div>
+<div class="stat">Duplicates removed: <b id="removedFields">0</b></div>
+</div>
 
-    <div class="card">
-      <label for="outputText">Output</label>
-      <textarea id="outputText" readonly placeholder="Replaced text will appear here..."></textarea>
-    </div>
-  </div>
+<button class="primary" onclick="downloadAll()">Download All Cleaned Files</button>
 
-  <div class="controls">
-    <button class="primary" onclick="replaceAll()">Replace All</button>
-    <button class="secondary" onclick="copyOutput()">Copy Output</button>
-    <button class="secondary" onclick="swapOutputToInput()">Use Output as Input</button>
-    <button class="danger" onclick="clearAll()">Clear</button>
-  </div>
-
-  <div id="stats" class="stats"></div>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Total Fields</th>
+<th>Unique Fields</th>
+<th>Duplicates Removed</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="resultsBody"></tbody>
+</table>
+</div>
 </div>
 
 <script>
-function parseMappings() {
-  const lines = document.getElementById("mappings").value.split(/\r?\n/);
-  const mappings = [];
+let results = [];
 
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) continue;
+async function processFolder(){
+  const input=document.getElementById("folderInput");
+  const files=Array.from(input.files || []);
 
-    let parts;
-    if (line.includes("→")) {
-      parts = line.split("→");
-    } else if (line.includes("->")) {
-      parts = line.split("->");
-    } else if (line.includes("\\t")) {
-      parts = line.split("\\t");
-    } else {
-      const tabParts = rawLine.split("\\t");
-      if (tabParts.length >= 2) parts = tabParts;
-    }
-
-    if (!parts || parts.length < 2) continue;
-
-    const from = parts[0].trim();
-    const to = parts.slice(1).join("→").trim();
-
-    if (from) mappings.push({ from, to });
-  }
-
-  return mappings;
-}
-
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function replaceAll() {
-  let text = document.getElementById("inputText").value;
-  const mappings = parseMappings();
-  const insensitive = document.getElementById("caseInsensitive").checked;
-  const wholeWord = document.getElementById("wholeWord").checked;
-
-  if (!mappings.length) {
-    alert("Enter at least one valid mapping.");
+  if(!files.length){
+    alert("Please select a folder containing XML files.");
     return;
   }
 
-  // Sort longest first to avoid shorter keys interfering with longer keys.
-  mappings.sort((a, b) => b.from.length - a.from.length);
+  const xmlFiles=files.filter(f =>
+    f.name.toLowerCase().endsWith(".xml") ||
+    f.name.toLowerCase().endsWith(".txt")
+  );
 
-  let count = 0;
+  if(!xmlFiles.length){
+    alert("No XML/TXT files found in the selected folder.");
+    return;
+  }
 
-  for (const mapping of mappings) {
-    let pattern = escapeRegex(mapping.from);
+  results=[];
+  document.getElementById("progressArea").style.display="block";
+  document.getElementById("resultCard").style.display="none";
 
-    if (wholeWord) {
-      pattern = "\\b" + pattern + "\\b";
+  let totalFields=0, uniqueFields=0, removedFields=0;
+
+  for(let i=0;i<xmlFiles.length;i++){
+    const file=xmlFiles[i];
+    document.getElementById("status").textContent =
+      `Processing ${i+1} of ${xmlFiles.length}: ${file.webkitRelativePath || file.name}`;
+
+    const text=await file.text();
+    const processed=cleanXml(text);
+
+    results.push({
+      originalName:file.name,
+      relativePath:file.webkitRelativePath || file.name,
+      outputName:makeOutputName(file),
+      content:processed.content,
+      total:processed.total,
+      unique:processed.unique,
+      removed:processed.removed
+    });
+
+    totalFields+=processed.total;
+    uniqueFields+=processed.unique;
+    removedFields+=processed.removed;
+
+    document.getElementById("progress").value=((i+1)/xmlFiles.length)*100;
+  }
+
+  document.getElementById("fileCount").textContent=results.length;
+  document.getElementById("totalFields").textContent=totalFields;
+  document.getElementById("uniqueFields").textContent=uniqueFields;
+  document.getElementById("removedFields").textContent=removedFields;
+
+  const body=document.getElementById("resultsBody");
+  body.innerHTML="";
+  results.forEach(r=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=
+      `<td>${escapeHtml(r.relativePath)}</td>
+       <td>${r.total}</td>
+       <td>${r.unique}</td>
+       <td>${r.removed}</td>
+       <td class="${r.removed ? "dup" : "ok"}">${r.removed ? "Duplicates removed" : "No duplicates"}</td>`;
+    body.appendChild(tr);
+  });
+
+  document.getElementById("resultCard").style.display="block";
+  document.getElementById("status").textContent =
+    `Completed: ${results.length} file(s) processed.`;
+}
+
+function cleanXml(text){
+  // Matches complete DISP_PARA elements and captures their middle value.
+  const re=/<DISP_PARA\\b[^>]*>([^<]*)<\\/DISP_PARA>/g;
+  const counts=new Map();
+  let total=0;
+  let m;
+
+  while((m=re.exec(text))!==null){
+    const value=m[1].trim();
+    if(!value) continue;
+    total++;
+    counts.set(value,(counts.get(value)||0)+1);
+  }
+
+  const seen=new Set();
+  re.lastIndex=0;
+  let output="";
+  let lastIndex=0;
+
+  while((m=re.exec(text))!==null){
+    const value=m[1].trim();
+    if(!value || counts.get(value)===1) continue;
+
+    if(!seen.has(value)){
+      seen.add(value);
+      continue; // Keep first occurrence.
     }
 
-    const flags = insensitive ? "gi" : "g";
-    const regex = new RegExp(pattern, flags);
-
-    text = text.replace(regex, () => {
-      count++;
-      return mapping.to;
-    });
+    // Remove this complete duplicate DISP_PARA element.
+    output+=text.slice(lastIndex,m.index);
+    lastIndex=re.lastIndex;
   }
 
-  document.getElementById("outputText").value = text;
-  document.getElementById("stats").textContent =
-    mappings.length + " mappings processed | " + count + " replacements made";
+  output+=text.slice(lastIndex);
+
+  const unique=counts.size;
+  return {
+    content: output,
+    total: total,
+    unique: unique,
+    removed: total-unique
+  };
 }
 
-async function copyOutput() {
-  const output = document.getElementById("outputText").value;
-  if (!output) return;
-  try {
-    await navigator.clipboard.writeText(output);
-    document.getElementById("stats").textContent = "Output copied to clipboard.";
-  } catch (e) {
-    const area = document.getElementById("outputText");
-    area.removeAttribute("readonly");
-    area.select();
-    document.execCommand("copy");
-    area.setAttribute("readonly", true);
-    document.getElementById("stats").textContent = "Output copied to clipboard.";
-  }
+function makeOutputName(file){
+  const name=file.name;
+  const dot=name.lastIndexOf(".");
+  return (dot>=0 ? name.slice(0,dot) : name) + "_cleaned" +
+         (dot>=0 ? name.slice(dot) : ".xml");
 }
 
-function swapOutputToInput() {
-  const output = document.getElementById("outputText").value;
-  document.getElementById("inputText").value = output;
+function downloadAll(){
+  if(!results.length) return;
+
+  // Browser-safe approach: download each cleaned file separately.
+  // Files retain their original names with "_cleaned" appended.
+  results.forEach((r,i)=>{
+    setTimeout(()=>{
+      const blob=new Blob([r.content],{type:"application/xml;charset=utf-8"});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url;
+      a.download=r.outputName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    },i*300);
+  });
+
+  alert("Cleaned files are being downloaded individually.");
 }
 
-function clearAll() {
-  document.getElementById("mappings").value = "";
-  document.getElementById("inputText").value = "";
-  document.getElementById("outputText").value = "";
-  document.getElementById("stats").textContent = "";
+function clearAll(){
+  document.getElementById("folderInput").value="";
+  document.getElementById("resultCard").style.display="none";
+  document.getElementById("progressArea").style.display="none";
+  document.getElementById("resultsBody").innerHTML="";
+  results=[];
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[c]));
 }
 </script>
 </body>
