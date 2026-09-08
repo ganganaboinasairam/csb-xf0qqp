@@ -1,198 +1,580 @@
-package com.production.analyzer.servlet;
-
-import com.production.analyzer.model.IncidentRequest;
-import com.production.analyzer.model.IncidentResult;
-import com.production.analyzer.service.IncidentAnalyzer;
-
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import java.io.IOException;
-
-@WebServlet("/api/analyze")
-public class IncidentServlet extends HttpServlet {
-
-    private final IncidentAnalyzer analyzer =
-            new IncidentAnalyzer();
-
-    @Override
-    protected void doPost(
-            HttpServletRequest request,
-            HttpServletResponse response)
-            throws ServletException, IOException {
-
-        /*
-         * For the first version we can accept:
-         *
-         * cMainRef
-         * logPath
-         * issueTime
-         *
-         * as request parameters.
-         */
-
-        String cMainRef =
-                request.getParameter("cMainRef");
-
-        String logPath =
-                request.getParameter("logPath");
-
-        String issueTime =
-                request.getParameter("issueTime");
-
-        IncidentRequest incidentRequest =
-                new IncidentRequest(
-                        cMainRef,
-                        logPath,
-                        issueTime);
-
-        IncidentResult result =
-                analyzer.analyze(incidentRequest);
-
-        response.setContentType(
-                "application/json");
-
-        response.setCharacterEncoding("UTF-8");
-
-        response.getWriter()
-                .write(result.toJson());
-    }
-}
-
-
-package com.production.analyzer.model;
+package com.company.analyzer.model;
 
 public class IncidentRequest {
 
-    private final String cMainRef;
-    private final String logPath;
-    private final String issueTime;
+    private String cMainRef;
+    private String logsPath;
+    private String time;
 
-    public IncidentRequest(
-            String cMainRef,
-            String logPath,
-            String issueTime) {
+    public IncidentRequest() {
+    }
 
+    public IncidentRequest(String cMainRef, String logsPath, String time) {
         this.cMainRef = cMainRef;
-        this.logPath = logPath;
-        this.issueTime = issueTime;
+        this.logsPath = logsPath;
+        this.time = time;
     }
 
     public String getcMainRef() {
         return cMainRef;
     }
 
-    public String getLogPath() {
-        return logPath;
+    public void setcMainRef(String cMainRef) {
+        this.cMainRef = cMainRef;
     }
 
-    public String getIssueTime() {
-        return issueTime;
+    public String getLogsPath() {
+        return logsPath;
     }
-}
 
+    public void setLogsPath(String logsPath) {
+        this.logsPath = logsPath;
+    }
 
-package com.production.analyzer.service;
+    public String getTime() {
+        return time;
+    }
 
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.List;
-
-public class LogSourceResolver {
-
-    public List<Path> resolve(String logPath)
-            throws IOException {
-
-        Path path = Paths.get(logPath);
-
-        if (!Files.exists(path)) {
-            throw new IOException(
-                    "Log path does not exist: " + logPath);
-        }
-
-        if (Files.isRegularFile(path)) {
-            return List.of(path);
-        }
-
-        if (Files.isDirectory(path)) {
-
-            List<Path> files =
-                    new ArrayList<Path>();
-
-            try (DirectoryStream<Path> stream =
-                         Files.newDirectoryStream(path)) {
-
-                for (Path file : stream) {
-
-                    if (Files.isRegularFile(file)) {
-                        files.add(file);
-                    }
-                }
-            }
-
-            return files;
-        }
-
-        throw new IOException(
-                "Unsupported log source: " + logPath);
+    public void setTime(String time) {
+        this.time = time;
     }
 }
 
-package com.production.analyzer.model;
+
+package com.company.analyzer.model;
 
 public class LogBlock {
 
     private String source;
-    private String timestamp;
     private String level;
+    private String timestamp;
     private String correlationId;
-
     private String content;
+
+    public LogBlock() {
+    }
+
+    public LogBlock(String source,
+                    String level,
+                    String timestamp,
+                    String correlationId,
+                    String content) {
+
+        this.source = source;
+        this.level = level;
+        this.timestamp = timestamp;
+        this.correlationId = correlationId;
+        this.content = content;
+    }
 
     public String getSource() {
         return source;
-    }
-
-    public void setSource(String source) {
-        this.source = source;
-    }
-
-    public String getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
     }
 
     public String getLevel() {
         return level;
     }
 
-    public void setLevel(String level) {
-        this.level = level;
+    public String getTimestamp() {
+        return timestamp;
     }
 
     public String getCorrelationId() {
         return correlationId;
     }
 
-    public void setCorrelationId(
-            String correlationId) {
-
-        this.correlationId = correlationId;
-    }
-
     public String getContent() {
         return content;
     }
 
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public void setLevel(String level) {
+        this.level = level;
+    }
+
+    public void setTimestamp(String timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public void setCorrelationId(String correlationId) {
+        this.correlationId = correlationId;
+    }
+
     public void setContent(String content) {
         this.content = content;
+    }
+
+    @Override
+    public String toString() {
+        return "LogBlock{" +
+                "source='" + source + '\'' +
+                ", level='" + level + '\'' +
+                ", timestamp='" + timestamp + '\'' +
+                ", correlationId='" + correlationId + '\'' +
+                '}';
+    }
+}
+
+
+package com.company.analyzer.source;
+
+import java.io.IOException;
+import java.util.function.BiConsumer;
+
+public interface LogSource {
+
+    void scan(BiConsumer<String, String> blockConsumer)
+            throws IOException;
+
+    String getName();
+}
+
+
+package com.company.analyzer.source;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.function.BiConsumer;
+
+public class FileLogSource implements LogSource {
+
+    private final Path file;
+
+    public FileLogSource(Path file) {
+        this.file = file;
+    }
+
+    @Override
+    public String getName() {
+        return file.toString();
+    }
+
+    @Override
+    public void scan(BiConsumer<String, String> blockConsumer)
+            throws IOException {
+
+        try (BufferedReader reader = Files.newBufferedReader(
+                file,
+                StandardCharsets.UTF_8)) {
+
+            String line;
+
+            StringBuilder block = null;
+            boolean insideBlock = false;
+
+            while ((line = reader.readLine()) != null) {
+
+                if (line.contains("[start]")) {
+
+                    block = new StringBuilder();
+                    insideBlock = true;
+
+                    block.append(line)
+                         .append(System.lineSeparator());
+
+                    // [start] and [end] may be on same line
+                    if (line.contains("[end]")) {
+                        blockConsumer.accept(
+                                file.toString(),
+                                block.toString()
+                        );
+
+                        block = null;
+                        insideBlock = false;
+                    }
+
+                    continue;
+                }
+
+                if (insideBlock) {
+
+                    block.append(line)
+                         .append(System.lineSeparator());
+
+                    if (line.contains("[end]")) {
+
+                        blockConsumer.accept(
+                                file.toString(),
+                                block.toString()
+                        );
+
+                        block = null;
+                        insideBlock = false;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+package com.company.analyzer.source;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.function.BiConsumer;
+import java.util.stream.Stream;
+
+public class DirectoryLogSource implements LogSource {
+
+    private final Path directory;
+
+    public DirectoryLogSource(Path directory) {
+        this.directory = directory;
+    }
+
+    @Override
+    public String getName() {
+        return directory.toString();
+    }
+
+    @Override
+    public void scan(BiConsumer<String, String> blockConsumer)
+            throws IOException {
+
+        try (Stream<Path> paths = Files.walk(directory)) {
+
+            paths.filter(Files::isRegularFile)
+                 .forEach(path -> {
+
+                     try {
+
+                         new FileLogSource(path)
+                                 .scan(blockConsumer);
+
+                     } catch (IOException e) {
+
+                         throw new RuntimeException(
+                                 "Unable to read: " + path,
+                                 e
+                         );
+                     }
+                 });
+        }
+    }
+}
+
+
+package com.company.analyzer.source;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.function.BiConsumer;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+public class ZipLogSource implements LogSource {
+
+    private final Path zipFile;
+
+    public ZipLogSource(Path zipFile) {
+        this.zipFile = zipFile;
+    }
+
+    @Override
+    public String getName() {
+        return zipFile.toString();
+    }
+
+    @Override
+    public void scan(BiConsumer<String, String> blockConsumer)
+            throws IOException {
+
+        try (ZipInputStream zis =
+                     new ZipInputStream(
+                             Files.newInputStream(zipFile))) {
+
+            ZipEntry entry;
+
+            while ((entry = zis.getNextEntry()) != null) {
+
+                if (entry.isDirectory()) {
+                    continue;
+                }
+
+                String entryName = entry.getName();
+
+                scanEntry(
+                        zis,
+                        entryName,
+                        blockConsumer
+                );
+
+                zis.closeEntry();
+            }
+        }
+    }
+
+    private void scanEntry(
+            ZipInputStream zis,
+            String entryName,
+            BiConsumer<String, String> blockConsumer)
+            throws IOException {
+
+        BufferedReader reader =
+                new BufferedReader(
+                        new InputStreamReader(
+                                zis,
+                                StandardCharsets.UTF_8
+                        )
+                );
+
+        String line;
+
+        StringBuilder block = null;
+        boolean insideBlock = false;
+
+        while ((line = reader.readLine()) != null) {
+
+            if (line.contains("[start]")) {
+
+                block = new StringBuilder();
+
+                insideBlock = true;
+
+                block.append(line)
+                     .append(System.lineSeparator());
+
+                if (line.contains("[end]")) {
+
+                    blockConsumer.accept(
+                            zipFile + "!" + entryName,
+                            block.toString()
+                    );
+
+                    block = null;
+                    insideBlock = false;
+                }
+
+                continue;
+            }
+
+            if (insideBlock) {
+
+                block.append(line)
+                     .append(System.lineSeparator());
+
+                if (line.contains("[end]")) {
+
+                    blockConsumer.accept(
+                            zipFile + "!" + entryName,
+                            block.toString()
+                    );
+
+                    block = null;
+                    insideBlock = false;
+                }
+            }
+        }
+    }
+}
+
+
+package com.company.analyzer.search;
+
+import com.company.analyzer.model.LogBlock;
+import com.company.analyzer.source.LogSource;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class LogSearchService {
+
+    private static final Pattern HEADER_PATTERN =
+            Pattern.compile(
+                    "\\[start\\]\\s+" +
+                    "\\[([^\\]]+)\\]\\s+" +
+                    "\\[([^\\]]+)\\]\\s+" +
+                    "\\[([^\\]]+)\\]"
+            );
+
+    private static final Pattern CORRELATION_PATTERN =
+            Pattern.compile(
+                    "\\[start\\]\\s+" +
+                    "\\[[^\\]]+\\]\\s+" +
+                    "\\[[^\\]]+\\]\\s+" +
+                    "\\[([^\\]]+)\\]"
+            );
+
+    public List<LogBlock> findByCMainRef(
+            LogSource source,
+            String cMainRef)
+            throws Exception {
+
+        List<LogBlock> results =
+                new ArrayList<LogBlock>();
+
+        source.scan((sourceName, content) -> {
+
+            if (!content.contains(cMainRef)) {
+                return;
+            }
+
+            LogBlock block =
+                    parseBlock(sourceName, content);
+
+            if (block != null) {
+                results.add(block);
+            }
+        });
+
+        return results;
+    }
+
+    private LogBlock parseBlock(
+            String source,
+            String content) {
+
+        Matcher headerMatcher =
+                HEADER_PATTERN.matcher(content);
+
+        if (!headerMatcher.find()) {
+            return null;
+        }
+
+        String level =
+                headerMatcher.group(1);
+
+        String timestamp =
+                headerMatcher.group(2);
+
+        String correlationId =
+                headerMatcher.group(3);
+
+        return new LogBlock(
+                source,
+                level,
+                timestamp,
+                correlationId,
+                content
+        );
+    }
+}
+
+
+
+package com.company.analyzer.source;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class LogSourceFactory {
+
+    public static LogSource create(Path path) {
+
+        if (!Files.exists(path)) {
+            throw new IllegalArgumentException(
+                    "Path does not exist: " + path
+            );
+        }
+
+        if (Files.isDirectory(path)) {
+            return new DirectoryLogSource(path);
+        }
+
+        String name =
+                path.getFileName()
+                    .toString()
+                    .toLowerCase();
+
+        if (name.endsWith(".zip")) {
+            return new ZipLogSource(path);
+        }
+
+        if (Files.isRegularFile(path)) {
+            return new FileLogSource(path);
+        }
+
+        throw new IllegalArgumentException(
+                "Unsupported log path: " + path
+        );
+    }
+}
+
+
+package com.company.analyzer;
+
+import com.company.analyzer.model.LogBlock;
+import com.company.analyzer.search.LogSearchService;
+import com.company.analyzer.source.LogSource;
+import com.company.analyzer.source.LogSourceFactory;
+
+import java.nio.file.Paths;
+import java.util.List;
+
+public class TestAnalyzer {
+
+    public static void main(String[] args)
+            throws Exception {
+
+        String cMainRef =
+                "0999525TC0A00750";
+
+        String logsPath =
+                "/opt/application/logs";
+
+        LogSource source =
+                LogSourceFactory.create(
+                        Paths.get(logsPath)
+                );
+
+        LogSearchService searchService =
+                new LogSearchService();
+
+        List<LogBlock> results =
+                searchService.findByCMainRef(
+                        source,
+                        cMainRef
+                );
+
+        System.out.println(
+                "Matches found: " + results.size()
+        );
+
+        for (LogBlock block : results) {
+
+            System.out.println(
+                    "--------------------------------"
+            );
+
+            System.out.println(
+                    "Source      : " +
+                    block.getSource()
+            );
+
+            System.out.println(
+                    "Level       : " +
+                    block.getLevel()
+            );
+
+            System.out.println(
+                    "Timestamp   : " +
+                    block.getTimestamp()
+            );
+
+            System.out.println(
+                    "Correlation : " +
+                    block.getCorrelationId()
+            );
+
+            System.out.println(
+                    block.getContent()
+            );
+        }
     }
 }
 
