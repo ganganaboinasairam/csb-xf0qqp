@@ -36,12 +36,14 @@ function getMainFormValues() {
             return;
         }
 
-        // Get Field Title
+        // --------------------------------
+        // Field Title
+        // --------------------------------
+
         var title = field.getAttribute("title") ||
                     field.getAttribute("aria-label") ||
                     "";
 
-        // Try associated label
         if (!title && field.id) {
 
             var label = form.querySelector(
@@ -53,12 +55,14 @@ function getMainFormValues() {
             }
         }
 
-        // Fallback
         if (!title) {
             title = field.name || field.id || "";
         }
 
-        // Get field length
+        // --------------------------------
+        // Field Length
+        // --------------------------------
+
         var maxLength = field.getAttribute("maxlength");
 
         var fieldLength;
@@ -69,11 +73,32 @@ function getMainFormValues() {
             fieldLength = value.length;
         }
 
+        // --------------------------------
+        // Field Status
+        // --------------------------------
+
+        var fieldStatus = "";
+
+        if (field.classList.contains("CHAR_O")) {
+            fieldStatus = "Optional";
+
+        } else if (field.classList.contains("CHAR_M")) {
+            fieldStatus = "Mandatory";
+
+        } else if (field.classList.contains("CHAR_P")) {
+            fieldStatus = "Protected";
+        }
+
+        // --------------------------------
+        // Add Result
+        // --------------------------------
+
         result.push({
             "Field Title": title,
             "Field ID": field.id || "",
             "Field Value": value,
-            "Field Length": fieldLength
+            "Field Length": fieldLength,
+            "Field Status": fieldStatus
         });
     });
 
