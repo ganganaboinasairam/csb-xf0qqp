@@ -1,368 +1,92 @@
-package com.company.analyzer.source;
+function getMainFormTable() {
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.function.BiConsumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+    var form = document.getElementById("MAINFORM");
+    var table = document.createElement("table");
 
-public class FileLogSource implements LogSource {
+    table.border = "1";
 
-    private final Path file;
+    // Header
+    var header = table.insertRow();
 
-    private static final Pattern HEADER_PATTERN =
-            Pattern.compile(
-                    "^\\[start\\]\\s+\\[([^\\]]+)\\].*"
+    header.insertCell().innerHTML = "<b>Field Title</b>";
+    header.insertCell().innerHTML = "<b>Field ID</b>";
+    header.insertCell().innerHTML = "<b>Field Value</b>";
+    header.insertCell().innerHTML = "<b>Field Length</b>";
+
+    var fields = form.querySelectorAll("input, select, textarea");
+
+    fields.forEach(function(field) {
+
+        var value = "";
+
+        // Radio / Checkbox
+        if (field.type === "radio" || field.type === "checkbox") {
+
+            if (!field.checked) {
+                return;
+            }
+
+            value = field.value || "";
+
+        } else {
+
+            value = field.value || "";
+        }
+
+        // Ignore fields without a value
+        if (value.trim() === "") {
+            return;
+        }
+
+        /*
+         * Field title:
+         * 1. title attribute
+         * 2. aria-label
+         * 3. associated label
+         * 4. name
+         * 5. id
+         */
+        var title = field.getAttribute("title") ||
+                    field.getAttribute("aria-label") ||
+                    "";
+
+        if (!title && field.id) {
+            var label = form.querySelector(
+                'label[for="' + field.id + '"]'
             );
 
-    public FileLogSource(Path file) {
-        this.file = file;
-    }
-
-    @Override
-    public String getName() {
-        return file.toString();
-    }
-
-    @Override
-    public void scan(
-            BiConsumer<String, String> blockConsumer)
-            throws IOException {
-
-        try (BufferedReader reader =
-                     Files.newBufferedReader(
-                             file,
-                             StandardCharsets.UTF_8)) {
-
-            String line;
-
-            StringBuilder block = null;
-
-            boolean capturing = false;
-
-            while ((line = reader.readLine()) != null) {
-
-                /*
-                 * New log block
-                 */
-                if (line.startsWith("[start]")) {
-
-                    Matcher matcher =
-                            HEADER_PATTERN.matcher(line);
-
-                    if (!matcher.find()) {
-                        capturing = false;
-                        block = null;
-                        continue;
-                    }
-
-                    String level =
-                            matcher.group(1);
-
-                    /*
-                     * Only ERROR blocks are required.
-                     */
-                    if (!"ERROR".equalsIgnoreCase(level)) {
-
-                        /*
-                         * We are not interested in this block.
-                         *
-                         * Don't create StringBuilder.
-                         * Don't store any lines.
-                         */
-                        capturing = false;
-                        block = null;
-
-                        continue;
-                    }
-
-                    /*
-                     * ERROR block
-                     */
-                    capturing = true;
-
-                    block = new StringBuilder();
-
-                    block.append(line)
-                         .append('\n');
-
-                    /*
-                     * Handle:
-                     *
-                     * [start] [ERROR] ... [end]
-                     */
-                    if (line.contains("[end]")) {
-
-                        blockConsumer.accept(
-                                file.toString(),
-                                block.toString()
-                        );
-
-                        capturing = false;
-                        block = null;
-                    }
-
-                    continue;
-                }
-
-                /*
-                 * We only process lines belonging
-                 * to an ERROR block.
-                 */
-                if (!capturing) {
-                    continue;
-                }
-
-                block.append(line)
-                     .append('\n');
-
-                /*
-                 * End of ERROR block
-                 */
-                if (line.contains("[end]")) {
-
-                    blockConsumer.accept(
-                            file.toString(),
-                            block.toString()
-                    );
-
-                    capturing = false;
-                    block = null;
-                }
+            if (label) {
+                title = label.innerText.trim();
             }
         }
-    }
-}
 
-package com.company.analyzer.source;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.function.BiConsumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
-public class ZipEntryLogSource implements LogSource {
-
-    private final Path zipFile;
-    private final String entryName;
-
-    private static final Pattern HEADER_PATTERN =
-            Pattern.compile(
-                    "^\\[start\\]\\s+\\[([^\\]]+)\\].*"
-            );
-
-    public ZipEntryLogSource(
-            Path zipFile,
-            String entryName) {
-
-        this.zipFile = zipFile;
-        this.entryName = entryName;
-    }
-
-    @Override
-    public String getName() {
-        return zipFile.toString()
-                + "!"
-                + entryName;
-    }
-
-    @Override
-    public void scan(
-            BiConsumer<String, String> blockConsumer)
-            throws IOException {
-
-        try (ZipFile zip =
-                     new ZipFile(zipFile.toFile())) {
-
-            ZipEntry entry =
-                    zip.getEntry(entryName);
-
-            if (entry == null) {
-                throw new IOException(
-                        "ZIP entry not found: "
-                                + entryName
-                );
-            }
-
-            try (BufferedReader reader =
-                         new BufferedReader(
-                                 new InputStreamReader(
-                                         zip.getInputStream(entry),
-                                         StandardCharsets.UTF_8
-                                 ))) {
-
-                String line;
-
-                StringBuilder block = null;
-
-                boolean capturing = false;
-
-                while ((line = reader.readLine()) != null) {
-
-                    if (line.startsWith("[start]")) {
-
-                        Matcher matcher =
-                                HEADER_PATTERN.matcher(line);
-
-                        if (!matcher.find()) {
-                            capturing = false;
-                            block = null;
-                            continue;
-                        }
-
-                        String level =
-                                matcher.group(1);
-
-                        /*
-                         * Ignore everything except ERROR.
-                         */
-                        if (!"ERROR".equalsIgnoreCase(level)) {
-
-                            capturing = false;
-                            block = null;
-
-                            continue;
-                        }
-
-                        capturing = true;
-
-                        block = new StringBuilder();
-
-                        block.append(line)
-                             .append('\n');
-
-                        if (line.contains("[end]")) {
-
-                            blockConsumer.accept(
-                                    getName(),
-                                    block.toString()
-                            );
-
-                            capturing = false;
-                            block = null;
-                        }
-
-                        continue;
-                    }
-
-                    if (!capturing) {
-                        continue;
-                    }
-
-                    block.append(line)
-                         .append('\n');
-
-                    if (line.contains("[end]")) {
-
-                        blockConsumer.accept(
-                                getName(),
-                                block.toString()
-                        );
-
-                        capturing = false;
-                        block = null;
-                    }
-                }
-            }
+        if (!title) {
+            title = field.name || field.id || "";
         }
-    }
-}
 
+        /*
+         * Field length:
+         * maxlength if available,
+         * otherwise actual value length
+         */
+        var maxLength = field.getAttribute("maxlength");
 
-package com.company.analyzer.search;
+        var fieldLength;
 
-import com.company.analyzer.model.LogBlock;
-import com.company.analyzer.source.LogSource;
+        if (maxLength !== null && maxLength !== "") {
+            fieldLength = maxLength;
+        } else {
+            fieldLength = value.length;
+        }
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+        // Add row
+        var row = table.insertRow();
 
-public class LogSearchService {
+        row.insertCell().innerText = title;
+        row.insertCell().innerText = field.id || "";
+        row.insertCell().innerText = value;
+        row.insertCell().innerText = fieldLength;
+    });
 
-    private static final Pattern HEADER_PATTERN =
-            Pattern.compile(
-                    "\\[start\\]\\s+" +
-                    "\\[([^\\]]+)\\]\\s+" +
-                    "\\[([^\\]]+)\\]\\s+" +
-                    "\\[([^\\]]+)\\]"
-            );
-
-    public List<LogBlock> findErrorByCMainRefAndType(
-            LogSource source,
-            String cMainRef,
-            String errType) throws Exception {
-
-        List<LogBlock> results =
-                new ArrayList<LogBlock>();
-
-        source.scan((sourceName, content) -> {
-
-            /*
-             * C_MAIN_REF must exist.
-             */
-            if (cMainRef == null
-                    || cMainRef.trim().isEmpty()) {
-                return;
-            }
-
-            if (!content.contains(cMainRef)) {
-                return;
-            }
-
-            /*
-             * errType must exist in the block.
-             */
-            if (errType != null
-                    && !errType.trim().isEmpty()) {
-
-                if (!content.toLowerCase()
-                        .contains(
-                                errType.toLowerCase())) {
-
-                    return;
-                }
-            }
-
-            Matcher matcher =
-                    HEADER_PATTERN.matcher(content);
-
-            if (!matcher.find()) {
-                return;
-            }
-
-            String level =
-                    matcher.group(1);
-
-            String timestamp =
-                    matcher.group(2);
-
-            String correlationId =
-                    matcher.group(3);
-
-            LogBlock block =
-                    new LogBlock(
-                            sourceName,
-                            level,
-                            timestamp,
-                            correlationId,
-                            content
-                    );
-
-            results.add(block);
-        });
-
-        return results;
-    }
+    return table;
 }
