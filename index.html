@@ -1,21 +1,20 @@
-function getMainFormTable() {
+function getMainFormValues() {
 
     var form = document.getElementById("MAINFORM");
-    var table = document.createElement("table");
-
-    table.border = "1";
-
-    // Header
-    var header = table.insertRow();
-
-    header.insertCell().innerHTML = "<b>Field Title</b>";
-    header.insertCell().innerHTML = "<b>Field ID</b>";
-    header.insertCell().innerHTML = "<b>Field Value</b>";
-    header.insertCell().innerHTML = "<b>Field Length</b>";
+    var result = [];
 
     var fields = form.querySelectorAll("input, select, textarea");
 
     fields.forEach(function(field) {
+
+        // Ignore buttons
+        if (field.tagName.toLowerCase() === "button" ||
+            field.type === "button" ||
+            field.type === "submit" ||
+            field.type === "reset" ||
+            field.type === "image") {
+            return;
+        }
 
         var value = "";
 
@@ -29,28 +28,22 @@ function getMainFormTable() {
             value = field.value || "";
 
         } else {
-
             value = field.value || "";
         }
 
-        // Ignore fields without a value
+        // Ignore fields with no value
         if (value.trim() === "") {
             return;
         }
 
-        /*
-         * Field title:
-         * 1. title attribute
-         * 2. aria-label
-         * 3. associated label
-         * 4. name
-         * 5. id
-         */
+        // Get Field Title
         var title = field.getAttribute("title") ||
                     field.getAttribute("aria-label") ||
                     "";
 
+        // Try associated label
         if (!title && field.id) {
+
             var label = form.querySelector(
                 'label[for="' + field.id + '"]'
             );
@@ -60,33 +53,33 @@ function getMainFormTable() {
             }
         }
 
+        // Fallback
         if (!title) {
             title = field.name || field.id || "";
         }
 
-        /*
-         * Field length:
-         * maxlength if available,
-         * otherwise actual value length
-         */
+        // Get field length
         var maxLength = field.getAttribute("maxlength");
 
         var fieldLength;
 
         if (maxLength !== null && maxLength !== "") {
-            fieldLength = maxLength;
+            fieldLength = parseInt(maxLength, 10);
         } else {
             fieldLength = value.length;
         }
 
-        // Add row
-        var row = table.insertRow();
-
-        row.insertCell().innerText = title;
-        row.insertCell().innerText = field.id || "";
-        row.insertCell().innerText = value;
-        row.insertCell().innerText = fieldLength;
+        result.push({
+            "Field Title": title,
+            "Field ID": field.id || "",
+            "Field Value": value,
+            "Field Length": fieldLength
+        });
     });
 
-    return table;
+    console.table(result);
+
+    return result;
 }
+
+getMainFormValues();
