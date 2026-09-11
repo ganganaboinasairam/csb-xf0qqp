@@ -1,110 +1,244 @@
-function getMainFormValues() {
+@echo off
+setlocal EnableDelayedExpansion
 
-    var form = document.getElementById("MAINFORM");
-    var result = [];
+REM ==========================================================
+REM                 GET CR NUMBER
+REM ==========================================================
 
-    var fields = form.querySelectorAll("input, select, textarea");
+set /p CRNO=Enter CR number: 
 
-    fields.forEach(function(field) {
+if "%CRNO%"=="" (
+    echo.
+    echo ERROR: CR number cannot be empty.
+    pause
+    exit /b 1
+)
 
-        // Ignore buttons
-        if (field.tagName.toLowerCase() === "button" ||
-            field.type === "button" ||
-            field.type === "submit" ||
-            field.type === "reset" ||
-            field.type === "image") {
-            return;
-        }
+REM ==========================================================
+REM                 FOLDER CONFIGURATION
+REM ==========================================================
 
-        var value = "";
+set "TEMP=E:\SATRAM\Checkin_%CRNO%\TEMP\base_domain"
+set "MAIN=E:\SATRAM\Checkin_%CRNO%\base_domain"
 
-        // Radio / Checkbox
-        if (field.type === "radio" || field.type === "checkbox") {
+set "PVCS=D:\base_domain"
+set "BACKUP=D:\PVCS_BACKUP\%CRNO%"
 
-            if (!field.checked) {
-                return;
-            }
+REM ==========================================================
+REM                 LOG CONFIGURATION
+REM ==========================================================
 
-            value = field.value || "";
+set "LOGDIR=D:\CHECKIN_LOG"
+set "LOG=%LOGDIR%\checkin.log"
 
-        } else {
-            value = field.value || "";
-        }
+if not exist "%LOGDIR%" mkdir "%LOGDIR%"
 
-        // Ignore fields with no value
-        if (value.trim() === "") {
-            return;
-        }
 
-        // --------------------------------
-        // Field Title
-        // --------------------------------
+REM ==========================================================
+REM                 START LOG
+REM ==========================================================
 
-        var title = field.getAttribute("title") ||
-                    field.getAttribute("aria-label") ||
-                    "";
+(
+echo.
+echo ==========================================================
+echo                  CHECKIN BATCH LOG
+echo ==========================================================
+echo CR Number : %CRNO%
+echo Date      : %date%
+echo Start     : %time%
+echo ==========================================================
+echo.
 
-        if (!title && field.id) {
+echo TEMP Folder   : %TEMP%
+echo MAIN Folder   : %MAIN%
+echo PVCS Folder   : %PVCS%
+echo BACKUP Folder : %BACKUP%
+echo.
 
-            var label = form.querySelector(
-                'label[for="' + field.id + '"]'
-            );
+REM ==========================================================
+REM                 1. TEMP TO MAIN
+REM ==========================================================
 
-            if (label) {
-                title = label.innerText.trim();
-            }
-        }
+echo ----------------------------------------------------------
+echo [1] TEMP ^> MAIN
+echo ----------------------------------------------------------
+echo.
 
-        if (!title) {
-            title = field.name || field.id || "";
-        }
+if not exist "%TEMP%" (
 
-        // --------------------------------
-        // Field Length
-        // --------------------------------
+    echo Status : SKIPPED
+    echo Reason : TEMP folder does not exist.
+    echo.
 
-        var maxLength = field.getAttribute("maxlength");
+) else (
 
-        var fieldLength;
+    echo Files to be moved:
+    echo.
 
-        if (maxLength !== null && maxLength !== "") {
-            fieldLength = parseInt(maxLength, 10);
-        } else {
-            fieldLength = value.length;
-        }
+    call :LogFiles "%TEMP%"
 
-        // --------------------------------
-        // Field Status
-        // --------------------------------
+    echo.
+    echo Moving files...
+    
+    if not exist "%MAIN%" mkdir "%MAIN%"
 
-        var fieldStatus = "";
+    robocopy "%TEMP%" "%MAIN%" /E /MOVE /NFL /NDL /NJH /NJS /NP >nul
+    set "RC=!ERRORLEVEL!"
 
-        if (field.classList.contains("CHAR_O")) {
-            fieldStatus = "Optional";
+    echo.
 
-        } else if (field.classList.contains("CHAR_M")) {
-            fieldStatus = "Mandatory";
+    if !RC! LEQ 7 (
+        echo Status : SUCCESS
+    ) else (
+        echo Status : FAILED
+        echo Robocopy Error Code : !RC!
+        set "OVERALL=FAILED"
+    )
 
-        } else if (field.classList.contains("CHAR_P")) {
-            fieldStatus = "Protected";
-        }
+)
 
-        // --------------------------------
-        // Add Result
-        // --------------------------------
+echo.
+echo.
 
-        result.push({
-            "Field Title": title,
-            "Field ID": field.id || "",
-            "Field Value": value,
-            "Field Length": fieldLength,
-            "Field Status": fieldStatus
-        });
-    });
 
-    console.table(result);
+REM ==========================================================
+REM                 2. PVCS TO BACKUP
+REM ==========================================================
 
-    return result;
-}
+echo ----------------------------------------------------------
+echo [2] PVCS ^> BACKUP
+echo ----------------------------------------------------------
+echo.
 
-getMainFormValues();
+if not exist "%PVCS%" (
+
+    echo Status : SKIPPED
+    echo Reason : PVCS folder does not exist.
+    set "OVERALL=FAILED"
+    echo.
+
+) else (
+
+    echo Files to be backed up:
+    echo.
+
+    call :LogFiles "%PVCS%"
+
+    echo.
+    echo Creating backup...
+
+    if not exist "%BACKUP%" mkdir "%BACKUP%"
+
+    robocopy "%PVCS%" "%BACKUP%" /E /NFL /NDL /NJH /NJS /NP >nul
+    set "RC=!ERRORLEVEL!"
+
+    echo.
+
+    if !RC! LEQ 7 (
+        echo Status : SUCCESS
+    ) else (
+        echo Status : FAILED
+        echo Robocopy Error Code : !RC!
+        set "OVERALL=FAILED"
+    )
+
+)
+
+echo.
+echo.
+
+
+REM ==========================================================
+REM                 3. PVCS TO TEMP
+REM ==========================================================
+
+echo ----------------------------------------------------------
+echo [3] PVCS ^> TEMP
+echo ----------------------------------------------------------
+echo.
+
+if not exist "%PVCS%" (
+
+    echo Status : SKIPPED
+    echo Reason : PVCS folder does not exist.
+    set "OVERALL=FAILED"
+    echo.
+
+) else (
+
+    echo Files to be moved:
+    echo.
+
+    call :LogFiles "%PVCS%"
+
+    echo.
+    echo Moving files...
+
+    if not exist "%TEMP%" mkdir "%TEMP%"
+
+    robocopy "%PVCS%" "%TEMP%" /E /MOVE /NFL /NDL /NJH /NJS /NP >nul
+    set "RC=!ERRORLEVEL!"
+
+    echo.
+
+    if !RC! LEQ 7 (
+        echo Status : SUCCESS
+    ) else (
+        echo Status : FAILED
+        echo Robocopy Error Code : !RC!
+        set "OVERALL=FAILED"
+    )
+
+)
+
+REM ==========================================================
+REM                 FINAL STATUS
+REM ==========================================================
+
+echo.
+echo ----------------------------------------------------------
+echo                    FINAL STATUS
+echo ----------------------------------------------------------
+echo.
+
+if "!OVERALL!"=="FAILED" (
+    echo Overall Status : FAILED
+) else (
+    echo Overall Status : SUCCESS
+)
+
+echo End Time       : %time%
+echo ==========================================================
+echo.
+echo.
+
+) >> "%LOG%" 2>&1
+
+
+REM ==========================================================
+REM                 CONSOLE MESSAGE
+REM ==========================================================
+
+echo.
+echo ==========================================================
+echo Batch execution completed.
+echo CR Number : %CRNO%
+echo Log File  : %LOG%
+echo ==========================================================
+echo.
+
+pause
+exit /b
+
+
+REM ==========================================================
+REM                 LOG FILE DETAILS
+REM ==========================================================
+
+:LogFiles
+
+for /r "%~1" %%F in (*) do (
+    echo     %%~nxF ^| Last Modified: %%~tF
+)
+
+exit /b
