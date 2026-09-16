@@ -1,244 +1,35 @@
-@echo off
-setlocal EnableDelayedExpansion
-
-REM ==========================================================
-REM                 GET CR NUMBER
-REM ==========================================================
-
-set /p CRNO=Enter CR number: 
-
-if "%CRNO%"=="" (
-    echo.
-    echo ERROR: CR number cannot be empty.
-    pause
-    exit /b 1
-)
-
-REM ==========================================================
-REM                 FOLDER CONFIGURATION
-REM ==========================================================
-
-set "TEMP=E:\SATRAM\Checkin_%CRNO%\TEMP\base_domain"
-set "MAIN=E:\SATRAM\Checkin_%CRNO%\base_domain"
-
-set "PVCS=D:\base_domain"
-set "BACKUP=D:\PVCS_BACKUP\%CRNO%"
-
-REM ==========================================================
-REM                 LOG CONFIGURATION
-REM ==========================================================
-
-set "LOGDIR=D:\CHECKIN_LOG"
-set "LOG=%LOGDIR%\checkin.log"
-
-if not exist "%LOGDIR%" mkdir "%LOGDIR%"
-
-
-REM ==========================================================
-REM                 START LOG
-REM ==========================================================
-
-(
-echo.
-echo ==========================================================
-echo                  CHECKIN BATCH LOG
-echo ==========================================================
-echo CR Number : %CRNO%
-echo Date      : %date%
-echo Start     : %time%
-echo ==========================================================
-echo.
-
-echo TEMP Folder   : %TEMP%
-echo MAIN Folder   : %MAIN%
-echo PVCS Folder   : %PVCS%
-echo BACKUP Folder : %BACKUP%
-echo.
-
-REM ==========================================================
-REM                 1. TEMP TO MAIN
-REM ==========================================================
-
-echo ----------------------------------------------------------
-echo [1] TEMP ^> MAIN
-echo ----------------------------------------------------------
-echo.
-
-if not exist "%TEMP%" (
-
-    echo Status : SKIPPED
-    echo Reason : TEMP folder does not exist.
-    echo.
-
-) else (
-
-    echo Files to be moved:
-    echo.
-
-    call :LogFiles "%TEMP%"
-
-    echo.
-    echo Moving files...
-    
-    if not exist "%MAIN%" mkdir "%MAIN%"
-
-    robocopy "%TEMP%" "%MAIN%" /E /MOVE /NFL /NDL /NJH /NJS /NP >nul
-    set "RC=!ERRORLEVEL!"
-
-    echo.
-
-    if !RC! LEQ 7 (
-        echo Status : SUCCESS
-    ) else (
-        echo Status : FAILED
-        echo Robocopy Error Code : !RC!
-        set "OVERALL=FAILED"
-    )
-
-)
-
-echo.
-echo.
-
-
-REM ==========================================================
-REM                 2. PVCS TO BACKUP
-REM ==========================================================
-
-echo ----------------------------------------------------------
-echo [2] PVCS ^> BACKUP
-echo ----------------------------------------------------------
-echo.
-
-if not exist "%PVCS%" (
-
-    echo Status : SKIPPED
-    echo Reason : PVCS folder does not exist.
-    set "OVERALL=FAILED"
-    echo.
-
-) else (
-
-    echo Files to be backed up:
-    echo.
-
-    call :LogFiles "%PVCS%"
-
-    echo.
-    echo Creating backup...
-
-    if not exist "%BACKUP%" mkdir "%BACKUP%"
-
-    robocopy "%PVCS%" "%BACKUP%" /E /NFL /NDL /NJH /NJS /NP >nul
-    set "RC=!ERRORLEVEL!"
-
-    echo.
-
-    if !RC! LEQ 7 (
-        echo Status : SUCCESS
-    ) else (
-        echo Status : FAILED
-        echo Robocopy Error Code : !RC!
-        set "OVERALL=FAILED"
-    )
-
-)
-
-echo.
-echo.
-
-
-REM ==========================================================
-REM                 3. PVCS TO TEMP
-REM ==========================================================
-
-echo ----------------------------------------------------------
-echo [3] PVCS ^> TEMP
-echo ----------------------------------------------------------
-echo.
-
-if not exist "%PVCS%" (
-
-    echo Status : SKIPPED
-    echo Reason : PVCS folder does not exist.
-    set "OVERALL=FAILED"
-    echo.
-
-) else (
-
-    echo Files to be moved:
-    echo.
-
-    call :LogFiles "%PVCS%"
-
-    echo.
-    echo Moving files...
-
-    if not exist "%TEMP%" mkdir "%TEMP%"
-
-    robocopy "%PVCS%" "%TEMP%" /E /MOVE /NFL /NDL /NJH /NJS /NP >nul
-    set "RC=!ERRORLEVEL!"
-
-    echo.
-
-    if !RC! LEQ 7 (
-        echo Status : SUCCESS
-    ) else (
-        echo Status : FAILED
-        echo Robocopy Error Code : !RC!
-        set "OVERALL=FAILED"
-    )
-
-)
-
-REM ==========================================================
-REM                 FINAL STATUS
-REM ==========================================================
-
-echo.
-echo ----------------------------------------------------------
-echo                    FINAL STATUS
-echo ----------------------------------------------------------
-echo.
-
-if "!OVERALL!"=="FAILED" (
-    echo Overall Status : FAILED
-) else (
-    echo Overall Status : SUCCESS
-)
-
-echo End Time       : %time%
-echo ==========================================================
-echo.
-echo.
-
-) >> "%LOG%" 2>&1
-
-
-REM ==========================================================
-REM                 CONSOLE MESSAGE
-REM ==========================================================
-
-echo.
-echo ==========================================================
-echo Batch execution completed.
-echo CR Number : %CRNO%
-echo Log File  : %LOG%
-echo ==========================================================
-echo.
-
-pause
-exit /b
-
-
-REM ==========================================================
-REM                 LOG FILE DETAILS
-REM ==========================================================
-
-:LogFiles
-
-for /r "%~1" %%F in (*) do (
-    echo     %%~nxF ^| Last Modified: %%~tF
-)
-
-exit /b
+function disableTable(tableId) {
+    const table = document.getElementById(tableId);
+
+    if (!table) return;
+
+    // Disable all TDs
+    table.querySelectorAll("td").forEach(td => {
+        td.classList.add("table-td-disabled");
+
+        // Disable interactive elements inside TD
+        td.querySelectorAll("input, select, textarea, button").forEach(el => {
+            el.disabled = true;
+        });
+    });
+}
+
+function enableTable(tableId) {
+    const table = document.getElementById(tableId);
+
+    if (!table) return;
+
+    // Enable all TDs
+    table.querySelectorAll("td").forEach(td => {
+        td.classList.remove("table-td-disabled");
+
+        // Enable interactive elements inside TD
+        td.querySelectorAll("input, select, textarea, button").forEach(el => {
+            el.disabled = false;
+        });
+    });
+}.table-td-disabled {
+    pointer-events: none !important;
+    user-select: none !important;
+    opacity: 0.6;
+}
