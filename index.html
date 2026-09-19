@@ -1,35 +1,148 @@
-function disableTable(tableId) {
-    const table = document.getElementById(tableId);
+@echo off
+setlocal
 
-    if (!table) return;
+set /p "IR_NO=Enter IR Number: "
 
-    // Disable all TDs
-    table.querySelectorAll("td").forEach(td => {
-        td.classList.add("table-td-disabled");
+if not defined IR_NO (
+    echo.
+    echo ERROR: IR Number cannot be empty.
+    pause
+    exit /b 1
+)
 
-        // Disable interactive elements inside TD
-        td.querySelectorAll("input, select, textarea, button").forEach(el => {
-            el.disabled = true;
-        });
-    });
-}
+set "TEMP=F:\SAIRAM\checkin_%IR_NO%_TEMP\base_domain"
+set "MAINS=F:\SAIRAM\checkin_%IR_NO%\base_domain"
 
-function enableTable(tableId) {
-    const table = document.getElementById(tableId);
+set "DRIVE=C:\Users\v1013325\OneDrive - State Bank of India\CHECKIN\checkin_%IR_NO%_TEMP\base_domain"
 
-    if (!table) return;
+set "PVCS=D:\base_domain"
+set "BACKUP=D:\PVCS_BACKUP\%IR_NO%"
 
-    // Enable all TDs
-    table.querySelectorAll("td").forEach(td => {
-        td.classList.remove("table-td-disabled");
+set "LOG=C:\Users\v1013325\Desktop\CHECKIN-BATCH\checkin.log"
 
-        // Enable interactive elements inside TD
-        td.querySelectorAll("input, select, textarea, button").forEach(el => {
-            el.disabled = false;
-        });
-    });
-}.table-td-disabled {
-    pointer-events: none !important;
-    user-select: none !important;
-    opacity: 0.6;
-}
+
+echo.
+echo ==================================================
+echo CHECKIN PROCESS
+echo ==================================================
+echo IR Number : %IR_NO%
+echo.
+echo PVCS      : %PVCS%
+echo BACKUP    : %BACKUP%
+echo OneDrive  : %DRIVE%
+echo TEMP      : %TEMP%
+echo MAIN      : %MAINS%
+echo LOG       : %LOG%
+echo ==================================================
+echo.
+
+echo ================================================== >>"%LOG%"
+echo START : %date% %time% >>"%LOG%"
+echo IR    : %IR_NO% >>"%LOG%"
+echo ================================================== >>"%LOG%"
+
+
+rem --------------------------------------------------
+rem Create required folders
+rem --------------------------------------------------
+
+if not exist "%TEMP%" mkdir "%TEMP%"
+if not exist "%MAINS%" mkdir "%MAINS%"
+if not exist "%DRIVE%" mkdir "%DRIVE%"
+if not exist "%BACKUP%" mkdir "%BACKUP%"
+
+
+rem --------------------------------------------------
+rem Validate PVCS
+rem --------------------------------------------------
+
+if not exist "%PVCS%" (
+    echo ERROR: PVCS folder not found.
+    echo ERROR: PVCS folder not found: %PVCS% >>"%LOG%"
+    pause
+    exit /b 1
+)
+
+
+rem --------------------------------------------------
+rem Move existing OneDrive files to MAIN
+rem --------------------------------------------------
+
+echo Moving OneDrive files to MAIN...
+robocopy "%DRIVE%" "%MAINS%" /E /MOVE >>"%LOG%" 2>&1
+
+if errorlevel 8 (
+    echo ERROR: OneDrive to MAIN failed.
+    pause
+    exit /b 1
+)
+
+
+rem --------------------------------------------------
+rem Move TEMP files to MAIN
+rem --------------------------------------------------
+
+echo Moving TEMP files to MAIN...
+robocopy "%TEMP%" "%MAINS%" /E /MOVE >>"%LOG%" 2>&1
+
+if errorlevel 8 (
+    echo ERROR: TEMP to MAIN failed.
+    pause
+    exit /b 1
+)
+
+
+rem --------------------------------------------------
+rem Backup PVCS
+rem --------------------------------------------------
+
+echo Creating PVCS backup...
+robocopy "%PVCS%" "%BACKUP%" /E >>"%LOG%" 2>&1
+
+if errorlevel 8 (
+    echo ERROR: PVCS backup failed.
+    pause
+    exit /b 1
+)
+
+
+rem --------------------------------------------------
+rem Copy PVCS to OneDrive
+rem --------------------------------------------------
+
+echo Copying PVCS to OneDrive...
+robocopy "%PVCS%" "%DRIVE%" /E >>"%LOG%" 2>&1
+
+if errorlevel 8 (
+    echo ERROR: PVCS to OneDrive failed.
+    echo PVCS was NOT moved.
+    pause
+    exit /b 1
+)
+
+
+rem --------------------------------------------------
+rem Move PVCS to TEMP
+rem --------------------------------------------------
+
+echo Moving PVCS to TEMP...
+robocopy "%PVCS%" "%TEMP%" /E /MOVE >>"%LOG%" 2>&1
+
+if errorlevel 8 (
+    echo ERROR: PVCS to TEMP failed.
+    pause
+    exit /b 1
+)
+
+
+echo.
+echo ==================================================
+echo PROCESS COMPLETED
+echo ==================================================
+echo.
+
+echo ================================================== >>"%LOG%"
+echo COMPLETED : %date% %time% >>"%LOG%"
+echo ================================================== >>"%LOG%"
+
+pause
