@@ -1,50 +1,63 @@
-FUNC FOLDER PATH :E:\gitClone\tf_ee_pre_dev\base_domain\Default\FUNC
-
-FUNC XML EXAMPLE :
 <?xml version="1.0" encoding="UTF-8"?>
 <FUNC>
     <SCREEN>
-        <ID>R00000004243</ID>
-        <NAME>INLC_Inland_Railway_LC_BRU</NAME>
-        <JSPFILE>SCRN/INLC_Inland_Railway_LC_BRU.jsp</JSPFILE>
-        <DESC>INLC_Inland_Railway_LC_BRU</DESC>
+        <ID>R00000004068</ID>
+        <NAME>Issue_After_RegisterLCjsp</NAME>
+        <JSPFILE>SCRN/INLC_Issue_After_RegisterLC-TF.jsp</JSPFILE>
+        <DESC>Issue_After_RegisterLCjsp</DESC>
     </SCREEN>
     <DOSCREEN ISDEF="T"/>
+    <FORM>
+        <ID>F00000010417</ID>
+        <NAME/>
+    </FORM>
+    <VOUCHER>
+        <ID>F00000010414</ID>
+        <NAME/>
+    </VOUCHER>
     <FUNCTION>
         <MODULE TYPE="TRANS">INLC</MODULE>
         <MODULE_DESC>Inland LC Issuance and LC Bills</MODULE_DESC>
-        <EVENT>IRLC</EVENT>
-        <ID>F05030706289</ID>
-        <NAME>Inland_Railway_LC_BRU</NAME>
-	<DESC>Inland Railway Issue LC BRU</DESC>
-        <FUNSHORTNAME>RailwayLCBRU</FUNSHORTNAME>
+        <EVENT>Issuance</EVENT>
+        <ID>F05030706014</ID>
+        <NAME>Issue_After_RegisterLC</NAME>
+        <DESC>Issue LC (After Register LC)</DESC>
+        <FUNSHORTNAME>IssueRgLC</FUNSHORTNAME>
         <FUNCPROCEVENT/>
         <LOCKCHECK>Y</LOCKCHECK>
         <HOLDMASTER>T</HOLDMASTER>
         <FUNCTYPE>PM</FUNCTYPE>
         <MAINCOMP>TrxManagerPending</MAINCOMP>
         <UIStyle>C</UIStyle>
-        <ADDMASTER>Y</ADDMASTER>
-		<ATTR_ID name="INLC_rail_LC_BRU">R00000021624</ATTR_ID>
-        <CATALOGID>R00000021622</CATALOGID>
-          <GAPI>F00000010584</GAPI>
-           <TransferTo>F00000010597</TransferTo>
-
+        <ADDMASTER>N</ADDMASTER>
+        <CATALOGID>R00000020697</CATALOGID>
+        <ATTR_ID name="INLC_issueLC_After_RegisterLC-TF">R00000020671</ATTR_ID>
+        <ASYNCSWIFT>N</ASYNCSWIFT>
+        <GAPI>F00000010477</GAPI>
+        <TransferTo>F00000010412</TransferTo>
+        <OutSWIFT>F00000010402</OutSWIFT>
+	<InXML>F05030706014</InXML>
     </FUNCTION>
 </FUNC>
 
-FUNC XML FILE NAME WILL BE: func_F0503070IDEA.xml
 
-SCRN jsp PATH : E:\gitClone\tf_ee_pre_dev\base_domain\EE.ear\EximBillWeb.war\SCRN
-the jsp file for the given function will be "E:\gitClone\tf_ee_pre_dev\base_domain\EE.ear\EximBillWeb.war\SCRN\INLC_Inland_Railway_LC_BRU.jsp"
-jsp will be taken from JSPFILE tag
+along with js jsp and scrn xml ,below options also to be created and add this files also in index.
 
-the screen XML will be "E:\gitClone\tf_ee_pre_dev\base_domain\Default\SCRN\INLC_Inland_Railway_LC_BRU.xml"
-screen xml will be taken from same jspfile tag but the file extension will be .xml
+catalog xml path :E:\gitClone\tf_ee_pre_dev\base_domain\Default\CATA\cata_R00000020697.xml  > from  CATALOGID
 
-the JS path will be : "E:\gitClone\tf_ee_pre_dev\base_domain\CALJS\FUNCLEVEL\SYF_INLC_Inland_Railway_LC_BRU.js"
-js will be taken from NAME tag which is inside FUNCTION tag, the file name will be framed like "SYF_"+MODULE tag value+"_"+name tag value+".js"
+gapi xml path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\GAPI\gapi_F00000010477.js  > from GAPI
+
+trft path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\TRFT\trft_F00000010412.js  > from TransferTo
 
 
-i need a web tool for this functionality, will configure the E:\gitClone\tf_ee_pre_dev\base_domain path and function id will be as input then all the files related to the function should be appere below and a open button beside, open button should open the file in note pad or vs code it should be configured
+Swift path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\SWIFT\swt_F00000010402.js  > from OutSWIFT
 
+inxml path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\STP\INXML\FUN\func_F05030706014.js  > from InXML
+
+func atter path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\FUNCATTR\fattr_R00000020671I.xml and  E:\gitClone\tf_ee_pre_dev\base_domain\Default\FUNCATTR\fattr_R00000020671P.xml
+
+	we should open both files for func attr one is for inquery and one is for post
+	
+voucher xml : E:\gitClone\tf_ee_pre_dev\base_domain\Default\VCH\vch_F00000010414.js  > from VOUCHER
+
+form path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\FORM\form_F00000010417.js > from FORM
