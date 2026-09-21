@@ -1,148 +1,50 @@
-@echo off
-setlocal
+FUNC FOLDER PATH :E:\gitClone\tf_ee_pre_dev\base_domain\Default\FUNC
 
-set /p "IR_NO=Enter IR Number: "
+FUNC XML EXAMPLE :
+<?xml version="1.0" encoding="UTF-8"?>
+<FUNC>
+    <SCREEN>
+        <ID>R00000004243</ID>
+        <NAME>INLC_Inland_Railway_LC_BRU</NAME>
+        <JSPFILE>SCRN/INLC_Inland_Railway_LC_BRU.jsp</JSPFILE>
+        <DESC>INLC_Inland_Railway_LC_BRU</DESC>
+    </SCREEN>
+    <DOSCREEN ISDEF="T"/>
+    <FUNCTION>
+        <MODULE TYPE="TRANS">INLC</MODULE>
+        <MODULE_DESC>Inland LC Issuance and LC Bills</MODULE_DESC>
+        <EVENT>IRLC</EVENT>
+        <ID>F05030706289</ID>
+        <NAME>Inland_Railway_LC_BRU</NAME>
+	<DESC>Inland Railway Issue LC BRU</DESC>
+        <FUNSHORTNAME>RailwayLCBRU</FUNSHORTNAME>
+        <FUNCPROCEVENT/>
+        <LOCKCHECK>Y</LOCKCHECK>
+        <HOLDMASTER>T</HOLDMASTER>
+        <FUNCTYPE>PM</FUNCTYPE>
+        <MAINCOMP>TrxManagerPending</MAINCOMP>
+        <UIStyle>C</UIStyle>
+        <ADDMASTER>Y</ADDMASTER>
+		<ATTR_ID name="INLC_rail_LC_BRU">R00000021624</ATTR_ID>
+        <CATALOGID>R00000021622</CATALOGID>
+          <GAPI>F00000010584</GAPI>
+           <TransferTo>F00000010597</TransferTo>
 
-if not defined IR_NO (
-    echo.
-    echo ERROR: IR Number cannot be empty.
-    pause
-    exit /b 1
-)
+    </FUNCTION>
+</FUNC>
 
-set "TEMP=F:\SAIRAM\checkin_%IR_NO%_TEMP\base_domain"
-set "MAINS=F:\SAIRAM\checkin_%IR_NO%\base_domain"
+FUNC XML FILE NAME WILL BE: func_F0503070IDEA.xml
 
-set "DRIVE=C:\Users\v1013325\OneDrive - State Bank of India\CHECKIN\checkin_%IR_NO%_TEMP\base_domain"
+SCRN jsp PATH : E:\gitClone\tf_ee_pre_dev\base_domain\EE.ear\EximBillWeb.war\SCRN
+the jsp file for the given function will be "E:\gitClone\tf_ee_pre_dev\base_domain\EE.ear\EximBillWeb.war\SCRN\INLC_Inland_Railway_LC_BRU.jsp"
+jsp will be taken from JSPFILE tag
 
-set "PVCS=D:\base_domain"
-set "BACKUP=D:\PVCS_BACKUP\%IR_NO%"
+the screen XML will be "E:\gitClone\tf_ee_pre_dev\base_domain\Default\SCRN\INLC_Inland_Railway_LC_BRU.xml"
+screen xml will be taken from same jspfile tag but the file extension will be .xml
 
-set "LOG=C:\Users\v1013325\Desktop\CHECKIN-BATCH\checkin.log"
-
-
-echo.
-echo ==================================================
-echo CHECKIN PROCESS
-echo ==================================================
-echo IR Number : %IR_NO%
-echo.
-echo PVCS      : %PVCS%
-echo BACKUP    : %BACKUP%
-echo OneDrive  : %DRIVE%
-echo TEMP      : %TEMP%
-echo MAIN      : %MAINS%
-echo LOG       : %LOG%
-echo ==================================================
-echo.
-
-echo ================================================== >>"%LOG%"
-echo START : %date% %time% >>"%LOG%"
-echo IR    : %IR_NO% >>"%LOG%"
-echo ================================================== >>"%LOG%"
-
-
-rem --------------------------------------------------
-rem Create required folders
-rem --------------------------------------------------
-
-if not exist "%TEMP%" mkdir "%TEMP%"
-if not exist "%MAINS%" mkdir "%MAINS%"
-if not exist "%DRIVE%" mkdir "%DRIVE%"
-if not exist "%BACKUP%" mkdir "%BACKUP%"
+the JS path will be : "E:\gitClone\tf_ee_pre_dev\base_domain\CALJS\FUNCLEVEL\SYF_INLC_Inland_Railway_LC_BRU.js"
+js will be taken from NAME tag which is inside FUNCTION tag, the file name will be framed like "SYF_"+MODULE tag value+"_"+name tag value+".js"
 
 
-rem --------------------------------------------------
-rem Validate PVCS
-rem --------------------------------------------------
+i need a web tool for this functionality, will configure the E:\gitClone\tf_ee_pre_dev\base_domain path and function id will be as input then all the files related to the function should be appere below and a open button beside, open button should open the file in note pad or vs code it should be configured
 
-if not exist "%PVCS%" (
-    echo ERROR: PVCS folder not found.
-    echo ERROR: PVCS folder not found: %PVCS% >>"%LOG%"
-    pause
-    exit /b 1
-)
-
-
-rem --------------------------------------------------
-rem Move existing OneDrive files to MAIN
-rem --------------------------------------------------
-
-echo Moving OneDrive files to MAIN...
-robocopy "%DRIVE%" "%MAINS%" /E /MOVE >>"%LOG%" 2>&1
-
-if errorlevel 8 (
-    echo ERROR: OneDrive to MAIN failed.
-    pause
-    exit /b 1
-)
-
-
-rem --------------------------------------------------
-rem Move TEMP files to MAIN
-rem --------------------------------------------------
-
-echo Moving TEMP files to MAIN...
-robocopy "%TEMP%" "%MAINS%" /E /MOVE >>"%LOG%" 2>&1
-
-if errorlevel 8 (
-    echo ERROR: TEMP to MAIN failed.
-    pause
-    exit /b 1
-)
-
-
-rem --------------------------------------------------
-rem Backup PVCS
-rem --------------------------------------------------
-
-echo Creating PVCS backup...
-robocopy "%PVCS%" "%BACKUP%" /E >>"%LOG%" 2>&1
-
-if errorlevel 8 (
-    echo ERROR: PVCS backup failed.
-    pause
-    exit /b 1
-)
-
-
-rem --------------------------------------------------
-rem Copy PVCS to OneDrive
-rem --------------------------------------------------
-
-echo Copying PVCS to OneDrive...
-robocopy "%PVCS%" "%DRIVE%" /E >>"%LOG%" 2>&1
-
-if errorlevel 8 (
-    echo ERROR: PVCS to OneDrive failed.
-    echo PVCS was NOT moved.
-    pause
-    exit /b 1
-)
-
-
-rem --------------------------------------------------
-rem Move PVCS to TEMP
-rem --------------------------------------------------
-
-echo Moving PVCS to TEMP...
-robocopy "%PVCS%" "%TEMP%" /E /MOVE >>"%LOG%" 2>&1
-
-if errorlevel 8 (
-    echo ERROR: PVCS to TEMP failed.
-    pause
-    exit /b 1
-)
-
-
-echo.
-echo ==================================================
-echo PROCESS COMPLETED
-echo ==================================================
-echo.
-
-echo ================================================== >>"%LOG%"
-echo COMPLETED : %date% %time% >>"%LOG%"
-echo ================================================== >>"%LOG%"
-
-pause
