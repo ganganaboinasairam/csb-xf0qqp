@@ -1,63 +1,36 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<FUNC>
-    <SCREEN>
-        <ID>R00000004068</ID>
-        <NAME>Issue_After_RegisterLCjsp</NAME>
-        <JSPFILE>SCRN/INLC_Issue_After_RegisterLC-TF.jsp</JSPFILE>
-        <DESC>Issue_After_RegisterLCjsp</DESC>
-    </SCREEN>
-    <DOSCREEN ISDEF="T"/>
-    <FORM>
-        <ID>F00000010417</ID>
-        <NAME/>
-    </FORM>
-    <VOUCHER>
-        <ID>F00000010414</ID>
-        <NAME/>
-    </VOUCHER>
-    <FUNCTION>
-        <MODULE TYPE="TRANS">INLC</MODULE>
-        <MODULE_DESC>Inland LC Issuance and LC Bills</MODULE_DESC>
-        <EVENT>Issuance</EVENT>
-        <ID>F05030706014</ID>
-        <NAME>Issue_After_RegisterLC</NAME>
-        <DESC>Issue LC (After Register LC)</DESC>
-        <FUNSHORTNAME>IssueRgLC</FUNSHORTNAME>
-        <FUNCPROCEVENT/>
-        <LOCKCHECK>Y</LOCKCHECK>
-        <HOLDMASTER>T</HOLDMASTER>
-        <FUNCTYPE>PM</FUNCTYPE>
-        <MAINCOMP>TrxManagerPending</MAINCOMP>
-        <UIStyle>C</UIStyle>
-        <ADDMASTER>N</ADDMASTER>
-        <CATALOGID>R00000020697</CATALOGID>
-        <ATTR_ID name="INLC_issueLC_After_RegisterLC-TF">R00000020671</ATTR_ID>
-        <ASYNCSWIFT>N</ASYNCSWIFT>
-        <GAPI>F00000010477</GAPI>
-        <TransferTo>F00000010412</TransferTo>
-        <OutSWIFT>F00000010402</OutSWIFT>
-	<InXML>F05030706014</InXML>
-    </FUNCTION>
-</FUNC>
+statusDisplayMap: {
+    "DEO PC MAKER": "Pending With DEO",
+    "DEO": "Pending With DEO",
+    "SWO": "Pending With SWO",
+    "NESL": "Pending NESL",
+    "DSO PC CHECKER": "Pending With DSO",
+    "BEFORE RFO DEO": "Pending With DEO",
+    "OFAC": "Pending With OFAC Officer",
+    "CCC FBG MAKER": "Pending With CCC FBG MAKER",
+    "CCC FBG CHECKER": "Pending With CCC FBG CHECKER",
+    "CONTROL OFFICER": "Pending With CONTROL OFFICER",
+    "BEFORE RFO DSO": "Pending With DSO",
+    "AFTER RFO DEO": "Pending With DEO",
+    "MODIFY FOREIGN BG ISSUE": "Pending With Branch For Modification",
+    "SWO SWIFT": "Pending With SWO",
+    "BGA": "Pending With BGA",
+    "DSO CHECKER": "Pending With DSO",
+    "RFO": "Pending With RFO",
+    "DSO": "Pending With DSO",
+    "AFTER RFO DSO": "Pending With DSO",
+    "OFAC CONTROL OFFICER": "Pending With OFAC Officer"
+},
 
 
-along with js jsp and scrn xml ,below options also to be created and add this files also in index.
+methods: {
+    getProcessedStatus(status) {
+        return this.statusDisplayMap[status] || status;
+    },
 
-catalog xml path :E:\gitClone\tf_ee_pre_dev\base_domain\Default\CATA\cata_R00000020697.xml  > from  CATALOGID
-
-gapi xml path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\GAPI\gapi_F00000010477.js  > from GAPI
-
-trft path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\TRFT\trft_F00000010412.js  > from TransferTo
+    // existing methods...
+}
 
 
-Swift path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\SWIFT\swt_F00000010402.js  > from OutSWIFT
-
-inxml path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\STP\INXML\FUN\func_F05030706014.js  > from InXML
-
-func atter path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\FUNCATTR\fattr_R00000020671I.xml and  E:\gitClone\tf_ee_pre_dev\base_domain\Default\FUNCATTR\fattr_R00000020671P.xml
-
-	we should open both files for func attr one is for inquery and one is for post
-	
-voucher xml : E:\gitClone\tf_ee_pre_dev\base_domain\Default\VCH\vch_F00000010414.js  > from VOUCHER
-
-form path : E:\gitClone\tf_ee_pre_dev\base_domain\Default\FORM\form_F00000010417.js > from FORM
+<template v-slot:item.C_STEP_NAME="{ item }">
+    {{ getProcessedStatus(item.C_STEP_NAME) }}
+</template>
