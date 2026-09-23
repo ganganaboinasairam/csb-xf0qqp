@@ -1,35 +1,31 @@
-statusDisplayMap: {
-    "DEO PC MAKER": "Pending With DEO",
-    "DEO": "Pending With DEO",
-    "SWO": "Pending With SWO",
-    "NESL": "Pending NESL",
-    "DSO PC CHECKER": "Pending With DSO",
-    "BEFORE RFO DEO": "Pending With DEO",
-    "OFAC": "Pending With OFAC Officer",
-    "CCC FBG MAKER": "Pending With CCC FBG MAKER",
-    "CCC FBG CHECKER": "Pending With CCC FBG CHECKER",
-    "CONTROL OFFICER": "Pending With CONTROL OFFICER",
-    "BEFORE RFO DSO": "Pending With DSO",
-    "AFTER RFO DEO": "Pending With DEO",
-    "MODIFY FOREIGN BG ISSUE": "Pending With Branch For Modification",
-    "SWO SWIFT": "Pending With SWO",
-    "BGA": "Pending With BGA",
-    "DSO CHECKER": "Pending With DSO",
-    "RFO": "Pending With RFO",
-    "DSO": "Pending With DSO",
-    "AFTER RFO DSO": "Pending With DSO",
-    "OFAC CONTROL OFFICER": "Pending With OFAC Officer"
-},
-
-
 methods: {
-    getProcessedStatus(status) {
-        return this.statusDisplayMap[status] || status;
-    },
+    getProcessedStatus(value) {
+        const statusMap = {
+            "DEO": "Pending With DEO",
+            "DEO PC MAKER": "Pending With DEO",
+            "SWO": "Pending With SWO",
+            "NESL": "Pending NESL",
+            "DSO PC CHECKER": "Pending With DSO",
+            "BEFORE RFO DEO": "Pending With DEO",
+            "OFAC": "Pending With OFAC Officer",
+            "CCC FBG MAKER": "Pending With CCC FBG MAKER",
+            "CCC FBG CHECKER": "Pending With CCC FBG CHECKER",
+            "CONTROL OFFICER": "Pending With CONTROL OFFICER",
+            "BEFORE RFO DSO": "Pending With DSO",
+            "AFTER RFO DEO": "Pending With DEO",
+            "MODIFY FOREIGN BG ISSUE": "Pending With Branch For Modification",
+            "SWO SWIFT": "Pending With SWO",
+            "BGA": "Pending With BGA",
+            "DSO CHECKER": "Pending With DSO",
+            "RFO": "Pending With RFO",
+            "DSO": "Pending With DSO",
+            "AFTER RFO DSO": "Pending With DSO",
+            "OFAC CONTROL OFFICER": "Pending With OFAC Officer"
+        };
 
-    // existing methods...
+        return statusMap[value] || value;
+    }
 }
-
 
 <template v-slot:item.C_STEP_NAME="{ item }">
     {{ getProcessedStatus(item.C_STEP_NAME) }}
