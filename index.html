@@ -1,148 +1,87 @@
-  public String SendPostRequest(JSONObject requestJson, String eisReqRegNum, String sUrl, String sMockRespFile, String sAPIType, String sGSTN, boolean isRespFromStub) throws JSONException, Exception {
-    requestJson = replaceDEOTellerIDWithVirtualTellerId(requestJson);
-    APLog.reportLog(" JSON Request before encryption::" + requestJson.toString());
+package com.cs.inquiry.servicesss;
 
-              String urlcheck = sUrl;
-			String AESkey = DigitalSign.KeyGenerator();
-			String sEncyptjsonReq = "";
-			if(urlcheck.contains("gen5")){
-				APLog.reportLog("inside SendPostRequest gen5 if ");
-				 sEncyptjsonReq = DigitalSign.AESEncrypt(requestJson.toString(), AESkey);
-			}
-			else{
-				APLog.reportLog("inside SendPostRequest gen7 else ");
-			 sEncyptjsonReq = DigitalSign.AESGen6Encrypt(requestJson.toString(), AESkey);
-			}
-    APLog.reportLog("ENCRYPTED  JSON Request::" + sEncyptjsonReq);
-    String AccessToken = DigitalSign.RSAEncrypt_KEY(AESkey, eispublickeypath);
-    APLog.reportLog("ACCESS TOKEN::" + AccessToken);
-    String Digisign = DigitalSign.eisDigitalSignature(requestJson.toString(), tfprivatekeypath);
-    JSONObject finalJson = new JSONObject();
-    finalJson.put("\"REQUEST\"", sEncyptjsonReq);
-    finalJson.put("\"REQUEST_REFERENCE_NUMBER\"", eisReqRegNum);
-    finalJson.put("\"DIGI_SIGN\"", Digisign);
-    APLog.reportLog("Final  Request::" + finalJson);
-    String finalresponse = null;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
-		    if (!isRespFromStub) { 
-		    	if(urlcheck.contains("gen5")){
-	            	 APLog.reportLog("inside SendPostRequest% if... gen5");
-			     finalresponse = sendClientData(finalJson.toString(), sUrl, AccessToken, AESkey,sAPIType,sGSTN);
-		    	}
-		    	else{
-		    		APLog.reportLog("inside SendPostRequest% esle...  gen7");
-		    		 finalresponse = sendClientDataGen6(finalJson.toString(), sUrl, AccessToken, AESkey,sAPIType,sGSTN);
-		    	}
-	    }else {
-				//httpStatusCode = 200;
-				finalresponse=FileUtils.readFileToString(new File(ASPathConst.USER_DIR_PATH+File.separator+"INT"+File.separator+"SampleResponses"+File.separator+sMockRespFile));
-	    }
-	   APLog.reportLog("final Response::" + finalresponse);
-	    return finalresponse;
+import com.cs.common.model.GAPIHeaderData;
+import com.cs.esp.org.json.JSONObject;
+import com.cs.eximap.utility.APLog;
+import com.cs.idea.utilities.IdeaProperties;
+import com.cs.idea.utilities.RestClient;
+import com.cs.utilities.SBIBaseService;
+import com.cs.utilities.SBIUtility;
+import com.tcs.idea.handler.RequestHandler;
+
+public class CustomerOnboard extends SBIBaseService implements RequestHandler{
+	
+	private String TELLER_ID;
+	private String cif;
+	
+	public CustomerOnboard(GAPIHeaderData gapiHeaderData) throws Exception {
+		super(gapiHeaderData);
 	}
 	
-	
-	
-	
-	 public static String sendClientDataGen6(String request, String WebUrl, String AccessToken, String AESkey, String sAPIType,String sGSTN) throws NumberFormatException, JSONException {
-		    String output = "";
-		    String resutility = "";
-		    try {
-		    String sourceId = InterfaceProperties.CBSInterfaceProperties.getProperty("SOURCE_ID");
-		     APLog.reportLog("inside sendClientDataGen6 ");
-		     APLog.reportLog("Client_Id : "+InterfaceProperties.CBSInterfaceProperties.getProperty("Client_Id"));
-		     APLog.reportLog("Client_Secret : "+InterfaceProperties.CBSInterfaceProperties.getProperty("Client_Secret"));
-		      Client client = Client.create();
-		      WebResource webResource = client.resource(WebUrl);
-		      System.setProperty("jdk.http.auth.tunneling.disabledSchemes", "");
-		      System.setProperty("https.protocols", "TLSv1,TLSv1.1,TLSv1.2");
-		      ClientResponse response;
-		      if("GST".equalsIgnoreCase(sAPIType)) {
-		    	  APLog.reportLog("inside sendClientDataGen6 if gen5");
-			       response = (ClientResponse)((WebResource.Builder)((WebResource.Builder)((WebResource.Builder)webResource
-			  	        .accept(new String[] { "application/json" }).type(
-			  	          "application/json")).header("Accesstoken", AccessToken)).header("Clientid", sourceId).header("CLIENT_CODE", InterfaceProperties.CBSInterfaceProperties.getProperty("GST_CLIENT_CODE")).header("GST_IN", sGSTN).header("Client-Id", "4293cf92beab40220bb00e81a236f6f4").header("Client-Secret", "7ae87ac5ebbd7790e6021c5c4bbb2082")).post(
-			  	          ClientResponse.class, request);
-		      }else {
-		    	  APLog.reportLog("inside sendClientDataGen6 else gen7");
-			       response = (ClientResponse)((WebResource.Builder)((WebResource.Builder)((WebResource.Builder)((WebResource.Builder)((WebResource.Builder)webResource
-			  	        .accept(new String[] { "application/json" }).type(
-			  	          "application/json")).header("Accesstoken", AccessToken)).header("Clientid", sourceId)).header("Client-Id", InterfaceProperties.CBSInterfaceProperties.getProperty("Client_Id"))).header("Client-Secret", InterfaceProperties.CBSInterfaceProperties.getProperty("Client_Secret"))).post(
-			  	          ClientResponse.class, request);  
-		      }
-
-		      if (response.getStatus() != 200) {
-		       APLog.reportLog("Failed : HTTP error code : " + response.getStatus());
-		        throw new Exception("Failed : HTTP error code : " + response.getStatus());
-		      } 
-		      output = (String)response.getEntity(String.class);
-		      output = output.toString();
-		     APLog.reportLog("Received Encrypted Http Response:: :: " + output);
-		      JSONObject jsonObject = new JSONObject(output.toString());
-		      String MarginEncResponse = jsonObject.get("RESPONSE").toString();
-		      String DigiSignVerify = jsonObject.get("DIGI_SIGN").toString();
-		      String decResponse = DigitalSign.AESGen6Decrypt(MarginEncResponse, AESkey);
-		     APLog.reportLog("Received Decrypted Http Response:: ::" + decResponse);
-		      DigitalSign.verify(decResponse, DigiSignVerify, eispublickeypath);
-		      JSONObject jsonObject6 = new JSONObject(decResponse.toString());
-		      int response_status = Integer.parseInt(jsonObject6.get("RESPONSE_STATUS").toString());
-		      if (output != null && !"".equals(output)) {
-		        if (response_status == 0) {
-		          if ("No records found, Please try again!".equals(jsonObject6.get("legalName").toString())) {
-		            resutility = "FALSE No records found, Please try again";
-		          } else {
-		            //resutility = "TRUE " + decResponse;
-		        	  resutility = decResponse;
-		          } 
-		        } else if (response_status == 1) {
-		          //resutility = "ERROR " + decResponse;
-		        	resutility =  decResponse;
-		        } 
-		      } else {
-		        resutility = "{\"ERROR_CODE\":\"No Response\", \"ERROR_DESCRIPTION\":\"No Response From EIS, Please try again!\"}";
-		      } 
-		    } catch (Exception e) {
-		      e.printStackTrace();
-		    } 
-		    return resutility;
-		  }
-	 
-	 
-	  public static String AESGen6Encrypt(String message, String key) {
-	    try {
-	      byte[] keybyte = key.getBytes("UTF-8");
-	      byte[] ivkey = Arrays.copyOf(keybyte, 12);
-	     // IvParameterSpec iv = new IvParameterSpec(ivkey);
-	      GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, ivkey);
-	      SecretKeySpec seckey = new SecretKeySpec(keybyte, "AES");
-	      Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
-	      c.init(Cipher.ENCRYPT_MODE, seckey,gcmParameterSpec);
-	      byte[] encvalue = c.doFinal(message.getBytes("UTF-8"));
-	      String encryptedvalue = (new BASE64Encoder()).encode(encvalue).replaceAll("\r\n", "");
-	      return encryptedvalue;
-	    } catch (Exception e) {
-	      e.printStackTrace();
-	      return e.getMessage();
-	    } 
+	@Override
+	  public String process(String json) throws Exception{
+		  return getCustomerOnboardDetails(json);
 	  }
 
+	@SuppressWarnings("static-access")
+	public String getCustomerOnboardDetails(String jspToGapiJosn) {
+		String sReqRefNum = "";
+		String custOnBrdInqDetailsResp = "";
+		try {
+			
+			APLog.reportLog("Received JSON data from screen : " + jspToGapiJosn);
+			JSONObject jsonObj = new JSONObject(jspToGapiJosn);
+			TELLER_ID = (String) jsonObj.get("UserId");
+			cif = (String) jsonObj.get("cif");
+			
+			IdeaProperties IdeaProperties = new IdeaProperties();
 
+			sReqRefNum = SBIUtility.getSBIRequestRefNumber(TELLER_ID, "TF");
+			JSONObject custOnBrd = new JSONObject();
+			JSONObject custOnBrdPayload = new JSONObject();
+			custOnBrd.put("\"SOURCE_ID\"", IdeaProperties.IdeaProperties.getProperty("SOURCE_ID"));
+			custOnBrdPayload.put("\"requestId\"", getRequestId(sReqRefNum));
+			custOnBrdPayload.put("\"source\"", "TF");
+			custOnBrdPayload.put("\"cccif\"", cif); // get from screen
+			//custOnBrdPayload.put("\"signData\"", SignUtils.signData(sReqId));
+			custOnBrd.put("\"EIS_PAYLOAD\"", custOnBrdPayload);
+			custOnBrd.put("\"REQUEST_REFERENCE_NUMBER\"", sReqRefNum);
+			custOnBrd.put("\"DESTINATION\"", "IT_TSS_GEN6");
+			custOnBrd.put("\"TXN_TYPE\"", "FXS_TRADE_CUSTOMER");
+			custOnBrd.put("\"TXN_SUB_TYPE\"", "ENQUIRY");
 
-public static String AESGen6Decrypt(String message, String key) {
-	    try {
-	    	 APLog.reportLog("inside AESGen6Decrypt for rates");
-	      byte[] keybyte = key.getBytes("UTF-8");
-	      byte[] ivkey = Arrays.copyOf(keybyte, 12);
-	      GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, ivkey);
-	      byte[] encvalue = (new BASE64Decoder()).decodeBuffer(message);
-	      SecretKeySpec seckey = new SecretKeySpec(keybyte, "AES");
-	      Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
-	      c.init(Cipher.DECRYPT_MODE, seckey,gcmParameterSpec);
-	      byte[] decvalue = c.doFinal(encvalue);
-	      String decryptedvalue = new String(decvalue);
-	      return decryptedvalue;
-	    } catch (Exception e) {
-	      e.printStackTrace();
-	      return e.getMessage();
-	    } 
-	  }
+			APLog.reportLog("Customer onboard Details Request=========" + custOnBrd);
+			String url = IdeaProperties.IdeaProperties.getProperty("CUST_ONBOARD_URL");
+			APLog.reportLog("Endpoint URL of Customer onboard  is : =========" + url);
+			RestClient restClient = new RestClient();
+			custOnBrdInqDetailsResp = restClient.SendPostRequest(custOnBrd, sReqRefNum, url,
+					"IDEACustOnbrdDtls.json", null, null, SBIUtility.isRespFromStub("IDEACustOnbrdDtls"));
+			APLog.reportLog("Customer onboard Details Response=========\n" + custOnBrdInqDetailsResp);
+			Thread.sleep(1000);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			APLog.reportErrLog(e.getMessage());
+		}
+		return custOnBrdInqDetailsResp;
+	}
+	
+	public String getRequestId(String sReqRefNum) {
+		// Get the current date and time
+		LocalDateTime now = LocalDateTime.now();
+
+		// Define the desired format
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyy");
+
+		// Format the current date and time
+		String formattedTimestamp = now.format(formatter);
+
+		// Print the formatted timestamp
+		APLog.reportLog("Formatted Timestamp: " + formattedTimestamp);
+		formattedTimestamp = formattedTimestamp + "OR" + sReqRefNum.substring(19, sReqRefNum.length());
+		return formattedTimestamp;
+	}
+
+}
