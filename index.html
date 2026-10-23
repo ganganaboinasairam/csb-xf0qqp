@@ -1,32 +1,273 @@
-methods: {
-    getProcessedStatus(value) {
-        const statusMap = {
-            "DEO": "Pending With DEO",
-            "DEO PC MAKER": "Pending With DEO",
-            "SWO": "Pending With SWO",
-            "NESL": "Pending NESL",
-            "DSO PC CHECKER": "Pending With DSO",
-            "BEFORE RFO DEO": "Pending With DEO",
-            "OFAC": "Pending With OFAC Officer",
-            "CCC FBG MAKER": "Pending With CCC FBG MAKER",
-            "CCC FBG CHECKER": "Pending With CCC FBG CHECKER",
-            "CONTROL OFFICER": "Pending With CONTROL OFFICER",
-            "BEFORE RFO DSO": "Pending With DSO",
-            "AFTER RFO DEO": "Pending With DEO",
-            "MODIFY FOREIGN BG ISSUE": "Pending With Branch For Modification",
-            "SWO SWIFT": "Pending With SWO",
-            "BGA": "Pending With BGA",
-            "DSO CHECKER": "Pending With DSO",
-            "RFO": "Pending With RFO",
-            "DSO": "Pending With DSO",
-            "AFTER RFO DSO": "Pending With DSO",
-            "OFAC CONTROL OFFICER": "Pending With OFAC Officer"
-        };
+Request:
 
-        return statusMap[value] || value;
+{
+    "EIS_URL": "https://eissiuat.sbi.co.in/gen5/gateway/TF/thirdParty/wrapper/services",
+    "REQUEST_REFERENCE_NUMBER": "SBITF26295121026182144978",
+    "EIS_REQUEST": {
+        "SOURCE_ID": "TF",
+        "EIS_PAYLOAD": {
+    "grant_type": "client_credentials",
+    "client_secret": "SBIBANKAPIMANAGERV4@Hyderabad",
+    "client_id": "9b072a6d-39e4-11e5-0061-66eac88b284b"
+  },
+  "DESTINATION": "ICC",
+  "TXN_TYPE": "IMB",
+  "TXN_SUB_TYPE": "GENERATE_TOKEN"
     }
 }
 
-<template v-slot:item.C_STEP_NAME="{ item }">
-    {{ getProcessedStatus(item.C_STEP_NAME) }}
-</template>
+
+package com.tcs.restapi.test;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+
+import org.json.JSONObject;
+
+import com.cs.base.utility.ASPathConst;
+import com.cs.comm.internal.LogUtil;
+import com.cs.utilities.RestClient;
+import com.csme.sla.spark.BaseEndpoint;
+
+import io.github.manusant.ss.ApiEndpoint;
+import io.github.manusant.ss.SparkSwagger;
+import io.github.manusant.ss.conf.Options;
+import io.github.manusant.ss.model.auth.ApiKeyAuthDefinition;
+import io.github.manusant.ss.model.auth.In;
+import io.github.manusant.ss.rest.Endpoint;
+import spark.Request;
+import spark.Response;
+import spark.Service;
+import spark.globalstate.ServletFlag;
+import spark.servlet.SparkApplication;
+
+// Add imports for your existing RestClient and IdeaProperties classes.
+
+public class EncryptionTestEndpoint extends BaseEndpoint implements SparkApplication, ServletContextListener {
+
+	public static Properties URLProperties = new Properties();
+
+	protected void servicebind(SparkSwagger restApi) {
+		bindEncryptionTestRoute(restApi);
+	}
+
+
+	private void bindEncryptionTestRoute(SparkSwagger restApi) {
+
+		//ApiEndpoint endpoint = restApi.endpoint(endpointPath("")).addAPIPathToBuilderPath(false);
+		ApiEndpoint endpoint = restApi.endpoint(endpointPath("/apitest")
+				.withDescription("TEST API")).addAPIPathToBuilderPath(false);
+
+		endpoint.post(
+				path("/request").withDescription("Encrypt request and return normal API response")
+						.withRequestType(String.class).withResponseType(String.class),
+
+				(request, response) -> processRequest(request, response));
+	}
+
+	private String processRequest(Request request, Response response) throws Exception {
+
+		try {
+			// 1. Read raw JSON from Postman.
+			String rawRequest = request.body();
+
+			if (rawRequest == null || rawRequest.trim().isEmpty()) {
+				response.status(400);
+				return new JSONObject().put("error", "Request body is empty").toString();
+			}
+
+			// Validate JSON.
+			com.cs.esp.org.json.JSONObject requestJson = new com.cs.esp.org.json.JSONObject(rawRequest);
+
+			String PROP_CONFIG_FILE_PATH = ASPathConst.getUserDirPath() + File.separator + "properties" + File.separator
+					+ "apitest.properties";
+			InputStream input = new FileInputStream(PROP_CONFIG_FILE_PATH);
+			URLProperties.load(input);
+			String targetUrl = URLProperties.getProperty("API_TEST_URL");
+
+			if (targetUrl == null || targetUrl.trim().isEmpty()) {
+				response.status(500);
+				return new JSONObject().put("error", "Target API URL is not configured").toString();
+			}
+
+			String requestReference = requestJson.getString("requestReference");
+
+			RestClient restClient = new RestClient();
+
+			String apiResponse = restClient.SendPostRequest(requestJson, requestReference, targetUrl, null, null, null,
+					false);
+
+			response.status(200);
+			response.type("application/json");
+
+			return apiResponse;
+
+		} catch (org.json.JSONException e) {
+			response.status(400);
+			response.type("application/json");
+
+			return new JSONObject().put("error", "Invalid JSON request").toString();
+
+		} catch (Exception e) {
+			response.status(500);
+			response.type("application/json");
+
+			// Log the exception through your application's logger.
+			return new JSONObject().put("error", "Failed to process API request").toString();
+		}
+	}
+
+	@Override
+	public void contextDestroyed(ServletContextEvent arg0) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void contextInitialized(ServletContextEvent sce) {
+		List<Endpoint> endpoints = getEndpoints(sce);
+		ServletFlag.runFromServlet();
+		Service spark = Service.ignite().ipAddress("127.0.0.1").port(8080);
+
+		ApiKeyAuthDefinition apiKey = new ApiKeyAuthDefinition();
+		apiKey.in(In.HEADER);
+		apiKey.setName("authorization");
+		Options options = Options.builder().confPath("conf/SLADashboard.conf").build();
+		try {
+			SparkSwagger.of(spark, options).endpoints(() -> endpoints).security("api_key", apiKey);
+		} catch (Exception e) {
+			LogUtil.error(e);
+		}
+	}
+	
+	public List<Endpoint> getEndpoints(ServletContextEvent sce) {
+		ArrayList<Endpoint> endpoints = new ArrayList<>();
+		endpoints.add(new EncryptionTestEndpoint());
+		return endpoints;
+	}
+
+	@Override
+	public void init() {
+		// TODO Auto-generated method stub
+
+	}
+}
+
+
+
+INFO: JceConfig is in non-FIPS mode
+javax.crypto.AEADBadTagException: Input too short - need tag
+at com.sun.crypto.provider.GaloisCounterMode.decryptFinal(GaloisCounterMode.java:563)
+at com.sun.crypto.provider.CipherCore.finalNoPadding(CipherCore.java:1116)
+at com.sun.crypto.provider.CipherCore.fillOutputBuffer(CipherCore.java:1053)
+at com.sun.crypto.provider.CipherCore.doFinal(CipherCore.java:853)
+at com.sun.crypto.provider.AESCipher.engineDoFinal(AESCipher.java:446)
+at javax.crypto.Cipher.doFinal(Cipher.java:2184)
+at com.cs.utilities.DigitalSign.AESGen6Decrypt(DigitalSign.java:127)
+at com.cs.utilities.RestClient.sendClientDataGen6(RestClient.java:398)
+at com.cs.utilities.RestClient.SendPostRequest(RestClient.java:198)
+at com.tcs.restapi.test.EncryptionTestEndpoint.processRequest(EncryptionTestEndpoint.java:92)
+at com.tcs.restapi.test.EncryptionTestEndpoint.lambda$0(EncryptionTestEndpoint.java:53)
+at spark.RouteImpl$1.handle(RouteImpl.java:72)
+at spark.http.matching.Routes.execute(Routes.java:61)
+at spark.http.matching.MatcherFilter.doFilter(MatcherFilter.java:134)
+at spark.servlet.SparkFilter.doFilter(SparkFilter.java:174)
+at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
+at com.cs.eximweb.sso.servlets.PicketlinkFilter.doFilter(PicketlinkFilter.java:140)
+at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
+at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.wrapRun(WebAppServletContext.java:3798)
+at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.run(WebAppServletContext.java:3764)
+at weblogic.security.acl.internal.AuthenticatedSubject.doAs(AuthenticatedSubject.java:344)
+at weblogic.security.service.SecurityManager.runAsForUserCode(SecurityManager.java:197)
+at weblogic.servlet.provider.WlsSecurityProvider.runAsForUserCode(WlsSecurityProvider.java:203)
+at weblogic.servlet.provider.WlsSubjectHandle.run(WlsSubjectHandle.java:71)
+at weblogic.servlet.internal.WebAppServletContext.doSecuredExecute(WebAppServletContext.java:2452)
+at weblogic.servlet.internal.WebAppServletContext.securedExecute(WebAppServletContext.java:2300)
+at weblogic.servlet.internal.WebAppServletContext.execute(WebAppServletContext.java:2278)
+at weblogic.servlet.internal.ServletRequestImpl.runInternal(ServletRequestImpl.java:1744)
+at weblogic.servlet.internal.ServletRequestImpl.run(ServletRequestImpl.java:1704)
+at weblogic.servlet.provider.ContainerSupportProviderImpl$WlsRequestExecutor.run(ContainerSupportProviderImpl.java:274)
+at weblogic.invocation.ComponentInvocationContextManager._runAs(ComponentInvocationContextManager.java:352)
+at weblogic.invocation.ComponentInvocationContextManager.runAs(ComponentInvocationContextManager.java:337)
+at weblogic.work.LivePartitionUtility.doRunWorkUnderContext(LivePartitionUtility.java:57)
+at weblogic.work.PartitionUtility.runWorkUnderContext(PartitionUtility.java:41)
+at weblogic.work.SelfTuningWorkManagerImpl.runWorkUnderContext(SelfTuningWorkManagerImpl.java:655)
+at weblogic.work.ExecuteThread.execute(ExecuteThread.java:420)
+at weblogic.work.ExecuteThread.run(ExecuteThread.java:360)
+java.security.SignatureException: Bad signature length: got 0 but was expecting 256
+at sun.security.rsa.RSASignature.engineVerify(RSASignature.java:211)
+at java.security.Signature$Delegate.engineVerify(Signature.java:1329)
+at java.security.Signature.verify(Signature.java:716)
+at com.cs.utilities.DigitalSign.verify(DigitalSign.java:272)
+at com.cs.utilities.RestClient.sendClientDataGen6(RestClient.java:400)
+at com.cs.utilities.RestClient.SendPostRequest(RestClient.java:198)
+at com.tcs.restapi.test.EncryptionTestEndpoint.processRequest(EncryptionTestEndpoint.java:92)
+at com.tcs.restapi.test.EncryptionTestEndpoint.lambda$0(EncryptionTestEndpoint.java:53)
+at spark.RouteImpl$1.handle(RouteImpl.java:72)
+at spark.http.matching.Routes.execute(Routes.java:61)
+at spark.http.matching.MatcherFilter.doFilter(MatcherFilter.java:134)
+at spark.servlet.SparkFilter.doFilter(SparkFilter.java:174)
+at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
+at com.cs.eximweb.sso.servlets.PicketlinkFilter.doFilter(PicketlinkFilter.java:140)
+at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
+at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.wrapRun(WebAppServletContext.java:3798)
+at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.run(WebAppServletContext.java:3764)
+at weblogic.security.acl.internal.AuthenticatedSubject.doAs(AuthenticatedSubject.java:344)
+at weblogic.security.service.SecurityManager.runAsForUserCode(SecurityManager.java:197)
+at weblogic.servlet.provider.WlsSecurityProvider.runAsForUserCode(WlsSecurityProvider.java:203)
+at weblogic.servlet.provider.WlsSubjectHandle.run(WlsSubjectHandle.java:71)
+at weblogic.servlet.internal.WebAppServletContext.doSecuredExecute(WebAppServletContext.java:2452)
+at weblogic.servlet.internal.WebAppServletContext.securedExecute(WebAppServletContext.java:2300)
+at weblogic.servlet.internal.WebAppServletContext.execute(WebAppServletContext.java:2278)
+at weblogic.servlet.internal.ServletRequestImpl.runInternal(ServletRequestImpl.java:1744)
+at weblogic.servlet.internal.ServletRequestImpl.run(ServletRequestImpl.java:1704)
+at weblogic.servlet.provider.ContainerSupportProviderImpl$WlsRequestExecutor.run(ContainerSupportProviderImpl.java:274)
+at weblogic.invocation.ComponentInvocationContextManager._runAs(ComponentInvocationContextManager.java:352)
+at weblogic.invocation.ComponentInvocationContextManager.runAs(ComponentInvocationContextManager.java:337)
+at weblogic.work.LivePartitionUtility.doRunWorkUnderContext(LivePartitionUtility.java:57)
+at weblogic.work.PartitionUtility.runWorkUnderContext(PartitionUtility.java:41)
+at weblogic.work.SelfTuningWorkManagerImpl.runWorkUnderContext(SelfTuningWorkManagerImpl.java:655)
+at weblogic.work.ExecuteThread.execute(ExecuteThread.java:420)
+at weblogic.work.ExecuteThread.run(ExecuteThread.java:360)
+com.cs.esp.org.json.JSONException: A JSONObject text must begin with '{' at character 1 of Input too short - need tag
+at com.cs.esp.org.json.JSONTokener.syntaxError(JSONTokener.java:573)
+at com.cs.esp.org.json.JSONObject.doParse(JSONObject.java:463)
+at com.cs.esp.org.json.JSONObject.<init>(JSONObject.java:138)
+at com.cs.esp.org.json.JSONObject.<init>(JSONObject.java:168)
+at com.cs.utilities.RestClient.sendClientDataGen6(RestClient.java:401)
+at com.cs.utilities.RestClient.SendPostRequest(RestClient.java:198)
+at com.tcs.restapi.test.EncryptionTestEndpoint.processRequest(EncryptionTestEndpoint.java:92)
+at com.tcs.restapi.test.EncryptionTestEndpoint.lambda$0(EncryptionTestEndpoint.java:53)
+at spark.RouteImpl$1.handle(RouteImpl.java:72)
+at spark.http.matching.Routes.execute(Routes.java:61)
+at spark.http.matching.MatcherFilter.doFilter(MatcherFilter.java:134)
+at spark.servlet.SparkFilter.doFilter(SparkFilter.java:174)
+at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
+at com.cs.eximweb.sso.servlets.PicketlinkFilter.doFilter(PicketlinkFilter.java:140)
+at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
+at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.wrapRun(WebAppServletContext.java:3798)
+at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.run(WebAppServletContext.java:3764)
+at weblogic.security.acl.internal.AuthenticatedSubject.doAs(AuthenticatedSubject.java:344)
+at weblogic.security.service.SecurityManager.runAsForUserCode(SecurityManager.java:197)
+at weblogic.servlet.provider.WlsSecurityProvider.runAsForUserCode(WlsSecurityProvider.java:203)
+at weblogic.servlet.provider.WlsSubjectHandle.run(WlsSubjectHandle.java:71)
+at weblogic.servlet.internal.WebAppServletContext.doSecuredExecute(WebAppServletContext.java:2452)
+at weblogic.servlet.internal.WebAppServletContext.securedExecute(WebAppServletContext.java:2300)
+at weblogic.servlet.internal.WebAppServletContext.execute(WebAppServletContext.java:2278)
+at weblogic.servlet.internal.ServletRequestImpl.runInternal(ServletRequestImpl.java:1744)
+at weblogic.servlet.internal.ServletRequestImpl.run(ServletRequestImpl.java:1704)
+at weblogic.servlet.provider.ContainerSupportProviderImpl$WlsRequestExecutor.run(ContainerSupportProviderImpl.java:274)
+at weblogic.invocation.ComponentInvocationContextManager._runAs(ComponentInvocationContextManager.java:352)
+at weblogic.invocation.ComponentInvocationContextManager.runAs(ComponentInvocationContextManager.java:337)
+at weblogic.work.LivePartitionUtility.doRunWorkUnderContext(LivePartitionUtility.java:57)
+at weblogic.work.PartitionUtility.runWorkUnderContext(PartitionUtility.java:41)
+at weblogic.work.SelfTuningWorkManagerImpl.runWorkUnderContext(SelfTuningWorkManagerImpl.java:655)
+at weblogic.work.ExecuteThread.execute(ExecuteThread.java:420)
+at weblogic.work.ExecuteThread.run(ExecuteThread.java:360)
