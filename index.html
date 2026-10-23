@@ -1,273 +1,148 @@
-Request:
+  public String SendPostRequest(JSONObject requestJson, String eisReqRegNum, String sUrl, String sMockRespFile, String sAPIType, String sGSTN, boolean isRespFromStub) throws JSONException, Exception {
+    requestJson = replaceDEOTellerIDWithVirtualTellerId(requestJson);
+    APLog.reportLog(" JSON Request before encryption::" + requestJson.toString());
 
-{
-    "EIS_URL": "https://eissiuat.sbi.co.in/gen5/gateway/TF/thirdParty/wrapper/services",
-    "REQUEST_REFERENCE_NUMBER": "SBITF26295121026182144978",
-    "EIS_REQUEST": {
-        "SOURCE_ID": "TF",
-        "EIS_PAYLOAD": {
-    "grant_type": "client_credentials",
-    "client_secret": "SBIBANKAPIMANAGERV4@Hyderabad",
-    "client_id": "9b072a6d-39e4-11e5-0061-66eac88b284b"
-  },
-  "DESTINATION": "ICC",
-  "TXN_TYPE": "IMB",
-  "TXN_SUB_TYPE": "GENERATE_TOKEN"
-    }
-}
-
-
-package com.tcs.restapi.test;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-
-import org.json.JSONObject;
-
-import com.cs.base.utility.ASPathConst;
-import com.cs.comm.internal.LogUtil;
-import com.cs.utilities.RestClient;
-import com.csme.sla.spark.BaseEndpoint;
-
-import io.github.manusant.ss.ApiEndpoint;
-import io.github.manusant.ss.SparkSwagger;
-import io.github.manusant.ss.conf.Options;
-import io.github.manusant.ss.model.auth.ApiKeyAuthDefinition;
-import io.github.manusant.ss.model.auth.In;
-import io.github.manusant.ss.rest.Endpoint;
-import spark.Request;
-import spark.Response;
-import spark.Service;
-import spark.globalstate.ServletFlag;
-import spark.servlet.SparkApplication;
-
-// Add imports for your existing RestClient and IdeaProperties classes.
-
-public class EncryptionTestEndpoint extends BaseEndpoint implements SparkApplication, ServletContextListener {
-
-	public static Properties URLProperties = new Properties();
-
-	protected void servicebind(SparkSwagger restApi) {
-		bindEncryptionTestRoute(restApi);
-	}
-
-
-	private void bindEncryptionTestRoute(SparkSwagger restApi) {
-
-		//ApiEndpoint endpoint = restApi.endpoint(endpointPath("")).addAPIPathToBuilderPath(false);
-		ApiEndpoint endpoint = restApi.endpoint(endpointPath("/apitest")
-				.withDescription("TEST API")).addAPIPathToBuilderPath(false);
-
-		endpoint.post(
-				path("/request").withDescription("Encrypt request and return normal API response")
-						.withRequestType(String.class).withResponseType(String.class),
-
-				(request, response) -> processRequest(request, response));
-	}
-
-	private String processRequest(Request request, Response response) throws Exception {
-
-		try {
-			// 1. Read raw JSON from Postman.
-			String rawRequest = request.body();
-
-			if (rawRequest == null || rawRequest.trim().isEmpty()) {
-				response.status(400);
-				return new JSONObject().put("error", "Request body is empty").toString();
+              String urlcheck = sUrl;
+			String AESkey = DigitalSign.KeyGenerator();
+			String sEncyptjsonReq = "";
+			if(urlcheck.contains("gen5")){
+				APLog.reportLog("inside SendPostRequest gen5 if ");
+				 sEncyptjsonReq = DigitalSign.AESEncrypt(requestJson.toString(), AESkey);
 			}
-
-			// Validate JSON.
-			com.cs.esp.org.json.JSONObject requestJson = new com.cs.esp.org.json.JSONObject(rawRequest);
-
-			String PROP_CONFIG_FILE_PATH = ASPathConst.getUserDirPath() + File.separator + "properties" + File.separator
-					+ "apitest.properties";
-			InputStream input = new FileInputStream(PROP_CONFIG_FILE_PATH);
-			URLProperties.load(input);
-			String targetUrl = URLProperties.getProperty("API_TEST_URL");
-
-			if (targetUrl == null || targetUrl.trim().isEmpty()) {
-				response.status(500);
-				return new JSONObject().put("error", "Target API URL is not configured").toString();
+			else{
+				APLog.reportLog("inside SendPostRequest gen7 else ");
+			 sEncyptjsonReq = DigitalSign.AESGen6Encrypt(requestJson.toString(), AESkey);
 			}
+    APLog.reportLog("ENCRYPTED  JSON Request::" + sEncyptjsonReq);
+    String AccessToken = DigitalSign.RSAEncrypt_KEY(AESkey, eispublickeypath);
+    APLog.reportLog("ACCESS TOKEN::" + AccessToken);
+    String Digisign = DigitalSign.eisDigitalSignature(requestJson.toString(), tfprivatekeypath);
+    JSONObject finalJson = new JSONObject();
+    finalJson.put("\"REQUEST\"", sEncyptjsonReq);
+    finalJson.put("\"REQUEST_REFERENCE_NUMBER\"", eisReqRegNum);
+    finalJson.put("\"DIGI_SIGN\"", Digisign);
+    APLog.reportLog("Final  Request::" + finalJson);
+    String finalresponse = null;
 
-			String requestReference = requestJson.getString("requestReference");
-
-			RestClient restClient = new RestClient();
-
-			String apiResponse = restClient.SendPostRequest(requestJson, requestReference, targetUrl, null, null, null,
-					false);
-
-			response.status(200);
-			response.type("application/json");
-
-			return apiResponse;
-
-		} catch (org.json.JSONException e) {
-			response.status(400);
-			response.type("application/json");
-
-			return new JSONObject().put("error", "Invalid JSON request").toString();
-
-		} catch (Exception e) {
-			response.status(500);
-			response.type("application/json");
-
-			// Log the exception through your application's logger.
-			return new JSONObject().put("error", "Failed to process API request").toString();
-		}
-	}
-
-	@Override
-	public void contextDestroyed(ServletContextEvent arg0) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void contextInitialized(ServletContextEvent sce) {
-		List<Endpoint> endpoints = getEndpoints(sce);
-		ServletFlag.runFromServlet();
-		Service spark = Service.ignite().ipAddress("127.0.0.1").port(8080);
-
-		ApiKeyAuthDefinition apiKey = new ApiKeyAuthDefinition();
-		apiKey.in(In.HEADER);
-		apiKey.setName("authorization");
-		Options options = Options.builder().confPath("conf/SLADashboard.conf").build();
-		try {
-			SparkSwagger.of(spark, options).endpoints(() -> endpoints).security("api_key", apiKey);
-		} catch (Exception e) {
-			LogUtil.error(e);
-		}
+		    if (!isRespFromStub) { 
+		    	if(urlcheck.contains("gen5")){
+	            	 APLog.reportLog("inside SendPostRequest% if... gen5");
+			     finalresponse = sendClientData(finalJson.toString(), sUrl, AccessToken, AESkey,sAPIType,sGSTN);
+		    	}
+		    	else{
+		    		APLog.reportLog("inside SendPostRequest% esle...  gen7");
+		    		 finalresponse = sendClientDataGen6(finalJson.toString(), sUrl, AccessToken, AESkey,sAPIType,sGSTN);
+		    	}
+	    }else {
+				//httpStatusCode = 200;
+				finalresponse=FileUtils.readFileToString(new File(ASPathConst.USER_DIR_PATH+File.separator+"INT"+File.separator+"SampleResponses"+File.separator+sMockRespFile));
+	    }
+	   APLog.reportLog("final Response::" + finalresponse);
+	    return finalresponse;
 	}
 	
-	public List<Endpoint> getEndpoints(ServletContextEvent sce) {
-		ArrayList<Endpoint> endpoints = new ArrayList<>();
-		endpoints.add(new EncryptionTestEndpoint());
-		return endpoints;
-	}
+	
+	
+	
+	 public static String sendClientDataGen6(String request, String WebUrl, String AccessToken, String AESkey, String sAPIType,String sGSTN) throws NumberFormatException, JSONException {
+		    String output = "";
+		    String resutility = "";
+		    try {
+		    String sourceId = InterfaceProperties.CBSInterfaceProperties.getProperty("SOURCE_ID");
+		     APLog.reportLog("inside sendClientDataGen6 ");
+		     APLog.reportLog("Client_Id : "+InterfaceProperties.CBSInterfaceProperties.getProperty("Client_Id"));
+		     APLog.reportLog("Client_Secret : "+InterfaceProperties.CBSInterfaceProperties.getProperty("Client_Secret"));
+		      Client client = Client.create();
+		      WebResource webResource = client.resource(WebUrl);
+		      System.setProperty("jdk.http.auth.tunneling.disabledSchemes", "");
+		      System.setProperty("https.protocols", "TLSv1,TLSv1.1,TLSv1.2");
+		      ClientResponse response;
+		      if("GST".equalsIgnoreCase(sAPIType)) {
+		    	  APLog.reportLog("inside sendClientDataGen6 if gen5");
+			       response = (ClientResponse)((WebResource.Builder)((WebResource.Builder)((WebResource.Builder)webResource
+			  	        .accept(new String[] { "application/json" }).type(
+			  	          "application/json")).header("Accesstoken", AccessToken)).header("Clientid", sourceId).header("CLIENT_CODE", InterfaceProperties.CBSInterfaceProperties.getProperty("GST_CLIENT_CODE")).header("GST_IN", sGSTN).header("Client-Id", "4293cf92beab40220bb00e81a236f6f4").header("Client-Secret", "7ae87ac5ebbd7790e6021c5c4bbb2082")).post(
+			  	          ClientResponse.class, request);
+		      }else {
+		    	  APLog.reportLog("inside sendClientDataGen6 else gen7");
+			       response = (ClientResponse)((WebResource.Builder)((WebResource.Builder)((WebResource.Builder)((WebResource.Builder)((WebResource.Builder)webResource
+			  	        .accept(new String[] { "application/json" }).type(
+			  	          "application/json")).header("Accesstoken", AccessToken)).header("Clientid", sourceId)).header("Client-Id", InterfaceProperties.CBSInterfaceProperties.getProperty("Client_Id"))).header("Client-Secret", InterfaceProperties.CBSInterfaceProperties.getProperty("Client_Secret"))).post(
+			  	          ClientResponse.class, request);  
+		      }
 
-	@Override
-	public void init() {
-		// TODO Auto-generated method stub
+		      if (response.getStatus() != 200) {
+		       APLog.reportLog("Failed : HTTP error code : " + response.getStatus());
+		        throw new Exception("Failed : HTTP error code : " + response.getStatus());
+		      } 
+		      output = (String)response.getEntity(String.class);
+		      output = output.toString();
+		     APLog.reportLog("Received Encrypted Http Response:: :: " + output);
+		      JSONObject jsonObject = new JSONObject(output.toString());
+		      String MarginEncResponse = jsonObject.get("RESPONSE").toString();
+		      String DigiSignVerify = jsonObject.get("DIGI_SIGN").toString();
+		      String decResponse = DigitalSign.AESGen6Decrypt(MarginEncResponse, AESkey);
+		     APLog.reportLog("Received Decrypted Http Response:: ::" + decResponse);
+		      DigitalSign.verify(decResponse, DigiSignVerify, eispublickeypath);
+		      JSONObject jsonObject6 = new JSONObject(decResponse.toString());
+		      int response_status = Integer.parseInt(jsonObject6.get("RESPONSE_STATUS").toString());
+		      if (output != null && !"".equals(output)) {
+		        if (response_status == 0) {
+		          if ("No records found, Please try again!".equals(jsonObject6.get("legalName").toString())) {
+		            resutility = "FALSE No records found, Please try again";
+		          } else {
+		            //resutility = "TRUE " + decResponse;
+		        	  resutility = decResponse;
+		          } 
+		        } else if (response_status == 1) {
+		          //resutility = "ERROR " + decResponse;
+		        	resutility =  decResponse;
+		        } 
+		      } else {
+		        resutility = "{\"ERROR_CODE\":\"No Response\", \"ERROR_DESCRIPTION\":\"No Response From EIS, Please try again!\"}";
+		      } 
+		    } catch (Exception e) {
+		      e.printStackTrace();
+		    } 
+		    return resutility;
+		  }
+	 
+	 
+	  public static String AESGen6Encrypt(String message, String key) {
+	    try {
+	      byte[] keybyte = key.getBytes("UTF-8");
+	      byte[] ivkey = Arrays.copyOf(keybyte, 12);
+	     // IvParameterSpec iv = new IvParameterSpec(ivkey);
+	      GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, ivkey);
+	      SecretKeySpec seckey = new SecretKeySpec(keybyte, "AES");
+	      Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
+	      c.init(Cipher.ENCRYPT_MODE, seckey,gcmParameterSpec);
+	      byte[] encvalue = c.doFinal(message.getBytes("UTF-8"));
+	      String encryptedvalue = (new BASE64Encoder()).encode(encvalue).replaceAll("\r\n", "");
+	      return encryptedvalue;
+	    } catch (Exception e) {
+	      e.printStackTrace();
+	      return e.getMessage();
+	    } 
+	  }
 
-	}
-}
 
 
-
-INFO: JceConfig is in non-FIPS mode
-javax.crypto.AEADBadTagException: Input too short - need tag
-at com.sun.crypto.provider.GaloisCounterMode.decryptFinal(GaloisCounterMode.java:563)
-at com.sun.crypto.provider.CipherCore.finalNoPadding(CipherCore.java:1116)
-at com.sun.crypto.provider.CipherCore.fillOutputBuffer(CipherCore.java:1053)
-at com.sun.crypto.provider.CipherCore.doFinal(CipherCore.java:853)
-at com.sun.crypto.provider.AESCipher.engineDoFinal(AESCipher.java:446)
-at javax.crypto.Cipher.doFinal(Cipher.java:2184)
-at com.cs.utilities.DigitalSign.AESGen6Decrypt(DigitalSign.java:127)
-at com.cs.utilities.RestClient.sendClientDataGen6(RestClient.java:398)
-at com.cs.utilities.RestClient.SendPostRequest(RestClient.java:198)
-at com.tcs.restapi.test.EncryptionTestEndpoint.processRequest(EncryptionTestEndpoint.java:92)
-at com.tcs.restapi.test.EncryptionTestEndpoint.lambda$0(EncryptionTestEndpoint.java:53)
-at spark.RouteImpl$1.handle(RouteImpl.java:72)
-at spark.http.matching.Routes.execute(Routes.java:61)
-at spark.http.matching.MatcherFilter.doFilter(MatcherFilter.java:134)
-at spark.servlet.SparkFilter.doFilter(SparkFilter.java:174)
-at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
-at com.cs.eximweb.sso.servlets.PicketlinkFilter.doFilter(PicketlinkFilter.java:140)
-at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
-at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.wrapRun(WebAppServletContext.java:3798)
-at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.run(WebAppServletContext.java:3764)
-at weblogic.security.acl.internal.AuthenticatedSubject.doAs(AuthenticatedSubject.java:344)
-at weblogic.security.service.SecurityManager.runAsForUserCode(SecurityManager.java:197)
-at weblogic.servlet.provider.WlsSecurityProvider.runAsForUserCode(WlsSecurityProvider.java:203)
-at weblogic.servlet.provider.WlsSubjectHandle.run(WlsSubjectHandle.java:71)
-at weblogic.servlet.internal.WebAppServletContext.doSecuredExecute(WebAppServletContext.java:2452)
-at weblogic.servlet.internal.WebAppServletContext.securedExecute(WebAppServletContext.java:2300)
-at weblogic.servlet.internal.WebAppServletContext.execute(WebAppServletContext.java:2278)
-at weblogic.servlet.internal.ServletRequestImpl.runInternal(ServletRequestImpl.java:1744)
-at weblogic.servlet.internal.ServletRequestImpl.run(ServletRequestImpl.java:1704)
-at weblogic.servlet.provider.ContainerSupportProviderImpl$WlsRequestExecutor.run(ContainerSupportProviderImpl.java:274)
-at weblogic.invocation.ComponentInvocationContextManager._runAs(ComponentInvocationContextManager.java:352)
-at weblogic.invocation.ComponentInvocationContextManager.runAs(ComponentInvocationContextManager.java:337)
-at weblogic.work.LivePartitionUtility.doRunWorkUnderContext(LivePartitionUtility.java:57)
-at weblogic.work.PartitionUtility.runWorkUnderContext(PartitionUtility.java:41)
-at weblogic.work.SelfTuningWorkManagerImpl.runWorkUnderContext(SelfTuningWorkManagerImpl.java:655)
-at weblogic.work.ExecuteThread.execute(ExecuteThread.java:420)
-at weblogic.work.ExecuteThread.run(ExecuteThread.java:360)
-java.security.SignatureException: Bad signature length: got 0 but was expecting 256
-at sun.security.rsa.RSASignature.engineVerify(RSASignature.java:211)
-at java.security.Signature$Delegate.engineVerify(Signature.java:1329)
-at java.security.Signature.verify(Signature.java:716)
-at com.cs.utilities.DigitalSign.verify(DigitalSign.java:272)
-at com.cs.utilities.RestClient.sendClientDataGen6(RestClient.java:400)
-at com.cs.utilities.RestClient.SendPostRequest(RestClient.java:198)
-at com.tcs.restapi.test.EncryptionTestEndpoint.processRequest(EncryptionTestEndpoint.java:92)
-at com.tcs.restapi.test.EncryptionTestEndpoint.lambda$0(EncryptionTestEndpoint.java:53)
-at spark.RouteImpl$1.handle(RouteImpl.java:72)
-at spark.http.matching.Routes.execute(Routes.java:61)
-at spark.http.matching.MatcherFilter.doFilter(MatcherFilter.java:134)
-at spark.servlet.SparkFilter.doFilter(SparkFilter.java:174)
-at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
-at com.cs.eximweb.sso.servlets.PicketlinkFilter.doFilter(PicketlinkFilter.java:140)
-at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
-at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.wrapRun(WebAppServletContext.java:3798)
-at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.run(WebAppServletContext.java:3764)
-at weblogic.security.acl.internal.AuthenticatedSubject.doAs(AuthenticatedSubject.java:344)
-at weblogic.security.service.SecurityManager.runAsForUserCode(SecurityManager.java:197)
-at weblogic.servlet.provider.WlsSecurityProvider.runAsForUserCode(WlsSecurityProvider.java:203)
-at weblogic.servlet.provider.WlsSubjectHandle.run(WlsSubjectHandle.java:71)
-at weblogic.servlet.internal.WebAppServletContext.doSecuredExecute(WebAppServletContext.java:2452)
-at weblogic.servlet.internal.WebAppServletContext.securedExecute(WebAppServletContext.java:2300)
-at weblogic.servlet.internal.WebAppServletContext.execute(WebAppServletContext.java:2278)
-at weblogic.servlet.internal.ServletRequestImpl.runInternal(ServletRequestImpl.java:1744)
-at weblogic.servlet.internal.ServletRequestImpl.run(ServletRequestImpl.java:1704)
-at weblogic.servlet.provider.ContainerSupportProviderImpl$WlsRequestExecutor.run(ContainerSupportProviderImpl.java:274)
-at weblogic.invocation.ComponentInvocationContextManager._runAs(ComponentInvocationContextManager.java:352)
-at weblogic.invocation.ComponentInvocationContextManager.runAs(ComponentInvocationContextManager.java:337)
-at weblogic.work.LivePartitionUtility.doRunWorkUnderContext(LivePartitionUtility.java:57)
-at weblogic.work.PartitionUtility.runWorkUnderContext(PartitionUtility.java:41)
-at weblogic.work.SelfTuningWorkManagerImpl.runWorkUnderContext(SelfTuningWorkManagerImpl.java:655)
-at weblogic.work.ExecuteThread.execute(ExecuteThread.java:420)
-at weblogic.work.ExecuteThread.run(ExecuteThread.java:360)
-com.cs.esp.org.json.JSONException: A JSONObject text must begin with '{' at character 1 of Input too short - need tag
-at com.cs.esp.org.json.JSONTokener.syntaxError(JSONTokener.java:573)
-at com.cs.esp.org.json.JSONObject.doParse(JSONObject.java:463)
-at com.cs.esp.org.json.JSONObject.<init>(JSONObject.java:138)
-at com.cs.esp.org.json.JSONObject.<init>(JSONObject.java:168)
-at com.cs.utilities.RestClient.sendClientDataGen6(RestClient.java:401)
-at com.cs.utilities.RestClient.SendPostRequest(RestClient.java:198)
-at com.tcs.restapi.test.EncryptionTestEndpoint.processRequest(EncryptionTestEndpoint.java:92)
-at com.tcs.restapi.test.EncryptionTestEndpoint.lambda$0(EncryptionTestEndpoint.java:53)
-at spark.RouteImpl$1.handle(RouteImpl.java:72)
-at spark.http.matching.Routes.execute(Routes.java:61)
-at spark.http.matching.MatcherFilter.doFilter(MatcherFilter.java:134)
-at spark.servlet.SparkFilter.doFilter(SparkFilter.java:174)
-at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
-at com.cs.eximweb.sso.servlets.PicketlinkFilter.doFilter(PicketlinkFilter.java:140)
-at weblogic.servlet.internal.FilterChainImpl.doFilter(FilterChainImpl.java:78)
-at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.wrapRun(WebAppServletContext.java:3798)
-at weblogic.servlet.internal.WebAppServletContext$ServletInvocationAction.run(WebAppServletContext.java:3764)
-at weblogic.security.acl.internal.AuthenticatedSubject.doAs(AuthenticatedSubject.java:344)
-at weblogic.security.service.SecurityManager.runAsForUserCode(SecurityManager.java:197)
-at weblogic.servlet.provider.WlsSecurityProvider.runAsForUserCode(WlsSecurityProvider.java:203)
-at weblogic.servlet.provider.WlsSubjectHandle.run(WlsSubjectHandle.java:71)
-at weblogic.servlet.internal.WebAppServletContext.doSecuredExecute(WebAppServletContext.java:2452)
-at weblogic.servlet.internal.WebAppServletContext.securedExecute(WebAppServletContext.java:2300)
-at weblogic.servlet.internal.WebAppServletContext.execute(WebAppServletContext.java:2278)
-at weblogic.servlet.internal.ServletRequestImpl.runInternal(ServletRequestImpl.java:1744)
-at weblogic.servlet.internal.ServletRequestImpl.run(ServletRequestImpl.java:1704)
-at weblogic.servlet.provider.ContainerSupportProviderImpl$WlsRequestExecutor.run(ContainerSupportProviderImpl.java:274)
-at weblogic.invocation.ComponentInvocationContextManager._runAs(ComponentInvocationContextManager.java:352)
-at weblogic.invocation.ComponentInvocationContextManager.runAs(ComponentInvocationContextManager.java:337)
-at weblogic.work.LivePartitionUtility.doRunWorkUnderContext(LivePartitionUtility.java:57)
-at weblogic.work.PartitionUtility.runWorkUnderContext(PartitionUtility.java:41)
-at weblogic.work.SelfTuningWorkManagerImpl.runWorkUnderContext(SelfTuningWorkManagerImpl.java:655)
-at weblogic.work.ExecuteThread.execute(ExecuteThread.java:420)
-at weblogic.work.ExecuteThread.run(ExecuteThread.java:360)
+public static String AESGen6Decrypt(String message, String key) {
+	    try {
+	    	 APLog.reportLog("inside AESGen6Decrypt for rates");
+	      byte[] keybyte = key.getBytes("UTF-8");
+	      byte[] ivkey = Arrays.copyOf(keybyte, 12);
+	      GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, ivkey);
+	      byte[] encvalue = (new BASE64Decoder()).decodeBuffer(message);
+	      SecretKeySpec seckey = new SecretKeySpec(keybyte, "AES");
+	      Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
+	      c.init(Cipher.DECRYPT_MODE, seckey,gcmParameterSpec);
+	      byte[] decvalue = c.doFinal(encvalue);
+	      String decryptedvalue = new String(decvalue);
+	      return decryptedvalue;
+	    } catch (Exception e) {
+	      e.printStackTrace();
+	      return e.getMessage();
+	    } 
+	  }
