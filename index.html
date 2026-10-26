@@ -1,87 +1,137 @@
-package com.cs.inquiry.servicesss;
+package com.tcs.restapi.test;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import org.json.JSONObject;
+import com.cs.base.utility.ASPathConst;
+import com.cs.comm.internal.LogUtil;
+import com.cs.utilities.RestClient;
+import com.csme.sla.spark.BaseEndpoint;
+import io.github.manusant.ss.ApiEndpoint;
+import io.github.manusant.ss.SparkSwagger;
+import io.github.manusant.ss.conf.Options;
+import io.github.manusant.ss.model.auth.ApiKeyAuthDefinition;
+import io.github.manusant.ss.model.auth.In;
+import io.github.manusant.ss.rest.Endpoint;
+import spark.Request;
+import spark.Response;
+import spark.Service;
+import spark.globalstate.ServletFlag;
+import spark.servlet.SparkApplication;
 
-import com.cs.common.model.GAPIHeaderData;
-import com.cs.esp.org.json.JSONObject;
-import com.cs.eximap.utility.APLog;
-import com.cs.idea.utilities.IdeaProperties;
-import com.cs.idea.utilities.RestClient;
-import com.cs.utilities.SBIBaseService;
-import com.cs.utilities.SBIUtility;
-import com.tcs.idea.handler.RequestHandler;
-
-public class CustomerOnboard extends SBIBaseService implements RequestHandler{
-	
-	private String TELLER_ID;
-	private String cif;
-	
-	public CustomerOnboard(GAPIHeaderData gapiHeaderData) throws Exception {
-		super(gapiHeaderData);
+public class EncryptionTestEndpoint extends BaseEndpoint implements SparkApplication, ServletContextListener {
+	public static Properties URLProperties = new Properties();
+	protected void servicebind(SparkSwagger restApi) {
+		bindEncryptionTestRoute(restApi);
 	}
-	
-	@Override
-	  public String process(String json) throws Exception{
-		  return getCustomerOnboardDetails(json);
-	  }
+	private void bindEncryptionTestRoute(SparkSwagger restApi) {
 
-	@SuppressWarnings("static-access")
-	public String getCustomerOnboardDetails(String jspToGapiJosn) {
-		String sReqRefNum = "";
-		String custOnBrdInqDetailsResp = "";
+		// ApiEndpoint endpoint =
+		// restApi.endpoint(endpointPath("")).addAPIPathToBuilderPath(false);
+		ApiEndpoint endpoint = restApi.endpoint(endpointPath("/apitest").withDescription("TEST API"))
+				.addAPIPathToBuilderPath(false);
+		endpoint.post(
+				path("/request").withDescription("Encrypt request and return normal API response")
+						.withRequestType(String.class).withResponseType(String.class),
+				(request, response) -> processRequest(request, response));
+	}
+	private String processRequest(Request request, Response response) throws Exception {
 		try {
-			
-			APLog.reportLog("Received JSON data from screen : " + jspToGapiJosn);
-			JSONObject jsonObj = new JSONObject(jspToGapiJosn);
-			TELLER_ID = (String) jsonObj.get("UserId");
-			cif = (String) jsonObj.get("cif");
-			
-			IdeaProperties IdeaProperties = new IdeaProperties();
-
-			sReqRefNum = SBIUtility.getSBIRequestRefNumber(TELLER_ID, "TF");
-			JSONObject custOnBrd = new JSONObject();
-			JSONObject custOnBrdPayload = new JSONObject();
-			custOnBrd.put("\"SOURCE_ID\"", IdeaProperties.IdeaProperties.getProperty("SOURCE_ID"));
-			custOnBrdPayload.put("\"requestId\"", getRequestId(sReqRefNum));
-			custOnBrdPayload.put("\"source\"", "TF");
-			custOnBrdPayload.put("\"cccif\"", cif); // get from screen
-			//custOnBrdPayload.put("\"signData\"", SignUtils.signData(sReqId));
-			custOnBrd.put("\"EIS_PAYLOAD\"", custOnBrdPayload);
-			custOnBrd.put("\"REQUEST_REFERENCE_NUMBER\"", sReqRefNum);
-			custOnBrd.put("\"DESTINATION\"", "IT_TSS_GEN6");
-			custOnBrd.put("\"TXN_TYPE\"", "FXS_TRADE_CUSTOMER");
-			custOnBrd.put("\"TXN_SUB_TYPE\"", "ENQUIRY");
-
-			APLog.reportLog("Customer onboard Details Request=========" + custOnBrd);
-			String url = IdeaProperties.IdeaProperties.getProperty("CUST_ONBOARD_URL");
-			APLog.reportLog("Endpoint URL of Customer onboard  is : =========" + url);
+			// 1. Read raw JSON from Postman.
+			String rawRequest = request.body();
+			if (rawRequest == null || rawRequest.trim().isEmpty()) {
+				response.status(400);
+				return new JSONObject().put("error", "Request body is empty").toString();
+			}
+			// Validate JSON.
+			com.cs.esp.org.json.JSONObject requestJson = new com.cs.esp.org.json.JSONObject(rawRequest);
+			String PROP_CONFIG_FILE_PATH = ASPathConst.getUserDirPath() + File.separator + "properties" + File.separator
+					+ "apitest.properties";
+			InputStream input = new FileInputStream(PROP_CONFIG_FILE_PATH);
+			URLProperties.load(input);
+			String targetUrl = URLProperties.getProperty("API_TEST_URL");
+			if (targetUrl == null || targetUrl.trim().isEmpty()) {
+				response.status(500);
+				return new JSONObject().put("error", "Target API URL is not configured").toString();
+			}
+			String url = requestJson.getString("EIS_URL");
+			com.cs.esp.org.json.JSONObject actual_request = requestJson.getJSONObject("EIS_REQUEST");
+			String requestReference = requestJson.getString("REQUEST_REFERENCE_NUMBER");
 			RestClient restClient = new RestClient();
-			custOnBrdInqDetailsResp = restClient.SendPostRequest(custOnBrd, sReqRefNum, url,
-					"IDEACustOnbrdDtls.json", null, null, SBIUtility.isRespFromStub("IDEACustOnbrdDtls"));
-			APLog.reportLog("Customer onboard Details Response=========\n" + custOnBrdInqDetailsResp);
-			Thread.sleep(1000);
+			String apiResponse = restClient.SendPostRequest(actual_request, requestReference, url, null, null, null,
+					false);
+			response.status(200);
+			response.type("application/json");
+			return apiResponse;
+		} catch (org.json.JSONException e) {
+			response.status(400);
+			response.type("application/json");
+			return new JSONObject().put("error", "Invalid JSON request").toString();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			APLog.reportErrLog(e.getMessage());
+			response.status(500);
+			response.type("application/json");
+			// Log the exception through your application's logger.
+			return new JSONObject().put("error", "Failed to process API request").toString();
 		}
-		return custOnBrdInqDetailsResp;
 	}
-	
-	public String getRequestId(String sReqRefNum) {
-		// Get the current date and time
-		LocalDateTime now = LocalDateTime.now();
-
-		// Define the desired format
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("ddMMyyyy");
-
-		// Format the current date and time
-		String formattedTimestamp = now.format(formatter);
-
-		// Print the formatted timestamp
-		APLog.reportLog("Formatted Timestamp: " + formattedTimestamp);
-		formattedTimestamp = formattedTimestamp + "OR" + sReqRefNum.substring(19, sReqRefNum.length());
-		return formattedTimestamp;
+	@Override
+	public void contextDestroyed(ServletContextEvent arg0) {
+		// TODO Auto-generated method stub
 	}
-
+	@Override
+	public void contextInitialized(ServletContextEvent sce) {
+		List<Endpoint> endpoints = getEndpoints(sce);
+		ServletFlag.runFromServlet();
+		Service spark = Service.ignite().ipAddress("127.0.0.1").port(8080);
+		ApiKeyAuthDefinition apiKey = new ApiKeyAuthDefinition();
+		apiKey.in(In.HEADER);
+		apiKey.setName("authorization");
+		Options options = Options.builder().confPath("conf/SLADashboard.conf").build();
+		try {
+			SparkSwagger.of(spark, options).endpoints(() -> endpoints).security("api_key", apiKey);
+		} catch (Exception e) {
+			LogUtil.error(e);
+		}
+	}
+	public List<Endpoint> getEndpoints(ServletContextEvent sce) {
+		ArrayList<Endpoint> endpoints = new ArrayList<>();
+		endpoints.add(new EncryptionTestEndpoint());
+		return endpoints;
+	}
+	@Override
+	public void init() {
+		// TODO Auto-generated method stub
+	}
 }
+
+
+working request with the below body is sent from postman
+
+   
+    {
+        "EIS_URL": "https://eissiuat.sbi.co.in/gen6/gateway/misc/thirdParty/wrapper/services",
+         "REQUEST_REFERENCE_NUMBER": "SBITF20262996393315125099",
+    "EIS_REQUEST": {
+       "\"SOURCE_ID\"": "TF",
+  "\"EIS_PAYLOAD\"": {
+    "\"requestId\"": "26102026OR113210",
+    "\"source\"": "TF",
+    "\"cccif\"": "00000095001484507"
+  },
+  "\"REQUEST_REFERENCE_NUMBER\"": "SBITF20262996393315125099",
+  "\"DESTINATION\"": "IT_TSS_GEN6",
+  "\"TXN_TYPE\"": "FXS_TRADE_CUSTOMER",
+  "\"TXN_SUB_TYPE\"": "ENQUIRY"
+    }
+    }
+
+
+it should work with the below body
+
+{EIS_URL:"https://eissiuat.sbi.co.in/gen6/gateway/misc/thirdParty/wrapper/services",EIS_REQUEST:{"SOURCE_ID":"TF","EIS_PAYLOAD":{"requestId":"26102026OR113210","source":"TF","cccif":"00000095001484507"},"REQUEST_REFERENCE_NUMBER":"SBITF20262996393315125095","DESTINATION":"IT_TSS_GEN6","TXN_TYPE":"FXS_TRADE_CUSTOMER","TXN_SUB_TYPE":"ENQUIRY"}}	
