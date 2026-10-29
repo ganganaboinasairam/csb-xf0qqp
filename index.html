@@ -1,131 +1,2162 @@
-private String processRequest(Request request, Response response) throws Exception {
+package com.cs.eximap.busiintf;
 
-		try {
-			// 1. Read request body.
-			String rawRequest = request.body();
+import com.cs.base.xml.XMLManager;
+import com.cs.core.dao.DSManager;
+import com.cs.flow.utility.FunctionFlowUtil;
+import java.util.Map;
+import org.apache.commons.lang.StringUtils;
+import org.apache.xerces.dom.DocumentImpl;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
-			if (rawRequest == null || rawRequest.trim().isEmpty()) {
-				response.status(400);
-				response.type("application/json");
+public class InitBusinessTask
+  implements Busiintf
+{
+  public DocumentImpl getDataMaster(DocumentImpl paraDom)
+    throws Exception
+  {
+    return null;
+  }
 
-				return new JSONObject().put("error", "Request body is empty").toString();
-			}
+  public DocumentImpl getDataPending(DocumentImpl paraDom) throws Exception {
+    Element eleParaRoot = paraDom.getDocumentElement();
+    Node ndDomData = XMLManager.findChildNode("domData", eleParaRoot);
 
-			// 2. Parse incoming JSON.
-			com.cs.esp.org.json.JSONObject requestJson = new com.cs.esp.org.json.JSONObject(rawRequest);
+    Map hmData = XMLManager.convertToHashMap(ndDomData);
+    String lstrUserID = XMLManager.getXpathValue(paraDom, "/root/C_USER_ID");
+    if (StringUtils.isNotEmpty(lstrUserID)) {
+      hmData.put("C_USER_ID", lstrUserID);
+    }
+    String lstrTrxDS = XMLManager.getXpathValue(paraDom, "/root/C_TRX_DS");
+    if (StringUtils.isNotEmpty(lstrTrxDS)) {
+      hmData.put("C_TRX_DS", lstrTrxDS);
+    }
+    String lstrBankGroupID = XMLManager.getXpathValue(paraDom, "/root/C_BK_GROUP_ID");
+    if (StringUtils.isNotEmpty(lstrBankGroupID)) {
+      hmData.put("C_BK_GROUP_ID", lstrBankGroupID);
+    }
+    String lstrCountryCode = XMLManager.getXpathValue(paraDom, "/root/C_CNTY_CODE");
+    if (StringUtils.isNotEmpty(lstrCountryCode)) {
+      hmData.put("C_CNTY_CODE", lstrCountryCode);
+    }
+    String lstrUnitCode = XMLManager.getXpathValue(paraDom, "/root/C_UNIT_CODE");
+    if (StringUtils.isNotEmpty(lstrUnitCode)) {
+      hmData.put("C_UNIT_CODE", lstrUnitCode);
+    }
 
-			// 3. Load target API configuration.
-			String configPath = ASPathConst.getUserDirPath() + File.separator + "properties" + File.separator
-					+ "apitest.properties";
+    if (StringUtils.isEmpty((String)hmData.get("C_SYS_SCHEMA"))) {
+      String lstrSysSchema = DSManager.getSystemSchema(lstrBankGroupID, lstrCountryCode);
+      hmData.put("C_SYS_SCHEMA", lstrSysSchema);
+    }
+    if (StringUtils.isEmpty((String)hmData.get("C_DS_ID"))) {
+      String lstrDataSource = DSManager.getTrxDS(lstrBankGroupID, lstrCountryCode);
+      hmData.put("C_DS_ID", lstrDataSource);
+    }
 
-			String targetUrl;
+    hmData.put("MODULE", hmData.get("C_MODU_NAME"));
 
-			try (InputStream input = new FileInputStream(configPath)) {
-				Properties properties = new Properties();
-				properties.load(input);
-				targetUrl = properties.getProperty("API_TEST_URL");
-			}
+    hmData.put("IS_PROC_CENTER", "T");
+    FunctionFlowUtil.startBGFlow(hmData);
+    return paraDom;
+  }
 
-			if (targetUrl == null || targetUrl.trim().isEmpty()) {
-				response.status(500);
-				response.type("application/json");
+  public DocumentImpl inqData(DocumentImpl paraDom) throws Exception {
+    return null;
+  }
 
-				return new JSONObject().put("error", "Target API URL is not configured").toString();
-			}
+  public DocumentImpl authorizeData(DocumentImpl paraDom) throws Exception {
+    return null;
+  }
 
-			// 4. Extract target URL from the incoming request.
-			String url = requestJson.optString("EIS_URL", "").trim();
+  public DocumentImpl releaseData(DocumentImpl paradom) throws Exception {
+    return null;
+  }
 
-			if (url.isEmpty()) {
-				response.status(400);
-				response.type("application/json");
+  public DocumentImpl deleteData(DocumentImpl paradom) throws Exception {
+    return null;
+  }
 
-				return new JSONObject().put("error", "EIS_URL is missing").toString();
-			}
+  public DocumentImpl deleteMasterData(DocumentImpl paradom) throws Exception {
+    return null;
+  }
 
-			/*
-			 * 5. Extract EIS_REQUEST. The inner request may contain property names such as
-			 * "\"SOURCE_ID\"" instead of "SOURCE_ID".
-			 */
-			Object eisRequestValue = requestJson.opt("EIS_REQUEST");
+  public DocumentImpl reAssignData(DocumentImpl paradom) throws Exception {
+    return null;
+  }
 
-			if (!(eisRequestValue instanceof com.cs.esp.org.json.JSONObject)) {
+  public DocumentImpl cancelationData(DocumentImpl paradom) throws Exception {
+    return null;
+  }
 
-				response.status(400);
-				response.type("application/json");
+  public DocumentImpl releaseDeleteMaster(DocumentImpl paradom) throws Exception {
+    return null;
+  }
+}
 
-				return new JSONObject().put("error", "EIS_REQUEST must be a JSON object").toString();
-			}
 
-			com.cs.esp.org.json.JSONObject actualRequest = (com.cs.esp.org.json.JSONObject) eisRequestValue;
+package com.cs.flow.utility;
 
-			// 6. Normalize property names recursively.
-			actualRequest = normalizeJsonObject(actualRequest);
+import com.cs.base.utility.ASPathConst;
+import com.cs.base.utility.uuid.UUIDGenerator;
+import com.cs.base.xml.XMLManager;
+import com.cs.bpmn.converter.BpmnXMLConverter;
+import com.cs.bpmn.model.BpmnModel;
+import com.cs.bpmn.model.EndEvent;
+import com.cs.bpmn.model.ExtensionElement;
+import com.cs.bpmn.model.FuncflowListener;
+import com.cs.bpmn.model.Process;
+import com.cs.bpmn.model.SequenceFlow;
+import com.cs.bpmn.model.StartEvent;
+import com.cs.bpmn.model.UserTask;
+import com.cs.core.dao.DSManager;
+import com.cs.core.err.ErrorHandling;
+import com.cs.core.err.WSException;
+import com.cs.core.utility.CSEEDAOHelper;
+import com.cs.core.utility.CSTransactionManager;
+import com.cs.core.utility.SchemaUtil;
+import com.cs.engine.IdentityService;
+import com.cs.engine.ProcessEngine;
+import com.cs.engine.ProcessEngines;
+import com.cs.engine.RepositoryService;
+import com.cs.engine.RuntimeService;
+import com.cs.engine.TaskService;
+import com.cs.engine.impl.RepositoryServiceImpl;
+import com.cs.engine.impl.persistence.entity.ProcessDefinitionEntity;
+import com.cs.engine.impl.pvm.process.ActivityImpl;
+import com.cs.engine.impl.util.io.InputStreamSource;
+import com.cs.engine.repository.Deployment;
+import com.cs.engine.repository.DeploymentBuilder;
+import com.cs.engine.runtime.ProcessInstance;
+import com.cs.engine.runtime.ProcessInstanceQuery;
+import com.cs.engine.task.IdentityLink;
+import com.cs.engine.task.Task;
+import com.cs.engine.task.TaskQuery;
+import com.cs.eximap.log.APLogExec;
+import com.cs.eximap.utility.APLog;
+import com.cs.eximap.utility.CSSQLClause;
+import com.cs.eximap.utility.CSSQLStatement;
+import com.cs.flow.task.listener.TaskSummaryListener;
+import com.cs.sla.utility.DateTimeUtils;
+import com.cs.sla.utility.SLASingle;
+import com.cs.sla.utility.SLAUtility;
+import com.cs.validation.ProcessValidator;
+import com.cs.validation.ProcessValidatorFactory;
+import com.cs.validation.ValidationError;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.math.BigDecimal;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.UUID;
+import javax.sql.DataSource;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
-			// 7. Get RRN from EIS_REQUEST, falling back to outer level.
-			String requestReference = actualRequest.optString("REQUEST_REFERENCE_NUMBER",
-					requestJson.optString("REQUEST_REFERENCE_NUMBER", ""));
+public class FunctionFlowUtil
+{
+  private static Map<String, Map<String, String>> mapFieldsMappings = new HashMap();
 
-			if (requestReference.trim().isEmpty()) {
-				response.status(400);
-				response.type("application/json");
+  public static String startBGFlow(Map<String, String> map)
+    throws Exception
+  {
+    ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+    RepositoryService repositoryService = processEngine.getRepositoryService();
+    RuntimeService runtimeService = processEngine.getRuntimeService();
 
-				return new JSONObject().put("error", "REQUEST_REFERENCE_NUMBER is missing").toString();
-			}
+    String lstrProcessID = deployFunctionFlow(map, repositoryService);
 
-			// 8. Log the normalized request for debugging.
-			System.out.println("Target URL: " + url);
-			System.out.println("Request Reference: " + requestReference);
-			System.out.println("Normalized EIS_REQUEST: " + actualRequest);
+    Map variables = new HashMap();
 
-			// 9. Forward request to the existing REST client.
-			RestClient restClient = new RestClient();
-			
-			
+    Map variablesTypes = getVariablesTypes(map);
+    processVariables(variables, variablesTypes, map);
 
-			//String apiResponse = restClient.SendPostRequest(actualRequest, requestReference, url, null, null, null, false);
-					// Convert to standard JSON with double-quoted keys.
-					String jsonRequest = new org.json.JSONObject(
-					        actualRequest.toString()
-					).toString();
+    convertFields(map, variables);
 
-					// Parse into standard org.json JSONObject.
-					org.json.JSONObject serverRequest =
-					        new org.json.JSONObject(jsonRequest);
-					
+    String lstrSLAID = UUIDGenerator.getInstance().generateUUID();
+    variables.put("C_SLA_ID", lstrSLAID);
 
-					// Log the exact JSON representation.
-					System.out.println("Server Request: " + serverRequest.toString(2));
+    String lstrCurrentGMTDateTime = DateTimeUtils.getCurrentGMTDateTimeString();
+    variables.put("D_INITLINE", lstrCurrentGMTDateTime);
 
-					// Send the request using the standard JSON object.
-					String apiResponse = restClient.SendPostRequest(
-					        serverRequest,
-					        requestReference,
-					        url,
-					        null,
-					        null,
-					        null,
-					        false
-					);
+    map.put("C_SLA_ID", lstrSLAID);
+    map.put("D_INITLINE", lstrCurrentGMTDateTime);
 
-			// 10. Return the target API response.
-			response.status(200);
-			response.type("application/json");
+    variables.put("C_SLA_ID", lstrSLAID);
+    variables.put("D_INITLINE", lstrCurrentGMTDateTime);
 
-			return apiResponse;
+    String lstrMainRef = (String)map.get("C_MAIN_REF");
+    if (StringUtils.isEmpty(lstrMainRef)) {
+      variables.put("BPM_INITIATE_FIELD", "Yes");
+    }
 
-		} catch (org.json.JSONException e) {
-			response.status(400);
-			response.type("application/json");
+    String lstrUserID = (String)map.get("C_USER_ID");
+    IdentityService identityService = processEngine.getIdentityService();
+    identityService.setAuthenticatedUserId(lstrUserID);
 
-			return new JSONObject().put("error", "Invalid JSON request").toString();
+    ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(lstrProcessID, variables);
+    String lstrProcessInstanceID = processInstance.getProcessInstanceId();
 
-		} catch (Exception e) {
-			LogUtil.error(e);
+    TaskService taskService = processEngine.getTaskService();
 
-			response.status(500);
-			response.type("application/json");
+    TaskQuery taskQuery = (TaskQuery)taskService.createTaskQuery().processInstanceId(lstrProcessInstanceID);
 
-			return new JSONObject().put("error", "Failed to process API request").toString();
-		}
-	}
+    Task task = (Task)taskQuery.singleResult();
+    String slaCreateTime = DateTimeUtils.date2String(task.getCreateTime());
+    runtimeService.setVariable(lstrProcessInstanceID, "SLACreateTime", slaCreateTime);
+
+    insertInboxVariable(variables, lstrProcessInstanceID);
+
+    return processInstance.getProcessInstanceId();
+  }
+
+  private static void processVariables(Map<String, Object> variables, Map<String, String> variablesTypes, Map<String, String> map) throws Exception
+  {
+    Document processVariablesDefinition = getProcessVariablesDocument();
+    NodeList nlProcessVariablesList = processVariablesDefinition.getElementsByTagName("list");
+    int liLen = nlProcessVariablesList.getLength();
+    for (int i = 0; i < liLen; ++i) {
+      Node nProcessVariablesList = nlProcessVariablesList.item(i);
+      String lstrProcessVariablesName = XMLManager.getNodeValue(nProcessVariablesList, true);
+      String lstrProcessVariablesValue = (String)map.get(lstrProcessVariablesName);
+      if (StringUtils.isNotEmpty(lstrProcessVariablesValue)) {
+        if ((lstrProcessVariablesName.equals("I_EVENT_TIMES")) && 
+          (lstrProcessVariablesValue.equals("0"))) {
+          lstrProcessVariablesValue = "1";
+        }
+
+        String lstrFieldType = (String)variablesTypes.get(lstrProcessVariablesName);
+        if ((lstrFieldType != null) && (lstrFieldType.equals("FLOAT")))
+          variables.put(lstrProcessVariablesName, new BigDecimal(lstrProcessVariablesValue));
+        else if ((lstrFieldType != null) && (lstrFieldType.equals("DATE")))
+          variables.put(lstrProcessVariablesName, lstrProcessVariablesValue);
+        else
+          variables.put(lstrProcessVariablesName, lstrProcessVariablesValue);
+      }
+    }
+  }
+
+  public static String getModuField()
+    throws Exception
+  {
+    Document processVariablesDefinition = getProcessVariablesDocument();
+    return XMLManager.getXpathValue(processVariablesDefinition, "/root/MODU_FIELD");
+  }
+
+  private static Map<String, String> getVariablesTypes(Map<String, String> map) throws Exception
+  {
+    Map variablesTypes = new HashMap();
+    List listCondDetail = getCondDetail(map);
+    int liSize = listCondDetail.size();
+    for (int i = 0; i < liSize; ++i) {
+      Map mapCondDetail = (Map)listCondDetail.get(i);
+      String lstrFieldID = (String)mapCondDetail.get("C_FIELD_ID");
+      String lstrFieldType = (String)mapCondDetail.get("C_FIELD_TYPE");
+      variablesTypes.put(lstrFieldID, lstrFieldType);
+    }
+    return variablesTypes;
+  }
+
+  private static void insertInboxVariable(Map<String, Object> variables, String strProcessInstanceID) throws Exception
+  {
+    Map map = SLAUtility.changeMapValuesType2String(variables);
+    String lstrTable = SchemaUtil.getTableNameWithSchema((String)map.get("C_SYS_SCHEMA"), "TRX_INBOX_VARIABLE");
+    CSSQLStatement cssqlStatement = new CSSQLStatement(1, lstrTable, (String)map.get("C_DS_ID"));
+    cssqlStatement.addField("C_PROCESS_ID", strProcessInstanceID, 12);
+    cssqlStatement.addField("C_UNIT_CODE", map.get("C_UNIT_CODE"), 12);
+    cssqlStatement.addField("C_BK_GROUP_ID", map.get("C_BK_GROUP_ID"), 12);
+    cssqlStatement.addField("C_CNTY_CODE", map.get("C_CNTY_CODE"), 12);
+    cssqlStatement.addField("C_CP_UNIT_CODE", map.get("C_CP_UNIT_CODE"), 12);
+    cssqlStatement.addField("C_SLA_ID", map.get("C_SLA_ID"), 12);
+    cssqlStatement.addField("C_MAIN_REF", map.get("C_MAIN_REF"), 12);
+    cssqlStatement.addField("C_TRX_REF", map.get("C_TRX_REF"), 12);
+    cssqlStatement.addField("C_CUST_ID", map.get("C_CUST_ID"), 12);
+    cssqlStatement.addField("C_CURRENCY", map.get("C_CURRENCY"), 12);
+    cssqlStatement.addField("Y_TRX_AMT", map.get("Y_TRX_AMT"), 2);
+    cssqlStatement.addField("C_BG_ID", map.get("C_BG_ID"), 12);
+    cssqlStatement.addField("C_BG_DESC", map.get("C_BG_DESC"), 12);
+    cssqlStatement.addField("C_BG_VERSION", map.get("C_BG_VERSION"), 12);
+    CSEEDAOHelper.commExecuteUpdate(cssqlStatement);
+  }
+
+  private static void updateInboxVariable(Map<String, Object> variables, String strProcessInstanceID) throws Exception {
+    Map map = SLAUtility.changeMapValuesType2String(variables);
+    String lstrTable = SchemaUtil.getTableNameWithSchema((String)map.get("C_SYS_SCHEMA"), "TRX_INBOX_VARIABLE");
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+
+    listValues.add(strProcessInstanceID);
+    listTypes.add(Integer.valueOf(12));
+
+    CSSQLStatement cssqlStatement = new CSSQLStatement(2, lstrTable, (String)map.get("C_DS_ID"));
+    cssqlStatement.addField("C_BK_GROUP_ID", map.get("C_BK_GROUP_ID"), 12);
+    cssqlStatement.addField("C_UNIT_CODE", map.get("C_UNIT_CODE"), 12);
+    cssqlStatement.addField("C_CNTY_CODE", map.get("C_CNTY_CODE"), 12);
+    cssqlStatement.addField("C_CP_UNIT_CODE", map.get("C_CP_UNIT_CODE"), 12);
+    cssqlStatement.addField("C_SLA_ID", map.get("C_SLA_ID"), 12);
+    cssqlStatement.addField("C_MAIN_REF", map.get("C_MAIN_REF"), 12);
+    cssqlStatement.addField("C_TRX_REF", map.get("C_TRX_REF"), 12);
+    cssqlStatement.addField("C_CUST_ID", map.get("C_CUST_ID"), 12);
+    cssqlStatement.addField("C_CURRENCY", map.get("C_CURRENCY"), 12);
+    cssqlStatement.addField("Y_TRX_AMT", map.get("Y_TRX_AMT"), 2);
+    cssqlStatement.addField("C_BG_ID", map.get("C_BG_ID"), 12);
+    cssqlStatement.addField("C_BG_DESC", map.get("C_BG_DESC"), 12);
+    cssqlStatement.addField("C_BG_VERSION", map.get("C_BG_VERSION"), 12);
+    String sqlWhere = " WHERE C_PROCESS_ID = ? ";
+    CSSQLClause csClause = new CSSQLClause();
+    csClause.setClauseForList(sqlWhere, listValues, listTypes);
+    cssqlStatement.setClause(csClause);
+    CSEEDAOHelper.commExecuteUpdate(cssqlStatement);
+  }
+
+  private static void convertFields(Map<String, String> map, Map<String, Object> variables) throws Exception
+  {
+    String lstrModuName = (String)map.get("MODULE");
+    if (StringUtils.isEmpty(StringUtils.trim(lstrModuName))) {
+      lstrModuName = (String)map.get("C_MODULE");
+    }
+    Map mapModuFieldsMappings = getModuleMappingFields(lstrModuName);
+    Document document = getInboxShowFieldsDocument();
+    NodeList nlInboxCatalog = document.getElementsByTagName("INBOXCATALOG");
+    Node ndInboxCatalog = nlInboxCatalog.item(0);
+    NodeList nlChilds = ndInboxCatalog.getChildNodes();
+    int liLen = nlChilds.getLength();
+    for (int i = 0; i < liLen; ++i) {
+      nlChilds.item(i);
+      Node ndChild = nlChilds.item(i);
+      if (ndChild.getNodeType() != 1) {
+        continue;
+      }
+      String lstrName = ndChild.getNodeName();
+      if ((mapModuFieldsMappings != null) && (mapModuFieldsMappings.containsKey(lstrName))) {
+        String lstrMappingName = (String)mapModuFieldsMappings.get(lstrName);
+        String lstrValue = (String)map.get(lstrMappingName);
+        variables.put(lstrName, lstrValue);
+      }
+      else if ((map != null) && (map.containsKey(lstrName))) {
+        String lstrValue = (String)map.get(lstrName);
+        if (StringUtils.isNotEmpty(lstrValue))
+          variables.put(lstrName, lstrValue);
+      }
+    }
+  }
+
+  public static String deployFunctionFlow(Map<String, String> map, RepositoryService repositoryService)
+    throws Exception
+  {
+    List listBGAsgnHeader = getFlowTableDataByPC(map, "STD_SLABG_ASGNHDR");
+    int liBGHeader = listBGAsgnHeader.size();
+    if (liBGHeader == 0) {
+      APLogExec.writeEEDebug("Can not find relation BG information!");
+      return null;
+    }
+
+    if (liBGHeader != 1) {
+      APLogExec.writeEEDebug("Shuld be one BG information!");
+      return null;
+    }
+
+    Map mapBGAsgnHeader = (Map)listBGAsgnHeader.get(0);
+    String lstrProcessID = buildProcessID(mapBGAsgnHeader);
+
+    String lstrDeployFlag = (String)mapBGAsgnHeader.get("C_DEPLOY_FLAG");
+    if ("Y".equalsIgnoreCase(lstrDeployFlag)) {
+      APLogExec.writeEEDebug("The function flow has been deployed!");
+      return lstrProcessID;
+    }
+
+    Document document = buildBpmn2XmlWithApi(map, mapBGAsgnHeader, lstrProcessID);
+
+    String lstrResourceName = buildBPMNResourceName(lstrProcessID);
+    XMLManager.writeXMLtoFile(lstrResourceName, document);
+
+    validation(lstrResourceName);
+
+    InputStream inputStream = new FileInputStream(lstrResourceName);
+    DeploymentBuilder deploymentBuilder = repositoryService.createDeployment();
+    deploymentBuilder = deploymentBuilder.addInputStream(lstrResourceName, inputStream);
+    Deployment deployment = deploymentBuilder.deploy();
+    String lstrDeploymentId = deployment.getId();
+    APLogExec.writeEEDebug("The deployment Id is " + lstrDeploymentId + ".");
+    updateDeployFlag(map, "Y");
+    return lstrProcessID;
+  }
+
+  public static void updateDeployFlag(Map<String, String> map, String strFlag) throws Exception {
+    String lstrTable = SchemaUtil.getTableNameWithSchema((String)map.get("C_SYS_SCHEMA"), "STD_SLABG_ASGNHDR");
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+
+    listValues.add(map.get("C_BG_ID"));
+    listTypes.add(Integer.valueOf(12));
+
+    listValues.add(map.get("C_BG_VERSION"));
+    listTypes.add(Integer.valueOf(12));
+
+    listValues.add(map.get("C_CP_UNIT_CODE"));
+    listTypes.add(Integer.valueOf(12));
+
+    CSSQLStatement cssqlStatement = new CSSQLStatement(2, lstrTable, (String)map.get("C_DS_ID"));
+    cssqlStatement.addField("C_DEPLOY_FLAG", strFlag, 12);
+    cssqlStatement.addField("C_USED_FLAG", "Y", 12);
+    String sqlWhere = " WHERE C_BG_ID = ? AND C_BG_VERSION = ? AND C_CP_UNIT_CODE = ? ";
+    CSSQLClause csClause = new CSSQLClause();
+    csClause.setClauseForList(sqlWhere, listValues, listTypes);
+    cssqlStatement.setClause(csClause);
+    CSEEDAOHelper.commExecuteUpdate(cssqlStatement);
+  }
+
+  private static String buildBPMNResourceName(String lstrProcessID)
+  {
+    StringBuilder sbResource = new StringBuilder();
+    String lstrEEDir = ASPathConst.USER_DIR_PATH;
+    sbResource.append(lstrEEDir);
+    sbResource.append(File.separator);
+    sbResource.append("BPMN2Temp");
+    File file = new File(sbResource.toString());
+    if (!file.exists()) {
+      file.mkdir();
+    }
+    sbResource.append(File.separator);
+    sbResource.append(lstrProcessID);
+    sbResource.append(".bpmn20.xml");
+    return sbResource.toString();
+  }
+
+  private static String buildProcessID(Map<String, String> mapBGHeader) {
+    String lstrBGID = (String)mapBGHeader.get("C_BG_ID");
+    String lstrBGVersion = (String)mapBGHeader.get("C_BG_VERSION");
+    String lstrPC = (String)mapBGHeader.get("C_CP_UNIT_CODE");
+    return lstrBGID + "_" + lstrBGVersion + "_" + lstrPC;
+  }
+
+  public static Document buildBpmn2Xml(Map<String, String> map, Map<String, String> mapBGHeader, String lstrProcessID) throws Exception {
+    Document document = generateBpmn2Template();
+    Element eDefinitions = document.getDocumentElement();
+
+    String lstrBGDesc = (String)mapBGHeader.get("C_BG_DESC");
+    String lstrFirstGroupID = (String)mapBGHeader.get("C_FIRST_FUNCGRP_ID");
+    if (StringUtils.isEmpty(lstrFirstGroupID)) {
+      String errMsg = ErrorHandling.getErrMsg("4865", null);
+      throw new Exception(errMsg);
+    }
+
+    String lstrFirstFunctionID = (String)mapBGHeader.get("C_FIRST_FUNC_ID");
+    if (StringUtils.isEmpty(lstrFirstFunctionID)) {
+      String errMsg = ErrorHandling.getErrMsg("4866", null);
+      throw new Exception(errMsg);
+    }
+
+    Element eProcess = document.createElement("process");
+    eDefinitions.appendChild(eProcess);
+
+    eProcess.setAttribute("id", lstrProcessID);
+    eProcess.setAttribute("name", lstrBGDesc);
+    eProcess.setAttribute("isExecutable", "true");
+
+    Graph graph = new Graph();
+    List listBGFunction = getFlowTableData(map, "STD_SLABG_FUNCTION");
+    List listCondHeader = getFlowTableData(map, "STD_COND_HEADER");
+    List listBGStepAssign = getFlowTableDataByPC(map, "STD_SLABG_ASGNSTEP");
+    int liFunctionSize = listBGFunction.size();
+    for (int i = 0; i < liFunctionSize; ++i) {
+      Map mapBGFunction = (Map)listBGFunction.get(i);
+      String lstrFunctionGroupID = (String)mapBGFunction.get("C_FUNCGRP_ID");
+      String lstrFunctionID = (String)mapBGFunction.get("C_FUNC_ID");
+      String lstrFunctionDesc = (String)mapBGFunction.get("C_FUNC_DESC");
+      String lstrCPUnitCode = (String)map.get("C_CP_UNIT_CODE");
+      String lstrBGID = (String)mapBGFunction.get("C_BG_ID");
+      String lstrBGVersion = (String)mapBGFunction.get("C_BG_VERSION");
+      String lstrStepSeqNo = (String)mapBGFunction.get("I_STEP_SEQ_NO");
+      String lstrStepName = (String)mapBGFunction.get("C_STEP_NAME");
+
+      if (!checkCurrentHasToFunction(mapBGFunction, listCondHeader)) {
+        List vec = new ArrayList();
+        vec.add(lstrFunctionDesc);
+        String errMsg = ErrorHandling.getErrMsg("4869", vec);
+        throw new Exception(errMsg);
+      }
+
+      GraphNode graphNode = graph.createGraphNode(lstrFunctionDesc, GraphNodeTypes.userTask);
+      graphNode.addProperty("C_FUNCGRP_ID", lstrFunctionGroupID);
+      graphNode.addProperty("C_FUNC_ID", lstrFunctionID);
+      graphNode.addProperty("C_BG_ID", lstrBGID);
+      graphNode.addProperty("C_BG_VERSION", lstrBGVersion);
+      graphNode.addProperty("C_CP_UNIT_CODE", lstrCPUnitCode);
+      graphNode.addProperty("I_STEP_SEQ_NO", lstrStepSeqNo);
+      graphNode.addProperty("C_STEP_NAME", lstrStepName);
+      graphNode.addProperty("C_FUNC_DESC", lstrFunctionDesc);
+
+      Map mapBGStepAssign = findBGStepAssign(listBGStepAssign, mapBGFunction);
+      String lstrGroups = (String)mapBGStepAssign.get("C_GROUP_ID");
+      String lstrUsers = (String)mapBGStepAssign.get("C_USER_ID");
+      if ((StringUtils.isEmpty(lstrGroups)) && (StringUtils.isEmpty(lstrUsers))) {
+        String errMsg = ErrorHandling.getErrMsg("4867", null);
+        throw new Exception(errMsg);
+      }
+
+      graphNode.setCandidateGroups(lstrGroups);
+      graphNode.setCandidateUsers(lstrUsers);
+
+      appendEntryNode(listCondHeader, graph, graphNode, lstrFunctionGroupID, lstrFunctionID, lstrFirstGroupID, lstrFirstFunctionID, lstrBGDesc, lstrStepSeqNo);
+
+      appendExitNode(map, listCondHeader, graph, graphNode, lstrFunctionGroupID, lstrFunctionID, lstrBGDesc, lstrStepSeqNo);
+    }
+
+    graph.buildBpmn2Xml(map, document, eProcess);
+
+    return document;
+  }
+
+  public static Document buildBpmn2XmlWithApi(Map<String, String> map, Map<String, String> mapBGHeader, String lstrProcessID) throws Exception
+  {
+    String lstrBGDesc = (String)mapBGHeader.get("C_BG_DESC");
+    String lstrFirstGroupID = (String)mapBGHeader.get("C_FIRST_FUNCGRP_ID");
+    if (StringUtils.isEmpty(lstrFirstGroupID)) {
+      String errMsg = ErrorHandling.getErrMsg("4865", null);
+      throw new Exception(errMsg);
+    }
+
+    String lstrFirstFunctionID = (String)mapBGHeader.get("C_FIRST_FUNC_ID");
+    if (StringUtils.isEmpty(lstrFirstFunctionID)) {
+      String errMsg = ErrorHandling.getErrMsg("4866", null);
+      throw new Exception(errMsg);
+    }
+
+    BpmnModel bpmnModel = new BpmnModel();
+    Process process = new Process();
+
+    process.setId(lstrProcessID);
+    process.setName(lstrBGDesc);
+    process.setExecutable(true);
+    bpmnModel.getProcesses().add(process);
+
+    List listBGFunction = getFlowTableData(map, "STD_SLABG_FUNCTION");
+    List listCondHeader = getFlowTableData(map, "STD_COND_HEADER");
+    List listBGStepAssign = getFlowTableDataByPC(map, "STD_SLABG_ASGNSTEP");
+    StartEvent startEvent = new StartEvent();
+    UUID uuid = UUID.randomUUID();
+    startEvent.setId("id" + uuid.toString().replaceAll("-", ""));
+    startEvent.setName(GraphNodeTypes.startEvent.toString() + " " + lstrBGDesc);
+    process.addFlowElement(startEvent);
+    Map mapUserTask = new HashMap();
+    int liCondHeader = listCondHeader.size();
+    SequenceFlow flowStart = null;
+
+    for (int i = 0; i < liCondHeader; ++i) {
+      Map mapCondHeader = (Map)listCondHeader.get(i);
+
+      String lstrFunctionGroupID = (String)mapCondHeader.get("C_FUNCGRP_ID");
+      String lstrFunctionID = (String)mapCondHeader.get("C_FUNC_ID");
+      String lstrStepSeqNo = (String)mapCondHeader.get("I_STEP_SEQ_NO");
+      Map mapBGFunction = findBGFunction(listBGFunction, lstrStepSeqNo, lstrFunctionGroupID, lstrFunctionID);
+
+      if (mapBGFunction == null) {
+        throw new WSException("4866", null);
+      }
+      String lstrFunctionDesc = (String)mapBGFunction.get("C_FUNC_DESC");
+
+      if (!checkCurrentHasToFunction(mapBGFunction, listCondHeader)) {
+        List listErrMsg = new ArrayList();
+        listErrMsg.add(lstrFunctionDesc);
+        String errMsg = ErrorHandling.getErrMsg("4869", listErrMsg);
+        throw new Exception(errMsg);
+      }
+
+      Map mapBGStepAssign = findBGStepAssign(listBGStepAssign, mapBGFunction);
+      if (mapBGStepAssign == null) {
+        throw new WSException("4866", null);
+      }
+      String lstrGroups = (String)mapBGStepAssign.get("C_GROUP_ID");
+      String lstrUsers = (String)mapBGStepAssign.get("C_USER_ID");
+      if ((StringUtils.isEmpty(lstrGroups)) && (StringUtils.isEmpty(lstrUsers))) {
+        String errMsg = ErrorHandling.getErrMsg("4867", null);
+        throw new Exception(errMsg);
+      }
+
+      UserTask userTask = (UserTask)mapUserTask.get(lstrStepSeqNo + "_" + lstrFunctionGroupID + "_" + lstrFunctionID);
+
+      if (userTask == null)
+      {
+        userTask = buildUserTask(map, mapBGFunction, process, mapUserTask, lstrStepSeqNo, lstrFunctionGroupID, lstrFunctionID, lstrGroups, lstrUsers);
+      }
+
+      if ((lstrFunctionGroupID.equalsIgnoreCase(lstrFirstGroupID)) && (lstrFunctionID.equalsIgnoreCase(lstrFirstFunctionID)) && (flowStart == null)) {
+        flowStart = new SequenceFlow();
+        uuid = UUID.randomUUID();
+        flowStart.setId("id" + uuid.toString().replace("-", ""));
+        flowStart.setSourceRef(startEvent.getId());
+        flowStart.setTargetRef(userTask.getId());
+        process.addFlowElement(flowStart);
+      }
+      String lstrToStepSeqNo = (String)mapCondHeader.get("I_TO_STEP_NO");
+      String lstrToFunctionGroupID = (String)mapCondHeader.get("C_TO_FUNCGRP_ID");
+      String lstrToFunctionID = (String)mapCondHeader.get("C_TO_FUNC_ID");
+      if (("End".equalsIgnoreCase(lstrToFunctionGroupID)) && ("End".equalsIgnoreCase(lstrToFunctionID))) {
+        EndEvent endEvent = new EndEvent();
+        uuid = UUID.randomUUID();
+        endEvent.setId("id" + uuid.toString().replaceAll("-", ""));
+        process.addFlowElement(endEvent);
+        SequenceFlow sequenceFlowEnd = new SequenceFlow();
+        uuid = UUID.randomUUID();
+        sequenceFlowEnd.setId("id" + uuid.toString().replaceAll("-", ""));
+        sequenceFlowEnd.setSourceRef(userTask.getId());
+        sequenceFlowEnd.setTargetRef(endEvent.getId());
+
+        List listCondDetail = getCondDetail(map, mapCondHeader);
+        String strConditionExpression = buildCondition(listCondDetail);
+        sequenceFlowEnd.setConditionExpression(strConditionExpression);
+
+        process.addFlowElement(sequenceFlowEnd);
+      }
+      else
+      {
+        mapBGFunction = findBGFunction(listBGFunction, lstrToStepSeqNo, lstrToFunctionGroupID, lstrToFunctionID);
+
+        if (mapBGFunction == null) {
+          throw new WSException("4866", null);
+        }
+        Map mapBGStepAssignTo = findBGStepAssign(listBGStepAssign, mapCondHeader, "I_TO_STEP_NO");
+        if (mapBGStepAssignTo == null) {
+          throw new WSException("4866", null);
+        }
+        String lstrGroupsTo = (String)mapBGStepAssignTo.get("C_GROUP_ID");
+        String lstrUsersTo = (String)mapBGStepAssignTo.get("C_USER_ID");
+        if ((StringUtils.isEmpty(lstrGroupsTo)) && (StringUtils.isEmpty(lstrUsersTo))) {
+          String errMsg = ErrorHandling.getErrMsg("4867", null);
+          throw new Exception(errMsg);
+        }
+
+        UserTask userTaskTo = (UserTask)mapUserTask.get(lstrToStepSeqNo + "_" + lstrToFunctionGroupID + "_" + lstrToFunctionID);
+
+        if (userTaskTo == null)
+        {
+          userTaskTo = buildUserTask(map, mapBGFunction, process, mapUserTask, lstrToStepSeqNo, lstrToFunctionGroupID, lstrToFunctionID, lstrGroupsTo, lstrUsersTo);
+        }
+
+        SequenceFlow sequenceFlow = new SequenceFlow();
+        uuid = UUID.randomUUID();
+        sequenceFlow.setId("id" + uuid.toString().replaceAll("-", ""));
+        sequenceFlow.setSourceRef(userTask.getId());
+        sequenceFlow.setTargetRef(userTaskTo.getId());
+        List listCondDetail = getCondDetail(map, mapCondHeader);
+        String strConditionExpression = buildCondition(listCondDetail);
+        sequenceFlow.setConditionExpression(strConditionExpression);
+        process.addFlowElement(sequenceFlow);
+      }
+    }
+    byte[] xml = new BpmnXMLConverter().convertToXML(bpmnModel);
+    APLogExec.writeEEDebug("#################");
+    APLogExec.writeEEDebug(new String(xml));
+    APLogExec.writeEEDebug("#################");
+    new BpmnXMLConverter().validateModel(new InputStreamSource(new ByteArrayInputStream(xml)));
+    Document document = XMLManager.xmlStrToDom(new String(xml));
+    return document;
+  }
+
+  private static UserTask buildUserTask(Map<String, String> map, Map<String, String> mapBGFunction, Process process, Map<String, UserTask> mapUserTask, String strStepSeqNo, String strFunctionGroupID, String strFunctionID, String strGroups, String strUsers)
+  {
+    UserTask userTask = new UserTask();
+
+    mapUserTask.put(strStepSeqNo + "_" + strFunctionGroupID + "_" + strFunctionID, userTask);
+
+    UUID uuid = UUID.randomUUID();
+    userTask.setId("id" + uuid.toString().replace("-", ""));
+    userTask.setCandidateGroups(string2List(strGroups, ";"));
+    userTask.setCandidateUsers(string2List(strUsers, ";"));
+
+    addTaskListener(userTask, "com.cs.flow.task.listener.CSUserTaskListener", "create");
+    addTaskListener(userTask, "com.cs.flow.task.listener.TaskSummaryListener", "create");
+    addTaskListener(userTask, "com.cs.flow.task.listener.TaskSummaryListener", "assign");
+    addTaskListener(userTask, "com.cs.flow.task.listener.TaskSummaryListener", "end");
+
+    ExtensionElement extensionElementTo = buildExtensionElement(map, mapBGFunction);
+    userTask.addExtensionElement(extensionElementTo);
+    process.addFlowElement(userTask);
+    return userTask;
+  }
+
+  private static void addTaskListener(UserTask userTask, String className, String event) {
+    FuncflowListener listener = new FuncflowListener();
+    listener.setImplementationType("class");
+    listener.setImplementation(className);
+    listener.setEvent(event);
+    userTask.getTaskListeners().add(listener);
+  }
+
+  private static ExtensionElement buildExtensionElement(Map<String, String> map, Map<String, String> mapCondHeader)
+  {
+    ExtensionElement extensionElement = new ExtensionElement();
+
+    extensionElement.setName("funcflow:CSExtension");
+    ExtensionElement childExtensionElementFunctionGroupID = buildChildExtensionElement(mapCondHeader, "C_FUNCGRP_ID");
+    extensionElement.addChildElement(childExtensionElementFunctionGroupID);
+    ExtensionElement childExtensionElementFunctionID = buildChildExtensionElement(mapCondHeader, "C_FUNC_ID");
+    extensionElement.addChildElement(childExtensionElementFunctionID);
+    ExtensionElement childExtensionElementBGID = buildChildExtensionElement(mapCondHeader, "C_BG_ID");
+    extensionElement.addChildElement(childExtensionElementBGID);
+    ExtensionElement childExtensionElementBGVersion = buildChildExtensionElement(mapCondHeader, "C_BG_VERSION");
+    extensionElement.addChildElement(childExtensionElementBGVersion);
+    ExtensionElement childExtensionElementCPUnitCode = buildChildExtensionElement(map, "C_CP_UNIT_CODE");
+    extensionElement.addChildElement(childExtensionElementCPUnitCode);
+    ExtensionElement childExtensionElementStepSeqNo = buildChildExtensionElement(mapCondHeader, "I_STEP_SEQ_NO");
+    extensionElement.addChildElement(childExtensionElementStepSeqNo);
+    ExtensionElement childExtensionElementStepName = buildChildExtensionElement(mapCondHeader, "C_STEP_NAME");
+    extensionElement.addChildElement(childExtensionElementStepName);
+    ExtensionElement childExtensionElementFunctionDesc = buildChildExtensionElement(mapCondHeader, "C_FUNC_DESC");
+    extensionElement.addChildElement(childExtensionElementFunctionDesc);
+    return extensionElement;
+  }
+
+  private static ExtensionElement buildChildExtensionElement(Map<String, String> map, String strName) {
+    ExtensionElement childExtensionElement = new ExtensionElement();
+    childExtensionElement.setName(strName);
+    childExtensionElement.setElementText((String)map.get(strName));
+    return childExtensionElement;
+  }
+
+  private static List<String> string2List(String strValues, String split) {
+    if (StringUtils.isEmpty(strValues)) {
+      return new ArrayList();
+    }
+    return Arrays.asList(strValues.split(split));
+  }
+
+  private static boolean checkCurrentHasToFunction(Map<String, String> mapBGFunction, List<Map<String, String>> listCondHeader)
+  {
+    boolean hasToFunction = false;
+    int liSize = listCondHeader.size();
+    for (int i = 0; i < liSize; ++i) {
+      Map mapCondHeader = (Map)listCondHeader.get(i);
+      String lstrFunctionGroupID = (String)mapBGFunction.get("C_FUNCGRP_ID");
+      String lstrFunctionID = (String)mapBGFunction.get("C_FUNC_ID");
+      String lstrStepSeqNo = (String)mapBGFunction.get("I_STEP_SEQ_NO");
+      if ((lstrStepSeqNo.equals(mapCondHeader.get("I_STEP_SEQ_NO"))) && (lstrFunctionGroupID.equals(mapCondHeader.get("C_FUNCGRP_ID"))) && (lstrFunctionID.equals(mapCondHeader.get("C_FUNC_ID")))) {
+        return true;
+      }
+    }
+    return hasToFunction;
+  }
+
+  public static Map<String, String> findBGStepAssign(List<Map<String, String>> listBGStepAssign, Map<String, String> mapBGFunction) {
+    int liSize = listBGStepAssign.size();
+    for (int i = 0; i < liSize; ++i) {
+      Map mapBGStepAssign = (Map)listBGStepAssign.get(i);
+      if (((String)mapBGFunction.get("I_STEP_SEQ_NO")).equals(mapBGStepAssign.get("I_STEP_SEQ_NO"))) {
+        return mapBGStepAssign;
+      }
+    }
+    return null;
+  }
+
+  private static Map<String, String> findBGStepAssign(List<Map<String, String>> listBGStepAssign, Map<String, String> mapCondHeader, String strStepSeqNo)
+  {
+    int liSize = listBGStepAssign.size();
+    for (int i = 0; i < liSize; ++i) {
+      Map mapBGStepAssign = (Map)listBGStepAssign.get(i);
+      if (((String)mapCondHeader.get(strStepSeqNo)).equals(mapBGStepAssign.get("I_STEP_SEQ_NO"))) {
+        return mapBGStepAssign;
+      }
+    }
+    return null;
+  }
+
+  private static Map<String, String> findBGFunction(List<Map<String, String>> listBGFunction, String strStepSeqNo, String strFunctionGroupID, String strFunctionID)
+  {
+    int liSize = listBGFunction.size();
+    for (int i = 0; i < liSize; ++i) {
+      Map mapBGFunction = (Map)listBGFunction.get(i);
+
+      if ((strStepSeqNo.equals(mapBGFunction.get("I_STEP_SEQ_NO"))) && 
+        (strFunctionGroupID
+        .equals(mapBGFunction
+        .get("C_FUNCGRP_ID"))) && 
+        (strFunctionID
+        .equals(mapBGFunction
+        .get("C_FUNC_ID"))))
+      {
+        return mapBGFunction;
+      }
+    }
+    return null;
+  }
+
+  private static void appendExitNode(Map<String, String> map, List<Map<String, String>> listCondHeader, Graph graph, GraphNode graphNode, String lstrFunctionGroupID, String lstrFunctionID, String lstrBGDesc, String lstrStepSeqNo) throws Exception
+  {
+    Map mapCondtition = new HashMap();
+    mapCondtition.put("C_FUNCGRP_ID", lstrFunctionGroupID);
+    mapCondtition.put("C_FUNC_ID", lstrFunctionID);
+    mapCondtition.put("I_STEP_SEQ_NO", lstrStepSeqNo);
+    List listFindData = findData(listCondHeader, mapCondtition);
+    int liFindDataSize = listFindData.size();
+    if (liFindDataSize == 0) {
+      List vec = new ArrayList();
+      vec.add(lstrFunctionID);
+      String errMsg = ErrorHandling.getErrMsg("4863", vec);
+      throw new Exception(errMsg);
+    }if (liFindDataSize == 1)
+      appendUserTaskNode(map, (Map)listFindData.get(0), graph, graphNode, lstrBGDesc, listCondHeader);
+    else
+      appendExclusiveGatewayNode(map, listFindData, graph, graphNode, lstrBGDesc, listCondHeader);
+  }
+
+  private static void appendEntryNode(List<Map<String, String>> listCondHeader, Graph graph, GraphNode graphNode, String lstrFunctionGroupID, String lstrFunctionID, String lstrFirstGroupID, String lstrFirstFunctionID, String lstrBGDesc, String lstrStepSeqNo) throws Exception
+  {
+    if ((lstrFunctionGroupID.equalsIgnoreCase(lstrFirstGroupID)) && (lstrFunctionID.equalsIgnoreCase(lstrFirstFunctionID))) {
+      GraphNode graphNodeStart = graph.createGraphNode(GraphNodeTypes.startEvent.toString() + " " + lstrBGDesc, GraphNodeTypes.startEvent);
+
+      GraphNode graphNodeFlowStart = graph.createGraphNode(GraphNodeTypes.sequenceFlow);
+
+      graphNodeStart.addGraphNodeExit(graphNodeFlowStart);
+      graphNodeFlowStart.addGraphNodeExit(graphNode);
+    }
+    else {
+      Map mapCondtition = new HashMap();
+      mapCondtition.put("C_TO_FUNCGRP_ID", lstrFunctionGroupID);
+      mapCondtition.put("C_TO_FUNC_ID", lstrFunctionID);
+      mapCondtition.put("I_TO_STEP_NO", lstrStepSeqNo);
+      List listFindData = findData(listCondHeader, mapCondtition);
+      int liFindDataSize = listFindData.size();
+      if (liFindDataSize != 0)
+        if (liFindDataSize == 1)
+          appendEntryUserTaskNode((Map)listFindData.get(0), graph, graphNode);
+        else
+          appendEntryInclusiveGatewayNode(listFindData, graph, graphNode);
+    }
+  }
+
+  private static void appendEntrySequenceFlowNode(Map<String, String> mapCondHeader, Graph graph, GraphNode graphNode)
+  {
+    Map mapProperty = new HashMap();
+    String lstrFuncGroupID = (String)mapCondHeader.get("C_FUNCGRP_ID");
+    String lstrFuncID = (String)mapCondHeader.get("C_FUNC_ID");
+    String lstrToFuncGroupID = (String)mapCondHeader.get("C_TO_FUNCGRP_ID");
+    String lstrToFuncID = (String)mapCondHeader.get("C_TO_FUNC_ID");
+    String lstrStepSeqNo = (String)mapCondHeader.get("I_STEP_SEQ_NO");
+    String lstrToStepSeqNo = (String)mapCondHeader.get("I_TO_STEP_NO");
+    mapProperty.put("C_FUNCGRP_ID", lstrFuncGroupID);
+    mapProperty.put("C_FUNC_ID", lstrFuncID);
+    mapProperty.put("C_TO_FUNCGRP_ID", lstrToFuncGroupID);
+    mapProperty.put("C_TO_FUNC_ID", lstrToFuncID);
+    mapProperty.put("I_STEP_SEQ_NO", lstrStepSeqNo);
+    mapProperty.put("I_TO_STEP_NO", lstrToStepSeqNo);
+    GraphNode graphNodesequenceFlow = graph.findSequenceFlowGraphNodeByProperty(mapProperty);
+    if (graphNodesequenceFlow != null)
+      graphNodesequenceFlow.addGraphNodeExit(graphNode);
+  }
+
+  private static void appendEntryUserTaskNode(Map<String, String> mapCondHeader, Graph graph, GraphNode graphNode) throws Exception
+  {
+    Map mapProperty = new HashMap();
+    String lstrFuncGroupID = (String)mapCondHeader.get("C_FUNCGRP_ID");
+    String lstrFuncID = (String)mapCondHeader.get("C_FUNC_ID");
+    String lstrStepSeqNo = (String)mapCondHeader.get("I_STEP_SEQ_NO");
+    mapProperty.put("C_FUNCGRP_ID", lstrFuncGroupID);
+    mapProperty.put("C_FUNC_ID", lstrFuncID);
+    mapProperty.put("I_STEP_SEQ_NO", lstrStepSeqNo);
+    GraphNode graphNodeUserTaskNode = graph.findUserTaskGraphNodeByProperty(mapProperty);
+    if (graphNodeUserTaskNode != null) {
+      Map mapGraphNodeExit = graphNodeUserTaskNode.getGraphNodeExit();
+      GraphNode graphNodeExit = (GraphNode)mapGraphNodeExit.get(mapGraphNodeExit.keySet().iterator().next());
+      Map mapGraphNodeExitChild = graphNodeExit.getGraphNodeExit();
+      if (mapGraphNodeExitChild.isEmpty()) {
+        graphNode.addGraphNodeEntry(graphNodeExit);
+      } else {
+        GraphNode graphNodeExitChild = (GraphNode)mapGraphNodeExitChild.get(mapGraphNodeExitChild.keySet().iterator().next());
+        if (graphNodeExitChild.getGraphNodeType().equals(GraphNodeTypes.exclusiveGateway)) {
+          Map propertyGraphNode = graphNode.getProperty();
+          Map mapExclusiveGatewayExit = graphNodeExitChild.getGraphNodeExit();
+          Iterator iterator = mapExclusiveGatewayExit.keySet().iterator();
+          while (iterator.hasNext()) {
+            String lstrExclusiveGatewayExitKey = (String)iterator.next();
+            GraphNode graphNodexclusiveGatewayExit = (GraphNode)mapExclusiveGatewayExit.get(lstrExclusiveGatewayExitKey);
+            Map property = graphNodexclusiveGatewayExit.getProperty();
+            if ((!((String)propertyGraphNode.get("I_STEP_SEQ_NO")).equals(property.get("I_TO_STEP_NO"))) || 
+              (!((String)propertyGraphNode.get("C_FUNCGRP_ID")).equals(property.get("C_TO_FUNCGRP_ID")))) continue;
+            if (!((String)propertyGraphNode.get("C_FUNC_ID")).equals(property.get("C_TO_FUNC_ID"))) {
+              continue;
+            }
+            graphNodexclusiveGatewayExit.addGraphNodeExit(graphNode);
+          }
+        }
+        else {
+          mapGraphNodeExit.clear();
+          graphNodeExit.getGraphNodeExit().clear();
+
+          GraphNode graphNodeInclusiveGateway = graph.createGraphNode(GraphNodeTypes.inclusiveGateway);
+
+          GraphNode graphNodeInclusiveGatewaySequenceFlow = graph.createGraphNode(GraphNodeTypes.sequenceFlow);
+
+          graphNodeInclusiveGateway.addGraphNodeExit(graphNodeInclusiveGatewaySequenceFlow);
+          graphNodeInclusiveGatewaySequenceFlow.addGraphNodeExit(graphNodeUserTaskNode);
+
+          graphNodeInclusiveGateway.addGraphNodeEntry(graphNodeExit);
+        }
+      }
+    }
+  }
+
+  private static void appendUserTaskNode(Map<String, String> map, Map<String, String> mapCondHeader, Graph graph, GraphNode graphNode, String lstrBGDesc, List<Map<String, String>> listCondHeader) throws Exception {
+    GraphNode graphNodeFlow = graph.createGraphNode(GraphNodeTypes.sequenceFlow);
+
+    Map mapSequenceFlowProperty = new HashMap();
+    String lstrFuncGroupID = (String)mapCondHeader.get("C_FUNCGRP_ID");
+    String lstrFuncID = (String)mapCondHeader.get("C_FUNC_ID");
+    String lstrSeqNo = (String)mapCondHeader.get("I_STEP_SEQ_NO");
+    String lstrFunctionDesc = (String)mapCondHeader.get("C_FUNC_DESC");
+    String lstrToFuncGroupID = (String)mapCondHeader.get("C_TO_FUNCGRP_ID");
+    String lstrToFuncID = (String)mapCondHeader.get("C_TO_FUNC_ID");
+    String lstrToFunctionDesc = (String)mapCondHeader.get("C_TO_FUNC_DESC");
+    String lstrToSeqNo = (String)mapCondHeader.get("I_TO_STEP_NO");
+    mapSequenceFlowProperty.put("C_FUNCGRP_ID", lstrFuncGroupID);
+    mapSequenceFlowProperty.put("C_FUNC_ID", lstrFuncID);
+    mapSequenceFlowProperty.put("I_STEP_SEQ_NO", lstrSeqNo);
+    mapSequenceFlowProperty.put("C_TO_FUNCGRP_ID", lstrToFuncGroupID);
+    mapSequenceFlowProperty.put("C_TO_FUNC_ID", lstrToFuncID);
+    mapSequenceFlowProperty.put("I_TO_STEP_NO", lstrToSeqNo);
+    mapSequenceFlowProperty.put("C_FUNC_DESC", lstrFunctionDesc);
+    mapSequenceFlowProperty.put("C_TO_FUNC_DESC", lstrToFunctionDesc);
+
+    List listCondDetail = getCondDetail(map, mapCondHeader);
+    String strCondition = buildCondition(listCondDetail);
+    graphNodeFlow.setCondition(strCondition);
+    graphNodeFlow.setProperty(mapSequenceFlowProperty);
+
+    graphNode.addGraphNodeExit(graphNodeFlow);
+
+    GraphNode graphNodeNextNode = null;
+    if (("End".equalsIgnoreCase(lstrToFuncGroupID)) && ("End".equalsIgnoreCase(lstrToFuncID))) {
+      appendEndNode(graph, graphNodeFlow, lstrBGDesc, listCondHeader);
+    } else {
+      Map mapProperty = new HashMap();
+      mapProperty.put("C_FUNCGRP_ID", lstrToFuncGroupID);
+      mapProperty.put("C_FUNC_ID", lstrToFuncID);
+      mapProperty.put("I_STEP_SEQ_NO", lstrToSeqNo);
+      graphNodeNextNode = graph.findUserTaskGraphNodeByProperty(mapProperty);
+    }
+    if (graphNodeNextNode != null) {
+      Map mapGraphNodeEntry = graphNodeNextNode.getGraphNodeEntry();
+      GraphNode graphNodeEntry = (GraphNode)mapGraphNodeEntry.get(mapGraphNodeEntry.keySet().iterator().next());
+      Map mapGraphNodeEntryParent = graphNodeEntry.getGraphNodeEntry();
+      GraphNode graphNodeEntryParent = (GraphNode)mapGraphNodeEntryParent.get(mapGraphNodeEntryParent.keySet().iterator().next());
+      if (graphNodeEntryParent.getGraphNodeType().equals(GraphNodeTypes.inclusiveGateway)) {
+        graphNodeFlow.addGraphNodeExit(graphNodeEntryParent);
+      } else {
+        mapGraphNodeEntry.clear();
+        graphNodeEntry.getGraphNodeExit().clear();
+
+        GraphNode graphNodeInclusiveGateway = graph.createGraphNode(GraphNodeTypes.inclusiveGateway);
+
+        GraphNode graphNodeInclusiveGatewaySequenceFlow = graph.createGraphNode(GraphNodeTypes.sequenceFlow);
+
+        graphNodeInclusiveGateway.addGraphNodeExit(graphNodeInclusiveGatewaySequenceFlow);
+        graphNodeInclusiveGatewaySequenceFlow.addGraphNodeExit(graphNodeNextNode);
+
+        graphNodeInclusiveGateway.addGraphNodeEntry(graphNodeEntry);
+        graphNodeInclusiveGateway.addGraphNodeEntry(graphNodeFlow);
+      }
+    }
+  }
+
+  private static void appendEntryInclusiveGatewayNode(List<Map<String, String>> listFindData, Graph graph, GraphNode graphNode) throws Exception {
+    GraphNode graphNodeSequenceFlow = graph.createGraphNode(GraphNodeTypes.sequenceFlow);
+    graphNode.addGraphNodeEntry(graphNodeSequenceFlow);
+
+    GraphNode graphNodeInclusiveGateway = graph.createGraphNode(GraphNodeTypes.inclusiveGateway);
+    graphNodeSequenceFlow.addGraphNodeEntry(graphNodeInclusiveGateway);
+
+    int liSize = listFindData.size();
+    for (int i = 0; i < liSize; ++i) {
+      Map mapFindData = (Map)listFindData.get(i);
+      appendEntrySequenceFlowNode(mapFindData, graph, graphNodeInclusiveGateway);
+    }
+  }
+
+  private static void appendExclusiveGatewayNode(Map<String, String> map, List<Map<String, String>> listFindData, Graph graph, GraphNode graphNode, String lstrBGDesc, List<Map<String, String>> listCondHeader) throws Exception {
+    GraphNode graphNodeSequenceFlow = graph.createGraphNode(GraphNodeTypes.sequenceFlow);
+    graphNode.addGraphNodeExit(graphNodeSequenceFlow);
+
+    GraphNode graphNodeExclusiveGateway = graph.createGraphNode(GraphNodeTypes.exclusiveGateway);
+    graphNodeSequenceFlow.addGraphNodeExit(graphNodeExclusiveGateway);
+
+    int liSize = listFindData.size();
+    for (int i = 0; i < liSize; ++i) {
+      Map mapFindData = (Map)listFindData.get(i);
+      appendUserTaskNode(map, mapFindData, graph, graphNodeExclusiveGateway, lstrBGDesc, listCondHeader);
+    }
+  }
+
+  private static void appendEndNode(Graph graph, GraphNode graphNodeFlowEnd, String lstrBGDesc, List<Map<String, String>> listCondHeader) throws Exception {
+    GraphNode graphNodeEnd = graph.findEndGraphNode();
+    if (graphNodeEnd == null) {
+      graphNodeEnd = graph.createGraphNode(GraphNodeTypes.endEvent.toString() + " " + lstrBGDesc, GraphNodeTypes.endEvent);
+      graphNodeEnd.addProperty("C_FUNCGRP_ID", "End");
+      graphNodeEnd.addProperty("C_FUNC_ID", "End");
+      Map mapCondtition = new HashMap();
+      mapCondtition.put("C_TO_FUNCGRP_ID", "End");
+      mapCondtition.put("C_TO_FUNC_ID", "End");
+      mapCondtition.put("I_TO_STEP_NO", "0");
+      List listFindData = findData(listCondHeader, mapCondtition);
+      int liFindDataSize = listFindData.size();
+      if (liFindDataSize != 0)
+        if (liFindDataSize == 1)
+          graphNodeFlowEnd.addGraphNodeExit(graphNodeEnd);
+        else
+          appendEntryInclusiveGatewayNode(listFindData, graph, graphNodeEnd);
+    }
+    else {
+      Map mapGraphNodeEndEntry = graphNodeEnd.getGraphNodeEntry();
+      GraphNode graphNodeEndEntry = (GraphNode)mapGraphNodeEndEntry.get(mapGraphNodeEndEntry.keySet().iterator().next());
+      Map mapGraphNodeEndEntryParent = graphNodeEndEntry.getGraphNodeEntry();
+      GraphNode graphNodeEndEntryParent = (GraphNode)mapGraphNodeEndEntryParent.get(mapGraphNodeEndEntryParent.keySet().iterator().next());
+      if (graphNodeEndEntryParent.getGraphNodeType().equals(GraphNodeTypes.inclusiveGateway)) {
+        graphNodeFlowEnd.addGraphNodeExit(graphNodeEndEntryParent);
+      } else {
+        mapGraphNodeEndEntry.clear();
+        graphNodeEndEntry.getGraphNodeExit().clear();
+
+        GraphNode graphNodeInclusiveGateway = graph.createGraphNode(GraphNodeTypes.inclusiveGateway);
+
+        GraphNode graphNodeInclusiveGatewaySequenceFlow = graph.createGraphNode(GraphNodeTypes.sequenceFlow);
+
+        graphNodeInclusiveGateway.addGraphNodeExit(graphNodeInclusiveGatewaySequenceFlow);
+        graphNodeInclusiveGatewaySequenceFlow.addGraphNodeExit(graphNodeEnd);
+
+        graphNodeInclusiveGateway.addGraphNodeEntry(graphNodeEndEntry);
+        graphNodeInclusiveGateway.addGraphNodeEntry(graphNodeFlowEnd);
+      }
+    }
+  }
+
+  private static String buildCondition(List<Map<String, String>> listCondDetail) {
+    int liCondDetailSize = listCondDetail.size();
+    StringBuilder sbCondition = new StringBuilder();
+    for (int j = 0; j < liCondDetailSize; ++j) {
+      Map mapCondDetail = (Map)listCondDetail.get(j);
+      if (j == 0) {
+        sbCondition.append("$");
+        sbCondition.append("{");
+      }
+      if (j > 0) {
+        sbCondition.append(" ");
+        String lstrAndOr = (String)mapCondDetail.get("C_AND_OR");
+        if ("AND".equals(lstrAndOr))
+          sbCondition.append("&&");
+        else if ("OR".equals(lstrAndOr))
+          sbCondition.append("||");
+        else {
+          sbCondition.append((String)mapCondDetail.get("C_AND_OR"));
+        }
+        sbCondition.append(" ");
+      }
+      sbCondition.append((String)mapCondDetail.get("C_FIELD_ID"));
+      sbCondition.append(" ");
+      sbCondition.append((String)mapCondDetail.get("C_OPERATOR"));
+      sbCondition.append(" ");
+      String lstrFieldType = (String)mapCondDetail.get("C_FIELD_TYPE");
+      if (("CHAR".equals(lstrFieldType)) || ("DATE".equals(lstrFieldType))) {
+        sbCondition.append("'");
+        sbCondition.append((String)mapCondDetail.get("C_FIELD_VALUE"));
+        sbCondition.append("'");
+      } else {
+        sbCondition.append((String)mapCondDetail.get("C_FIELD_VALUE"));
+      }
+      if (j == liCondDetailSize - 1) {
+        sbCondition.append("}");
+      }
+    }
+    return sbCondition.toString();
+  }
+
+  private static List<Map<String, String>> findData(List<Map<String, String>> listCondHeader, Map<String, String> mapCondtition) {
+    List listCondHeaderSub = new ArrayList();
+    int liListCondHeader = listCondHeader.size();
+    for (int i = 0; i < liListCondHeader; ++i) {
+      Map mapCondHeader = (Map)listCondHeader.get(i);
+      boolean isEqual = true;
+      Iterator iterator = mapCondtition.keySet().iterator();
+      while (iterator.hasNext()) {
+        String lstrKey = (String)iterator.next();
+        if (!((String)mapCondtition.get(lstrKey)).equals(mapCondHeader.get(lstrKey))) {
+          isEqual = false;
+          break;
+        }
+      }
+      if (isEqual) {
+        listCondHeaderSub.add(mapCondHeader);
+      }
+    }
+    return listCondHeaderSub;
+  }
+
+  private static Document generateBpmn2Template() throws WSException, SAXException, IOException {
+    String lstrEEDir = ASPathConst.USER_DIR_PATH;
+    StringBuilder sbBpmn2Template = new StringBuilder();
+    sbBpmn2Template.append(lstrEEDir);
+    sbBpmn2Template.append(File.separator);
+    sbBpmn2Template.append("EEConfig");
+    sbBpmn2Template.append(File.separator);
+    sbBpmn2Template.append("template.bpmn20.xml");
+    String lstrXmlFilePath = sbBpmn2Template.toString();
+    return XMLManager.xmlFileToDom(lstrXmlFilePath);
+  }
+
+  private static List<Map<String, String>> getFlowTableDataByPC(Map<String, String> map, String strTable) throws Exception {
+    String lstrTable = SchemaUtil.getTableNameWithSchema((String)map.get("C_SYS_SCHEMA"), strTable);
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+    StringBuilder sbSQL = new StringBuilder();
+
+    if (lstrTable.contains("STD_SLABG_ASGNHDR"))
+      sbSQL.append("SELECT C_BG_ID,C_BG_VERSION,C_CP_UNIT_CODE,C_DEPLOY_FLAG,C_BG_DESC,C_FIRST_FUNCGRP_ID,C_FIRST_FUNC_ID FROM ");
+    else {
+      sbSQL.append("SELECT C_BG_ID,C_BG_VERSION,C_CP_UNIT_CODE,C_BG_DESC,I_STEP_SEQ_NO,C_GROUP_ID,C_USER_ID FROM ");
+    }
+
+    sbSQL.append(lstrTable);
+    sbSQL.append(" WHERE C_BG_ID = ? AND C_BG_VERSION = ? AND C_CP_UNIT_CODE = ? ");
+
+    listValues.add(map.get("C_BG_ID"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(map.get("C_BG_VERSION"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(map.get("C_CP_UNIT_CODE"));
+    listTypes.add(Integer.valueOf(1));
+
+    CSSQLStatement cssqlStatement = new CSSQLStatement(0, null, (String)map.get("C_DS_ID"));
+    cssqlStatement.addSqlForList(sbSQL.toString(), listValues, listTypes);
+    return CSEEDAOHelper.queryMultiValueforMultiFields(cssqlStatement);
+  }
+
+  private static List<Map<String, String>> getFlowTableData(Map<String, String> map, String strTable) throws Exception {
+    String lstrTable = SchemaUtil.getTableNameWithSchema((String)map.get("C_SYS_SCHEMA"), strTable);
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+    StringBuilder sbSQL = new StringBuilder();
+    sbSQL.append("SELECT * FROM ");
+    sbSQL.append(lstrTable);
+    sbSQL.append(" WHERE C_BG_ID = ? AND C_BG_VERSION = ? ");
+
+    sbSQL.append(" ORDER BY I_STEP_SEQ_NO,I_FUNC_SEQ_NO ");
+
+    listValues.add(map.get("C_BG_ID"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(map.get("C_BG_VERSION"));
+    listTypes.add(Integer.valueOf(1));
+
+    CSSQLStatement cssqlStatement = new CSSQLStatement(0, null, (String)map.get("C_DS_ID"));
+    cssqlStatement.addSqlForList(sbSQL.toString(), listValues, listTypes);
+    return CSEEDAOHelper.queryMultiValueforMultiFields(cssqlStatement);
+  }
+
+  private static List<Map<String, String>> getCondDetail(Map<String, String> map, Map<String, String> mapCondHeader) throws Exception {
+    String lstrTable = SchemaUtil.getTableNameWithSchema((String)map.get("C_SYS_SCHEMA"), "STD_COND_DTL");
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+    StringBuilder sbSQL = new StringBuilder();
+
+    sbSQL.append("SELECT C_AND_OR,C_FIELD_ID,C_OPERATOR,C_FIELD_TYPE,C_FIELD_VALUE FROM ");
+
+    sbSQL.append(lstrTable);
+    sbSQL.append(" WHERE C_BG_ID = ? AND C_BG_VERSION = ? AND I_STEP_SEQ_NO = ? AND C_FUNCGRP_ID = ? AND C_FUNC_ID = ? AND I_TO_STEP_NO = ? AND C_TO_FUNCGRP_ID = ? AND C_TO_FUNC_ID = ? ORDER BY I_COND_SEQ_NO");
+
+    listValues.add(map.get("C_BG_ID"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(map.get("C_BG_VERSION"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(mapCondHeader.get("I_STEP_SEQ_NO"));
+    listTypes.add(Integer.valueOf(2));
+
+    listValues.add(mapCondHeader.get("C_FUNCGRP_ID"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(mapCondHeader.get("C_FUNC_ID"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(mapCondHeader.get("I_TO_STEP_NO"));
+    listTypes.add(Integer.valueOf(2));
+
+    listValues.add(mapCondHeader.get("C_TO_FUNCGRP_ID"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(mapCondHeader.get("C_TO_FUNC_ID"));
+    listTypes.add(Integer.valueOf(1));
+
+    CSSQLStatement cssqlStatement = new CSSQLStatement(0, null, (String)map.get("C_DS_ID"));
+    cssqlStatement.addSqlForList(sbSQL.toString(), listValues, listTypes);
+    return CSEEDAOHelper.queryMultiValueforMultiFields(cssqlStatement);
+  }
+
+  private static List<Map<String, String>> getCondDetail(Map<String, String> map) throws Exception
+  {
+    String lstrTable = SchemaUtil.getTableNameWithSchema((String)map.get("C_SYS_SCHEMA"), "STD_COND_DTL");
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+    StringBuilder sbSQL = new StringBuilder();
+
+    sbSQL.append("SELECT C_FIELD_ID,C_FIELD_TYPE FROM ");
+
+    sbSQL.append(lstrTable);
+    sbSQL.append(" WHERE C_BG_ID = ? AND C_BG_VERSION = ? AND C_FUNCGRP_ID = ? AND C_FUNC_ID = ? AND I_STEP_SEQ_NO = ? ORDER BY I_COND_SEQ_NO");
+
+    listValues.add(map.get("C_BG_ID"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(map.get("C_BG_VERSION"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(map.get("C_FUNCGRP_ID"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(map.get("C_FUNC_ID"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(map.get("I_STEP_SEQ_NO"));
+    listTypes.add(Integer.valueOf(4));
+
+    CSSQLStatement cssqlStatement = new CSSQLStatement(0, null, (String)map.get("C_DS_ID"));
+    cssqlStatement.addSqlForList(sbSQL.toString(), listValues, listTypes);
+    return CSEEDAOHelper.queryMultiValueforMultiFields(cssqlStatement);
+  }
+
+  public static void updateTaskPriorityAndSendMail(Map<String, String> mapPara) throws Exception {
+    String lstrPrioritySeqNo = (String)mapPara.get("I_PRITY_SEQ_NO");
+    if ((StringUtils.isEmpty(lstrPrioritySeqNo)) && (StringUtils.isNumeric(lstrPrioritySeqNo))) {
+      return;
+    }
+    String lstrEndline = (String)mapPara.get("D_ENDLINE");
+    if (StringUtils.isEmpty(lstrEndline)) {
+      return;
+    }
+    String lstrLocalTimeZone = TimeZone.getDefault().getID();
+    String strLocalTime = DateTimeUtils.convertDateStringByTimeZone(lstrEndline, DateTimeUtils.GMT, lstrLocalTimeZone, DateTimeUtils.datePattern);
+    int liPriority = Integer.parseInt(lstrPrioritySeqNo);
+    ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+    TaskService taskService = processEngine.getTaskService();
+    TaskQuery taskQuery = taskService.createTaskQuery();
+    taskQuery.includeProcessVariables();
+    taskQuery.includeTaskLocalVariables();
+    taskQuery.processVariableValueEquals("C_SLA_ID", mapPara.get("C_SLA_ID"));
+    List tasks = taskQuery.list();
+    int liTasks = tasks.size();
+    for (int i = 0; i < liTasks; ++i) {
+      Task task = (Task)tasks.get(i);
+      task.setPriority(liPriority);
+      task.setDueDate(DateTimeUtils.string2date(strLocalTime));
+      taskService.saveTask(task);
+      List listIdentityLink = taskService.getIdentityLinksForTask(task.getId());
+      int liSize = listIdentityLink.size();
+      Set setUserID = new HashSet();
+      for (int j = 0; j < liSize; ++j) {
+        IdentityLink identityLink = (IdentityLink)listIdentityLink.get(j);
+        String lstrUserID = identityLink.getUserId();
+        if (lstrUserID != null) {
+          setUserID.add(lstrUserID);
+        }
+        String lstrGroupID = identityLink.getGroupId();
+        if (lstrGroupID != null) {
+          List listUserID = getUsersOfGroup(lstrGroupID);
+          int liGroup = listUserID.size();
+          for (int n = 0; n < liGroup; ++n) {
+            String strUserID = (String)listUserID.get(n);
+            setUserID.add(strUserID);
+          }
+        }
+      }
+      if (setUserID.isEmpty())
+        continue;
+      mapPara.put("C_FUNC_DESC", task.getName());
+      SLASingle lsaSingle = SLASingle.getInstance();
+      String lstrPriorityID = lsaSingle.getPriorityID(mapPara, String.valueOf(liPriority));
+      mapPara.put("C_PRIORITY_DESC", lstrPriorityID);
+    }
+  }
+
+  public static void adjustTaskEndline(Map<String, String> mapPara)
+    throws Exception
+  {
+    String lstrEndline = (String)mapPara.get("D_ENDLINE");
+    if (StringUtils.isEmpty(lstrEndline)) {
+      return;
+    }
+    String lstrLocalTimeZone = TimeZone.getDefault().getID();
+    String strLocalTime = DateTimeUtils.convertDateStringByTimeZone(lstrEndline, DateTimeUtils.GMT, lstrLocalTimeZone, DateTimeUtils.datePattern);
+    ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+    TaskService taskService = processEngine.getTaskService();
+    TaskQuery taskQuery = taskService.createTaskQuery();
+    taskQuery.includeProcessVariables();
+    taskQuery.includeTaskLocalVariables();
+    taskQuery.processVariableValueEquals("C_SLA_ID", mapPara.get("C_SLA_ID"));
+    List tasks = taskQuery.list();
+    int liTasks = tasks.size();
+    for (int i = 0; i < liTasks; ++i) {
+      Task task = (Task)tasks.get(i);
+      task.setDueDate(DateTimeUtils.string2date(strLocalTime));
+      taskService.saveTask(task);
+    }
+  }
+
+  private static Map<String, String> queryMasterTableData(Map<String, String> mapPara) throws Exception {
+    String lstrModuName = (String)mapPara.get("MODULE");
+    if (StringUtils.isEmpty(StringUtils.trim(lstrModuName))) {
+      lstrModuName = (String)mapPara.get("C_MODULE");
+    }
+    String lstrTable = SchemaUtil.getTableNameWithSchema((String)mapPara.get("C_TRX_SCHEMA"), lstrModuName + "_" + "MASTER");
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+
+    listValues.add(mapPara.get("C_MAIN_REF"));
+    listTypes.add(Integer.valueOf(1));
+
+    listValues.add(mapPara.get("C_UNIT_CODE"));
+    listTypes.add(Integer.valueOf(1));
+
+    CSSQLStatement cssqlStatement = new CSSQLStatement(4, lstrTable, (String)mapPara.get("C_DS_ID"));
+    cssqlStatement.addField("*", null, null);
+    StringBuilder sbClause = new StringBuilder();
+    sbClause.append(" WHERE ");
+    sbClause.append("C_MAIN_REF");
+    sbClause.append(" = ? AND ");
+    sbClause.append("C_UNIT_CODE");
+    sbClause.append(" = ? ");
+    cssqlStatement.setClauseForList(sbClause.toString(), listValues, listTypes);
+    return CSEEDAOHelper.querySingleRec(cssqlStatement);
+  }
+
+  public static Map<String, String> getTaskCSExtensionProperty(Task task) {
+    ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+    RepositoryService repositoryService = processEngine.getRepositoryService();
+    ProcessDefinitionEntity processDefinition = (ProcessDefinitionEntity)((RepositoryServiceImpl)repositoryService).getDeployedProcessDefinition(task.getProcessDefinitionId());
+    if (processDefinition != null) {
+      ActivityImpl activityImpl = processDefinition.findActivity(task.getTaskDefinitionKey());
+      return (Map)activityImpl.getProperty("funcflow:CSExtension");
+    }
+    return new HashMap();
+  }
+
+  public static Map<String, String> getTaskCSExtensionProperty(String processDefinitionId, String taskDefinitionKey) {
+    ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+    RepositoryService repositoryService = processEngine.getRepositoryService();
+    ProcessDefinitionEntity processDefinition = (ProcessDefinitionEntity)((RepositoryServiceImpl)repositoryService).getDeployedProcessDefinition(processDefinitionId);
+    if (processDefinition != null) {
+      ActivityImpl activityImpl = processDefinition.findActivity(taskDefinitionKey);
+      return (Map)activityImpl.getProperty("funcflow:CSExtension");
+    }
+    return new HashMap();
+  }
+
+  public static Map<String, String> getTaskCSExtensionPropertyByID(String strTaskID) {
+    ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+    TaskService taskService = processEngine.getTaskService();
+    TaskQuery taskQuery = taskService.createTaskQuery();
+    taskQuery.includeProcessVariables();
+    taskQuery.includeTaskLocalVariables();
+    Task task = (Task)((TaskQuery)taskQuery.taskId(strTaskID)).singleResult();
+    if (task == null) {
+      return new HashMap();
+    }
+    return getTaskCSExtensionProperty(task);
+  }
+
+  public static String getCustID(Map<String, String> map, String lstrProcessInstanceID) throws Exception
+  {
+    APLogExec.writeEEDebug("getCustID map is " + map.toString());
+    String lstrSysSchema = (String)map.get("C_SYS_SCHEMA");
+    if (StringUtils.isEmpty(lstrSysSchema)) {
+      lstrSysSchema = DSManager.getSystemSchema((String)map.get("C_BK_GROUP_ID"), (String)map.get("C_CNTY_CODE"));
+      map.put("C_SYS_SCHEMA", lstrSysSchema);
+    }
+    String lstrTableBGHeader = SchemaUtil.getTableNameWithSchema(lstrSysSchema, "STD_SLABG_HEADER");
+    String lstrTableINBOXVAR = SchemaUtil.getTableNameWithSchema(lstrSysSchema, "TRX_INBOX_VARIABLE");
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+    StringBuilder sbSQL = new StringBuilder();
+
+    sbSQL.append("SELECT BGHEADER.C_CUST_FIELD AS C_CUST_FIELD FROM ");
+    sbSQL.append(lstrTableBGHeader);
+    sbSQL.append(" BGHEADER,");
+    sbSQL.append(lstrTableINBOXVAR);
+    sbSQL.append(" INBOXVAR WHERE INBOXVAR.C_BG_ID = BGHEADER.C_BG_ID AND INBOXVAR.C_BG_VERSION = BGHEADER.C_BG_VERSION AND INBOXVAR.C_PROCESS_ID = ? ");
+
+    listValues.add(lstrProcessInstanceID);
+    listTypes.add(Integer.valueOf(1));
+
+    CSSQLStatement cssqlStatement = new CSSQLStatement(0, null, (String)map.get("C_DS_ID"));
+    cssqlStatement.addSqlForList(sbSQL.toString(), listValues, listTypes);
+    String lstrCustField = CSEEDAOHelper.querySingleValue(cssqlStatement);
+    return (String)map.get(lstrCustField);
+  }
+
+  private static String findTaskID(Document document) throws Exception
+  {
+    String lstrFunctionID = XMLManager.getXpathValue(document, "/root/pubInfo/functionInfo/funcInfo/ID");
+
+    String lstrOwnFuncID = XMLManager.getXpathValue(document, "/root/pubInfo/functionInfo/funcInfo/OWNID");
+    if (StringUtils.isNotEmpty(lstrOwnFuncID)) {
+      lstrFunctionID = lstrOwnFuncID;
+    }
+
+    if (StringUtils.isEmpty(lstrFunctionID)) {
+      return null;
+    }
+    String lstrBankGroupID = XMLManager.getXpathValue(document, "/root/pubInfo/busiUnitInfo/C_BK_GROUP_ID");
+    String lstrCountryCode = XMLManager.getXpathValue(document, "/root/pubInfo/busiUnitInfo/C_CNTY_CODE");
+    String lstrDS = XMLManager.getXpathValue(document, "/root/pubInfo/functionInfo/funcInfo/C_DS_ID");
+
+    String lstrFunctionGroupID = XMLManager.getXpathValue(document, "/root/pubInfo/functionInfo/funcInfo/C_FUNGRP_ID");
+    String lstrUnitCode = XMLManager.getXpathValue(document, "/root/pubInfo/busiUnitInfo/C_UNIT_CODE");
+    boolean isActivatedinBG = SLAUtility.beActivatedinBG(lstrBankGroupID, lstrCountryCode, lstrUnitCode, lstrFunctionGroupID, lstrFunctionID, lstrDS);
+
+    if (!isActivatedinBG) {
+      return null;
+    }
+    String lstrMainRef = XMLManager.getXpathValue(document, "/root/domData/C_MAIN_REF");
+    String lstrModule = XMLManager.getXpathValue(document, "/root/pubInfo/functionInfo/funcInfo/MODULE");
+    Map variables = new HashMap();
+    variables.put("C_BK_GROUP_ID", lstrBankGroupID);
+    variables.put("C_CNTY_CODE", lstrCountryCode);
+    variables.put("C_MAIN_REF", lstrMainRef);
+    variables.put("MODULE", lstrModule);
+    List tasks = findTask(variables, true);
+    if ((tasks == null) || (tasks.isEmpty())) {
+      APLogExec.writeEEDebug("No task found using MODULE. Retrying legacy lookup. C_MAIN_REF=" + lstrMainRef + ", MODULE=" + lstrModule);
+      tasks = findTask(variables, false);
+    }
+    if (tasks.size() <= 0)
+      return null;
+    Task task = (Task)tasks.get(0);
+    Map mapTaskProperty = getTaskCSExtensionProperty(task);
+    if (!lstrFunctionID.equals(mapTaskProperty.get("C_FUNC_ID")))
+      return null;
+    return task.getId();
+  }
+  private static List<Task> findTask(Map<String, String> variables, boolean withModule) throws Exception {
+    ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+    TaskService taskService = processEngine.getTaskService();
+    TaskQuery taskQuery = taskService.createTaskQuery();
+    taskQuery = (TaskQuery)taskQuery.includeProcessVariables();
+    taskQuery = (TaskQuery)taskQuery.includeTaskLocalVariables();
+    taskQuery.processVariableValueEquals("C_BK_GROUP_ID", variables.get("C_BK_GROUP_ID"));
+    taskQuery.processVariableValueEquals("C_CNTY_CODE", variables.get("C_CNTY_CODE"));
+    taskQuery.processVariableValueEquals("C_MAIN_REF", variables.get("C_MAIN_REF"));
+    if (withModule) {
+      String lstrModuField = getModuField();
+      taskQuery.processVariableValueEquals(lstrModuField, variables.get("MODULE"));
+    }
+    long count = taskQuery.count();
+    if (count > 1L) {
+      APLogExec.writeEEDebug("Task id is not uniqueness");
+      throw new WSException("Task id is not uniqueness");
+    }
+    return taskQuery.list();
+  }
+
+  public static void completeTask(Document document) throws Exception
+  {
+    try
+    {
+      String lstrTaskID = XMLManager.getXpathValue(document, "/root/domData/BPMTaskID");
+
+      if (StringUtils.isEmpty(lstrTaskID)) {
+        lstrTaskID = findTaskID(document);
+      }
+
+      if (StringUtils.isEmpty(lstrTaskID)) {
+        return;
+      }
+
+      Document docTemp = (Document)document.cloneNode(true);
+
+      Element root = docTemp.getDocumentElement();
+      Node norgDomData = XMLManager.findChildNode(root, "originalData");
+      if (norgDomData != null) {
+        root.removeChild(norgDomData);
+      }
+      Map map = XMLManager.convertToHashMap(docTemp);
+
+      String lstrMainRefNo = XMLManager.getXpathValue(document, "/root/domData/C_MAIN_REF");
+      if (StringUtils.isNotEmpty(lstrMainRefNo)) {
+        map.put("C_MAIN_REF", lstrMainRefNo);
+      }
+
+      Map mapMasterTableData = queryMasterTableData(map);
+
+      map.put("I_EVENT_TIMES", mapMasterTableData.get("I_EVENT_TIMES"));
+
+      mapMasterTableData.remove("C_SLA_ID");
+
+      List list = fetchDataFromMasterFields();
+
+      Iterator iteratorMaster = mapMasterTableData.keySet().iterator();
+      while (iteratorMaster.hasNext()) {
+        String lstrKey = (String)iteratorMaster.next();
+
+        if (!list.contains(lstrKey)) {
+          continue;
+        }
+
+        String lstrValue = (String)mapMasterTableData.get(lstrKey);
+        if (StringUtils.isNotEmpty(StringUtils.trimToEmpty(lstrValue))) {
+          map.put(lstrKey, lstrValue);
+        }
+      }
+
+      mapMasterTableData.putAll(map);
+
+      map.putAll(mapMasterTableData);
+      ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+      TaskService taskService = processEngine.getTaskService();
+      TaskQuery taskQuery = taskService.createTaskQuery();
+      taskQuery.includeProcessVariables();
+      taskQuery.includeTaskLocalVariables();
+      Task task = (Task)((TaskQuery)taskQuery.taskId(lstrTaskID)).singleResult();
+      if (task == null) {
+        return;
+      }
+      String lstrProcessInstanceID = task.getProcessInstanceId();
+      String lstrCustID = getCustID(map, lstrProcessInstanceID);
+      if (StringUtils.isNotEmpty(lstrCustID)) {
+        map.put("C_CUST_ID", lstrCustID);
+      }
+
+      taskService.removeVariable(lstrTaskID, "BPM_INITIATE_FIELD");
+
+      taskService.removeVariable(lstrTaskID, "D_INITLINE");
+
+      taskService.removeVariable(lstrTaskID, "C_REFUSE_REASON");
+
+      Map mapTaskProperty = getTaskCSExtensionProperty(task);
+
+      if ((mapTaskProperty != null) && (!mapTaskProperty.isEmpty())) {
+        mapTaskProperty.put("C_DS_ID", map.get("C_DS_ID"));
+        mapTaskProperty.put("C_SYS_SCHEMA", map.get("C_SYS_SCHEMA"));
+      }
+      Map variablesTypes = getVariablesTypes(mapTaskProperty);
+
+      Map variables = new HashMap();
+      variables.putAll(task.getProcessVariables());
+      String lstrMainRef = (String)variables.get("C_MAIN_REF");
+
+      processVariables(variables, variablesTypes, map);
+
+      Iterator iterator = variablesTypes.keySet().iterator();
+      while (iterator.hasNext()) {
+        String lstrConditionField = (String)iterator.next();
+        String lstrProcessVariablesValue = (String)map.get(lstrConditionField);
+        if (StringUtils.isNotEmpty(lstrProcessVariablesValue)) {
+          if ((lstrConditionField.equals("I_EVENT_TIMES")) && 
+            (lstrProcessVariablesValue.equals("0"))) {
+            lstrProcessVariablesValue = "1";
+          }
+
+          String lstrFieldType = (String)variablesTypes.get(lstrConditionField);
+          if ((lstrFieldType != null) && (lstrFieldType.equals("FLOAT")))
+            variables.put(lstrConditionField, new BigDecimal(lstrProcessVariablesValue));
+          else if ((lstrFieldType != null) && (lstrFieldType.equals("DATE")))
+            variables.put(lstrConditionField, lstrProcessVariablesValue);
+          else {
+            variables.put(lstrConditionField, lstrProcessVariablesValue);
+          }
+        }
+      }
+
+      convertFields(map, variables);
+
+      APLogExec.writeEEDebug("Flow Variables : " + variables.toString());
+
+      updateInboxVariable(variables, lstrProcessInstanceID);
+      if (StringUtils.isEmpty(lstrMainRef)) {
+        String lstrProcCenter = XMLManager.getXpathValue(document, "/root/pubInfo/busiUnitInfo/IS_PROC_CENTER");
+        variables.put("IS_PROC_CENTER", lstrProcCenter);
+      }
+
+      String lstrRefuseReason = (String)map.get("C_REFUSE_REASON");
+      if (StringUtils.isNotEmpty(lstrRefuseReason))
+        variables.put("C_REFUSE_REASON", lstrRefuseReason);
+      else {
+        variables.remove("C_REFUSE_REASON");
+      }
+
+      variables.remove("BPM_INITIATE_FIELD");
+      RuntimeService runtimeService = processEngine.getRuntimeService();
+      ProcessInstance pi = 
+        (ProcessInstance)runtimeService.createProcessInstanceQuery()
+        .processInstanceId(lstrProcessInstanceID)
+        .singleResult();
+
+      if ((pi == null) || (pi.isEnded())) {
+        APLogExec.writeEEDebug("Process instance is ended or not found, task should not be completed. ProcessInstanceID: " + lstrProcessInstanceID);
+        return;
+      }
+
+      if (task == null) {
+        APLogExec.writeEEDebug("Task not found or already completed. TaskID: " + lstrTaskID);
+        return;
+      }
+
+      try
+      {
+        taskService.complete(lstrTaskID, variables);
+      }
+      catch (Exception e) {
+        if ((e.getCause() != null) && (e.getCause().toString().contains("ConstraintViolation"))) {
+          APLogExec.writeEEError("Unique constraint violation while completing task: " + lstrTaskID + e.getMessage());
+          APLogExec.writeEEDebug("Task may have already been completed or is in an invalid state. TaskID: " + lstrTaskID);
+          return;
+        }
+        APLogExec.writeEEError("Error completing task: " + lstrTaskID);
+        throw e;
+      }
+
+      runtimeService = processEngine.getRuntimeService();
+      pi = 
+        (ProcessInstance)runtimeService.createProcessInstanceQuery().processInstanceId(lstrProcessInstanceID)
+        .singleResult();
+
+      if ((pi != null) && (!pi.isEnded())) return;
+      try {
+        String procInstId = task.getProcessInstanceId();
+        String dsId = (String)map.get("C_DS_ID");
+        String schema = (String)map.get("C_SYS_SCHEMA");
+        String table = schema + ".TASK_SUMMARY";
+        TaskSummaryListener listener = new TaskSummaryListener();
+        listener.deleteTaskSummary(procInstId, dsId, table);
+      } catch (Exception cleanupEx) {
+        APLogExec.writeEEError(cleanupEx);
+        APLog.reportLog("Manual TASK_SUMMARY cleanup after process end failed: " + cleanupEx.getMessage());
+      }
+    }
+    catch (Exception e)
+    {
+      APLogExec.writeEEError(e);
+
+      throw e;
+    }
+  }
+
+  public static List<String> fetchDataFromMasterFields()
+  {
+    List list = new ArrayList();
+    list.add("C_TRX_STATUS");
+    list.add("I_EVENT_TIMES");
+    return list;
+  }
+
+  public static void deleteTask(Document document)
+  {
+    try {
+      String lstrTaskID = XMLManager.getXpathValue(document, "/root/domData/BPMTaskID");
+      if (StringUtils.isEmpty(lstrTaskID)) {
+        return;
+      }
+      ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+      TaskService taskService = processEngine.getTaskService();
+      taskService.deleteTask(lstrTaskID);
+    } catch (Exception e) {
+      APLogExec.writeEEError(e);
+    }
+  }
+
+  private static Document getProcessVariablesDocument() throws WSException, SAXException, IOException {
+    StringBuilder sbResource = new StringBuilder();
+    String lstrEEDir = ASPathConst.USER_DIR_PATH;
+    sbResource.append(lstrEEDir);
+    sbResource.append(File.separator);
+    sbResource.append("EEConfig");
+    sbResource.append(File.separator);
+    sbResource.append("ProcessVariables.xml");
+    return XMLManager.xmlFileToDom(sbResource.toString());
+  }
+
+  public static List<String> getUsersOfGroup(String strGroupID) throws Exception
+  {
+    String lstrSysSchema = DSManager.getSystemSchema();
+    String lstrSLAGroupMembershipTable = SchemaUtil.getTableNameWithSchema(lstrSysSchema, "STD_SLA_GRPMEM");
+
+    String lstrDataSource = DSManager.getDefaultDS();
+    CSSQLStatement cssqlStatement = new CSSQLStatement(0, null, lstrDataSource);
+    StringBuilder sbSQL = new StringBuilder();
+    sbSQL.append("SELECT C_USER_ID FROM ");
+    sbSQL.append(lstrSLAGroupMembershipTable);
+    sbSQL.append(" WHERE C_GROUP_ID = ? ");
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+
+    listValues.add(strGroupID);
+    listTypes.add(Integer.valueOf(12));
+
+    cssqlStatement.addSqlForList(sbSQL.toString(), listValues, listTypes);
+
+    return CSEEDAOHelper.queryMultiValueforSingleField(cssqlStatement);
+  }
+
+  public static List<String> getMailAddressListOfUsers(Set<String> setUserIDs) throws Exception {
+    String lstrSysSchema = DSManager.getSecuSchema();
+    String lstrUserInfoTable = SchemaUtil.getTableNameWithSchema(lstrSysSchema, "SEC_USER_INFO");
+
+    String lstrDataSource = DSManager.getSecuDS();
+
+    CSSQLStatement cssqlStatement = new CSSQLStatement(0, null, lstrDataSource);
+    StringBuilder sbSQL = new StringBuilder();
+    sbSQL.append("SELECT C_EMAIL_ADDR FROM ");
+    sbSQL.append(lstrUserInfoTable);
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+
+    Iterator iterator = setUserIDs.iterator();
+    boolean isFirst = true;
+    while (iterator.hasNext()) {
+      String lsUserID = (String)iterator.next();
+      if (isFirst) {
+        isFirst = false;
+        sbSQL.append(" WHERE ");
+      } else {
+        sbSQL.append(" OR ");
+      }
+      sbSQL.append(" C_USER_ID = ? ");
+      listValues.add(lsUserID);
+      listTypes.add(Integer.valueOf(12));
+    }
+
+    cssqlStatement.addSqlForList(sbSQL.toString(), listValues, listTypes);
+
+    return CSEEDAOHelper.queryMultiValueforSingleField(cssqlStatement);
+  }
+
+  public static String getMailAddressStringOfUsers(Set<String> setUserIDs) throws Exception {
+    List listMailAddress = getMailAddressListOfUsers(setUserIDs);
+    return convertMailAddressList2String(listMailAddress);
+  }
+
+  public static String convertMailAddressList2String(List<String> listMailAddress) {
+    StringBuilder sbMailAddress = new StringBuilder();
+    int liSize = listMailAddress.size();
+    for (int i = 0; i < liSize; ++i) {
+      if (sbMailAddress.length() > 0) {
+        sbMailAddress.append(";");
+      }
+      String lstrMailAddress = (String)listMailAddress.get(i);
+      if (StringUtils.isEmpty(lstrMailAddress)) {
+        continue;
+      }
+      sbMailAddress.append(lstrMailAddress);
+    }
+    return sbMailAddress.toString();
+  }
+
+  public static String convertDateFormat(String pstrDateFormat) {
+    String strDateFormat = pstrDateFormat.replace("yyyy", "Y");
+
+    strDateFormat = strDateFormat.replace("yy", "y");
+
+    strDateFormat = strDateFormat.replace("mm", "m");
+    strDateFormat = strDateFormat.replace("MM", "m");
+    strDateFormat = strDateFormat.replace("dd", "d");
+    strDateFormat = strDateFormat.replace("DD", "d");
+    return strDateFormat;
+  }
+
+  public static Document getInboxShowFieldsDocument() throws WSException, SAXException, IOException {
+    StringBuilder sbBuffer = new StringBuilder(ASPathConst.USER_DIR_PATH);
+    sbBuffer.append(File.separator);
+    sbBuffer.append("EEConfig");
+    sbBuffer.append(File.separator);
+    sbBuffer.append("Funcflow_Inbox_Mapping.xml");
+    String lstrInboxShowFields = sbBuffer.toString();
+    return XMLManager.xmlFileToDom(lstrInboxShowFields);
+  }
+
+  public static String genInboxShowFields(String pstrDateFormat) throws Exception
+  {
+    String lstrDateFormat = convertDateFormat(pstrDateFormat);
+
+    Document document = getInboxShowFieldsDocument();
+    NodeList nlInboxCatalog = document.getElementsByTagName("INBOXCATALOG");
+    Node ndInboxCatalog = nlInboxCatalog.item(0);
+    NodeList nlChilds = ndInboxCatalog.getChildNodes();
+    int liLen = nlChilds.getLength();
+    StringBuilder sbFields = new StringBuilder("var fields = [");
+    StringBuilder sbColumns = new StringBuilder("var columns = [");
+    boolean isFirst = true;
+    for (int i = 0; i < liLen; ++i) {
+      Node ndChild = nlChilds.item(i);
+      if (ndChild.getNodeType() != 1) {
+        continue;
+      }
+      Element eChild = (Element)ndChild;
+      String lstrName = eChild.getNodeName();
+      String lstrValue = XMLManager.getNodeValue(eChild, true);
+      if (!isFirst) {
+        sbFields.append(",");
+        sbColumns.append(",");
+      }
+      isFirst = false;
+      sbFields.append("{name:'");
+      sbFields.append(lstrName);
+      sbFields.append("'");
+
+      String lstrType = eChild.getAttribute("type");
+      if ("date".equalsIgnoreCase(lstrType))
+      {
+        sbFields.append(", type: 'date', dateFormat: '" + lstrDateFormat + " H:i:s'");
+      }
+
+      sbFields.append("}");
+
+      sbColumns.append("{header:'");
+      sbColumns.append(lstrValue);
+      sbColumns.append("', sortable: true, dataIndex:'");
+      sbColumns.append(lstrName);
+
+      String lstrDisp = eChild.getAttribute("disp");
+      if ("Y".equalsIgnoreCase(lstrDisp))
+        sbColumns.append("',hidden:false");
+      else {
+        sbColumns.append("',hidden:true");
+      }
+      String lstrWidth = eChild.getAttribute("width");
+      if (StringUtils.isNotEmpty(lstrWidth)) {
+        sbColumns.append(", width:");
+        sbColumns.append(lstrWidth);
+      }
+
+      if ("date".equalsIgnoreCase(lstrType))
+      {
+        sbColumns.append(",renderer: Ext.util.Format.dateRenderer('" + lstrDateFormat + " H:i:s')");
+      }
+
+      sbColumns.append("}");
+    }
+    sbFields.append("];");
+    sbColumns.append("];");
+    StringBuilder sbOut = new StringBuilder();
+    sbOut.append("<script language='javascript'>\r\n");
+    sbOut.append(sbFields);
+    sbOut.append("\r\n");
+    sbOut.append(sbColumns);
+    sbOut.append("</script>");
+    return sbOut.toString();
+  }
+
+  public static void initModuleMappingFields()
+    throws Exception
+  {
+    Document document = getInboxShowFieldsDocument();
+    Node nModuleMapping = document.getElementsByTagName("ModuleMapping").item(0);
+    NodeList nlModus = nModuleMapping.getChildNodes();
+    int liLen = nlModus.getLength();
+    for (int i = 0; i < liLen; ++i) {
+      Node ndModu = nlModus.item(i);
+      if (ndModu.getNodeType() != 1) {
+        continue;
+      }
+      Map mapModu = new HashMap();
+      NodeList nlChilds = ndModu.getChildNodes();
+      int liChilds = nlChilds.getLength();
+      for (int j = 0; j < liChilds; ++j) {
+        Node ndChild = nlChilds.item(j);
+        if (ndChild.getNodeType() != 1) {
+          continue;
+        }
+        String lstrName = ndChild.getNodeName();
+        String lstrValue = XMLManager.getNodeValue(ndChild, true);
+        mapModu.put(lstrName, lstrValue);
+      }
+      String lstrModuName = ndModu.getNodeName();
+      mapFieldsMappings.put(lstrModuName, mapModu);
+    }
+  }
+
+  public static Map<String, String> getModuleMappingFields(String strModuleName) throws Exception {
+    Map mapModu = (Map)mapFieldsMappings.get(strModuleName);
+    if ((mapModu == null) || (mapModu.isEmpty())) {
+      initModuleMappingFields();
+      mapModu = (Map)mapFieldsMappings.get(strModuleName);
+    }
+    return mapModu;
+  }
+
+  private static void validation(String strResourceName) throws WSException, XMLStreamException, IOException {
+    BpmnModel bpmnModel = readXMLFile(strResourceName);
+    ProcessValidator processValidator = new ProcessValidatorFactory().createDefaultProcessValidator();
+    List errors = processValidator.validate(bpmnModel);
+    int liErrorSize = errors.size();
+    if (liErrorSize > 0) {
+      StringBuilder sbProblem = new StringBuilder();
+      for (int i = 0; i < liErrorSize; ++i) {
+        ValidationError validationError = (ValidationError)errors.get(i);
+        sbProblem.append(validationError.toString());
+        sbProblem.append("\r\n");
+      }
+      APLogExec.writeEEDebug("Error Code 4864,Please check the BG condition parameter:" + sbProblem.toString());
+      List vec = new ArrayList();
+      vec.add(sbProblem.toString());
+      vec.add(strResourceName);
+      String errMsg = ErrorHandling.getErrMsg("4864", vec);
+      throw new WSException(errMsg);
+    }
+  }
+
+  public static BpmnModel readXMLFile(String strResource) throws XMLStreamException, IOException
+  {
+    InputStream xmlStream = new FileInputStream(strResource);
+    try {
+      XMLInputFactory xif = XMLInputFactory.newInstance();
+      InputStreamReader in = new InputStreamReader(xmlStream, StandardCharsets.UTF_8.toString());
+      XMLStreamReader xtr = xif.createXMLStreamReader(in);
+      BpmnModel localBpmnModel = new BpmnXMLConverter().convertToBpmnModel(xtr);
+      return localBpmnModel;
+    } finally {
+      xmlStream.close();
+    }
+  }
+
+  public static void clearUnusedInitializationTask(String strBankGroupID, String strCountryCode)
+  {
+    if (!SLAUtility.isFuncFlowActive(strBankGroupID, strCountryCode))
+    {
+      return;
+    }
+
+    ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+    RuntimeService runtimeService = processEngine.getRuntimeService();
+    TaskService taskService = processEngine.getTaskService();
+    TaskQuery taskQuery = taskService.createTaskQuery();
+    List tasks = taskQuery.list();
+    int liTasks = tasks.size();
+    for (int i = 0; i < liTasks; ++i) {
+      Task task = (Task)tasks.get(i);
+      String lstrMainRef = (String)taskService.getVariable(task.getId(), "C_MAIN_REF");
+      if (StringUtils.isEmpty(lstrMainRef)) {
+        String lstrProcessInstanceId = task.getProcessInstanceId();
+        runtimeService.deleteProcessInstance(lstrProcessInstanceId, "Clear unused initialization task!");
+      }
+    }
+  }
+
+  public static List<String> getAssignUserList(String strUserID, String strUnitCode)
+    throws Exception
+  {
+    String lstrSysSchema = DSManager.getSystemSchema();
+    String lstrSLAGroupMembershipTable = SchemaUtil.getTableNameWithSchema(lstrSysSchema, "STD_SLA_GRPMEM");
+
+    String lstrDataSource = DSManager.getDefaultDS();
+    CSSQLStatement cssqlStatement = new CSSQLStatement(0, null, lstrDataSource);
+    StringBuilder sbSQL = new StringBuilder();
+    sbSQL.append("SELECT C_USER_ID FROM ");
+    sbSQL.append(lstrSLAGroupMembershipTable);
+    sbSQL.append(" WHERE C_GROUP_ID IN (SELECT C_GROUP_ID FROM ");
+    sbSQL.append(lstrSLAGroupMembershipTable);
+    sbSQL.append(" WHERE C_USER_ID = ? AND C_USER_TYPE <> 'O') AND C_USER_TYPE <> 'M'");
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+
+    listValues.add(strUserID);
+    listTypes.add(Integer.valueOf(12));
+
+    sbSQL.append(" AND C_UNIT_CODE = ?");
+    listValues.add(strUnitCode);
+    listTypes.add(Integer.valueOf(12));
+
+    cssqlStatement.addSqlForList(sbSQL.toString(), listValues, listTypes);
+
+    return CSEEDAOHelper.queryMultiValueforSingleField(cssqlStatement);
+  }
+
+  public static boolean canDeleteTransactionData(Document document)
+  {
+    boolean canDeleteTransactionData = false;
+    try {
+      String lstrTaskID = XMLManager.getXpathValue(document, "/root/domData/BPMTaskID");
+      if (StringUtils.isNotEmpty(lstrTaskID)) {
+        canDeleteTransactionData = true;
+        return canDeleteTransactionData;
+      }
+
+      lstrTaskID = checkTaskIncludeTransaction(document);
+      if (!StringUtils.isEmpty(lstrTaskID)) break label42;
+      canDeleteTransactionData = true;
+      return canDeleteTransactionData;
+    }
+    catch (Exception e) {
+      APLogExec.writeEEError(e);
+    }
+    label42: return canDeleteTransactionData;
+  }
+
+  private static String checkTaskIncludeTransaction(Document document) throws Exception {
+    String lstrFunctionID = XMLManager.getXpathValue(document, "/root/pubInfo/functionInfo/funcInfo/ID");
+    if (StringUtils.isEmpty(lstrFunctionID)) {
+      return null;
+    }
+    String lstrBankGroupID = XMLManager.getXpathValue(document, "/root/pubInfo/busiUnitInfo/C_BK_GROUP_ID");
+    String lstrCountryCode = XMLManager.getXpathValue(document, "/root/pubInfo/busiUnitInfo/C_CNTY_CODE");
+    String lstrDS = XMLManager.getXpathValue(document, "/root/pubInfo/functionInfo/funcInfo/C_DS_ID");
+    boolean isActivatedinBG = SLAUtility.beFunctionActivatedinBG(lstrBankGroupID, lstrCountryCode, lstrFunctionID, lstrDS);
+    if (!isActivatedinBG) {
+      return null;
+    }
+    ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+    TaskService taskService = processEngine.getTaskService();
+    TaskQuery taskQuery = taskService.createTaskQuery();
+    taskQuery = (TaskQuery)taskQuery.includeProcessVariables();
+    taskQuery = (TaskQuery)taskQuery.includeTaskLocalVariables();
+    String lstrMainRef = XMLManager.getXpathValue(document, "/root/domData/C_MAIN_REF");
+    if (StringUtils.isEmpty(lstrMainRef)) {
+      lstrMainRef = XMLManager.getXpathValue(document, "/root/domData/_F_C_MAIN_REF/value");
+    }
+    taskQuery.processVariableValueEquals("C_BK_GROUP_ID", lstrBankGroupID);
+    taskQuery.processVariableValueEquals("C_CNTY_CODE", lstrCountryCode);
+    taskQuery.processVariableValueEquals("C_MAIN_REF", lstrMainRef);
+    long count = taskQuery.count();
+    if (count == 0L) {
+      return null;
+    }
+    List tasks = taskQuery.list();
+    Task task = (Task)tasks.get(0);
+    return task.getId();
+  }
+
+  public static void setActualTransactionActive(Document document)
+  {
+    if (SLAUtility.isFuncFlowActive(document))
+      CSTransactionManager.setActualTransactionActive(true);
+  }
+
+  public static PlatformTransactionManager createTransactionManager(String strDS) throws Exception
+  {
+    DataSource dataSource = DSManager.getDataSourceObj(strDS);
+    return new DataSourceTransactionManager(dataSource);
+  }
+
+  public static TransactionStatus createTransactionStatus(PlatformTransactionManager txManager) {
+    DefaultTransactionDefinition definition = new DefaultTransactionDefinition();
+    definition.setIsolationLevel(2);
+    definition.setPropagationBehavior(0);
+    return txManager.getTransaction(definition);
+  }
+
+  public static List<String> getBranchList(String strParentUnitCode)
+    throws Exception
+  {
+    String lstrSecuSchema = DSManager.getSecuSchema();
+    String lstrSecBusinessUnitTable = SchemaUtil.getTableNameWithSchema(lstrSecuSchema, "SEC_BUSINESS_UNIT");
+
+    String lstrDataSource = DSManager.getDefaultDS();
+    CSSQLStatement cssqlStatement = new CSSQLStatement(0, null, lstrDataSource);
+    StringBuilder sbSQL = new StringBuilder();
+    sbSQL.append("SELECT C_UNIT_CODE FROM ");
+    sbSQL.append(lstrSecBusinessUnitTable);
+    sbSQL.append(" WHERE C_PARENT_UNIT = ? ");
+
+    List listValues = new ArrayList();
+    List listTypes = new ArrayList();
+
+    listValues.add(strParentUnitCode);
+    listTypes.add(Integer.valueOf(12));
+
+    cssqlStatement.addSqlForList(sbSQL.toString(), listValues, listTypes);
+
+    return CSEEDAOHelper.queryMultiValueforSingleField(cssqlStatement);
+  }
+
+  public static void processAllBranch(TaskQuery taskQuery, String lstrIsProcCenter, String lstrUnitCode) throws Exception {
+    if ("C".equalsIgnoreCase(lstrIsProcCenter)) {
+      List listBranch = getBranchList(lstrUnitCode);
+      taskQuery.processVariableValueEquals("C_UNIT_CODE", lstrUnitCode);
+      for (int i = 0; i < listBranch.size(); ++i) {
+        String lstrBranch = (String)listBranch.get(i);
+        taskQuery.processVariableValueEquals("C_UNIT_CODE", lstrBranch);
+      }
+    } else {
+      taskQuery.processVariableValueEquals("C_UNIT_CODE", lstrUnitCode);
+    }
+  }
+
+  public static void processAllBranchWithOr(TaskQuery taskQuery, String lstrIsProcCenter, String lstrUnitCode) throws Exception {
+    if ("C".equalsIgnoreCase(lstrIsProcCenter)) {
+      List listBranch = getBranchList(lstrUnitCode);
+      if (listBranch.size() > 0) {
+        taskQuery.or();
+      }
+      taskQuery.processVariableValueEquals("C_UNIT_CODE", lstrUnitCode);
+      for (int i = 0; i < listBranch.size(); ++i) {
+        String lstrBranch = (String)listBranch.get(i);
+        taskQuery.processVariableValueEquals("C_UNIT_CODE", lstrBranch);
+      }
+      if (listBranch.size() > 0)
+        taskQuery.endOr();
+    }
+    else {
+      taskQuery.processVariableValueEquals("C_UNIT_CODE", lstrUnitCode);
+    }
+  }
+
+  public static void deleteUnusedProcessInstance(Document document)
+  {
+    String lstrBankGroupID = XMLManager.getXpathValue(document, "/root/pubInfo/busiUnitInfo/C_BK_GROUP_ID");
+    String lstrCountryCode = XMLManager.getXpathValue(document, "/root/pubInfo/busiUnitInfo/C_CNTY_CODE");
+    String lstrProcessInstanceID = XMLManager.getXpathValue(document, "/root/domData/PROCESS_INSTANCE_ID");
+    deleteUnusedProcessInstance(lstrBankGroupID, lstrCountryCode, lstrProcessInstanceID);
+  }
+
+  public static void deleteUnusedProcessInstance(String strBankGroupID, String strCountryCode, String strProcessInstanceId) {
+    if (!SLAUtility.isFuncFlowActive(strBankGroupID, strCountryCode)) {
+      return;
+    }
+    if (StringUtils.isEmpty(strProcessInstanceId)) {
+      return;
+    }
+    ProcessEngine processEngine = ProcessEngines.getDefaultProcessEngine();
+    RuntimeService runtimeService = processEngine.getRuntimeService();
+    ProcessInstance processInstance = 
+      (ProcessInstance)runtimeService.createProcessInstanceQuery()
+      .processInstanceId(strProcessInstanceId)
+      .singleResult();
+
+    if ((processInstance == null) || (processInstance.isEnded())) {
+      APLogExec.writeEEDebug("Process instance not found or already ended: " + strProcessInstanceId);
+      return;
+    }
+    runtimeService.deleteProcessInstance(strProcessInstanceId, "delete unused ProcessInstance!");
+  }
+}
