@@ -4,29 +4,26 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
 import java.sql.Types;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import com.cs.base.xml.XMLManager;
-import com.cs.core.dao.DSManager;
 import com.cs.core.utility.CSEEDAOHelper;
 import com.cs.core.utility.CompressUtil;
 import com.cs.edms.bean.InitiationRequestDocHK;
 import com.cs.edms.bean.trxnControlParams;
 import com.cs.edms.document.EDMSUtilsdDocHK;
 import com.cs.edms.document.helper.EDMSDocUpldDwnldHelper;
-import com.cs.esp.org.json.JSONObject;
 import com.cs.eximap.utility.APLog;
 import com.cs.eximap.utility.CSSQLClause;
 import com.cs.eximap.utility.CSSQLStatement;
@@ -35,274 +32,895 @@ import com.cs.thread.exception.TaskRuntimeException;
 import com.cs.thread.intf.ICSRunnable;
 
 public class EDMSDocUploadHouseKeeping implements ICSRunnable {
-	private static Logger logger = LogManager.getLogger("EDMSServiceLogger");
-	public Properties BCQPquoteProperties;
-	EDMSDocUpldDwnldHelper helper = new EDMSDocUpldDwnldHelper();
 
-	public void run() throws TaskRuntimeException {
-		try {
-			logger.info("EDMSDocUploadHouseKeeping start");
-			uploadFileFromDBToEDMS();
-			logger.info("EDMSDocUploadHouseKeeping end");
+    private static final Logger logger = LogManager.getLogger("EDMSServiceLogger");
 
-		} catch (Exception e) {
-			logger.info("Exception occured in uploadFileFromDBToEDMS run() :" + WSTools.getErrorStackTrace(e));
-		}
-	}
+    private static final int ALL_BATCH_SIZE = 1000;
+    private static final long ALL_PROCESSING_TIME_MS = TimeUnit.MINUTES.toMillis(10);
 
-	public void setBaseInfo(String bankGroupId, String countryCode, String bu) {
-	}
+    private static final String DB_CONNECTION = "EXIMT";
+    private static final String PARAM_TABLE = "EXIMTRX.EDMS_DOC_UPLOAD_PARAMS";
+    private static final String IMAGE_TABLE = "EXIMSYS.TRX_IMAGES_DTAL";
 
-	public void setBusinessDay(Date arg0) {
-	}
+    private static final String EDMS_PROPERTIES_FILE =
+            "properties/EDMSDocumentHK.properties";
 
-	public void setTaskInfo(Document arg0) {
-	}
+    private final EDMSDocUpldDwnldHelper helper =
+            new EDMSDocUpldDwnldHelper();
 
-	public String uploadFileFromDBToEDMS() {
-		boolean anyExceptionOccured = false;
-		try {
-			Connection conn;
-			Properties properties = new Properties();
-			conn = DSManager.getConnection("EXIMT");
-			String path = new File("properties/EDMSDocumentHK.properties").getAbsolutePath();
-			InputStream input = new FileInputStream(path);
-			properties.load(input);
-			String EDMS_UPLOAD_URL = properties.getProperty("EDMS_UPLOAD_URL");
-			String channelID = properties.getProperty("channelID");
-			String category = properties.getProperty("category");
+    @Override
+    public void run() throws TaskRuntimeException {
+        logger.info("EDMS housekeeping started");
 
-			trxnControlParams params = getTrxParams();
-			String trxnUpToDate = params.getDate();
-			int count = 0;
-			if (("All").equalsIgnoreCase(params.getCount())) {
-				count = getTrxCount();
-			} else {
-				count = Integer.parseInt(params.getCount());
-			}
-			NodeList listOfTrxns = getMasterTrxnRecords(trxnUpToDate, count);
+        try {
+            String result = uploadFileFromDBToEDMS();
+            logger.info("EDMS housekeeping completed: {}", result);
 
-			if (listOfTrxns.getLength() > 0) {
-				for (int i = 0; i < listOfTrxns.getLength(); i++) {
-					try {
-						Node n = listOfTrxns.item(i);
-						String c_main_ref = XMLManager.getChildNodeValue(n, "C_MAIN_REF", true);
-						String c_unit_code = XMLManager.getChildNodeValue(n, "C_UNIT_CODE", true);
-						String fileContent = XMLManager.getChildNodeValue(n, "B_IMG_CONTENT", true);
-						String docName = XMLManager.getChildNodeValue(n, "C_ORIG_FILE_PATH", true);
-						String uniqueImageIndex = XMLManager.getChildNodeValue(n, "C_IMG_INDX", true);
-						insertIntoEDMSServer(EDMS_UPLOAD_URL, c_main_ref, c_unit_code, channelID, category, docName,
-								fileContent, conn, uniqueImageIndex);
-					} catch (Exception e) {
-						e.printStackTrace();
-						logger.info(WSTools.getErrorStackTrace(e));
-					}
-				}
-			}
-		} catch (Exception e) {
-			anyExceptionOccured = true;
-			logger.info("Exception occured in uploadFileFromDBToEDMS() :" + WSTools.getErrorStackTrace(e));
-		}
-		if (anyExceptionOccured) {
-			return "An exception has occured. Please check the logs.";
-		} else {
-			return "Request has been received and processed successfully";
-		}
-	}
+        } catch (Exception e) {
+            logger.error("EDMS housekeeping failed", e);
+        }
+    }
 
-	private trxnControlParams getTrxParams() throws Exception {
-		trxnControlParams params = new trxnControlParams();
-		try {
-			APLog.reportLog("inside isEEFCUnqRefNoAlreadyPresent");
-			CSSQLStatement selectStat = new CSSQLStatement(CSSQLStatement.I_SQL_TYPE_SELECT,
-					"EXIMTRX.EDMS_DOC_UPLOAD_PARAMS", "EXIMT");
-			selectStat.addField("TRX_COUNT", null, null);
-			selectStat.addField("DATE_UPTO", null, null);
-			CSSQLClause clause = new CSSQLClause();
-			int rowId = 1;
-			clause.setClause("WHERE ROW_ID = ? ", new Object[] { rowId }, new Integer[] { Types.NUMERIC });
-			selectStat.setClause(clause);
-			Document doc = CSEEDAOHelper.commExecuteQuery(selectStat);
-			NodeList nl = doc.getDocumentElement().getElementsByTagName("record");
-			Node node = nl.item(0);
-			params.setCount(getNodeValue(node, "TRX_COUNT"));
-			params.setDate(getNodeValue(node, "DATE_UPTO"));
-		} catch (Exception e) {
-			logger.info("Exception in getTrxnDetails ::: " + e.getLocalizedMessage());
-		}
-		return params;
-	}
+    @Override
+    public void setBaseInfo(String bankGroupId, String countryCode, String bu) {
+    }
 
-	private static String getNodeValue(Node node, String tagName) {
-		try {
-			Element el = (Element) node;
-			NodeList list = el.getElementsByTagName(tagName);
-			if ((list != null) && (list.getLength() > 0) && (list.item(0).getFirstChild() != null))
-				return list.item(0).getFirstChild().getNodeValue();
-		} catch (Exception e) {
-			logger.info("Exception in getNodeValue ::: " + e.getLocalizedMessage());
-		}
-		return null;
-	}
+    @Override
+    public void setBusinessDay(Date arg0) {
+    }
 
-	public static NodeList getMasterTrxnRecords(String trxnUpToDate, int count) {
-		NodeList nl_trxnconfrm = null;
-		try {
-			System.out.println("getMasterTrxnRecords START ::::::::");
-			CSSQLStatement selectStatement = new CSSQLStatement(4,
-					"EXIMSYS.TRX_IMAGES_DTAL T1, EXIMSYS.TRX_IMAGES_HEADER T2", "EXIMT");
-			selectStatement.addField("T1.C_MAIN_REF", null, null);
-			selectStatement.addField("T1.C_UNIT_CODE", null, null);
-			selectStatement.addField("T1.C_IMG_FILE_PATH", null, null);
-			selectStatement.addField("T1.C_ORIG_FILE_PATH", null, null);
-			selectStatement.addField("T1.B_IMG_CONTENT", null, null);
-			selectStatement.addField("T1.C_IMG_INDX", null, null);
-			String dateCon = "";
-			if (!trxnUpToDate.isEmpty()) {
-				dateCon = ("SYSDATE").equalsIgnoreCase(trxnUpToDate) ? "AND T1.T_UPLOAD_TIME < SYSDATE"
-						: "AND T1.T_UPLOAD_TIME < '" + trxnUpToDate + "'";
-			}
-			String whereCon = " WHERE T1.C_MAIN_REF = T2.C_MAIN_REF AND T2.C_EVENT_STATUS = 'M' AND T1.C_THIRD_INDEX IS NULL AND T1.B_IMG_CONTENT IS NOT NULL "
-					+ dateCon + " FETCH FIRST " + count + " ROWS ONLY";
-			CSSQLClause CSSQLClause_trxconfrm = new CSSQLClause();
-			CSSQLClause_trxconfrm.setClause(whereCon, null, null);
-			selectStatement.setClause(CSSQLClause_trxconfrm);
-			Document rtnDoc_trxnconfrm = CSEEDAOHelper.commExecuteQuery(selectStatement);
-			nl_trxnconfrm = rtnDoc_trxnconfrm.getElementsByTagName("record");
-			System.out.println("getMasterTrxnRecords END ::::::::");
-		} catch (Exception e) {
-			e.printStackTrace();
-			APLog.reportErrLog(e.getMessage());
-		}
-		return nl_trxnconfrm;
-	}
+    @Override
+    public void setTaskInfo(Document arg0) {
+    }
 
-	private int getTrxCount() {
-		NodeList nl_trxncount = null;
-		int count = 0;
-		try {
-			CSSQLStatement selectStatement = new CSSQLStatement(4,
-					"EXIMSYS.TRX_IMAGES_DTAL T1, EXIMSYS.TRX_IMAGES_HEADER T2", "EXIMT");
-			selectStatement.addField("C_MAIN_REF", null, null);
-			String wherecon_trxnconfrm = " WHERE T1.C_MAIN_REF = T2.C_MAIN_REF AND T2.C_EVENT_STATUS = 'M' AND B_IMG_CONTENT IS NOT NULL ";
-			CSSQLClause CSSQLClause_trxconfrm = new CSSQLClause();
-			CSSQLClause_trxconfrm.setClause(wherecon_trxnconfrm, null, null);
-			selectStatement.setClause(CSSQLClause_trxconfrm);
-			Document rtnDoc_trxnconfrm = CSEEDAOHelper.commExecuteQuery(selectStatement);
-			nl_trxncount = rtnDoc_trxnconfrm.getElementsByTagName("record");
-			count = nl_trxncount.getLength();
-		} catch (Exception e) {
-			logger.info("Exception raised in updateDocIdIntoDB() ::: " + WSTools.getErrorStackTrace(e));
-		}
-		return count;
-	}
+    /**
+     * Main housekeeping entry point.
+     */
+    public String uploadFileFromDBToEDMS() {
 
-	private String insertIntoEDMSServer(String EDMS_UPLOAD_URL, String txnReferenceNumber, String branchCode,
-			String channelID, String category, String docName, String fileContent, Connection conn,
-			String uniqueImageIndex) {
-		String uploadResult = "";
-		try {
-			InitiationRequestDocHK bean = EDMSUtilsdDocHK.GenerateInitiationRequestStringDocHK(channelID, 16);
-			String requestString = EDMSUtilsdDocHK.ConvertIRBeanToString(bean);
-			String encryptedJsonReq = EDMSDocUpldDwnldHelper.encryptRawJSON(requestString, "HOSTpublicKeyPath");
-			org.json.JSONObject ReqObj = new org.json.JSONObject();
-			ReqObj.put("applicationID", channelID);
-			ReqObj.put("branchCode", branchCode);
-			ReqObj.put("uniqueIdentifier", uniqueImageIndex);
-			JSONArray docsJsonArray = new JSONArray();
-			org.json.JSONObject docContentJson = new org.json.JSONObject();
-			byte[] b = null;
-			Object decompressedObj = CompressUtil.decompressByBase64ForImg(fileContent);
-			if ((ReqObj != null) && (ReqObj.getClass().toString().indexOf("String") != -1)) {
-				String content = (String) decompressedObj;
-				b = content.getBytes(StandardCharsets.ISO_8859_1);
-			} else {
-				b = (byte[]) decompressedObj;
-			}
-			String base64Content = Base64.getEncoder().encodeToString(b);
-			docContentJson.put("base64", base64Content);
-			docContentJson.put("documentName", txnReferenceNumber + "_" + docName);
-			docsJsonArray.put(docContentJson);
-			ReqObj.put("documents", docsJsonArray);
+        long startTime = System.currentTimeMillis();
 
-			logger.info(" >> EDMS request : " + getRequestForLogging(ReqObj).toString());
-			String result = helper.processClientConsumption(EDMS_UPLOAD_URL, encryptedJsonReq, ReqObj.toString(),
-					bean.getuniqueSourceServerIDDocHK(), "HOSTpublicKeyPath", "KEY_STORE_PATH", "PASSPHRASE");
-			logger.info(" >> EDMS response : " + result);
-			JSONObject resultJson = new JSONObject(result);
-			com.cs.esp.org.json.JSONArray jsonlist = resultJson.getJSONArray("name_IdBeans");
-			JSONObject JsonItem = jsonlist.getJSONObject(0);
-			String receivedDocumentId = JsonItem.getString("documentId");
-			String receivedUploadResponse = JsonItem.getString("uploadResponse");
-			if (!receivedDocumentId.isEmpty()) {
-				updateDocIdIntoDB(receivedUploadResponse, receivedDocumentId, uniqueImageIndex);
-			}
-		} catch (Exception e) {
-			logger.info("Exception raised in insertIntoEDMSServer() : " + WSTools.getErrorStackTrace(e));
-		}
-		return uploadResult;
-	}
+        int processed = 0;
+        int succeeded = 0;
+        int failed = 0;
 
-	private void updateDocIdIntoDB(String receivedUploadResponse, String finalDocumentId, String uniqueImageIndex) {
-		logger.info("updateDocIdIntoDB() has been called");
-		try {
-			CSSQLStatement updateStatement = new CSSQLStatement(2, "EXIMSYS.TRX_IMAGES_DTAL", "EXIMT");
-			String whereCon = "WHERE C_IMG_INDX = '" + uniqueImageIndex + "'";
-			CSSQLClause cssqlClause = new CSSQLClause();
-			cssqlClause.setClause(whereCon, null, null);
-			updateStatement.addField("C_THIRD_INDEX", finalDocumentId, 12);
-			updateStatement.setClause(cssqlClause);
-			int finalResult = CSEEDAOHelper.commExecuteUpdate(updateStatement);
-			if (finalResult == 1) {
-				logger.info("The update has been made Document ID from EDMS Success for index : " + uniqueImageIndex
-						+ "in the table EXIMSYS.TRX_IMAGES_DTAL");
-				deleteBlobContentAfterUpload(uniqueImageIndex);
-			} else {
-				logger.info("Failed to update EDMS dicument ID for index : " + uniqueImageIndex
-						+ "in the table EXIMSYS.TRX_IMAGE_DTAL");
-			}
-		} catch (Exception e) {
-			logger.info("Exception raised in updateDocIdIntoDB() ::: " + WSTools.getErrorStackTrace(e));
-		}
-	}
+        try {
+            Properties properties = loadProperties();
 
-	private void deleteBlobContentAfterUpload(String uniqueImageIndex) {
-		try {
-			CSSQLStatement updateStatement = new CSSQLStatement(2, "EXIMSYS.TRX_IMAGES_DTAL", "EXIMT");
-			String whereCon = "WHERE C_IMG_INDX = '" + uniqueImageIndex + "'";
-			CSSQLClause cssqlClause = new CSSQLClause();
-			cssqlClause.setClause(whereCon, null, null);
-			updateStatement.addField("B_IMG_CONTENT", "", 12);
-			updateStatement.setClause(cssqlClause);
-			int finalResult = CSEEDAOHelper.commExecuteUpdate(updateStatement);
-			if (finalResult == 1) {
-				logger.info("The BLOB content is made balnk for index : " + uniqueImageIndex
-						+ "in the table EXIMSYS.TRX_IMAGES_DTAL");
-			} else {
-				logger.info("Failed to delete BLOB content for index : " + uniqueImageIndex
-						+ "in the table EXIMSYS.TRX_IMAGE_DTAL");
-			}
-		} catch (Exception e) {
-			logger.info("Exception raised in updateDocIdIntoDB() ::: " + WSTools.getErrorStackTrace(e));
-		}
-	}
+            String uploadUrl = getRequiredProperty(properties, "EDMS_UPLOAD_URL");
+            String channelId = getRequiredProperty(properties, "channelID");
+            String category = getRequiredProperty(properties, "category");
 
-	private static org.json.JSONObject getRequestForLogging(org.json.JSONObject req) throws Exception {
-		org.json.JSONObject logRequest = new org.json.JSONObject(req.toString());
-		try {
-			if (logRequest.has("documents")) {
-				JSONArray docs = logRequest.getJSONArray("documents");
-				for (int i = 0; i < docs.length(); i++) {
-					org.json.JSONObject doc = docs.getJSONObject(i);
-					if (doc.has("base64")) {
-						String trimmedBase64 = doc.get("base64").toString().substring(0, 50);
-						doc.put("base64", doc.put("base64", trimmedBase64));
-					}
-				}
-			}
-		} catch (Exception e) {
-			logger.info("Exception raised in getRequestForLogging() ::: " + WSTools.getErrorStackTrace(e));
-		}
-		return logRequest;
-	}
+            trxnControlParams params = getTrxParams();
+
+            if (params == null || isBlank(params.getCount())) {
+                throw new IllegalStateException(
+                        "EDMS housekeeping TRX_COUNT parameter is missing");
+            }
+
+            String configuredCount = params.getCount().trim();
+            String dateLimit = params.getDate();
+
+            boolean processAll = "ALL".equalsIgnoreCase(configuredCount);
+
+            int totalLimit;
+
+            if (processAll) {
+                totalLimit = getTrxCount(dateLimit);
+
+                if (totalLimit <= 0) {
+                    logger.info("EDMS housekeeping: no eligible records found");
+                    return "No eligible records found";
+                }
+            } else {
+                totalLimit = parseConfiguredCount(configuredCount);
+            }
+
+            if (totalLimit <= 0) {
+                logger.info("EDMS housekeeping: configured record count is zero");
+                return "No records configured for processing";
+            }
+
+            logger.info(
+                    "EDMS housekeeping processing started. Mode={}, Limit={}",
+                    processAll ? "ALL" : "LIMITED",
+                    totalLimit);
+
+            if (!processAll) {
+
+                NodeList records = getMasterTrxnRecords(dateLimit, totalLimit);
+
+                if (records == null) {
+                    throw new IllegalStateException(
+                            "Unable to retrieve EDMS housekeeping records");
+                }
+
+                for (int i = 0; i < records.getLength(); i++) {
+
+                    Node record = records.item(i);
+
+                    processed++;
+
+                    try {
+                        processRecord(
+                                record,
+                                uploadUrl,
+                                channelId,
+                                category);
+
+                        succeeded++;
+
+                    } catch (Exception e) {
+                        failed++;
+
+                        logRecordFailure(record, e);
+                    }
+                }
+
+            } else {
+
+                long allStartTime = System.currentTimeMillis();
+
+                /*
+                 * Process records in batches.
+                 *
+                 * Successfully processed records are removed from the
+                 * eligibility criteria by updating C_THIRD_INDEX and
+                 * clearing B_IMG_CONTENT.
+                 *
+                 * Therefore, subsequent queries fetch the next eligible
+                 * records without OFFSET pagination.
+                 */
+
+                while (processed < totalLimit) {
+
+                    long elapsedTime =
+                            System.currentTimeMillis() - allStartTime;
+
+                    if (elapsedTime >= ALL_PROCESSING_TIME_MS) {
+                        break;
+                    }
+
+                    int remaining = totalLimit - processed;
+
+                    int batchSize = Math.min(ALL_BATCH_SIZE, remaining);
+
+                    NodeList records =
+                            getMasterTrxnRecords(dateLimit, batchSize);
+
+                    if (records == null) {
+                        throw new IllegalStateException(
+                                "Unable to retrieve records for current batch");
+                    }
+
+                    if (records.getLength() == 0) {
+                        break;
+                    }
+
+                    int batchProcessed = 0;
+                    int batchFailed = 0;
+
+                    for (int i = 0; i < records.getLength(); i++) {
+
+                        /*
+                         * Check time limit between records.
+                         * A single EDMS upload may exceed the remaining
+                         * time, so the time limit is not a hard interruption.
+                         */
+                        if (System.currentTimeMillis() - allStartTime
+                                >= ALL_PROCESSING_TIME_MS) {
+                            break;
+                        }
+
+                        Node record = records.item(i);
+
+                        processed++;
+                        batchProcessed++;
+
+                        try {
+                            processRecord(
+                                    record,
+                                    uploadUrl,
+                                    channelId,
+                                    category);
+
+                            succeeded++;
+
+                        } catch (Exception e) {
+
+                            failed++;
+                            batchFailed++;
+
+                            logRecordFailure(record, e);
+                        }
+                    }
+
+                    /*
+                     * If records failed, they remain eligible.
+                     *
+                     * Stop the ALL run to avoid fetching the same failed
+                     * records repeatedly in subsequent batches.
+                     */
+                    if (batchFailed > 0) {
+
+                        logger.warn(
+                                "EDMS housekeeping stopping ALL processing "
+                                        + "after batch failure. BatchProcessed={}, "
+                                        + "BatchFailed={}",
+                                batchProcessed,
+                                batchFailed);
+
+                        break;
+                    }
+
+                    if (batchProcessed == 0) {
+                        break;
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+
+            logger.error("EDMS housekeeping execution failed", e);
+
+            return "Housekeeping failed. Please check logs.";
+        }
+
+        long duration = System.currentTimeMillis() - startTime;
+
+        logger.info(
+                "EDMS housekeeping summary. Processed={}, Successful={}, "
+                        + "Failed={}, DurationMs={}",
+                processed,
+                succeeded,
+                failed,
+                duration);
+
+        if (failed > 0) {
+            return "Completed with failures. Processed="
+                    + processed
+                    + ", Successful="
+                    + succeeded
+                    + ", Failed="
+                    + failed;
+        }
+
+        return "Processed successfully. Records=" + succeeded;
+    }
+
+    /**
+     * Loads the EDMS configuration.
+     */
+    private Properties loadProperties() throws Exception {
+
+        Properties properties = new Properties();
+
+        File file = new File(EDMS_PROPERTIES_FILE);
+
+        if (!file.exists()) {
+            throw new IllegalStateException(
+                    "EDMS configuration file not found");
+        }
+
+        try (InputStream input = new FileInputStream(file)) {
+            properties.load(input);
+        }
+
+        return properties;
+    }
+
+    /**
+     * Validates mandatory property values.
+     */
+    private String getRequiredProperty(
+            Properties properties,
+            String propertyName) {
+
+        String value = properties.getProperty(propertyName);
+
+        if (isBlank(value)) {
+            throw new IllegalStateException(
+                    "Missing configuration property: " + propertyName);
+        }
+
+        return value.trim();
+    }
+
+    /**
+     * Converts configured count to an integer.
+     */
+    private int parseConfiguredCount(String count) {
+
+        try {
+            int value = Integer.parseInt(count);
+
+            if (value < 0) {
+                throw new IllegalArgumentException(
+                        "TRX_COUNT cannot be negative");
+            }
+
+            return value;
+
+        } catch (NumberFormatException e) {
+
+            throw new IllegalArgumentException(
+                    "Invalid EDMS TRX_COUNT configuration: " + count);
+        }
+    }
+
+    /**
+     * Validates mandatory transaction record fields and uploads the document.
+     */
+    private void processRecord(
+            Node record,
+            String uploadUrl,
+            String channelId,
+            String category) throws Exception {
+
+        String mainReference =
+                XMLManager.getChildNodeValue(record, "C_MAIN_REF", true);
+
+        String branchCode =
+                XMLManager.getChildNodeValue(record, "C_UNIT_CODE", true);
+
+        String fileContent =
+                XMLManager.getChildNodeValue(record, "B_IMG_CONTENT", true);
+
+        String documentName =
+                XMLManager.getChildNodeValue(record, "C_ORIG_FILE_PATH", true);
+
+        String imageIndex =
+                XMLManager.getChildNodeValue(record, "C_IMG_INDX", true);
+
+        if (isBlank(mainReference)
+                || isBlank(branchCode)
+                || isBlank(fileContent)
+                || isBlank(documentName)
+                || isBlank(imageIndex)) {
+
+            throw new IllegalArgumentException(
+                    "Mandatory transaction/document data is missing");
+        }
+
+        uploadDocument(
+                uploadUrl,
+                mainReference,
+                branchCode,
+                channelId,
+                category,
+                documentName,
+                fileContent,
+                imageIndex);
+    }
+
+    /**
+     * Uploads one document and updates the DB only after EDMS response
+     * validation.
+     */
+    private void uploadDocument(
+            String uploadUrl,
+            String transactionReference,
+            String branchCode,
+            String channelId,
+            String category,
+            String documentName,
+            String fileContent,
+            String imageIndex) throws Exception {
+
+        InitiationRequestDocHK bean =
+                EDMSUtilsdDocHK.GenerateInitiationRequestStringDocHK(
+                        channelId, 16);
+
+        if (bean == null) {
+            throw new IllegalStateException(
+                    "Unable to generate EDMS initiation request");
+        }
+
+        String requestString =
+                EDMSUtilsdDocHK.ConvertIRBeanToString(bean);
+
+        if (isBlank(requestString)) {
+            throw new IllegalStateException(
+                    "EDMS initiation request is empty");
+        }
+
+        String encryptedJsonReq =
+                EDMSDocUpldDwnldHelper.encryptRawJSON(
+                        requestString,
+                        "HOSTpublicKeyPath");
+
+        if (isBlank(encryptedJsonReq)) {
+            throw new IllegalStateException(
+                    "Failed to encrypt EDMS initiation request");
+        }
+
+        org.json.JSONObject request = new org.json.JSONObject();
+
+        request.put("applicationID", channelId);
+        request.put("branchCode", branchCode);
+        request.put("uniqueIdentifier", imageIndex);
+
+        JSONArray documents = new JSONArray();
+
+        org.json.JSONObject document = new org.json.JSONObject();
+
+        Object decompressedObj =
+                CompressUtil.decompressByBase64ForImg(fileContent);
+
+        byte[] documentBytes;
+
+        if (decompressedObj instanceof String) {
+
+            documentBytes = ((String) decompressedObj)
+                    .getBytes(StandardCharsets.ISO_8859_1);
+
+        } else if (decompressedObj instanceof byte[]) {
+
+            documentBytes = (byte[]) decompressedObj;
+
+        } else {
+
+            throw new IllegalArgumentException(
+                    "Unexpected decompressed document type");
+        }
+
+        if (documentBytes == null || documentBytes.length == 0) {
+            throw new IllegalArgumentException(
+                    "Decompressed document is empty");
+        }
+
+        String base64Content =
+                Base64.getEncoder().encodeToString(documentBytes);
+
+        document.put("base64", base64Content);
+        document.put(
+                "documentName",
+                transactionReference + "_" + documentName);
+
+        documents.put(document);
+
+        request.put("documents", documents);
+
+        /*
+         * No request JSON or document content is logged.
+         */
+
+        String response = helper.processClientConsumption(
+                uploadUrl,
+                encryptedJsonReq,
+                request.toString(),
+                bean.getuniqueSourceServerIDDocHK(),
+                "HOSTpublicKeyPath",
+                "KEY_STORE_PATH",
+                "PASSPHRASE");
+
+        if (isBlank(response)) {
+            throw new IllegalStateException(
+                    "EDMS returned an empty response");
+        }
+
+        validateAndUpdateResponse(response, imageIndex);
+    }
+
+    /**
+     * Parses the EDMS response and updates the database.
+     */
+    private void validateAndUpdateResponse(
+            String response,
+            String imageIndex) throws Exception {
+
+        com.cs.esp.org.json.JSONObject resultJson =
+                new com.cs.esp.org.json.JSONObject(response);
+
+        com.cs.esp.org.json.JSONArray nameIdBeans =
+                resultJson.getJSONArray("name_IdBeans");
+
+        if (nameIdBeans == null || nameIdBeans.length() == 0) {
+            throw new IllegalStateException(
+                    "EDMS response contains no document details");
+        }
+
+        com.cs.esp.org.json.JSONObject item =
+                nameIdBeans.getJSONObject(0);
+
+        String documentId =
+                item.optString("documentId", "");
+
+        String uploadResponse =
+                item.optString("uploadResponse", "");
+
+        if (isBlank(documentId)) {
+            throw new IllegalStateException(
+                    "EDMS response contains no document ID");
+        }
+
+        /*
+         * IMPORTANT:
+         * Validate uploadResponse against the actual EDMS success
+         * response contract here.
+         *
+         * This implementation assumes that a non-empty document ID
+         * represents successful upload, consistent with the original
+         * implementation. This must be confirmed with the EDMS API.
+         */
+
+        if (!updateDocIdIntoDB(documentId, imageIndex)) {
+            throw new IllegalStateException(
+                    "Unable to update EDMS document ID in DB");
+        }
+    }
+
+    /**
+     * Updates the EDMS document ID.
+     *
+     * BLOB deletion is triggered only after the document ID update
+     * succeeds.
+     */
+    private boolean updateDocIdIntoDB(
+            String documentId,
+            String imageIndex) throws Exception {
+
+        CSSQLStatement updateStatement =
+                new CSSQLStatement(2, IMAGE_TABLE, DB_CONNECTION);
+
+        CSSQLClause clause = new CSSQLClause();
+
+        clause.setClause(
+                "WHERE C_IMG_INDX = '" + escapeSqlValue(imageIndex) + "'",
+                null,
+                null);
+
+        updateStatement.addField("C_THIRD_INDEX", documentId, 12);
+        updateStatement.setClause(clause);
+
+        int updateResult =
+                CSEEDAOHelper.commExecuteUpdate(updateStatement);
+
+        if (updateResult != 1) {
+
+            logger.error(
+                    "EDMS document ID update failed. ImageIndex={}, "
+                            + "AffectedRows={}",
+                    imageIndex,
+                    updateResult);
+
+            return false;
+        }
+
+        return deleteBlobContentAfterUpload(imageIndex);
+    }
+
+    /**
+     * Clears the BLOB content after document ID update.
+     */
+    private boolean deleteBlobContentAfterUpload(
+            String imageIndex) throws Exception {
+
+        CSSQLStatement updateStatement =
+                new CSSQLStatement(2, IMAGE_TABLE, DB_CONNECTION);
+
+        CSSQLClause clause = new CSSQLClause();
+
+        clause.setClause(
+                "WHERE C_IMG_INDX = '" + escapeSqlValue(imageIndex) + "'",
+                null,
+                null);
+
+        updateStatement.addField("B_IMG_CONTENT", "", 12);
+        updateStatement.setClause(clause);
+
+        int updateResult =
+                CSEEDAOHelper.commExecuteUpdate(updateStatement);
+
+        if (updateResult != 1) {
+
+            logger.error(
+                    "BLOB cleanup failed. ImageIndex={}, AffectedRows={}",
+                    imageIndex,
+                    updateResult);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Retrieves transaction control parameters.
+     */
+    private trxnControlParams getTrxParams() throws Exception {
+
+        CSSQLStatement selectStatement =
+                new CSSQLStatement(
+                        CSSQLStatement.I_SQL_TYPE_SELECT,
+                        PARAM_TABLE,
+                        DB_CONNECTION);
+
+        selectStatement.addField("TRX_COUNT", null, null);
+        selectStatement.addField("DATE_UPTO", null, null);
+
+        CSSQLClause clause = new CSSQLClause();
+
+        clause.setClause(
+                "WHERE ROW_ID = ?",
+                new Object[] { 1 },
+                new Integer[] { Types.NUMERIC });
+
+        selectStatement.setClause(clause);
+
+        Document result =
+                CSEEDAOHelper.commExecuteQuery(selectStatement);
+
+        if (result == null) {
+            throw new IllegalStateException(
+                    "Unable to retrieve EDMS control parameters");
+        }
+
+        NodeList records =
+                result.getDocumentElement()
+                        .getElementsByTagName("record");
+
+        if (records == null || records.getLength() == 0) {
+            throw new IllegalStateException(
+                    "EDMS control parameter record not found");
+        }
+
+        Node node = records.item(0);
+
+        trxnControlParams params = new trxnControlParams();
+
+        params.setCount(getNodeValue(node, "TRX_COUNT"));
+        params.setDate(getNodeValue(node, "DATE_UPTO"));
+
+        return params;
+    }
+
+    /**
+     * Retrieves the total eligible transaction count.
+     */
+    private int getTrxCount(String dateLimit) throws Exception {
+
+        CSSQLStatement selectStatement =
+                new CSSQLStatement(
+                        CSSQLStatement.I_SQL_TYPE_SELECT,
+                        "EXIMSYS.TRX_IMAGES_DTAL T1, "
+                                + "EXIMSYS.TRX_IMAGES_HEADER T2",
+                        DB_CONNECTION);
+
+        selectStatement.addField("T1.C_IMG_INDX", null, null);
+
+        String dateCondition =
+                buildDateCondition(dateLimit);
+
+        String whereCondition =
+                "WHERE T1.C_MAIN_REF = T2.C_MAIN_REF "
+                        + "AND T2.C_EVENT_STATUS = 'M' "
+                        + "AND T1.C_THIRD_INDEX IS NULL "
+                        + "AND T1.B_IMG_CONTENT IS NOT NULL "
+                        + dateCondition;
+
+        CSSQLClause clause = new CSSQLClause();
+
+        clause.setClause(whereCondition, null, null);
+
+        selectStatement.setClause(clause);
+
+        Document result =
+                CSEEDAOHelper.commExecuteQuery(selectStatement);
+
+        if (result == null) {
+            throw new IllegalStateException(
+                    "Unable to retrieve eligible EDMS record count");
+        }
+
+        NodeList records =
+                result.getElementsByTagName("record");
+
+        return records == null ? 0 : records.getLength();
+    }
+
+    /**
+     * Retrieves the next eligible records.
+     *
+     * Records already processed successfully will no longer qualify
+     * because C_THIRD_INDEX is populated and B_IMG_CONTENT is cleared.
+     */
+    public static NodeList getMasterTrxnRecords(
+            String dateLimit,
+            int count) {
+
+        try {
+
+            if (count <= 0) {
+                return null;
+            }
+
+            CSSQLStatement selectStatement =
+                    new CSSQLStatement(
+                            CSSQLStatement.I_SQL_TYPE_SELECT,
+                            "EXIMSYS.TRX_IMAGES_DTAL T1, "
+                                    + "EXIMSYS.TRX_IMAGES_HEADER T2",
+                            DB_CONNECTION);
+
+            selectStatement.addField("T1.C_MAIN_REF", null, null);
+            selectStatement.addField("T1.C_UNIT_CODE", null, null);
+            selectStatement.addField("T1.C_IMG_FILE_PATH", null, null);
+            selectStatement.addField("T1.C_ORIG_FILE_PATH", null, null);
+            selectStatement.addField("T1.B_IMG_CONTENT", null, null);
+            selectStatement.addField("T1.C_IMG_INDX", null, null);
+
+            String dateCondition =
+                    buildDateCondition(dateLimit);
+
+            String whereCondition =
+                    "WHERE T1.C_MAIN_REF = T2.C_MAIN_REF "
+                            + "AND T2.C_EVENT_STATUS = 'M' "
+                            + "AND T1.C_THIRD_INDEX IS NULL "
+                            + "AND T1.B_IMG_CONTENT IS NOT NULL "
+                            + dateCondition
+                            + " ORDER BY T1.T_UPLOAD_TIME ASC "
+                            + " FETCH FIRST "
+                            + count
+                            + " ROWS ONLY";
+
+            CSSQLClause clause = new CSSQLClause();
+
+            clause.setClause(whereCondition, null, null);
+
+            selectStatement.setClause(clause);
+
+            Document result =
+                    CSEEDAOHelper.commExecuteQuery(selectStatement);
+
+            if (result == null) {
+                return null;
+            }
+
+            return result.getElementsByTagName("record");
+
+        } catch (Exception e) {
+
+            logger.error("Failed to fetch EDMS housekeeping records", e);
+
+            return null;
+        }
+    }
+
+    /**
+     * Builds date filter.
+     *
+     * Supports SYSDATE or a date value maintained in the control table.
+     *
+     * IMPORTANT:
+     * Replace this string construction with a bind parameter if your
+     * CSSQLClause API supports binding the date condition.
+     */
+    private static String buildDateCondition(String dateLimit) {
+
+        if (isBlank(dateLimit)) {
+            return "";
+        }
+
+        if ("SYSDATE".equalsIgnoreCase(dateLimit.trim())) {
+            return " AND T1.T_UPLOAD_TIME < SYSDATE ";
+        }
+
+        /*
+         * Reject potentially unsafe SQL input.
+         * Adjust validation to the actual date format stored in DB.
+         */
+        if (dateLimit.contains("'")
+                || dateLimit.contains(";")
+                || dateLimit.contains("--")
+                || dateLimit.contains("/*")
+                || dateLimit.contains("*/")) {
+
+            throw new IllegalArgumentException(
+                    "Invalid EDMS date parameter");
+        }
+
+        return " AND T1.T_UPLOAD_TIME < '"
+                + dateLimit.trim()
+                + "' ";
+    }
+
+    /**
+     * Extracts XML node value.
+     */
+    private static String getNodeValue(
+            Node node,
+            String tagName) {
+
+        if (node == null || isBlank(tagName)) {
+            return null;
+        }
+
+        try {
+
+            org.w3c.dom.Element element =
+                    (org.w3c.dom.Element) node;
+
+            NodeList list =
+                    element.getElementsByTagName(tagName);
+
+            if (list != null
+                    && list.getLength() > 0
+                    && list.item(0).getFirstChild() != null) {
+
+                return list.item(0)
+                        .getFirstChild()
+                        .getNodeValue();
+            }
+
+        } catch (Exception e) {
+
+            logger.debug(
+                    "Unable to extract XML field {}",
+                    tagName);
+        }
+
+        return null;
+    }
+
+    /**
+     * Logs record failures without logging document content.
+     */
+    private void logRecordFailure(
+            Node record,
+            Exception e) {
+
+        String reference = safeXmlValue(record, "C_MAIN_REF");
+        String imageIndex = safeXmlValue(record, "C_IMG_INDX");
+
+        logger.error(
+                "EDMS document processing failed. Reference={}, "
+                        + "ImageIndex={}",
+                reference,
+                imageIndex,
+                e);
+    }
+
+    /**
+     * Safe XML extraction for logging.
+     */
+    private static String safeXmlValue(
+            Node record,
+            String tagName) {
+
+        try {
+            String value =
+                    XMLManager.getChildNodeValue(
+                            record,
+                            tagName,
+                            true);
+
+            return value == null ? "UNKNOWN" : value;
+
+        } catch (Exception e) {
+            return "UNKNOWN";
+        }
+    }
+
+    /**
+     * Escapes SQL single quotes.
+     *
+     * This is only a defensive measure. Parameterized SQL is preferable.
+     */
+    private static String escapeSqlValue(String value) {
+
+        if (value == null) {
+            return "";
+        }
+
+        return value.replace("'", "''");
+    }
+
+    /**
+     * Checks blank/null string.
+     */
+    private static boolean isBlank(String value) {
+
+        return value == null
+                || value.trim().isEmpty();
+    }
 }
