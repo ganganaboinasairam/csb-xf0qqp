@@ -1,926 +1,99 @@
-package com.cs.batch.tasks;
+private static JSONObject getRequestForLogging(JSONObject req) {
+    try {
+        return sanitizeJSONObject(req, new java.util.IdentityHashMap<>(), 0);
+    } catch (Exception e) {
+        System.out.println("Exception in getRequestForLogging(): " 
+                + WSTools.getErrorStackTrace(e));
+        return new JSONObject();
+    }
+}
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.sql.Types;
-import java.util.Base64;
-import java.util.Date;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
+private static JSONObject sanitizeJSONObject(
+        JSONObject source,
+        java.util.IdentityHashMap<Object, Boolean> visited,
+        int depth) {
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-
-import com.cs.base.xml.XMLManager;
-import com.cs.core.utility.CSEEDAOHelper;
-import com.cs.core.utility.CompressUtil;
-import com.cs.edms.bean.InitiationRequestDocHK;
-import com.cs.edms.bean.trxnControlParams;
-import com.cs.edms.document.EDMSUtilsdDocHK;
-import com.cs.edms.document.helper.EDMSDocUpldDwnldHelper;
-import com.cs.eximap.utility.APLog;
-import com.cs.eximap.utility.CSSQLClause;
-import com.cs.eximap.utility.CSSQLStatement;
-import com.cs.eximweb.utility.WSTools;
-import com.cs.thread.exception.TaskRuntimeException;
-import com.cs.thread.intf.ICSRunnable;
-
-public class EDMSDocUploadHouseKeeping implements ICSRunnable {
-
-    private static final Logger logger = LogManager.getLogger("EDMSServiceLogger");
-
-    private static final int ALL_BATCH_SIZE = 1000;
-    private static final long ALL_PROCESSING_TIME_MS = TimeUnit.MINUTES.toMillis(10);
-
-    private static final String DB_CONNECTION = "EXIMT";
-    private static final String PARAM_TABLE = "EXIMTRX.EDMS_DOC_UPLOAD_PARAMS";
-    private static final String IMAGE_TABLE = "EXIMSYS.TRX_IMAGES_DTAL";
-
-    private static final String EDMS_PROPERTIES_FILE =
-            "properties/EDMSDocumentHK.properties";
-
-    private final EDMSDocUpldDwnldHelper helper =
-            new EDMSDocUpldDwnldHelper();
-
-    @Override
-    public void run() throws TaskRuntimeException {
-        logger.info("EDMS housekeeping started");
-
-        try {
-            String result = uploadFileFromDBToEDMS();
-            logger.info("EDMS housekeeping completed: {}", result);
-
-        } catch (Exception e) {
-            logger.error("EDMS housekeeping failed", e);
-        }
+    if (source == null) {
+        return new JSONObject();
     }
 
-    @Override
-    public void setBaseInfo(String bankGroupId, String countryCode, String bu) {
+    if (depth > 100) {
+        return new JSONObject().put("_logging", "[MAX DEPTH REACHED]");
     }
 
-    @Override
-    public void setBusinessDay(Date arg0) {
+    if (visited.containsKey(source)) {
+        return new JSONObject().put("_logging", "[CIRCULAR REFERENCE]");
     }
 
-    @Override
-    public void setTaskInfo(Document arg0) {
-    }
+    visited.put(source, Boolean.TRUE);
 
-    /**
-     * Main housekeeping entry point.
-     */
-    public String uploadFileFromDBToEDMS() {
+    JSONObject copy = new JSONObject();
 
-        long startTime = System.currentTimeMillis();
+    java.util.Iterator<String> keys = source.keys();
 
-        int processed = 0;
-        int succeeded = 0;
-        int failed = 0;
+    while (keys.hasNext()) {
+        String key = keys.next();
 
-        try {
-            Properties properties = loadProperties();
+        Object value = source.opt(key);
 
-            String uploadUrl = getRequiredProperty(properties, "EDMS_UPLOAD_URL");
-            String channelId = getRequiredProperty(properties, "channelID");
-            String category = getRequiredProperty(properties, "category");
+        if ("base64".equalsIgnoreCase(key) && value instanceof String) {
+            String base64 = (String) value;
 
-            trxnControlParams params = getTrxParams();
-
-            if (params == null || isBlank(params.getCount())) {
-                throw new IllegalStateException(
-                        "EDMS housekeeping TRX_COUNT parameter is missing");
-            }
-
-            String configuredCount = params.getCount().trim();
-            String dateLimit = params.getDate();
-
-            boolean processAll = "ALL".equalsIgnoreCase(configuredCount);
-
-            int totalLimit;
-
-            if (processAll) {
-                totalLimit = getTrxCount(dateLimit);
-
-                if (totalLimit <= 0) {
-                    logger.info("EDMS housekeeping: no eligible records found");
-                    return "No eligible records found";
-                }
-            } else {
-                totalLimit = parseConfiguredCount(configuredCount);
-            }
-
-            if (totalLimit <= 0) {
-                logger.info("EDMS housekeeping: configured record count is zero");
-                return "No records configured for processing";
-            }
-
-            logger.info(
-                    "EDMS housekeeping processing started. Mode={}, Limit={}",
-                    processAll ? "ALL" : "LIMITED",
-                    totalLimit);
-
-            if (!processAll) {
-
-                NodeList records = getMasterTrxnRecords(dateLimit, totalLimit);
-
-                if (records == null) {
-                    throw new IllegalStateException(
-                            "Unable to retrieve EDMS housekeeping records");
-                }
-
-                for (int i = 0; i < records.getLength(); i++) {
-
-                    Node record = records.item(i);
-
-                    processed++;
-
-                    try {
-                        processRecord(
-                                record,
-                                uploadUrl,
-                                channelId,
-                                category);
-
-                        succeeded++;
-
-                    } catch (Exception e) {
-                        failed++;
-
-                        logRecordFailure(record, e);
-                    }
-                }
-
-            } else {
-
-                long allStartTime = System.currentTimeMillis();
-
-                /*
-                 * Process records in batches.
-                 *
-                 * Successfully processed records are removed from the
-                 * eligibility criteria by updating C_THIRD_INDEX and
-                 * clearing B_IMG_CONTENT.
-                 *
-                 * Therefore, subsequent queries fetch the next eligible
-                 * records without OFFSET pagination.
-                 */
-
-                while (processed < totalLimit) {
-
-                    long elapsedTime =
-                            System.currentTimeMillis() - allStartTime;
-
-                    if (elapsedTime >= ALL_PROCESSING_TIME_MS) {
-                        break;
-                    }
-
-                    int remaining = totalLimit - processed;
-
-                    int batchSize = Math.min(ALL_BATCH_SIZE, remaining);
-
-                    NodeList records =
-                            getMasterTrxnRecords(dateLimit, batchSize);
-
-                    if (records == null) {
-                        throw new IllegalStateException(
-                                "Unable to retrieve records for current batch");
-                    }
-
-                    if (records.getLength() == 0) {
-                        break;
-                    }
-
-                    int batchProcessed = 0;
-                    int batchFailed = 0;
-
-                    for (int i = 0; i < records.getLength(); i++) {
-
-                        /*
-                         * Check time limit between records.
-                         * A single EDMS upload may exceed the remaining
-                         * time, so the time limit is not a hard interruption.
-                         */
-                        if (System.currentTimeMillis() - allStartTime
-                                >= ALL_PROCESSING_TIME_MS) {
-                            break;
-                        }
-
-                        Node record = records.item(i);
-
-                        processed++;
-                        batchProcessed++;
-
-                        try {
-                            processRecord(
-                                    record,
-                                    uploadUrl,
-                                    channelId,
-                                    category);
-
-                            succeeded++;
-
-                        } catch (Exception e) {
-
-                            failed++;
-                            batchFailed++;
-
-                            logRecordFailure(record, e);
-                        }
-                    }
-
-                    /*
-                     * If records failed, they remain eligible.
-                     *
-                     * Stop the ALL run to avoid fetching the same failed
-                     * records repeatedly in subsequent batches.
-                     */
-                    if (batchFailed > 0) {
-
-                        logger.warn(
-                                "EDMS housekeeping stopping ALL processing "
-                                        + "after batch failure. BatchProcessed={}, "
-                                        + "BatchFailed={}",
-                                batchProcessed,
-                                batchFailed);
-
-                        break;
-                    }
-
-                    if (batchProcessed == 0) {
-                        break;
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-
-            logger.error("EDMS housekeeping execution failed", e);
-
-            return "Housekeeping failed. Please check logs.";
-        }
-
-        long duration = System.currentTimeMillis() - startTime;
-
-        logger.info(
-                "EDMS housekeeping summary. Processed={}, Successful={}, "
-                        + "Failed={}, DurationMs={}",
-                processed,
-                succeeded,
-                failed,
-                duration);
-
-        if (failed > 0) {
-            return "Completed with failures. Processed="
-                    + processed
-                    + ", Successful="
-                    + succeeded
-                    + ", Failed="
-                    + failed;
-        }
-
-        return "Processed successfully. Records=" + succeeded;
-    }
-
-    /**
-     * Loads the EDMS configuration.
-     */
-    private Properties loadProperties() throws Exception {
-
-        Properties properties = new Properties();
-
-        File file = new File(EDMS_PROPERTIES_FILE);
-
-        if (!file.exists()) {
-            throw new IllegalStateException(
-                    "EDMS configuration file not found");
-        }
-
-        try (InputStream input = new FileInputStream(file)) {
-            properties.load(input);
-        }
-
-        return properties;
-    }
-
-    /**
-     * Validates mandatory property values.
-     */
-    private String getRequiredProperty(
-            Properties properties,
-            String propertyName) {
-
-        String value = properties.getProperty(propertyName);
-
-        if (isBlank(value)) {
-            throw new IllegalStateException(
-                    "Missing configuration property: " + propertyName);
-        }
-
-        return value.trim();
-    }
-
-    /**
-     * Converts configured count to an integer.
-     */
-    private int parseConfiguredCount(String count) {
-
-        try {
-            int value = Integer.parseInt(count);
-
-            if (value < 0) {
-                throw new IllegalArgumentException(
-                        "TRX_COUNT cannot be negative");
-            }
-
-            return value;
-
-        } catch (NumberFormatException e) {
-
-            throw new IllegalArgumentException(
-                    "Invalid EDMS TRX_COUNT configuration: " + count);
-        }
-    }
-
-    /**
-     * Validates mandatory transaction record fields and uploads the document.
-     */
-    private void processRecord(
-            Node record,
-            String uploadUrl,
-            String channelId,
-            String category) throws Exception {
-
-        String mainReference =
-                XMLManager.getChildNodeValue(record, "C_MAIN_REF", true);
-
-        String branchCode =
-                XMLManager.getChildNodeValue(record, "C_UNIT_CODE", true);
-
-        String fileContent =
-                XMLManager.getChildNodeValue(record, "B_IMG_CONTENT", true);
-
-        String documentName =
-                XMLManager.getChildNodeValue(record, "C_ORIG_FILE_PATH", true);
-
-        String imageIndex =
-                XMLManager.getChildNodeValue(record, "C_IMG_INDX", true);
-
-        if (isBlank(mainReference)
-                || isBlank(branchCode)
-                || isBlank(fileContent)
-                || isBlank(documentName)
-                || isBlank(imageIndex)) {
-
-            throw new IllegalArgumentException(
-                    "Mandatory transaction/document data is missing");
-        }
-
-        uploadDocument(
-                uploadUrl,
-                mainReference,
-                branchCode,
-                channelId,
-                category,
-                documentName,
-                fileContent,
-                imageIndex);
-    }
-
-    /**
-     * Uploads one document and updates the DB only after EDMS response
-     * validation.
-     */
-    private void uploadDocument(
-            String uploadUrl,
-            String transactionReference,
-            String branchCode,
-            String channelId,
-            String category,
-            String documentName,
-            String fileContent,
-            String imageIndex) throws Exception {
-
-        InitiationRequestDocHK bean =
-                EDMSUtilsdDocHK.GenerateInitiationRequestStringDocHK(
-                        channelId, 16);
-
-        if (bean == null) {
-            throw new IllegalStateException(
-                    "Unable to generate EDMS initiation request");
-        }
-
-        String requestString =
-                EDMSUtilsdDocHK.ConvertIRBeanToString(bean);
-
-        if (isBlank(requestString)) {
-            throw new IllegalStateException(
-                    "EDMS initiation request is empty");
-        }
-
-        String encryptedJsonReq =
-                EDMSDocUpldDwnldHelper.encryptRawJSON(
-                        requestString,
-                        "HOSTpublicKeyPath");
-
-        if (isBlank(encryptedJsonReq)) {
-            throw new IllegalStateException(
-                    "Failed to encrypt EDMS initiation request");
-        }
-
-        org.json.JSONObject request = new org.json.JSONObject();
-
-        request.put("applicationID", channelId);
-        request.put("branchCode", branchCode);
-        request.put("uniqueIdentifier", imageIndex);
-
-        JSONArray documents = new JSONArray();
-
-        org.json.JSONObject document = new org.json.JSONObject();
-
-        Object decompressedObj =
-                CompressUtil.decompressByBase64ForImg(fileContent);
-
-        byte[] documentBytes;
-
-        if (decompressedObj instanceof String) {
-
-            documentBytes = ((String) decompressedObj)
-                    .getBytes(StandardCharsets.ISO_8859_1);
-
-        } else if (decompressedObj instanceof byte[]) {
-
-            documentBytes = (byte[]) decompressedObj;
-
+            copy.put(key, base64.length() > 50
+                    ? base64.substring(0, 20) + "...[TRUNCATED]"
+                    : "[BASE64 CONTENT OMITTED]");
+        } else if (value instanceof JSONObject) {
+            copy.put(key, sanitizeJSONObject(
+                    (JSONObject) value, visited, depth + 1));
+        } else if (value instanceof JSONArray) {
+            copy.put(key, sanitizeJSONArray(
+                    (JSONArray) value, visited, depth + 1));
         } else {
-
-            throw new IllegalArgumentException(
-                    "Unexpected decompressed document type");
-        }
-
-        if (documentBytes == null || documentBytes.length == 0) {
-            throw new IllegalArgumentException(
-                    "Decompressed document is empty");
-        }
-
-        String base64Content =
-                Base64.getEncoder().encodeToString(documentBytes);
-
-        document.put("base64", base64Content);
-        document.put(
-                "documentName",
-                transactionReference + "_" + documentName);
-
-        documents.put(document);
-
-        request.put("documents", documents);
-
-        /*
-         * No request JSON or document content is logged.
-         */
-
-        String response = helper.processClientConsumption(
-                uploadUrl,
-                encryptedJsonReq,
-                request.toString(),
-                bean.getuniqueSourceServerIDDocHK(),
-                "HOSTpublicKeyPath",
-                "KEY_STORE_PATH",
-                "PASSPHRASE");
-
-        if (isBlank(response)) {
-            throw new IllegalStateException(
-                    "EDMS returned an empty response");
-        }
-
-        validateAndUpdateResponse(response, imageIndex);
-    }
-
-    /**
-     * Parses the EDMS response and updates the database.
-     */
-    private void validateAndUpdateResponse(
-            String response,
-            String imageIndex) throws Exception {
-
-        com.cs.esp.org.json.JSONObject resultJson =
-                new com.cs.esp.org.json.JSONObject(response);
-
-        com.cs.esp.org.json.JSONArray nameIdBeans =
-                resultJson.getJSONArray("name_IdBeans");
-
-        if (nameIdBeans == null || nameIdBeans.length() == 0) {
-            throw new IllegalStateException(
-                    "EDMS response contains no document details");
-        }
-
-        com.cs.esp.org.json.JSONObject item =
-                nameIdBeans.getJSONObject(0);
-
-        String documentId =
-                item.optString("documentId", "");
-
-        String uploadResponse =
-                item.optString("uploadResponse", "");
-
-        if (isBlank(documentId)) {
-            throw new IllegalStateException(
-                    "EDMS response contains no document ID");
-        }
-
-        /*
-         * IMPORTANT:
-         * Validate uploadResponse against the actual EDMS success
-         * response contract here.
-         *
-         * This implementation assumes that a non-empty document ID
-         * represents successful upload, consistent with the original
-         * implementation. This must be confirmed with the EDMS API.
-         */
-
-        if (!updateDocIdIntoDB(documentId, imageIndex)) {
-            throw new IllegalStateException(
-                    "Unable to update EDMS document ID in DB");
+            copy.put(key, value);
         }
     }
 
-    /**
-     * Updates the EDMS document ID.
-     *
-     * BLOB deletion is triggered only after the document ID update
-     * succeeds.
-     */
-    private boolean updateDocIdIntoDB(
-            String documentId,
-            String imageIndex) throws Exception {
+    visited.remove(source);
+    return copy;
+}
 
-        CSSQLStatement updateStatement =
-                new CSSQLStatement(2, IMAGE_TABLE, DB_CONNECTION);
+private static JSONArray sanitizeJSONArray(
+        JSONArray source,
+        java.util.IdentityHashMap<Object, Boolean> visited,
+        int depth) {
 
-        CSSQLClause clause = new CSSQLClause();
+    JSONArray copy = new JSONArray();
 
-        clause.setClause(
-                "WHERE C_IMG_INDX = '" + escapeSqlValue(imageIndex) + "'",
-                null,
-                null);
-
-        updateStatement.addField("C_THIRD_INDEX", documentId, 12);
-        updateStatement.setClause(clause);
-
-        int updateResult =
-                CSEEDAOHelper.commExecuteUpdate(updateStatement);
-
-        if (updateResult != 1) {
-
-            logger.error(
-                    "EDMS document ID update failed. ImageIndex={}, "
-                            + "AffectedRows={}",
-                    imageIndex,
-                    updateResult);
-
-            return false;
-        }
-
-        return deleteBlobContentAfterUpload(imageIndex);
+    if (source == null) {
+        return copy;
     }
 
-    /**
-     * Clears the BLOB content after document ID update.
-     */
-    private boolean deleteBlobContentAfterUpload(
-            String imageIndex) throws Exception {
-
-        CSSQLStatement updateStatement =
-                new CSSQLStatement(2, IMAGE_TABLE, DB_CONNECTION);
-
-        CSSQLClause clause = new CSSQLClause();
-
-        clause.setClause(
-                "WHERE C_IMG_INDX = '" + escapeSqlValue(imageIndex) + "'",
-                null,
-                null);
-
-        updateStatement.addField("B_IMG_CONTENT", "", 12);
-        updateStatement.setClause(clause);
-
-        int updateResult =
-                CSEEDAOHelper.commExecuteUpdate(updateStatement);
-
-        if (updateResult != 1) {
-
-            logger.error(
-                    "BLOB cleanup failed. ImageIndex={}, AffectedRows={}",
-                    imageIndex,
-                    updateResult);
-
-            return false;
-        }
-
-        return true;
+    if (depth > 100) {
+        copy.put("[MAX DEPTH REACHED]");
+        return copy;
     }
 
-    /**
-     * Retrieves transaction control parameters.
-     */
-    private trxnControlParams getTrxParams() throws Exception {
-
-        CSSQLStatement selectStatement =
-                new CSSQLStatement(
-                        CSSQLStatement.I_SQL_TYPE_SELECT,
-                        PARAM_TABLE,
-                        DB_CONNECTION);
-
-        selectStatement.addField("TRX_COUNT", null, null);
-        selectStatement.addField("DATE_UPTO", null, null);
-
-        CSSQLClause clause = new CSSQLClause();
-
-        clause.setClause(
-                "WHERE ROW_ID = ?",
-                new Object[] { 1 },
-                new Integer[] { Types.NUMERIC });
-
-        selectStatement.setClause(clause);
-
-        Document result =
-                CSEEDAOHelper.commExecuteQuery(selectStatement);
-
-        if (result == null) {
-            throw new IllegalStateException(
-                    "Unable to retrieve EDMS control parameters");
-        }
-
-        NodeList records =
-                result.getDocumentElement()
-                        .getElementsByTagName("record");
-
-        if (records == null || records.getLength() == 0) {
-            throw new IllegalStateException(
-                    "EDMS control parameter record not found");
-        }
-
-        Node node = records.item(0);
-
-        trxnControlParams params = new trxnControlParams();
-
-        params.setCount(getNodeValue(node, "TRX_COUNT"));
-        params.setDate(getNodeValue(node, "DATE_UPTO"));
-
-        return params;
+    if (visited.containsKey(source)) {
+        copy.put("[CIRCULAR REFERENCE]");
+        return copy;
     }
 
-    /**
-     * Retrieves the total eligible transaction count.
-     */
-    private int getTrxCount(String dateLimit) throws Exception {
+    visited.put(source, Boolean.TRUE);
 
-        CSSQLStatement selectStatement =
-                new CSSQLStatement(
-                        CSSQLStatement.I_SQL_TYPE_SELECT,
-                        "EXIMSYS.TRX_IMAGES_DTAL T1, "
-                                + "EXIMSYS.TRX_IMAGES_HEADER T2",
-                        DB_CONNECTION);
+    for (int i = 0; i < source.length(); i++) {
+        Object value = source.opt(i);
 
-        selectStatement.addField("T1.C_IMG_INDX", null, null);
-
-        String dateCondition =
-                buildDateCondition(dateLimit);
-
-        String whereCondition =
-                "WHERE T1.C_MAIN_REF = T2.C_MAIN_REF "
-                        + "AND T2.C_EVENT_STATUS = 'M' "
-                        + "AND T1.C_THIRD_INDEX IS NULL "
-                        + "AND T1.B_IMG_CONTENT IS NOT NULL "
-                        + dateCondition;
-
-        CSSQLClause clause = new CSSQLClause();
-
-        clause.setClause(whereCondition, null, null);
-
-        selectStatement.setClause(clause);
-
-        Document result =
-                CSEEDAOHelper.commExecuteQuery(selectStatement);
-
-        if (result == null) {
-            throw new IllegalStateException(
-                    "Unable to retrieve eligible EDMS record count");
-        }
-
-        NodeList records =
-                result.getElementsByTagName("record");
-
-        return records == null ? 0 : records.getLength();
-    }
-
-    /**
-     * Retrieves the next eligible records.
-     *
-     * Records already processed successfully will no longer qualify
-     * because C_THIRD_INDEX is populated and B_IMG_CONTENT is cleared.
-     */
-    public static NodeList getMasterTrxnRecords(
-            String dateLimit,
-            int count) {
-
-        try {
-
-            if (count <= 0) {
-                return null;
-            }
-
-            CSSQLStatement selectStatement =
-                    new CSSQLStatement(
-                            CSSQLStatement.I_SQL_TYPE_SELECT,
-                            "EXIMSYS.TRX_IMAGES_DTAL T1, "
-                                    + "EXIMSYS.TRX_IMAGES_HEADER T2",
-                            DB_CONNECTION);
-
-            selectStatement.addField("T1.C_MAIN_REF", null, null);
-            selectStatement.addField("T1.C_UNIT_CODE", null, null);
-            selectStatement.addField("T1.C_IMG_FILE_PATH", null, null);
-            selectStatement.addField("T1.C_ORIG_FILE_PATH", null, null);
-            selectStatement.addField("T1.B_IMG_CONTENT", null, null);
-            selectStatement.addField("T1.C_IMG_INDX", null, null);
-
-            String dateCondition =
-                    buildDateCondition(dateLimit);
-
-            String whereCondition =
-                    "WHERE T1.C_MAIN_REF = T2.C_MAIN_REF "
-                            + "AND T2.C_EVENT_STATUS = 'M' "
-                            + "AND T1.C_THIRD_INDEX IS NULL "
-                            + "AND T1.B_IMG_CONTENT IS NOT NULL "
-                            + dateCondition
-                            + " ORDER BY T1.T_UPLOAD_TIME ASC "
-                            + " FETCH FIRST "
-                            + count
-                            + " ROWS ONLY";
-
-            CSSQLClause clause = new CSSQLClause();
-
-            clause.setClause(whereCondition, null, null);
-
-            selectStatement.setClause(clause);
-
-            Document result =
-                    CSEEDAOHelper.commExecuteQuery(selectStatement);
-
-            if (result == null) {
-                return null;
-            }
-
-            return result.getElementsByTagName("record");
-
-        } catch (Exception e) {
-
-            logger.error("Failed to fetch EDMS housekeeping records", e);
-
-            return null;
+        if (value instanceof JSONObject) {
+            copy.put(sanitizeJSONObject(
+                    (JSONObject) value, visited, depth + 1));
+        } else if (value instanceof JSONArray) {
+            copy.put(sanitizeJSONArray(
+                    (JSONArray) value, visited, depth + 1));
+        } else {
+            copy.put(value);
         }
     }
 
-    /**
-     * Builds date filter.
-     *
-     * Supports SYSDATE or a date value maintained in the control table.
-     *
-     * IMPORTANT:
-     * Replace this string construction with a bind parameter if your
-     * CSSQLClause API supports binding the date condition.
-     */
-    private static String buildDateCondition(String dateLimit) {
-
-        if (isBlank(dateLimit)) {
-            return "";
-        }
-
-        if ("SYSDATE".equalsIgnoreCase(dateLimit.trim())) {
-            return " AND T1.T_UPLOAD_TIME < SYSDATE ";
-        }
-
-        /*
-         * Reject potentially unsafe SQL input.
-         * Adjust validation to the actual date format stored in DB.
-         */
-        if (dateLimit.contains("'")
-                || dateLimit.contains(";")
-                || dateLimit.contains("--")
-                || dateLimit.contains("/*")
-                || dateLimit.contains("*/")) {
-
-            throw new IllegalArgumentException(
-                    "Invalid EDMS date parameter");
-        }
-
-        return " AND T1.T_UPLOAD_TIME < '"
-                + dateLimit.trim()
-                + "' ";
-    }
-
-    /**
-     * Extracts XML node value.
-     */
-    private static String getNodeValue(
-            Node node,
-            String tagName) {
-
-        if (node == null || isBlank(tagName)) {
-            return null;
-        }
-
-        try {
-
-            org.w3c.dom.Element element =
-                    (org.w3c.dom.Element) node;
-
-            NodeList list =
-                    element.getElementsByTagName(tagName);
-
-            if (list != null
-                    && list.getLength() > 0
-                    && list.item(0).getFirstChild() != null) {
-
-                return list.item(0)
-                        .getFirstChild()
-                        .getNodeValue();
-            }
-
-        } catch (Exception e) {
-
-            logger.debug(
-                    "Unable to extract XML field {}",
-                    tagName);
-        }
-
-        return null;
-    }
-
-    /**
-     * Logs record failures without logging document content.
-     */
-    private void logRecordFailure(
-            Node record,
-            Exception e) {
-
-        String reference = safeXmlValue(record, "C_MAIN_REF");
-        String imageIndex = safeXmlValue(record, "C_IMG_INDX");
-
-        logger.error(
-                "EDMS document processing failed. Reference={}, "
-                        + "ImageIndex={}",
-                reference,
-                imageIndex,
-                e);
-    }
-
-    /**
-     * Safe XML extraction for logging.
-     */
-    private static String safeXmlValue(
-            Node record,
-            String tagName) {
-
-        try {
-            String value =
-                    XMLManager.getChildNodeValue(
-                            record,
-                            tagName,
-                            true);
-
-            return value == null ? "UNKNOWN" : value;
-
-        } catch (Exception e) {
-            return "UNKNOWN";
-        }
-    }
-
-    /**
-     * Escapes SQL single quotes.
-     *
-     * This is only a defensive measure. Parameterized SQL is preferable.
-     */
-    private static String escapeSqlValue(String value) {
-
-        if (value == null) {
-            return "";
-        }
-
-        return value.replace("'", "''");
-    }
-
-    /**
-     * Checks blank/null string.
-     */
-    private static boolean isBlank(String value) {
-
-        return value == null
-                || value.trim().isEmpty();
-    }
+    visited.remove(source);
+    return copy;
 }
